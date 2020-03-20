@@ -1,0 +1,5 @@
+# On systemd profiles we can default enable gnome-user-share as it always has been
+gnome-base/gnome-extra-apps share
+
+# for gnome-extra/gnome-user-share
+www-servers/apache apache2_modules_dav apache2_modules_dav_fs apache2_modules_authn_file apache2_modules_auth_digest apache2_modules_authz_groupfile

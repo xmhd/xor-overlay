@@ -1,0 +1,18 @@
+# Commonly found video file formats.
+
+# audio codecs
+USE="a52 aac dts faac faad twolame"
+# video codecs
+USE="${USE} dav1d libmpeg2 mjpeg mpeg quicktime theora vpx x264 x265 xvid win32codecs"
+# containers, subtitles, functions
+USE="${USE} encode ffmpeg libass libguess matroska mp4 postproc"
+
+# Extra audio supoort
+#USE="${USE} fdk"
+
+# Extra video file formats.
+
+#USE="${USE} dirac dv kate libtiger nuv schroedinger"
+
+# fancy streaming protocols
+#USE="${USE} live mms rtmp rtsp"

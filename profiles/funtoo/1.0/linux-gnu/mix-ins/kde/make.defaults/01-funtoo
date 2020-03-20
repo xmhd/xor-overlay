@@ -1,0 +1,2 @@
+# Distributed under the terms of the GNU General Public License v2
+USE="activities declarative dri introspection kde kipi kwallet phonon plasma policykit qml semantic-desktop widgets xcomposite"

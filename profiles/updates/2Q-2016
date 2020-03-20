@@ -1,0 +1,3 @@
+slotmove >=dev-php/pecl-apcu-5.0 0 7
+slotmove >=dev-php/pecl-rrd-2.0 0 7
+slotmove >=dev-php/pecl-oauth-2.0 0 7

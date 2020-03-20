@@ -1,0 +1,6 @@
+# FL-1832; force multilib support on GCC.
+sys-devel/gcc abi_x86_32
+
+# Force sane default Clang/LLVM targets for AMD64.
+sys-devel/clang llvm_targets_AMDGPU llvm_targets_BPF llvm_targets_NVPTX
+sys-devel/llvm llvm_targets_AMDGPU llvm_targets_BPF llvm_targets_NVPTX

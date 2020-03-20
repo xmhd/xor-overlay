@@ -1,0 +1,9 @@
+# TODO
+#
+# We need to define what our scope for a hardened target is.
+# The previous hardened mix-in was specifically related to
+# grsecurity and pax, which are no longer freely available.
+#
+# As a baseline we already have ssp, pie, stack-check, bind_now and FORTIFY.
+#
+# TODO: Discuss way forward.

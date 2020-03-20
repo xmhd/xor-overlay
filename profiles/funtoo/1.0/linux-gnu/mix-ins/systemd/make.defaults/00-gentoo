@@ -1,0 +1,3 @@
+USE="systemd udev"
+
+BOOTSTRAP_USE="${BOOTSTRAP_USE} systemd udev"

@@ -1,0 +1,21 @@
+# Various media types (optical, usb, etc)
+
+USE="bluray cdr dvd dvdr dvdread usb"
+
+# Consumer-level audio device support (music players, etc.)
+
+# ios, ipod: Apple iOS devices
+# mtp: used by Android phones
+USE="${USE} ios ipod mtp"
+
+# Common media device support
+
+USE="${USE} cdda cdio ieee1394"
+
+# Pro-level video device support
+
+USE="${USE} dc1394 dv iec61883"
+
+# Consumer-level video device support (DVD, BluRay, webcams)
+
+USE="${USE} bluray dvd v4l"

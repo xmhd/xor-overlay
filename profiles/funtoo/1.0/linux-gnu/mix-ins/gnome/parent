@@ -1,0 +1,12 @@
+../../flavor/desktop
+../x11
+../wayland
+../gtk
+../dbus
+../networkmanager
+../pulseaudio
+../bluetooth
+../video
+../graphics
+../media
+../print

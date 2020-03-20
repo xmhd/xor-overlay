@@ -1,0 +1,3 @@
+slotmove >=dev-php/pecl-mailparse-3.0 0 7
+slotmove >=dev-php/pecl-yaml-2.0.0_rc1 0 7
+slotmove =sci-geosciences/osm-gps-map-0.7.3 2 0

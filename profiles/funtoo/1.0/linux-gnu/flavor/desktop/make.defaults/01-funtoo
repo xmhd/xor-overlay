@@ -1,0 +1,17 @@
+# Copyright 1999-2019 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+# Pulled from Gentoo - TODO: implement this in features as much as possible.
+#USE="acpi cairo dbus dri emboss icu ldap opengl pango policykit sdl spell udisks unicode upower wxwidgets xml xv"
+
+# Apply branding to applicable packages.
+USE="branding"
+
+# Default to elogind.
+USE="${USE} -consolekit elogind"
+
+# Default to eudev support system-wide on desktop.
+USE="${USE} udev"
+
+# TODO
+USE="${USE} libnotify startup-notification xcb"

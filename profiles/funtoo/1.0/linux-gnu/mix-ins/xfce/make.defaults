@@ -1,0 +1,2 @@
+USE="colord dbus elogind gtk gtk3 introspection jpeg libnotify lock policykit session startup-notification svg thunar udev upower"
+
