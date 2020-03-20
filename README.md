@@ -71,7 +71,7 @@ And will also include software used for supporting hardware (printers, CAC keys,
 
 ### Who do I talk to? ###
 
-* xor/xaero on freenode, or message here.
+* x0r/xaero on freenode, or message here.
 
 ### Anything else? ###
 
