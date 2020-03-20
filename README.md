@@ -67,6 +67,7 @@ And will also include software used for supporting hardware (printers, CAC keys,
 * Expand on hardening features/defaults.
 * VMware - enterprise standard hypervisor.
 * beadm - boot envrionment support for zfs users.
+* profit??
 
 ### Who do I talk to? ###
 
