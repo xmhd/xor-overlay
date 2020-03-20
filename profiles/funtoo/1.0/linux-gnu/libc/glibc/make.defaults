@@ -1,1 +1,4 @@
+PORTAGE_LIBC="glibc"
+ELIBC="glibc"
+
 USE="elibc_glibc"
