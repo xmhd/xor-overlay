@@ -1,23 +1,24 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
 WANT_LIBTOOL="none"
 
-inherit autotools flag-o-matic pax-utils python-utils-r1 toolchain-funcs
+inherit autotools check-reqs flag-o-matic pax-utils python-utils-r1 \
+	toolchain-funcs
 
-MY_P="Python-${PV}"
+MY_P="Python-${PV/_alpha/a}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-3.7.6"
+PATCHSET="python-gentoo-patches-3.9.0_alpha2"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
-SRC_URI="https://www.python.org/ftp/python/${PV}/${MY_P}.tar.xz
+SRC_URI="https://www.python.org/ftp/python/${PV%_*}/${MY_P}.tar.xz
 	https://dev.gentoo.org/~mgorny/dist/python/${PATCHSET}.tar.xz"
 S="${WORKDIR}/${MY_P}"
 
 LICENSE="PSF-2"
-SLOT="${PYVER}/${PYVER}m"
+SLOT="${PYVER}"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sh ~sparc ~x86"
 IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl test threads tk wininst +xml"
 RESTRICT="!test? ( test )"
@@ -57,6 +58,21 @@ DEPEND="${RDEPEND}
 	!sys-devel/gcc[libffi(-)]"
 RDEPEND+=" !build? ( app-misc/mime-types )"
 PDEPEND=">=app-eselect/eselect-python-20140125-r1"
+
+# large file tests involve a 2.5G file being copied (duplicated)
+CHECKREQS_DISK_BUILD=5500M
+
+pkg_pretend() {
+	use test && check-reqs_pkg_pretend
+
+	ewarn "This is an early developer preview of Python 3.9.  New features"
+	ewarn "can still be added up to 2020-05-18.  It's not suitable for production"
+	ewarn "use, and it is not supported for Gentoo packages."
+}
+
+pkg_setup() {
+	use test && check-reqs_pkg_setup
+}
 
 src_prepare() {
 	# Ensure that internal copies of expat, libffi and zlib are not used.
@@ -111,9 +127,9 @@ src_configure() {
 		use hardened && replace-flags -O3 -O2
 	fi
 
-        if is-flagq -flto || is-flagq '-flto=*'; then
-                append-cflags $(test-flags-CC -ffat-lto-objects)
-        fi
+	if is-flagq -flto || is-flagq '-flto=*'; then
+		append-cflags $(test-flags-CC -ffat-lto-objects)
+	fi
 
 	# Export CXX so it ends up in /usr/lib/python3.X/config/Makefile.
 	tc-export CXX
@@ -137,6 +153,11 @@ src_configure() {
 	fi
 
 	local myeconfargs=(
+		# glibc-2.30 removes it; since we can't cleanly force-rebuild
+		# Python on glibc upgrade, remove it proactively to give
+		# a chance for users rebuilding python before glibc
+		ac_cv_header_stropts_h=no
+
 		--enable-shared
 		$(use_enable ipv6)
 		$(use_enable pgo optimizations)
@@ -177,7 +198,6 @@ src_compile() {
 	# https://bugs.gentoo.org/594768
 	local -x LC_ALL=C
 
-	#The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
 
 	# extract the number of parallel jobs in MAKEOPTS
 	echo ${MAKEOPTS} | egrep -o '(\-j|\-\-jobs)(=?|[[:space:]]*)[[:digit:]]+' > /dev/null
@@ -188,11 +208,7 @@ src_compile() {
 	fi
 	export par_arg
 
-	if use pgo; then
-		emake profile-opt PROFILE_TASK="-m test.regrtest ${par_arg} -w -uall,-audio -x test_gdb test_multiprocessing test_subprocess test_tokenize test_signal test_faulthandler test_asyncio test_ctypes test_compileall test_pyexpat test_runpy test_support test_threaded_import test_xmlrpc_net test_multiprocessing_spawn test_httpservers test_logging test_xmlrpc"
-	else
-		emake CPPFLAGS= CFLAGS= LDFLAGS=
-	fi
+	emake EXTRATESTOPTS="${par_arg} -uall,-audio -x test_distutils"
 
 	# Work around bug 329499. See also bug 413751 and 457194.
 	if has_version dev-libs/libffi[pax_kernel]; then
@@ -281,8 +297,6 @@ src_install() {
 	use sqlite || rm -r "${libdir}/"{sqlite3,test/test_sqlite*} || die
 	use tk || rm -r "${ED}/usr/bin/idle${PYVER}" "${libdir}/"{idlelib,tkinter,test/test_tk*} || die
 
-	use wininst || rm "${libdir}/distutils/command/"wininst-*.exe || die
-
 	dodoc Misc/{ACKS,HISTORY,NEWS}
 
 	if use examples; then
@@ -335,49 +349,14 @@ src_install() {
 	chmod +x "${D}${PYTHON_SCRIPTDIR}/python${pymajor}-config" || die
 	ln -s "python${pymajor}-config" \
 		"${D}${PYTHON_SCRIPTDIR}/python-config" || die
-	# 2to3, pydoc, pyvenv
+	# 2to3, pydoc
 	ln -s "../../../bin/2to3-${PYVER}" \
 		"${D}${PYTHON_SCRIPTDIR}/2to3" || die
 	ln -s "../../../bin/pydoc${PYVER}" \
 		"${D}${PYTHON_SCRIPTDIR}/pydoc" || die
-	ln -s "../../../bin/pyvenv-${PYVER}" \
-		"${D}${PYTHON_SCRIPTDIR}/pyvenv" || die
 	# idle
 	if use tk; then
 		ln -s "../../../bin/idle${PYVER}" \
 			"${D}${PYTHON_SCRIPTDIR}/idle" || die
 	fi
-}
-
-pkg_preinst() {
-	if has_version "<${CATEGORY}/${PN}-${PYVER}" && ! has_version ">=${CATEGORY}/${PN}-${PYVER}_alpha"; then
-		python_updater_warning="1"
-	fi
-}
-
-eselect_python_update() {
-	if [[ -z "$(eselect python show)" || \
-			! -f "${EROOT}/usr/bin/$(eselect python show)" ]]; then
-		eselect python update
-	fi
-
-	if [[ -z "$(eselect python show --python${PV%%.*})" || \
-			! -f "${EROOT}/usr/bin/$(eselect python show --python${PV%%.*})" ]]
-	then
-		eselect python update --python${PV%%.*}
-	fi
-}
-
-pkg_postinst() {
-	eselect_python_update
-
-	if [[ "${python_updater_warning}" == "1" ]]; then
-		ewarn "You have just upgraded from an older version of Python."
-		ewarn
-		ewarn "Please adjust PYTHON_TARGETS (if so desired), and run emerge with the --newuse or --changed-use option to rebuild packages installing python modules."
-	fi
-}
-
-pkg_postrm() {
-	eselect_python_update
 }
