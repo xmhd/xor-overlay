@@ -8,7 +8,7 @@ inherit autotools flag-o-matic pax-utils python-utils-r1 toolchain-funcs
 
 MY_P="Python-${PV}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-3.4.10"
+PATCHSET="python-gentoo-patches-3.5.9"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
@@ -19,7 +19,8 @@ S="${WORKDIR}/${MY_P}"
 LICENSE="PSF-2"
 SLOT="${PYVER}/${PYVER}m"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
-IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl +threads tk wininst +xml"
+IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl test +threads tk wininst +xml"
+RESTRICT="!test? ( test )"
 
 # Do not add a dependency on dev-lang/python to this ebuild.
 # If you need to apply a patch which requires python for bootstrapping, please
@@ -33,10 +34,8 @@ RDEPEND="app-arch/bzip2:=
 	virtual/libcrypt:=
 	virtual/libintl
 	gdbm? ( sys-libs/gdbm:=[berkdb] )
-	ncurses? (
-		>=sys-libs/ncurses-5.2:=
-		readline? ( >=sys-libs/readline-4.1:= )
-	)
+	ncurses? ( >=sys-libs/ncurses-5.2:= )
+	readline? ( >=sys-libs/readline-4.1:= )
 	sqlite? ( >=dev-db/sqlite-3.3.8:3= )
 	ssl? (
 		!libressl? ( dev-libs/openssl:= )
@@ -52,6 +51,7 @@ RDEPEND="app-arch/bzip2:=
 # bluetooth requires headers from bluez
 DEPEND="${RDEPEND}
 	bluetooth? ( net-wireless/bluez )
+	test? ( app-arch/xz-utils[extra-filters(+)] )
 	virtual/pkgconfig
 	!sys-devel/gcc[libffi(-)]"
 RDEPEND+=" !build? ( app-misc/mime-types )"
@@ -65,6 +65,7 @@ src_prepare() {
 
 	local PATCHES=(
 		"${WORKDIR}/${PATCHSET}"
+		"${FILESDIR}/test.support.unlink-ignore-PermissionError.patch"
 	)
 
 	default
@@ -77,8 +78,8 @@ src_prepare() {
 		Lib/sysconfig.py \
 		Lib/test/test_site.py \
 		Makefile.pre.in \
-		Modules/Setup.dist \
 		Modules/getpath.c \
+		Modules/Setup.dist \
 		setup.py || die "sed failed to replace @@GENTOO_LIBDIR@@"
 
 	eautoreconf
@@ -146,6 +147,11 @@ src_configure() {
 	fi
 
 	local myeconfargs=(
+		# glibc-2.30 removes it; since we can't cleanly force-rebuild
+		# Python on glibc upgrade, remove it proactively to give
+		# a chance for users rebuilding python before glibc
+		ac_cv_header_stropts_h=no
+
 		--with-fpectl
 		--enable-shared
 		$(use_enable ipv6)
@@ -187,6 +193,7 @@ src_compile() {
 	# Ensure sed works as expected
 	# https://bugs.gentoo.org/594768
 	local -x LC_ALL=C
+
 
 	#The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
 
@@ -279,6 +286,14 @@ src_install() {
 		dosym "${abiver}-config" "/usr/bin/python${PYVER}-config"
 		# Create python-3.5m.pc symlink
 		dosym "python-${PYVER}.pc" "/usr/$(get_libdir)/pkgconfig/${abiver/${PYVER}/-${PYVER}}.pc"
+	fi
+
+	# python seems to get rebuilt in src_install (bug 569908)
+	# Work around it for now.
+	if has_version dev-libs/libffi[pax_kernel]; then
+		pax-mark E "${ED}/usr/bin/${abiver}"
+	else
+		pax-mark m "${ED}/usr/bin/${abiver}"
 	fi
 
 	use sqlite || rm -r "${libdir}/"{sqlite3,test/test_sqlite*} || die

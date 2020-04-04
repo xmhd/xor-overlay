@@ -8,7 +8,7 @@ inherit autotools flag-o-matic pax-utils python-utils-r1 toolchain-funcs
 
 MY_P="Python-${PV}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-3.5.9"
+PATCHSET="python-gentoo-patches-3.6.10"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
@@ -65,20 +65,21 @@ src_prepare() {
 
 	local PATCHES=(
 		"${WORKDIR}/${PATCHSET}"
+		"${FILESDIR}/test.support.unlink-ignore-PermissionError.patch"
 	)
 
 	default
 
 	sed -i -e "s:@@GENTOO_LIBDIR@@:$(get_libdir):g" \
-		configure.ac \
 		Lib/distutils/command/install.py \
 		Lib/distutils/sysconfig.py \
 		Lib/site.py \
 		Lib/sysconfig.py \
 		Lib/test/test_site.py \
 		Makefile.pre.in \
-		Modules/getpath.c \
 		Modules/Setup.dist \
+		Modules/getpath.c \
+		configure.ac \
 		setup.py || die "sed failed to replace @@GENTOO_LIBDIR@@"
 
 	eautoreconf
@@ -125,10 +126,6 @@ src_configure() {
 
 	# Export CXX so it ends up in /usr/lib/python3.X/config/Makefile.
 	tc-export CXX
-
-	# The configure script fails to use pkg-config correctly.
-	# http://bugs.python.org/issue15506
-	export ac_cv_path_PKG_CONFIG=$(tc-getPKG_CONFIG)
 
 	# Set LDFLAGS so we link modules with -lpython3.2 correctly.
 	# Needed on FreeBSD unless Python 3.2 is already installed.
@@ -193,7 +190,6 @@ src_compile() {
 	# https://bugs.gentoo.org/594768
 	local -x LC_ALL=C
 
-
 	#The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
 
 	# extract the number of parallel jobs in MAKEOPTS
@@ -206,7 +202,7 @@ src_compile() {
 	export par_arg
 
 	if use pgo; then
-		emake profile-opt PROFILE_TASK="-m test.regrtest ${par_arg} -w -uall,-audio -x test_gdb test_multiprocessing test_subprocess test_tokenize test_signal test_faulthandler test_asyncio test_ctypes test_compileall test_pyexpat test_runpy test_support test_threaded_import test_xmlrpc_net test_multiprocessing_spawn test_httpservers test_logging test_xmlrpc"
+		emake profile-opt PROFILE_TASK="-m test.regrtest ${par_arg} -w -uall,-audio -x test_gdb test_multiprocessing test_subprocess test_tokenize test_signal test_faulthandler test_asyncio test_ctypes test_compileall test_pyexpat test_runpy test_support test_threaded_import test_xmlrpc_net"
 	else
 		emake CPPFLAGS= CFLAGS= LDFLAGS=
 	fi
@@ -399,4 +395,3 @@ pkg_postinst() {
 pkg_postrm() {
 	eselect_python_update
 }
-
