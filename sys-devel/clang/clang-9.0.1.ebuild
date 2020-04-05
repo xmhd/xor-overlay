@@ -55,7 +55,10 @@ RDEPEND="${RDEPEND}
 PDEPEND="
 	sys-devel/clang-common
 	~sys-devel/clang-runtime-${PV}
-	default-compiler-rt? ( =sys-libs/compiler-rt-${PV%_*}* )
+	default-compiler-rt? (
+		=sys-libs/compiler-rt-${PV%_*}*
+		=sys-libs/llvm-libunwind-${PV%_*}*
+	)
 	default-libcxx? ( >=sys-libs/libcxx-${PV} )"
 
 # least intrusive of all
@@ -118,6 +121,7 @@ multilib_src_configure() {
 		# override default stdlib and rtlib
 		-DCLANG_DEFAULT_CXX_STDLIB=$(usex default-libcxx libc++ "")
 		-DCLANG_DEFAULT_RTLIB=$(usex default-compiler-rt compiler-rt "")
+		-DCLANG_DEFAULT_UNWINDLIB=$(usex default-compiler-rt libunwind "")
 
 		-DCLANG_ENABLE_ARCMT=$(usex static-analyzer)
 		-DCLANG_ENABLE_STATIC_ANALYZER=$(usex static-analyzer)
