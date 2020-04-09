@@ -7,12 +7,15 @@ inherit autotools pam pax-utils systemd user xdg-utils
 
 DESCRIPTION="Policy framework for controlling privileges for system-wide services"
 HOMEPAGE="https://www.freedesktop.org/wiki/Software/polkit https://gitlab.freedesktop.org/polkit/polkit"
-SRC_URI="https://www.freedesktop.org/software/${PN}/releases/${P}.tar.gz"
+SRC_URI="
+	https://www.freedesktop.org/software/${PN}/releases/${P}.tar.gz
+	https://github.com/ferion11/danrepo/releases/download/polkit_patchs/polkit-0.115-duktape.patch.gz
+"
 
 LICENSE="LGPL-2"
 SLOT="0"
 KEYWORDS="~alpha amd64 arm arm64 ~hppa ~ia64 ~mips ppc ppc64 s390 sparc x86"
-IUSE="consolekit elogind examples gtk +introspection jit kde nls pam selinux systemd test"
+IUSE="consolekit duktape elogind examples gtk +introspection jit kde nls pam selinux systemd test"
 RESTRICT="!test? ( test )"
 
 REQUIRED_USE="^^ ( consolekit elogind systemd )"
@@ -30,7 +33,8 @@ BDEPEND="
 	introspection? ( dev-libs/gobject-introspection )
 "
 DEPEND="
-	dev-lang/spidermonkey:60[-debug]
+	!duktape? ( dev-lang/spidermonkey:60[-debug] )
+	duktape? ( dev-lang/duktape )
 	dev-libs/glib:2
 	dev-libs/expat
 	elogind? ( sys-auth/elogind )
@@ -58,7 +62,6 @@ PATCHES=(
 	# bug 660880
 	"${FILESDIR}"/polkit-0.115-elogind.patch
 	"${FILESDIR}"/CVE-2018-19788.patch
-	"${FILESDIR}"/polkit-0.115-spidermonkey-60.patch
 )
 
 QA_MULTILIB_PATHS="
@@ -76,6 +79,16 @@ pkg_setup() {
 }
 
 src_prepare() {
+	if use duktape ; then
+		PATCHES+=(
+			#from https://gitlab.freedesktop.org/polkit/polkit/merge_requests/35
+			"${WORKDIR}"/polkit-0.115-duktape.patch
+		)
+	else
+		PATCHES+=(
+			"${FILESDIR}"/polkit-0.115-spidermonkey-60.patch
+		)
+	fi
 	default
 
 	sed -i -e 's|unix-group:wheel|unix-user:0|' src/polkitbackend/*-default.rules || die #401513
@@ -112,6 +125,11 @@ src_configure() {
 		$(use_enable test)
 		--with-os-type=gentoo
 	)
+	if use duktape ; then
+		myeconfargs+=(
+			--with-duktape
+		)
+	fi
 	econf "${myeconfargs[@]}"
 }
 
