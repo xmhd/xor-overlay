@@ -149,8 +149,7 @@ PATCHES=(
         "${FILESDIR}/chromium-81-gcc-noexcept.patch"
         "${FILESDIR}/chromium-81-gcc-constexpr.patch"
         "${FILESDIR}/chromium-81-gcc-10.patch"
-	"${FILESDIR}/vdpau-support.patch"
-	"${FILESDIR}/vaapi-build-fix.patch"
+	"${FILESDIR}/enable-vaapi.patch"
 )
 
 pre_build_checks() {
