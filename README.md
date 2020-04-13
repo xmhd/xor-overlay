@@ -31,6 +31,9 @@ And will also include software used for supporting hardware (printers, CAC keys,
 * libsecret - Removed hard dependency on gnome-keyring and added USE flag to support multiple providers of FreeDesktop.org libsecret service (e.g. keepassx, gnome-keyring).
 * linux-sources - Added additional kernel sources to satisfy virtual/linux-sources dependency.
 * icecream - up-to-date releases.
+* Clang - some fixes with new CMAKE config options.
+* libcxx - Re-added libcxxrt as an alternative to libcxxabi.
+* polkit - Duktape is now an alternative provider of a JS engine, offering a more lightweight alternative to SpiderMonkey.
 
 ### TLDR; Changelog for packages not in the main repositories ###
 
