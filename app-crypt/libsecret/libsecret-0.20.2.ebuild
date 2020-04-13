@@ -35,7 +35,7 @@ PDEPEND="
 	freedesktop-secret-service? (
                 || (
                         gnome-base/gnome-keyring
-                        app-admin/keepassx
+                        app-admin/keepassxc
                 )
         )
 "
