@@ -51,7 +51,7 @@ RDEPEND="${DEPEND}
 	rootfs? (
 		app-arch/cpio
 		app-misc/pax-utils
-		!<sys-kernel/genkernel-3.5.1.1
+		!<sys-kernel/genkernel-3.4
 	)
 	test-suite? (
 		sys-apps/util-linux
