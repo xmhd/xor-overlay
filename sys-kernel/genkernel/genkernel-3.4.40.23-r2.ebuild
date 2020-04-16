@@ -58,8 +58,8 @@ DEPEND="sys-fs/e2fsprogs
 	selinux? ( sys-libs/libselinux )"
 RDEPEND="${DEPEND}
 		btrfs? ( sys-fs/btrfs-progs )
-		cryptsetup? ( sys-fs/cryptsetup )
-		sys-fs/lvm2
+		cryptsetup? ( sys-fs/cryptsetup[static] )
+		sys-fs/lvm2[static]
 		sys-fs/mdadm
 		app-misc/pax-utils
 		!<sys-apps/openrc-0.9.9"
