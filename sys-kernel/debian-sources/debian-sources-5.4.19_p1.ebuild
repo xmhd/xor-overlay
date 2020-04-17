@@ -242,10 +242,11 @@ src_compile() {
 		--logfile="${WORKDIR}"/genkernel.log \
 		--bootdir="${WORKDIR}"/out/boot \
 		--disklabel \
-		$(usex lvm --lvm --no-lvm ) \
-		$(usex luks --luks --no-luks ) \
-		--mdadm \
 		$(usex btrfs --btrfs --no-btrfs) \
+		$(usex luks --luks --no-luks ) \
+		$(usex lvm --lvm --no-lvm ) \
+		$(usex mdadm --mdadm --no-mdadm) \
+		$(usex udev --udev --no-udev) \
 		$(usex zfs --zfs --no-zfs) \
 		--module-prefix="${WORKDIR}"/out \
 		all || die
