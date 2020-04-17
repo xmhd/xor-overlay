@@ -205,6 +205,10 @@ src_prepare() {
 
 src_compile() {
 
+	# TEMPORARY FIX - TODO: Patch genkernel to not require disabling of sandbox
+	# Disable sandbox.
+	export SANDBOX_ON=0
+
 	! use binary && return
 	install -d "${WORKDIR}"/out/{lib,boot}
 	install -d "${T}"/{cache,twork}
