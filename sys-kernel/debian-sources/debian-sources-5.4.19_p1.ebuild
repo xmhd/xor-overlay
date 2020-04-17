@@ -25,29 +25,44 @@ LINUX_SRCDIR=linux-${PF}
 DEB_PV="$DEB_PV_BASE${DEB_EXTRAVERSION}"
 KERNEL_ARCHIVE="linux_${DEB_PV_BASE}.orig.tar.xz"
 PATCH_ARCHIVE="linux_${DEB_PV}.debian.tar.xz"
+
+SRC_URI="$DEB_UPSTREAM/${KERNEL_ARCHIVE} $DEB_UPSTREAM/${PATCH_ARCHIVE}"
+S="$WORKDIR/linux-${DEB_PV_BASE}"
+
+DESCRIPTION="Debian Sources (and optional binary kernel)"
+DESCRIPTION="Linux kernel sources with Debian patches."
+DEB_UPSTREAM="http://http.debian.net/debian/pool/main/l/linux"
+HOMEPAGE="https://packages.debian.org/unstable/kernel/"
+
 RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
-IUSE="binary btrfs custom-cflags ec2 luks lvm sign-modules zfs"
-DEPEND="
+
+IUSE="binary btrfs custom-cflags ec2 luks lvm sign-modules udev zfs"
+
+BDEPEND="
+	sys-devel/bc
 	virtual/libelf
+"
+
+DEPEND="
 	binary? ( >=sys-kernel/genkernel-3.4.40.7 )
 	btrfs? ( sys-fs/btrfs-progs sys-kernel/genkernel[btrfs] )
+	luks? ( sys-kernel/genkernel[cryptsetup] )
+	lvm? ( sys-kernel/genkernel[cryptsetup] )
+	udev? ( virtual/udev )
 	zfs? ( sys-fs/zfs )
-	luks? ( sys-kernel/genkernel[cryptsetup] )"
-REQUIRED_USE="
-btrfs? ( binary )
-custom-cflags? ( binary )
-luks? ( binary )
-lvm? ( binary )
-sign-modules? ( binary )
-zfs? ( binary )
 "
-DESCRIPTION="Debian Sources (and optional binary kernel)"
-DEB_UPSTREAM="http://http.debian.net/debian/pool/main/l/linux"
-HOMEPAGE="https://packages.debian.org/unstable/kernel/"
-SRC_URI="$DEB_UPSTREAM/${KERNEL_ARCHIVE} $DEB_UPSTREAM/${PATCH_ARCHIVE}"
-S="$WORKDIR/linux-${DEB_PV_BASE}"
+
+REQUIRED_USE="
+	btrfs? ( binary )
+	custom-cflags? ( binary )
+	luks? ( binary )
+	lvm? ( binary )
+	sign-modules? ( binary )
+	udev? ( binary )
+	zfs? ( binary )
+"
 
 get_patch_list() {
 	[[ -z "${1}" ]] && die "No patch series file specified"
