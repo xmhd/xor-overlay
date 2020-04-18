@@ -38,7 +38,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs custom-cflags ec2 luks lvm sign-modules udev zfs"
+IUSE="binary btrfs custom-cflags ec2 luks lvm mdadm sign-modules udev zfs"
 
 BDEPEND="
 	sys-devel/bc
