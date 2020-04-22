@@ -4,7 +4,8 @@
 EAPI="7"
 WANT_LIBTOOL="none"
 
-inherit autotools check-reqs flag-o-matic pax-utils python-utils-r1 toolchain-funcs
+inherit autotools check-reqs flag-o-matic pax-utils python-utils-r1 \
+toolchain-funcs
 
 MY_P="Python-${PV/_alpha/a}"
 PYVER=$(ver_cut 1-2)
@@ -81,7 +82,6 @@ src_prepare() {
 
 	local PATCHES=(
 		"${WORKDIR}/${PATCHSET}"
-		"${
 	)
 
 	default
@@ -183,17 +183,11 @@ src_configure() {
 }
 
 src_compile() {
-	if use pgo; then
-		# disable distcc and ccache
-		export DISTCC_HOSTS=""
-		export CCACHE_DISABLE=1
-	fi
-
 	# Ensure sed works as expected
 	# https://bugs.gentoo.org/594768
 	local -x LC_ALL=C
 
-	# The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
+	#The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
 
 	# extract the number of parallel jobs in MAKEOPTS
 	echo ${MAKEOPTS} | egrep -o '(\-j|\-\-jobs)(=?|[[:space:]]*)[[:digit:]]+' > /dev/null
