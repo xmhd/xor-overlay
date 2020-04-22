@@ -66,7 +66,7 @@ src_prepare() {
 	local PATCHES=(
 		"${WORKDIR}/${PATCHSET}"
 		"${FILESDIR}/test.support.unlink-ignore-PermissionError.patch"
-		"${FILESDIR}/python-3.5-CVE-2020-8492.patcH"
+		"${FILESDIR}/python-3.5-CVE-2020-8492.patch"
 	)
 
 	default
