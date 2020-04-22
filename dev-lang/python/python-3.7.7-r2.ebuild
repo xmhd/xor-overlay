@@ -1,4 +1,4 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
@@ -8,7 +8,7 @@ inherit autotools flag-o-matic pax-utils python-utils-r1 toolchain-funcs
 
 MY_P="Python-${PV}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-3.6.10"
+PATCHSET="python-gentoo-patches-3.7.7"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
@@ -18,8 +18,8 @@ S="${WORKDIR}/${MY_P}"
 
 LICENSE="PSF-2"
 SLOT="${PYVER}/${PYVER}m"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
-IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl test +threads tk wininst +xml"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sh ~sparc ~x86"
+IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl test threads tk wininst +xml"
 RESTRICT="!test? ( test )"
 
 # Do not add a dependency on dev-lang/python to this ebuild.
@@ -28,8 +28,9 @@ RESTRICT="!test? ( test )"
 # patchset. See bug 447752.
 
 RDEPEND="app-arch/bzip2:=
-	app-arch/xz-utils:=
 	dev-libs/libffi:=
+	app-arch/xz-utils:=
+	sys-apps/util-linux:=
 	>=sys-libs/zlib-1.1.3:=
 	virtual/libcrypt:=
 	virtual/libintl
@@ -65,21 +66,11 @@ src_prepare() {
 
 	local PATCHES=(
 		"${WORKDIR}/${PATCHSET}"
-		"${FILESDIR}/test.support.unlink-ignore-PermissionError.patch"
 	)
 
 	default
 
 	sed -i -e "s:@@GENTOO_LIBDIR@@:$(get_libdir):g" \
-		Lib/distutils/command/install.py \
-		Lib/distutils/sysconfig.py \
-		Lib/site.py \
-		Lib/sysconfig.py \
-		Lib/test/test_site.py \
-		Makefile.pre.in \
-		Modules/Setup.dist \
-		Modules/getpath.c \
-		configure.ac \
 		setup.py || die "sed failed to replace @@GENTOO_LIBDIR@@"
 
 	eautoreconf
@@ -137,6 +128,9 @@ src_configure() {
 		append-ldflags "${CFLAGS}"
 	fi
 
+	# Fix implicit declarations on cross and prefix builds. Bug #674070.
+	use ncurses && append-cppflags -I"${ESYSROOT}"/usr/include/ncursesw
+
 	local dbmliborder
 	if use gdbm; then
 		dbmliborder+="${dbmliborder:+:}gdbm"
@@ -148,10 +142,8 @@ src_configure() {
 		# a chance for users rebuilding python before glibc
 		ac_cv_header_stropts_h=no
 
-		--with-fpectl
 		--enable-shared
 		$(use_enable ipv6)
-		$(use_with threads)
 		$(use_enable pgo optimizations)
 		$(use_with lto)
 		--infodir='${prefix}/share/info'
@@ -202,7 +194,7 @@ src_compile() {
 	export par_arg
 
 	if use pgo; then
-		emake profile-opt PROFILE_TASK="-m test.regrtest ${par_arg} -w -uall,-audio -x test_gdb test_multiprocessing test_subprocess test_tokenize test_signal test_faulthandler test_asyncio test_ctypes test_compileall test_pyexpat test_runpy test_support test_threaded_import test_xmlrpc_net"
+		emake profile-opt PROFILE_TASK="-m test.regrtest ${par_arg} -w -uall,-audio -x test_gdb test_multiprocessing test_subprocess test_tokenize test_signal test_faulthandler test_asyncio test_ctypes test_compileall test_pyexpat test_runpy test_support test_threaded_import test_xmlrpc_net test_multiprocessing_spawn test_httpservers test_logging test_xmlrpc"
 	else
 		emake CPPFLAGS= CFLAGS= LDFLAGS=
 	fi
@@ -247,7 +239,7 @@ src_test() {
 	done
 
 	elog "If you would like to run them, you may:"
-	elog "cd '${EPREFIX}/usr/$(get_libdir)/python${PYVER}/test'"
+	elog "cd '${EPREFIX}/usr/lib/python${PYVER}/test'"
 	elog "and run the tests separately."
 
 	if [[ ${result} -ne 0 ]]; then
@@ -256,7 +248,7 @@ src_test() {
 }
 
 src_install() {
-	local libdir=${ED}/usr/$(get_libdir)/python${PYVER}
+	local libdir=${ED}/usr/lib/python${PYVER}
 
 	emake DESTDIR="${D}" altinstall
 
@@ -294,7 +286,6 @@ src_install() {
 	use sqlite || rm -r "${libdir}/"{sqlite3,test/test_sqlite*} || die
 	use tk || rm -r "${ED}/usr/bin/idle${PYVER}" "${libdir}/"{idlelib,tkinter,test/test_tk*} || die
 
-	use threads || rm -r "${libdir}/multiprocessing" || die
 	use wininst || rm "${libdir}/distutils/command/"wininst-*.exe || die
 
 	dodoc Misc/{ACKS,HISTORY,NEWS}
@@ -318,48 +309,48 @@ src_install() {
 		"${ED}/etc/init.d/pydoc-${PYVER}" || die "sed failed"
 
 	# for python-exec
-	local vars=( EPYTHON PYTHON_SITEDIR PYTHON_SCRIPTDIR )
+	local -x EPYTHON=python${PYVER}
 
 	# if not using a cross-compiler, use the fresh binary
 	if ! tc-is-cross-compiler; then
 		local -x PYTHON=./python
 		local -x LD_LIBRARY_PATH=${LD_LIBRARY_PATH+${LD_LIBRARY_PATH}:}${PWD}
 	else
-		vars=( PYTHON "${vars[@]}" )
+		local -x PYTHON=${EPREFIX}/usr/bin/${EPYTHON}
 	fi
 
-	python_export "python${PYVER}" "${vars[@]}"
 	echo "EPYTHON='${EPYTHON}'" > epython.py || die
 	python_domodule epython.py
 
 	# python-exec wrapping support
 	local pymajor=${PYVER%.*}
-	mkdir -p "${D}${PYTHON_SCRIPTDIR}" || die
+	local scriptdir=${D}$(python_get_scriptdir)
+	mkdir -p "${scriptdir}" || die
 	# python and pythonX
 	ln -s "../../../bin/${abiver}" \
-		"${D}${PYTHON_SCRIPTDIR}/python${pymajor}" || die
-	ln -s "python${pymajor}" "${D}${PYTHON_SCRIPTDIR}/python" || die
+		"${scriptdir}/python${pymajor}" || die
+	ln -s "python${pymajor}" "${scriptdir}/python" || die
 	# python-config and pythonX-config
 	# note: we need to create a wrapper rather than symlinking it due
 	# to some random dirname(argv[0]) magic performed by python-config
-	cat > "${D}${PYTHON_SCRIPTDIR}/python${pymajor}-config" <<-EOF || die
+	cat > "${scriptdir}/python${pymajor}-config" <<-EOF || die
 		#!/bin/sh
 		exec "${abiver}-config" "\${@}"
 	EOF
-	chmod +x "${D}${PYTHON_SCRIPTDIR}/python${pymajor}-config" || die
+	chmod +x "${scriptdir}/python${pymajor}-config" || die
 	ln -s "python${pymajor}-config" \
-		"${D}${PYTHON_SCRIPTDIR}/python-config" || die
+		"${scriptdir}/python-config" || die
 	# 2to3, pydoc, pyvenv
 	ln -s "../../../bin/2to3-${PYVER}" \
-		"${D}${PYTHON_SCRIPTDIR}/2to3" || die
+		"${scriptdir}/2to3" || die
 	ln -s "../../../bin/pydoc${PYVER}" \
-		"${D}${PYTHON_SCRIPTDIR}/pydoc" || die
+		"${scriptdir}/pydoc" || die
 	ln -s "../../../bin/pyvenv-${PYVER}" \
-		"${D}${PYTHON_SCRIPTDIR}/pyvenv" || die
+		"${scriptdir}/pyvenv" || die
 	# idle
 	if use tk; then
 		ln -s "../../../bin/idle${PYVER}" \
-			"${D}${PYTHON_SCRIPTDIR}/idle" || die
+			"${scriptdir}/idle" || die
 	fi
 }
 
