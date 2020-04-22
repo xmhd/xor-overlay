@@ -123,11 +123,6 @@ src_configure() {
 	# Please query BSD team before removing this!
 	append-ldflags "-L."
 
-	# LTO needs this
-	if use lto; then
-		append-ldflags "${CFLAGS}"
-	fi
-
 	# Fix implicit declarations on cross and prefix builds. Bug #674070.
 	use ncurses && append-cppflags -I"${ESYSROOT}"/usr/include/ncursesw
 
@@ -182,7 +177,7 @@ src_compile() {
 	# https://bugs.gentoo.org/594768
 	local -x LC_ALL=C
 
-	#The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
+	# The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
 
 	# extract the number of parallel jobs in MAKEOPTS
 	echo ${MAKEOPTS} | egrep -o '(\-j|\-\-jobs)(=?|[[:space:]]*)[[:digit:]]+' > /dev/null

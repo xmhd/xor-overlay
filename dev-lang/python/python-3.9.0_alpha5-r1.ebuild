@@ -4,8 +4,7 @@
 EAPI="7"
 WANT_LIBTOOL="none"
 
-inherit autotools check-reqs flag-o-matic pax-utils python-utils-r1 \
-	toolchain-funcs
+inherit autotools check-reqs flag-o-matic pax-utils python-utils-r1 toolchain-funcs
 
 MY_P="Python-${PV/_alpha/a}"
 PYVER=$(ver_cut 1-2)
@@ -82,6 +81,7 @@ src_prepare() {
 
 	local PATCHES=(
 		"${WORKDIR}/${PATCHSET}"
+		"${
 	)
 
 	default
@@ -139,11 +139,6 @@ src_configure() {
 	# Please query BSD team before removing this!
 	append-ldflags "-L."
 
-	# LTO needs this
-	if use lto; then
-		append-ldflags "${CFLAGS}"
-	fi
-
 	# Fix implicit declarations on cross and prefix builds. Bug #674070.
 	use ncurses && append-cppflags -I"${ESYSROOT}"/usr/include/ncursesw
 
@@ -198,6 +193,7 @@ src_compile() {
 	# https://bugs.gentoo.org/594768
 	local -x LC_ALL=C
 
+	# The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
 
 	# extract the number of parallel jobs in MAKEOPTS
 	echo ${MAKEOPTS} | egrep -o '(\-j|\-\-jobs)(=?|[[:space:]]*)[[:digit:]]+' > /dev/null
@@ -208,7 +204,11 @@ src_compile() {
 	fi
 	export par_arg
 
-	emake EXTRATESTOPTS="${par_arg} -uall,-audio -x test_distutils"
+	if use pgo; then
+		emake profile-opt PROFILE_TASK="-m test.regrtest ${par_arg} -w -uall,-audio -x test_gdb test_multiprocessing test_subprocess test_tokenize test_signal test_faulthandler test_asyncio test_ctypes test_compileall test_pyexpat test_runpy test_support test_threaded_import test_xmlrpc_net test_multiprocessing_spawn test_httpservers test_logging test_xmlrpc"
+	else
+		emake CPPFLAGS= CFLAGS= LDFLAGS=
+	fi
 
 	# Work around bug 329499. See also bug 413751 and 457194.
 	if has_version dev-libs/libffi[pax_kernel]; then
