@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 # Unmask the flag which corresponds to ARCH.
@@ -149,10 +149,6 @@
 -cpu_flags_x86_sse4a
 -cpu_flags_x86_ssse3
 -cpu_flags_x86_xop
-
-# George Shapovalov <george@gentoo.org> (2007-04-08)
-# supported on amd64
--ada
 
 # Robert Buchholz <rbu@gentoo.org> (2007-06-03)
 # Unmask as it works on amd64

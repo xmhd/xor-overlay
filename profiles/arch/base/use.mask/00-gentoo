@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 # Michał Górny <mgorny@gentoo.org> (2019-11-13)
@@ -166,10 +166,6 @@ input_devices_wacom
 # Only works on x86 or amd64
 lcd_devices_svga
 lcd_devices_luise
-
-# George Shapovalov <george@gentoo.org> (2007-04-08)
-# Ada is supported only on x86, amd64 and ppc at present
-ada
 
 # Alex Legler <a3li@gentoo.org> (2009-12-07)
 # Rubinius is whitelisted on supported arches

@@ -17,22 +17,32 @@
 
 #--- END OF EXAMPLES ---
 
+# Kent Fredric <kentnl@gentoo.org> (2020-04-15)
+# Functionality now provided by Net::SMTP 3.25+
+# available with >=virtual/perl-libnet-1.28
+# provided by >=dev-lang/perl-5.20.0
+# Try patching/removing dependent code to utilize this.
+# Bug #650320
+dev-perl/Net-SMTP-SSL
+
+# Michał Górny <mgorny@gentoo.org> (2020-03-28)
+# Backport specific to Python 2.6.  No modern package should be using
+# it.
+dev-python/unittest2
+
+# Michał Górny <mgorny@gentoo.org> (2020-03-25)
+# Provides 'pytest' command to setup.py that is entirely redundant.
+# Strip the dependency, run pytest directly (preferably
+# via 'distutils_enable_tests pytest').
+dev-python/pytest-runner
+
 # Matt Turner <mattst88@gentoo.org> (2020-03-17)
 # Deprecated GNOME 2 era packages
 # Bugs #640022, #713010
 dev-python/gconf-python
 dev-python/gnome-python-base
-dev-python/gnome-python-desktop-base
-dev-python/gnome-python-extras-base
-dev-python/gnome-vfs-python
-dev-python/libbonobo-python
-dev-python/libgnomecanvas-python
-dev-python/libgnome-python
-dev-python/librsvg-python
 dev-python/pygobject:2
 dev-python/pygtksourceview
-dev-python/pyorbit
-gnome-base/gnome-desktop:2
 gnome-base/gnome-vfs
 gnome-base/libbonobo
 gnome-base/libbonoboui
@@ -95,15 +105,9 @@ dev-java/oracle-jre-bin
 # app-editors/emacs package, which makes the virtual unnecessary.
 # Packages should depend on >=app-editors/emacs-23.1:* instead.
 # See the documentation of elisp-common.eclass for details.
-# Removal (without prior masking) in 90 days, or after the release
-# of Emacs 27.1, whatever will occur later. Bug #291296.
+# Removal (without prior masking) after the release of Emacs 27.1,
+# but not later than 2020-06-18. Bug #291296.
 virtual/emacs
-
-# Michał Górny <mgorny@gentoo.org> (2019-12-09)
-# The pycrypto project is long dead, and has been forked into
-# dev-python/pycryptodome that's not entirely API compatible.  Many
-# upstreams prefer switching to dev-python/cryptography instead.
-dev-python/pycrypto
 
 # Michał Górny <mgorny@gentoo.org> (2019-12-09)
 # Test coverage reporting is not useful for Gentoo ebuilds.  The deps

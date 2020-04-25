@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 # When you add an entry to the top of this file, add your name, the date, and
@@ -196,10 +196,6 @@ dev-java/icedtea -shenandoah
 # Mike Gilbert <floppym@gentoo.org> (2016-06-23)
 # This flag only has meaning on amd64
 sys-boot/grub:2 -grub_platforms_xen-32
-
-# Nathan Phillip Brink <binki@gentoo.org> (2015-09-26)
-# git useflag requires dev-libs/libgit2 which few arches support
-dev-util/geany-plugins -git
 
 # Brian Evans <grknight@gentoo.org (2015-09-14)
 # Unmask new USE flags for mariadb on supported arches
