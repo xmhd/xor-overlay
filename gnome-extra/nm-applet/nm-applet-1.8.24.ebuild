@@ -47,6 +47,10 @@ DEPEND="${RDEPEND}
 
 PDEPEND="virtual/notification-daemon" #546134
 
+PATCHES=(
+	"${FILESDIR}"/${PV}-fix-bashisms.patch
+)
+
 src_configure() {
 	local myconf=(
 		--with-appindicator=$(usex ayatana ubuntu no)
