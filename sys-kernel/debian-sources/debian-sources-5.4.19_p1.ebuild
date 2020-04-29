@@ -38,7 +38,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs custom-cflags ec2 luks lvm mdadm sign-modules udev zfs"
+IUSE="binary btrfs custom-cflags ec2 luks lvm mdadm sign-modules zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -303,6 +303,9 @@ src_install() {
 }
 
 pkg_postinst() {
+
+	export SANDBOX_ON=0
+
 	if use binary && [[ -h "${ROOT}"usr/src/linux ]]; then
 		rm "${ROOT}"usr/src/linux
 	fi

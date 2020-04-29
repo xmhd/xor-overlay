@@ -2,7 +2,7 @@
 
 EAPI=5
 
-inherit desktop eutils
+inherit desktop eutils gnome2-utils xdg
 
 DESCRIPTION="The most intelligent Java IDE."
 HOMEPAGE="https://www.jetbrains.com/idea"
@@ -11,7 +11,13 @@ LICENSE="IDEA || ( IDEA_Academic IDEA_Classroom IDEA_OpenSource IDEA_Personal )"
 SLOT="0"
 
 IUSE="android -custom-jdk groovy kotlin spy-js svn"
-RDEPEND="virtual/jdk"
+
+RDEPEND="
+	virtual/jdk
+	dev-libs/libdbusmenu
+"
+
+RESTRICT="mirror strip"
 
 MY_PN="idea"
 
@@ -29,11 +35,8 @@ src_unpack() {
 
 src_prepare() {
         default
-	if ! use custom-jdk; then
-		if [[ -d jre64 ]]; then
-			rm -r jre64 || die
-		fi
-	fi
+
+	rm -rf jbr || die
 }
 
 src_install() {
@@ -65,3 +68,12 @@ src_install() {
 	echo "fs.inotify.max_user_watches = 524288" > "${D}/etc/sysctl.d/30-idea-inotify-watches.conf" || die
 }
 
+pkg_postinst() {
+	xdg_pkg_postinst
+	gnome2_icon_cache_update
+}
+
+pkg_postrm() {
+	xdg_pkg_postrm
+	gnome2_icon_cache_update
+}
