@@ -50,7 +50,6 @@ DEPEND="
 	btrfs? ( sys-fs/btrfs-progs sys-kernel/genkernel[btrfs] )
 	luks? ( sys-kernel/genkernel[cryptsetup] )
 	lvm? ( sys-kernel/genkernel[cryptsetup] )
-	udev? ( virtual/udev )
 	zfs? ( sys-fs/zfs )
 "
 
@@ -60,7 +59,6 @@ REQUIRED_USE="
 	luks? ( binary )
 	lvm? ( binary )
 	sign-modules? ( binary )
-	udev? ( binary )
 	zfs? ( binary )
 "
 
@@ -246,7 +244,6 @@ src_compile() {
 		$(usex luks --luks --no-luks ) \
 		$(usex lvm --lvm --no-lvm ) \
 		$(usex mdadm --mdadm --no-mdadm) \
-		$(usex udev --udev --no-udev) \
 		$(usex zfs --zfs --no-zfs) \
 		--module-prefix="${WORKDIR}"/out \
 		all || die
