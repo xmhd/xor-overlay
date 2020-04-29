@@ -1,27 +1,37 @@
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=5
+EAPI=6
 
-inherit desktop eutils
+inherit gnome2-utils xdg
 
 DESCRIPTION="The Python IDE for Professional Developers"
 HOMEPAGE="https://www.jetbrains.com/pycharm"
-LICENSE="IDEA || ( IDEA_Academic IDEA_Classroom IDEA_OpenSource IDEA_Personal )"
+LICENSE="PyCharm_Academic PyCharm_Classroom PyCharm PyCharm_OpenSource PyCharm_Preview"
 
 SLOT="0"
 
-IUSE="custom-jdk"
 RDEPEND="
-        !custom-jdk? ( virtual/jdk )"
+	virtual/jdk
+	dev-libs/libdbusmenu
+"
+
+RESTRICT="mirror strip"
+
+QA_PREBUILT="
+	opt/${PN}/bin/fsnotifier
+	opt/${PN}/bin/fsnotifier64
+	opt/${PN}/bin/fsnotifier-arm
+	opt/${PN}/bin/libyjpagent-linux.so
+	opt/${PN}/bin/libyjpagent-linux64.so
+"
 
 MY_PN="pycharm-professional"
+S="${WORKDIR}/${MY_PN}-${PV}"
 
 if [[ ${PV} != 9999 ]]; then
         SRC_URI="https://download.jetbrains.com/python/${MY_PN}-${PV}.tar.gz"
         KEYWORDS="*"
 fi
-
-S="${WORKDIR}/${MY_PN}-${PV}"
 
 src_unpack() {
         default
@@ -30,38 +40,33 @@ src_unpack() {
 
 src_prepare() {
         default
-	if ! use custom-jdk; then
-		if [[ -d jre64 ]]; then
-			rm -r jre64 || die
-		fi
-	fi
+	# Remove any bundled Java
+	rm -rf {jbr,jre{64}} || die "Failed to remove bundled Java"
 }
 
 src_install() {
-	local dir="/opt/${MY_PN}-${PV}"
 
-	insinto "${dir}"
+	insinto "/opt/${PN}"
 	doins -r *
-	fperms 755 "${dir}"/bin/pycharm.sh
 
-	if use amd64; then
-		fperms 755 "${dir}"/bin/fsnotifier64
-	fi
-	if use x86; then
-		fperms 755 "${dir}"/bin/fsnotifier
-	fi
+	fperms 755 /opt/${PN}/bin/{pycharm.sh,fsnotifier{,64},inspect.sh}
 
-	if use custom-jdk; then
-		if [[ -d jbr ]]; then
-		fperms 755 "${dir}"/jbr/bin/{jaotc,java,javac,jdb,jjs,jrunscript,keytool,pack200,rmid,rmiregistry,serialver,unpack200}
-		fi
-	fi
+	dosym ../../opt/${PN}/bin/pycharm.sh /usr/bin/${PN}
 
-	make_wrapper "${PN}" "${dir}/bin/pycharm.sh"
-	newicon "bin/${PN}.svg" "${PN}.svg"
-	make_desktop_entry "${PN}" "PyCharm Professional" "${PN}" "Development;IDE;"
+	newicon "bin/${MY_PN}.png" "${PN}.png"
+	make_desktop_entry "${PN}" "PyCharm Professional" "${PN}" "Development;Programming;IDE;"
 
-	# recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
-	mkdir -p "${D}/etc/sysctl.d/" || die
-	echo "fs.inotify.max_user_watches = 524288" > "${D}/etc/sysctl.d/30-idea-inotify-watches.conf" || die
+        # recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
+        mkdir -p "${D}/etc/sysctl.d/" || die
+        echo "fs.inotify.max_user_watches = 524288" > "${D}/etc/sysctl.d/30-idea-inotify-watches.conf" || die
+}
+
+pkg_postinst() {
+	xdg_pkg_postinst
+	gnome2_icon_cache_update
+}
+
+pkg_postrm() {
+	xdg_pkg_postrm
+	gnome2_icon_cache_update
 }
