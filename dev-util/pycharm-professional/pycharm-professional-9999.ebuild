@@ -34,11 +34,6 @@ if [[ ${PV} != 9999 ]]; then
         KEYWORDS="*"
 fi
 
-src_unpack() {
-        default
-        mv "${WORKDIR}"/pycharm* "${S}" || die "Failed to move/rename source dir"
-}
-
 src_prepare() {
         default
 
