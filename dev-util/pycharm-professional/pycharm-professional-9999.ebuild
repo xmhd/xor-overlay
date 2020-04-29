@@ -13,6 +13,7 @@ SLOT="0"
 RDEPEND="
 	virtual/jdk
 	dev-libs/libdbusmenu
+	dev-python/pip
 "
 
 RESTRICT="mirror strip"
@@ -25,11 +26,11 @@ QA_PREBUILT="
 	opt/${PN}/bin/libyjpagent-linux64.so
 "
 
-MY_PN="pycharm-professional"
-S="${WORKDIR}/${MY_PN}-${PV}"
+MY_PN="pycharm"
+S="${WORKDIR}/${PN}-${PV}"
 
 if [[ ${PV} != 9999 ]]; then
-        SRC_URI="https://download.jetbrains.com/python/${MY_PN}-${PV}.tar.gz"
+        SRC_URI="https://download.jetbrains.com/python/${PN}-${PV}.tar.gz"
         KEYWORDS="*"
 fi
 
@@ -40,6 +41,7 @@ src_unpack() {
 
 src_prepare() {
         default
+
 	# Remove any bundled Java
 	rm -rf {jbr,jre{64}} || die "Failed to remove bundled Java"
 }
