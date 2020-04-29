@@ -43,7 +43,7 @@ src_install() {
 	dosym ../../opt/${PN}/bin/pycharm.sh /usr/bin/${PN}
 
 	newicon "bin/${MY_PN}.png" "${PN}.png"
-	make_desktop_entry "${PN}" "PyCharm Professional" "${PN}" "Development;Programming;IDE;"
+	make_desktop_entry "${PN}" "PyCharm Community" "${PN}" "Development;Programming;IDE;"
 
         # recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
         mkdir -p "${D}/etc/sysctl.d/" || die
