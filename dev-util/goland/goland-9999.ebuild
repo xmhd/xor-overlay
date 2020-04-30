@@ -1,8 +1,8 @@
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=5
+EAPI=6
 
-inherit desktop eutils
+inherit gnome2-utils xdg
 
 DESCRIPTION="Capable and ergonomic Go IDE"
 HOMEPAGE="https://www.jetbrains.com/goland"
@@ -10,19 +10,19 @@ LICENSE="IDEA || ( IDEA_Academic IDEA_Classroom IDEA_OpenSource IDEA_Personal )"
 
 SLOT="0"
 
-IUSE="custom-jdk"
 RDEPEND="
         dev-lang/go
-        !custom-jdk? ( virtual/jdk )"
+        virtual/jdk
+"
 
-MY_PN="goland"
+RESTRICT="mirror strip"
+
+S="${WORKDIR}/${PN}-${PV}"
 
 if [[ ${PV} != 9999 ]]; then
-        SRC_URI="https://download.jetbrains.com/go/${MY_PN}-${PV}.tar.gz"
+        SRC_URI="https://download.jetbrains.com/go/${PN}-${PV}.tar.gz"
         KEYWORDS="*"
 fi
-
-S="${WORKDIR}/${MY_PN}-${PV}"
 
 src_unpack() {
         default
@@ -31,38 +31,34 @@ src_unpack() {
 
 src_prepare() {
         default
-	if ! use custom-jdk; then
-		if [[ -d jre64 ]]; then
-			rm -r jre64 || die
-		fi
-	fi
+
+	# Remove any bundled Java
+	rm -rf {jbr,jre{64}} || die "Failed to remove bundled Java"
 }
 
 src_install() {
-	local dir="/opt/${MY_PN}-${PV}"
 
-	insinto "${dir}"
+	insinto "/opt/${PN}"
 	doins -r *
-	fperms 755 "${dir}"/bin/${MY_PN}.sh
 
-	if use amd64; then
-		fperms 755 "${dir}"/bin/fsnotifier64
-	fi
-	if use x86; then
-		fperms 755 "${dir}"/bin/fsnotifier
-	fi
+	fperms 755 /opt/${PN}/bin/{format.sh,goland.sh,inspect.sh,printenv.py,restart.py,fsnotifier{,64}}
 
-	if use custom-jdk; then
-		if [[ -d jbr ]]; then
-		fperms 755 "${dir}"/jbr/bin/{jaotc,java,javac,jdb,jjs,jrunscript,keytool,pack200,rmid,rmiregistry,serialver,unpack200}
-		fi
-	fi
+	dosym ../../opt/${PN}/bin/goland.sh /usr/bin/${PN}
 
-	make_wrapper "${MY_PN}" "${dir}/bin/${MY_PN}.sh"
-	newicon "bin/${MY_PN}.svg" "${MY_PN}.svg"
-	make_desktop_entry "${MY_PN}" "GoLand" "${MY_PN}" "Development;IDE;"
+	newicon "bin/${MY_PN}.png" "${PN}.png"
+	make_desktop_entry "${PN}" "GoLand" "${PN}" "Development;Programming;IDE;"
 
-	# recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
-	mkdir -p "${D}/etc/sysctl.d/" || die
-	echo "fs.inotify.max_user_watches = 524288" > "${D}/etc/sysctl.d/30-goland-inotify-watches.conf" || die
+        # recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
+        mkdir -p "${D}/etc/sysctl.d/" || die
+        echo "fs.inotify.max_user_watches = 524288" > "${D}/etc/sysctl.d/30-idea-inotify-watches.conf" || die
+}
+
+pkg_postinst() {
+	xdg_pkg_postinst
+	gnome2_icon_cache_update
+}
+
+pkg_postrm() {
+	xdg_pkg_postrm
+	gnome2_icon_cache_update
 }
