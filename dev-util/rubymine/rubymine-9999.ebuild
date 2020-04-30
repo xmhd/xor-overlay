@@ -1,26 +1,27 @@
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=5
+EAPI=6
 
-inherit desktop eutils
+inherit gnome2-utils xdg
 
 DESCRIPTION="The most intelligent Ruby and Rails IDE."
 HOMEPAGE="https://www.jetbrains.com/rubymine"
 LICENSE="IDEA || ( IDEA_Academic IDEA_Classroom IDEA_OpenSource IDEA_Personal )"
-RESTRICT="bindist mirror splitdebug"
+
 SLOT="0"
 
-IUSE="custom-jdk"
-RDEPEND="!custom-jdk? ( virtual/jdk )"
+RDEPEND="
+	virtual/jdk
+"
 
-MY_PN="rubymine"
+RESTRICT="bindist mirror splitdebug strip"
 
 if [[ ${PV} != 9999 ]]; then
         SRC_URI="https://download.jetbrains.com/ruby/RubyMine-${PV}.tar.gz"
         KEYWORDS="*"
 fi
 
-S="${WORKDIR}/${MY_PN}-${PV}"
+S="${WORKDIR}/${PN}-${PV}"
 
 src_unpack() {
         default
@@ -29,38 +30,34 @@ src_unpack() {
 
 src_prepare() {
         default
-	if ! use custom-jdk; then
-		if [[ -d jre64 ]]; then
-			rm -r jre64 || die
-		fi
-	fi
+
+	# Remove any bundled Java
+	rm -rf {jbr,jre{64}} || die "Failed to remove bundled Java"
 }
 
 src_install() {
-	local dir="/opt/${MY_PN}-${PV}"
 
-	insinto "${dir}"
+	insinto "/opt/${PN}"
 	doins -r *
-	fperms 755 "${dir}"/bin/${MY_PN}.sh
 
-	if use amd64; then
-		fperms 755 "${dir}"/bin/fsnotifier64
-	fi
-	if use x86; then
-		fperms 755 "${dir}"/bin/fsnotifier
-	fi
+	fperms 755 /opt/${PN}/bin/{format.sh,rubymine.sh,inspect.sh,printenv.py,restart.py,fsnotifier{,64}}
 
-	if use custom-jdk; then
-		if [[ -d jbr ]]; then
-		fperms 755 "${dir}"/jbr/bin/{jaotc,java,javac,jdb,jjs,jrunscript,keytool,pack200,rmid,rmiregistry,serialver,unpack200}
-		fi
-	fi
+	dosym ../../opt/${PN}/bin/rubymine.sh /usr/bin/${PN}
 
-	make_wrapper "${PN}" "${dir}/bin/${MY_PN}.sh"
-	newicon "bin/${MY_PN}.svg" "${MY_PN}.svg"
-	make_desktop_entry "${MY_PN}" "RubyMine" "${MY_PN}" "Development;IDE;"
+	newicon "bin/${PN}.png" "${PN}.png"
+	make_desktop_entry "${PN}" "RubyMine" "${PN}" "Development;Programming;IDE;"
 
-	# recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
-	dodir /usr/lib/sysctl.d/
-	echo "fs.inotify.max_user_watches = 524288" > "${D}/usr/lib/sysctl.d/30-${MY_PN}-inotify-watches.conf" || die
+        # recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
+        mkdir -p "${D}/etc/sysctl.d/" || die
+        echo "fs.inotify.max_user_watches = 524288" > "${D}/etc/sysctl.d/30-idea-inotify-watches.conf" || die
+}
+
+pkg_postinst() {
+	xdg_pkg_postinst
+	gnome2_icon_cache_update
+}
+
+pkg_postrm() {
+	xdg_pkg_postrm
+	gnome2_icon_cache_update
 }
