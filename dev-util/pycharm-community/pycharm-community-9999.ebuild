@@ -6,9 +6,13 @@ inherit gnome2-utils xdg
 
 DESCRIPTION="The Python IDE for pure Python development"
 HOMEPAGE="https://www.jetbrains.com/pycharm"
-LICENSE="PyCharm_Academic PyCharm_Classroom PyCharm PyCharm_OpenSource PyCharm_Preview"
+LICENSE="Apache-2.0"
 
 SLOT="0"
+
+BDEPEND="
+	app-arch/tar
+"
 
 RDEPEND="
         virtual/jdk
@@ -16,7 +20,7 @@ RDEPEND="
         dev-python/pip
 "
 
-RESTRICT="mirror strip"
+RESTRICT="bindist mirror strip"
 
 MY_PN="pycharm"
 S="${WORKDIR}/${PN}-${PV}"

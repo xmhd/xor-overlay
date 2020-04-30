@@ -6,16 +6,20 @@ inherit gnome2-utils xdg
 
 DESCRIPTION="The most intelligent Java IDE."
 HOMEPAGE="https://www.jetbrains.com/idea"
-LICENSE="IDEA_Academic IDEA_Classroom IDEA_OpenSource IDEA_Personal"
+LICENSE="JetBrains"
 
 SLOT="0"
+
+BDEPEND="
+	app-arch/tar
+"
 
 RDEPEND="
 	virtual/jdk
 	dev-libs/libdbusmenu
 "
 
-RESTRICT="mirror strip"
+RESTRICT="bindist mirror strip"
 
 QA_PREBUILT="
 	/opt/${PN}/bin/fsnotifier

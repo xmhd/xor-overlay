@@ -6,11 +6,15 @@ inherit gnome2-utils xdg
 
 DESCRIPTION="A complete toolset for C and C++ development."
 HOMEPAGE="https://www.jetbrains.com/clion"
-LICENSE="IDEA || ( IDEA_Academic IDEA_Classroom IDEA_OpenSource IDEA_Personal )"
+LICENSE="JetBrains"
 
 SLOT="0"
 
 IUSE="gdb lldb"
+
+BDEPEND="
+	app-arch/tar
+"
 
 RDEPEND="
         dev-util/cmake
@@ -19,7 +23,7 @@ RDEPEND="
         virtual/jdk
 "
 
-RESTRICT="mirror strip"
+RESTRICT="bindist mirror strip"
 
 S="${WORKDIR}/${PN}-${PV}"
 

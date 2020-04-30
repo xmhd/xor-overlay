@@ -6,16 +6,20 @@ inherit gnome2-utils xdg
 
 DESCRIPTION="Capable and ergonomic Go IDE"
 HOMEPAGE="https://www.jetbrains.com/goland"
-LICENSE="IDEA || ( IDEA_Academic IDEA_Classroom IDEA_OpenSource IDEA_Personal )"
+LICENSE="JetBrains"
 
 SLOT="0"
+
+BDEPEND="
+	app-arch/tar
+"
 
 RDEPEND="
         dev-lang/go
         virtual/jdk
 "
 
-RESTRICT="mirror strip"
+RESTRICT="bindist mirror strip"
 
 S="${WORKDIR}/${PN}-${PV}"
 

@@ -6,9 +6,13 @@ inherit gnome2-utils xdg
 
 DESCRIPTION="The Python IDE for Professional Developers"
 HOMEPAGE="https://www.jetbrains.com/pycharm"
-LICENSE="PyCharm_Academic PyCharm_Classroom PyCharm PyCharm_OpenSource PyCharm_Preview"
+LICENSE="JetBrains"
 
 SLOT="0"
+
+BDEPEND="
+	app-arch/tar
+"
 
 RDEPEND="
 	virtual/jdk
@@ -16,7 +20,7 @@ RDEPEND="
 	dev-python/pip
 "
 
-RESTRICT="mirror strip"
+RESTRICT="bindist mirror strip"
 
 QA_PREBUILT="
 	opt/${PN}/bin/fsnotifier

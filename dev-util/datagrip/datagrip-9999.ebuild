@@ -6,16 +6,20 @@ inherit gnome2-utils xdg
 
 DESCRIPTION="Many databases, one tool"
 HOMEPAGE="https://www.jetbrains.com/datagrip"
-LICENSE="IDEA || ( IDEA_Academic IDEA_Classroom IDEA_OpenSource IDEA_Personal )"
+LICENSE="JetBrains"
 
 SLOT="0"
+
+BDEPEND="
+	app-arch/tar
+"
 
 RDEPEND="
 	virtual/jdk
 	dev-libs/libdbusmenu
 "
 
-RESTRICT="mirror strip"
+RESTRICT="bindist mirror strip"
 
 MY_PN="datagrip"
 S="${WORKDIR}/${MY_PN}-${PV}"

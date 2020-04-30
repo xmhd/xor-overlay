@@ -6,9 +6,13 @@ inherit gnome2-utils xdg
 
 DESCRIPTION="The most intelligent Ruby and Rails IDE."
 HOMEPAGE="https://www.jetbrains.com/rubymine"
-LICENSE="IDEA || ( IDEA_Academic IDEA_Classroom IDEA_OpenSource IDEA_Personal )"
+LICENSE="JetBrains"
 
 SLOT="0"
+
+BDEPEND="
+	app-arch/tar
+"
 
 RDEPEND="
 	virtual/jdk
