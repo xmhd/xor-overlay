@@ -77,6 +77,22 @@ elif [[ ${PV} == 4.5.2 ]]; then
 	KEYWORDS="x86 amd64"
 fi
 
+pkg_pretend() {
+        if has network-sandbox ${FEATURES}; then
+                eerror
+                eerror "Eclipse ebuild contains many SRC_URI links which spam the"
+                eerror "network-sandbox log. The emerge will complete successfully,"
+                eerror "however to hide this spam either use FEATURES=-network-sandbox"
+                eerror "or use env + package.env to permanently disable network-sandbox"
+                eerror "for this package"
+                eerror
+                eerror "see:"
+                eerror"    https://wiki.gentoo.org/wiki//etc/portage/package.env"
+                eerror
+                die "network-sandbox is enabled, disable it to proceed";
+        fi
+}
+
 src_install() {
 
         insinto "/opt/${MY_PN}"
