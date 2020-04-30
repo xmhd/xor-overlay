@@ -37,8 +37,6 @@ src_install() {
 	doins -r *
 
 	fperms 755 /opt/${PN}/bin/${PN}
-	fperms 755 /opt/${PN}/ide/bin/nativeexecution/Linux-x86_64/{process_start,stat,pty_open,sigqueue,killall,pty}
-	find /opt/${PN}/ -name "*.so*" -type f -exec chmod +x {} \; || "Change .so permission failed"
 
 	dosym ../../opt/${PN}/bin/${PN} /usr/bin/${PN}
 
