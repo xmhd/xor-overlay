@@ -6,7 +6,7 @@ inherit gnome2-utils xdg
 
 DESCRIPTION=""
 HOMEPAGE="https://netbeans.apache.org"
-LICENSE=""
+LICENSE="Apache-2.0"
 
 SLOT="0"
 
@@ -18,6 +18,8 @@ RDEPEND="
 	virtual/jdk
 "
 
+RESTRICT="strip"
+
 S="${WORKDIR}/${PN}-${PV}"
 
 if [[ ${PV} != 9999 ]]; then
@@ -27,6 +29,7 @@ fi
 
 src_unpack() {
 	default
+	mv "${WORKDIR}"/netbeans* "${S}" || die "Failed to move/rename source dir"
 }
 
 src_install() {
@@ -34,6 +37,8 @@ src_install() {
 	doins -r *
 
 	fperms 755 /opt/${PN}/bin/${PN}
+	fperms 755 /opt/${PN}/ide/bin/nativeexecution/Linux-x86_64/{process_start,stat,pty_open,sigqueue,killall,pty}
+	find /opt/${PN}/ -name "*.so*" -type f -exec chmod +x {} \; || "Change .so permission failed"
 
 	dosym ../../opt/${PN}/bin/${PN} /usr/bin/${PN}
 
