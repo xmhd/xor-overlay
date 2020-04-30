@@ -107,7 +107,7 @@ src_install() {
 	newins "${T}/eclipse.conf" "eclipse.conf"
 
 	newicon "icon.xpm" "${MY_PN}.png"
-        make_desktop_entry "eclipse" "Eclipse Enterprise" "${MY_PN}" "Development;"
+        make_desktop_entry "eclipse" "Eclipse" "${MY_PN}" "Development;"
 }
 
 pkg_postinst() {
