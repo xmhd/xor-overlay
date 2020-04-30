@@ -44,7 +44,7 @@ src_install() {
 
 	fperms 755 /opt/${PN}/bin/{format.sh,datagrip.sh,inspect.sh,printenv.py,restart.py,fsnotifier{,64}}
 
-	dosym ../../opt/${PN}/bin/idea.sh /usr/bin/${PN}
+	dosym ../../opt/${PN}/bin/datagrip.sh /usr/bin/${PN}
 
 	newicon "bin/${PN}.png" "${PN}.png"
 	make_desktop_entry "${PN}" "DataGrip" "${PN}" "Development;Programming;IDE;"
