@@ -25,7 +25,7 @@ fi
 
 src_unpack() {
         default
-        mv "${WORKDIR}"/JetBrains.Rider-* "${S}" || die "Failed to move/rename source dir"
+        mv "${WORKDIR}"/JetBrains* "${S}" || die "Failed to move/rename source dir"
 }
 
 src_prepare() {
