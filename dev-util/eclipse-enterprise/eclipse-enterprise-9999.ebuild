@@ -24,7 +24,7 @@ RESTRICT="strip"
 
 S=${WORKDIR}/eclipse
 
-SRC_URI_BASE="https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/${RNAME}/${SR}/eclipse-jee-${RNAME}-${SR}-linux-gtk"
+SRC_URI_BASE="https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/"
 MY_PN="eclipse"
 
 if [[ ${PV} == 4.15 ]]; then
