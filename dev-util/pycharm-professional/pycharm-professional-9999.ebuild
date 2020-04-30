@@ -34,6 +34,10 @@ if [[ ${PV} != 9999 ]]; then
         KEYWORDS="*"
 fi
 
+src_unpack() {
+	default
+}
+
 src_prepare() {
         default
 
