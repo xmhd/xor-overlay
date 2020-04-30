@@ -10,9 +10,12 @@ LICENSE="IDEA || ( IDEA_Academic IDEA_Classroom IDEA_OpenSource IDEA_Personal )"
 
 SLOT="0"
 
+IUSE="gdb lldb"
+
 RDEPEND="
         dev-util/cmake
-        sys-devel/gdb
+        gdb? ( sys-devel/gdb )
+	lldb? ( dev-util/lldb )
         virtual/jdk
 "
 
