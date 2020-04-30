@@ -45,7 +45,7 @@ src_install() {
 
 	dosym ../../opt/${PN}/bin/goland.sh /usr/bin/${PN}
 
-	newicon "bin/${MY_PN}.png" "${PN}.png"
+	newicon "bin/${PN}.png" "${PN}.png"
 	make_desktop_entry "${PN}" "GoLand" "${PN}" "Development;Programming;IDE;"
 
         # recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
