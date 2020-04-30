@@ -40,7 +40,7 @@ src_install() {
 	insinto "/opt/${PN}"
 	doins -r *
 
-	fperms 755 /opt/${PN}/bin/{format.sh,rubymine.sh,inspect.sh,printenv.py,restart.py,fsnotifier{,64}}
+	fperms 755 /opt/${PN}/bin/{format.sh,rubymine.sh,printenv.py,restart.py,fsnotifier{,64}}
 
 	dosym ../../opt/${PN}/bin/rubymine.sh /usr/bin/${PN}
 
