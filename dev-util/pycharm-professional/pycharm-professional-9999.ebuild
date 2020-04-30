@@ -36,6 +36,7 @@ fi
 
 src_unpack() {
 	default
+	mv "${WORKDIR}"/idea* "${S}" || die "Failed to move/rename source dir"
 }
 
 src_prepare() {
