@@ -224,6 +224,18 @@ src_prepare() {
 		ewarn "parameter (to params in /etc/boot.conf, and re-run boot-update.)"
 		echo
 	fi
+        if use wireguard; then
+                setyes_config .config CONFIG_NET
+		setyes_config .config CONFIG_INET
+		setyes_config .config CONFIG_INET_UDP_TUNNEL
+		setyes_config .config CONFIG_NF_CONNTRACK
+		setyes_config .config CONFIG_NETFILTER_XT_MATCH_HASHLIMIT
+		setyes_config .config CONFIG_IP6_NF_IPTABLES
+		setyes_config .config CONFIG_CRYPTO_BLKCIPHER
+		setyes_config .config CONFIG_PADATA
+		# TODO: add some log output here regarding rc-update add modules boot
+		# if using a kernel lower than 5.6, and thus wireguard-modules.
+        fi
 	# get config into good state:
 	yes "" | make oldconfig >/dev/null 2>&1 || die
 	cp .config "${T}"/config || die
