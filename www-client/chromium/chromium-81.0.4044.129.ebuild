@@ -149,6 +149,8 @@ PATCHES=(
         "${FILESDIR}/chromium-81-gcc-noexcept.patch"
         "${FILESDIR}/chromium-81-gcc-constexpr.patch"
         "${FILESDIR}/chromium-81-gcc-10.patch"
+	"${FILESDIR}/chromium-81-icu67.patch"
+	"${FILESDIR}/chromium-81-re2-0.2020.5.01.patch"
 	"${FILESDIR}/enable-vaapi.patch"
 )
 
