@@ -178,6 +178,12 @@ src_prepare() {
 		setyes_config .config CONFIG_XEN_BLKDEV_BACKEND
 		setyes_config .config CONFIG_IXGBEVF
 	fi
+        if use custom-cflags; then
+                MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
+                if [ -n "$MARCH" ]; then
+                        sed -i -e 's/-mtune=generic/$MARCH/g' arch/x86/Makefile || die "Canna optimize this kernel anymore, captain!"
+                fi
+        fi
 	if use sign-modules; then
 		certs_dir=$(get_certs_dir)
 		echo
@@ -205,12 +211,6 @@ src_prepare() {
 		ewarn "To enable strict enforcement, YOU MUST add module.sig_enforce=1 as a kernel boot"
 		ewarn "parameter (to params in /etc/boot.conf, and re-run boot-update.)"
 		echo
-	fi
-	if use custom-cflags; then
-		MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
-		if [ -n "$MARCH" ]; then
-			sed -i -e 's/-mtune=generic/$MARCH/g' arch/x86/Makefile || die "Canna optimize this kernel anymore, captain!"
-		fi
 	fi
 	# get config into good state:
 	yes "" | make oldconfig >/dev/null 2>&1 || die
