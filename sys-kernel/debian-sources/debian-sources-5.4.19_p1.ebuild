@@ -202,6 +202,8 @@ src_prepare() {
 		tweak_config .config CONFIG_MODULE_SIG_FORCE n
 		tweak_config .config CONFIG_MODULE_SIG_ALL n
 		# LibreSSL currently (2.9.0) does not have CMS support, so is limited to SHA1.
+		# https://bugs.gentoo.org/706086
+		# https://bugzilla.kernel.org/show_bug.cgi?id=202159
 		if use libressl; then
 			tweak_config .config CONFIG_MODULE_SIG_HASH \"sha1\"
 		else
