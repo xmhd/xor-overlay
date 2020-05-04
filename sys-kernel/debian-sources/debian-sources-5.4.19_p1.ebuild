@@ -38,7 +38,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs custom-cflags ec2 luks lvm mdadm sign-modules wireguard zfs"
+IUSE="binary btrfs custom-cflags ec2 libressl luks lvm mdadm sign-modules wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -201,12 +201,22 @@ src_prepare() {
 		tweak_config .config CONFIG_MODULE_SIG y
 		tweak_config .config CONFIG_MODULE_SIG_FORCE n
 		tweak_config .config CONFIG_MODULE_SIG_ALL n
-		tweak_config .config CONFIG_MODULE_SIG_HASH \"sha512\"
+		# LibreSSL currently (2.9.0) does not have CMS support, so is limited to SHA1.
+		if use libressl; then
+			tweak_config .config CONFIG_MODULE_SIG_HASH \"sha1\"
+		else
+			tweak_config .config CONFIG_MODULE_SIG_HASH \"sha512\"
+		fi
 		tweak_config .config CONFIG_MODULE_SIG_KEY  \"${certs_dir}/signing_key.pem\"
 		tweak_config .config CONFIG_SYSTEM_TRUSTED_KEYRING y
 		tweak_config .config CONFIG_SYSTEM_EXTRA_CERTIFICATE y
 		tweak_config .config CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE 4096
-		echo "CONFIG_MODULE_SIG_SHA512=y" >> .config
+		# See above comment re: LibreSSL
+		if use libressl; then
+			echo "CONFIG_MODULE_SIG_SHA1=y" >> .config
+		else
+			echo "CONFIG_MODULE_SIG_SHA512=y" >> .config
+		fi
 		ewarn "This kernel will ALLOW non-signed modules to be loaded with a WARNING."
 		ewarn "To enable strict enforcement, YOU MUST add module.sig_enforce=1 as a kernel boot"
 		ewarn "parameter (to params in /etc/boot.conf, and re-run boot-update.)"
