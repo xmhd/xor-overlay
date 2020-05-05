@@ -84,12 +84,12 @@ tweak_config() {
 	echo "$2=$3" >> $1
 }
 
-setno_config() {
+set_no_config() {
 	einfo "Setting $2*=y to n in kernel config."
 	sed -i -e "s/^$2\(.*\)=.*/$2\1=n/g" $1
 }
 
-setyes_config() {
+set_yes_config() {
 	einfo "Setting $2*=* to y in kernel config."
 	sed -i -e "s/^$2\(.*\)=.*/$2\1=y/g" $1
 }
@@ -180,12 +180,12 @@ src_prepare() {
 	cp "${FILESDIR}"/config-extract . || die
 	chmod +x config-extract || die
 	./config-extract ${arch} ${featureset} ${subarch} || die
-	setno_config .config CONFIG_DEBUG
+	set_no_config .config CONFIG_DEBUG
 	if use ec2; then
-		setyes_config .config CONFIG_BLK_DEV_NVME
-		setyes_config .config CONFIG_XEN_BLKDEV_FRONTEND
-		setyes_config .config CONFIG_XEN_BLKDEV_BACKEND
-		setyes_config .config CONFIG_IXGBEVF
+		set_yes_config .config CONFIG_BLK_DEV_NVME
+		set_yes_config .config CONFIG_XEN_BLKDEV_FRONTEND
+		set_yes_config .config CONFIG_XEN_BLKDEV_BACKEND
+		set_yes_config .config CONFIG_IXGBEVF
 	fi
         if use custom-cflags; then
                 MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
@@ -234,14 +234,14 @@ src_prepare() {
 		echo
 	fi
         if use wireguard; then
-                setyes_config .config CONFIG_NET
-		setyes_config .config CONFIG_INET
-		setyes_config .config CONFIG_INET_UDP_TUNNEL
-		setyes_config .config CONFIG_NF_CONNTRACK
-		setyes_config .config CONFIG_NETFILTER_XT_MATCH_HASHLIMIT
-		setyes_config .config CONFIG_IP6_NF_IPTABLES
-		setyes_config .config CONFIG_CRYPTO_BLKCIPHER
-		setyes_config .config CONFIG_PADATA
+                set_yes_config .config CONFIG_NET
+		set_yes_config .config CONFIG_INET
+		set_yes_config .config CONFIG_INET_UDP_TUNNEL
+		set_yes_config .config CONFIG_NF_CONNTRACK
+		set_yes_config .config CONFIG_NETFILTER_XT_MATCH_HASHLIMIT
+		set_yes_config .config CONFIG_IP6_NF_IPTABLES
+		set_yes_config .config CONFIG_CRYPTO_BLKCIPHER
+		set_yes_config .config CONFIG_PADATA
 		# TODO: add some log output here regarding rc-update add modules boot
 		# if using a kernel lower than 5.6, and thus wireguard-modules.
         fi
