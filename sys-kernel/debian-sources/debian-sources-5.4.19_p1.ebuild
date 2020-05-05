@@ -51,6 +51,10 @@ DEPEND="
 	luks? ( sys-fs/cryptsetup )
 	lvm? ( sys-fs/lvm2 )
 	mdadm? ( sys-fs/mdadm )
+	sign-modules? (
+		|| ( dev-libs/openssl ) ( dev-libs/libressl )
+		sys-apps/kmod
+	)
 	wireguard? ( virtual/wireguard )
 	zfs? ( sys-fs/zfs )
 "
