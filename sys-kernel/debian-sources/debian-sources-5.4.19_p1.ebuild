@@ -90,6 +90,11 @@ setyes_config() {
 	sed -i -e "s/^$2\(.*\)=.*/$2\1=y/g" $1
 }
 
+set_module_config() {
+        einfo "Setting $2*=* to m in kernel config."
+        sed -i -e "s/^$2\(.*\)=.*/$2\1=y/g" $1
+}
+
 zap_config() {
 	einfo "Removing *$2* from kernel config."
 	sed -i -e "/$2/d" $1
