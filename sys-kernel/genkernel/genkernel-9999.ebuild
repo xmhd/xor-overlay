@@ -19,8 +19,8 @@ DEPEND="
 RESTRICT=""
 
 if [[ ${PV} == 9999 ]]; then
-	EGIT_REPO_URI="https://github.com/gentoo/genkernel.git"
-	EGIT_BRANCH="dracut"
+	EGIT_REPO_URI="https://bitbucket.org/_x0r/genkernel.git"
+	EGIT_BRANCH="master"
 	inherit git-r3 bash-completion-r1 eutils
 	KEYWORDS="*"
 fi
