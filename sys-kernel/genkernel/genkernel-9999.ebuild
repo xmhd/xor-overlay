@@ -31,6 +31,7 @@ src_unpack() {
 	else
 		unpack ${P}.tar.bz2
 	fi
+	# TODO: move below to src_prepare
 	use selinux && sed -i 's/###//g' "${S}"/gen_compile.sh
 }
 
