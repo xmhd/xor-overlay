@@ -284,7 +284,7 @@ src_compile() {
 		$(usex mdadm --mdadm --no-mdadm) \
 		$(usex zfs --zfs --no-zfs) \
 		--module-prefix="${WORKDIR}"/out \
-		all || die
+		$(usex dracut kernel all) || die
 }
 
 src_install() {
@@ -353,6 +353,15 @@ pkg_postinst() {
 	if [ -e ${ROOT}lib/modules ]; then
 		depmod -a $DEP_PV
 	fi
+
+	if use binary && use dracut; then
+		dracut \
+		--kver "${KV_FULL}" \
+		--kmoddir "${ROOT}"/lib/modules/${KV_FULL} \
+		--fwdir "${ROOT}"/lib/firmware \
+		--kernel-image "${ROOT}"/boot/kernel-${KV_FULL}
+	fi
+
 	if [ -e /etc/boot.conf ]; then
 		ego boot update
 	fi
