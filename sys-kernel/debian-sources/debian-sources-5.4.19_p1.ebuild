@@ -355,6 +355,13 @@ pkg_postinst() {
 		depmod -a $DEP_PV
 	fi
 
+	if use binary && [[ -e "${ROOT}"/var/lib/module-rebuild/moduledb ]]; then
+		ewarn "!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!"
+		ewarn "External kernel modules are not yet automatically built"
+		ewarn "by USE=binary - emerge @modules-rebuild to do this"
+		ewarn "and regenerate your initramfs if you are using ZFS root filesystem"
+	fi
+
 	if use binary && use dracut; then
 		dracut \
 		--kver "${KV_FULL}" \
