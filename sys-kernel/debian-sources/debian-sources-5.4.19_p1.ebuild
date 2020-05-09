@@ -355,6 +355,7 @@ pkg_postinst() {
 		depmod -a $DEP_PV
 	fi
 
+	# TODO: implement external kernel module rebuilding
 	if use binary && [[ -e "${ROOT}"/var/lib/module-rebuild/moduledb ]]; then
 		ewarn "!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!"
 		ewarn "External kernel modules are not yet automatically built"
@@ -362,6 +363,11 @@ pkg_postinst() {
 		ewarn "and regenerate your initramfs if you are using ZFS root filesystem"
 	fi
 
+	# Dracut will build an initramfs when USE=binary.
+	# The initramfs will be configurable via USE, i.e.
+	# USE=zfs will pass '--zfs' to Dracut and USE=-systemd
+	# will pass '--omit dracut-systemd systemd systemd-networkd systemd-initrd'
+	# to exclude these (Dracut) modules from the initramfs.
 	if use binary && use dracut; then
 		dracut \
 		--kver "${KV_FULL}" \
