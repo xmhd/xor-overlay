@@ -274,11 +274,11 @@ src_compile() {
 		--no-oldconfig \
 		--kernel-config="${T}"/config \
 		--kernname="${PN}" \
-		--build-src="${S}" \
-		--build-dst="${WORKDIR}"/build \
+		--kerneldir="${S}" \
+		--kernel-outputdir="${WORKDIR}"/build \
 		--makeopts="${MAKEOPTS}" \
 		--cachedir="${T}"/cache \
-		--tempdir="${T}"/twork \
+		--tmpdir="${T}"/twork \
 		--logfile="${WORKDIR}"/genkernel.log \
 		--bootdir="${WORKDIR}"/out/boot \
 		--disklabel \
@@ -330,15 +330,6 @@ src_install() {
 		exeinto /usr/src/${LINUX_SRCDIR}/scripts
 		doexe ${WORKDIR}/build/scripts/sign-file
 	fi
-
-	# The new naming scheme leaves an extra -${PN} at the name of various things in /boot. This should fix that.
-	cd ${D}/boot
-	for x in $(ls *); do
-		xnew=${x%-${PN}}
-		mv $x ${xnew} || die
-	done
-
-
 }
 
 pkg_postinst() {
