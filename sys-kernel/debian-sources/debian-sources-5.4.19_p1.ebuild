@@ -49,7 +49,10 @@ DEPEND="
 	binary? ( >=sys-kernel/genkernel-3.4.40.7 )
 	btrfs? ( sys-fs/btrfs-progs )
 	dracut? ( sys-kernel/dracut )
-	firmware? ( sys-kernel/linux-firmware )
+	firmware? (
+		sys-kernel/genkernel[firmware]
+		sys-kernel/linux-firmware
+	)
 	luks? ( sys-fs/cryptsetup )
 	lvm? ( sys-fs/lvm2 )
 	mdadm? ( sys-fs/mdadm )
@@ -356,7 +359,7 @@ pkg_postinst() {
 	fi
 
 	# TODO: implement external kernel module rebuilding
-	if use binary && [[ -e "${ROOT}"/var/lib/module-rebuild/moduledb ]]; then
+	if use binary && [[ -e "${ROOT}"var/lib/module-rebuild/moduledb ]]; then
 		ewarn "!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!"
 		ewarn "External kernel modules are not yet automatically built"
 		ewarn "by USE=binary - emerge @modules-rebuild to do this"
@@ -369,11 +372,14 @@ pkg_postinst() {
 	# will pass '--omit dracut-systemd systemd systemd-networkd systemd-initrd'
 	# to exclude these (Dracut) modules from the initramfs.
 	if use binary && use dracut; then
-		dracut \
-		--kver "${KV_FULL}" \
-		--kmoddir "${ROOT}"/lib/modules/${KV_FULL} \
-		--fwdir "${ROOT}"/lib/firmware \
-		--kernel-image "${ROOT}"/boot/kernel-${KV_FULL}
+                einfo ">>> Dracut: building initramfs"
+                dracut \
+                --force \
+                --kver "5.4.19_p1-debian-sources" \
+                --kmoddir "${ROOT}"lib/modules/5.4.19_p1-debian-sources \
+                --fwdir "${ROOT}"lib/firmware \
+                --kernel-image "${ROOT}"boot/kernel-5.4.19_p1-debian-sources
+                einfo ">>> Dracut: Finished building initramfs"
 	fi
 
 	if [ -e /etc/boot.conf ]; then
