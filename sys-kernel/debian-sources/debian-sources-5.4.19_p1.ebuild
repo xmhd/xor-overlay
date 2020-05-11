@@ -281,6 +281,7 @@ src_compile() {
 		--tmpdir="${T}"/twork \
 		--logfile="${WORKDIR}"/genkernel.log \
 		--bootdir="${WORKDIR}"/out/boot \
+		--no-module-rebuild \
 		--disklabel \
 		$(usex btrfs --btrfs --no-btrfs) \
 		$(usex luks --luks --no-luks ) \
