@@ -350,7 +350,7 @@ pkg_postinst() {
 		depmod -a $DEP_PV
 	fi
 
-	# TODO: implement external kernel module rebuilding
+	# TODO: tidy up below
 	if use binary && [[ -e "${ROOT}"var/lib/module-rebuild/moduledb ]]; then
 		ewarn "!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!"
 		ewarn "External kernel modules are not yet automatically built"
@@ -358,6 +358,8 @@ pkg_postinst() {
 		ewarn "and regenerate your initramfs if you are using ZFS root filesystem"
 	fi
 
+	# NOTE: WIP and not well tested yet.
+	#
 	# Dracut will build an initramfs when USE=binary.
 	# The initramfs will be configurable via USE, i.e.
 	# USE=zfs will pass '--zfs' to Dracut and USE=-systemd
@@ -367,10 +369,10 @@ pkg_postinst() {
                 einfo ">>> Dracut: building initramfs"
                 dracut \
                 --force \
-                --kver "5.4.19_p1-debian-sources" \
-                --kmoddir "${ROOT}"lib/modules/5.4.19_p1-debian-sources \
+		--kver "${PV}-${PN}" \
+                --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
                 --fwdir "${ROOT}"lib/firmware \
-                --kernel-image "${ROOT}"boot/kernel-5.4.19_p1-debian-sources
+                --kernel-image "${ROOT}"boot/kernel-${PV}-${PN}
                 einfo ">>> Dracut: Finished building initramfs"
 	fi
 
