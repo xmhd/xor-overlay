@@ -1,4 +1,3 @@
-# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
@@ -6,22 +5,23 @@ EAPI=7
 DISTUTILS_OPTIONAL=1
 PYTHON_COMPAT=( python3_{6,7} )
 
-inherit bash-completion-r1 flag-o-matic linux-info distutils-r1 systemd toolchain-funcs udev usr-ldscript
+inherit autotools bash-completion-r1 flag-o-matic linux-info distutils-r1 systemd toolchain-funcs udev usr-ldscript
 
-DESCRIPTION="Userland utilities for ZFS Linux kernel module"
+DESCRIPTION="Userland utilities for OpenZFS file system"
 HOMEPAGE="https://github.com/openzfs/zfs"
-
-if [[ ${PV} == "9999" ]] ; then
-	inherit autotools git-r3 linux-mod
-	EGIT_REPO_URI="https://github.com/openzfs/zfs.git"
-else
-	SRC_URI="https://github.com/openzfs/${PN}/releases/download/${P}/${P}.tar.gz"
-	KEYWORDS="~amd64 ~arm64 ~ppc64"
-fi
-
 LICENSE="BSD-2 CDDL MIT"
+
 SLOT="0"
-IUSE="custom-cflags debug kernel-builtin libressl python +rootfs test-suite static-libs"
+
+IUSE="custom-cflags debug kernel-builtin libressl python +rootfs static-libs test-suite"
+
+BDEPEND="
+    virtual/awk
+    virtual/pkgconfig
+    python? (
+        dev-python/setuptools[${PYTHON_USEDEP}]
+    )
+"
 
 DEPEND="
 	${PYTHON_DEPS}
@@ -37,38 +37,44 @@ DEPEND="
 	)
 "
 
-BDEPEND="virtual/awk
-	virtual/pkgconfig
-	python? (
-		dev-python/setuptools[${PYTHON_USEDEP}]
-	)
-"
-
-RDEPEND="${DEPEND}
-	!kernel-builtin? ( ~sys-fs/zfs-kmod-${PV} )
-	!prefix? ( virtual/udev )
-	sys-fs/udev-init-scripts
-	rootfs? (
-		app-arch/cpio
-		app-misc/pax-utils
-		!<sys-kernel/genkernel-3.4
-	)
-	test-suite? (
-		sys-apps/util-linux
-		sys-devel/bc
-		sys-block/parted
-		sys-fs/lsscsi
-		sys-fs/mdadm
-		sys-process/procps
-		virtual/modutils
-	)
+RDEPEND="
+    !kernel-builtin? ( ~sys-fs/zfs-kmod-${PV} )
+    !prefix? ( virtual/udev )
+    sys-fs/udev-init-scripts
+    rootfs? (
+        app-arch/cpio
+	app-misc/pax-utils
+        || (
+            sys-kernel/dracut
+            !<sys-kernel/genkernel-3.5.11
+        )
+    )
+    test-suite? (
+        sys-devel/bc
+        sys-fs/lsscsi
+        sys-fs/mdadm
+        virtual/modutils
+        sys-block/parted
+        sys-process/procps
+        sys-apps/util-linux
+    )
 "
 
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
 RESTRICT="test"
 
-PATCHES=( "${FILESDIR}/bash-completion-sudo.patch" )
+if [[ ${PV} == "9999" ]]; then
+	inherit git-r3 linux-mod
+	EGIT_REPO_URI="https://github.com/openzfs/zfs.git"
+elif [[ ${PV} != "9999" ]]; then
+	SRC_URI="https://github.com/openzfs/${PN}/releases/download/${P}/${P}.tar.gz"
+	KEYWORDS=""
+fi
+
+PATCHES=(
+	"${FILESDIR}/bash-completion-sudo.patch"
+)
 
 pkg_setup() {
 	if use kernel_linux && use test-suite; then
@@ -113,6 +119,7 @@ src_prepare() {
 	sed -i "/^ZFS_UNMOUNT=/ s/yes/no/" "etc/default/zfs.in" || die
 }
 
+# TODO: query systemd stuff
 src_configure() {
 	use custom-cflags || strip-flags
 	python_setup
@@ -174,6 +181,7 @@ src_install() {
 
 	# enforce best available python implementation
 	python_fix_shebang "${ED}/bin"
+
 }
 
 pkg_postinst() {
@@ -190,6 +198,7 @@ pkg_postinst() {
 			einfo " unlocking pools with native zfs encryption enabled at boot"
 			einfo " use dracut or >=genkernel-4 if you requre this functionality"
 		fi
+
 	fi
 
 	if ! use kernel-builtin && [[ ${PV} = "9999" ]]; then
