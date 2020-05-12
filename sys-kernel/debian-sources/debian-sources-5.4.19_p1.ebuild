@@ -73,12 +73,18 @@ REQUIRED_USE="
 	btrfs? ( binary )
 	custom-cflags? ( binary )
 	dracut? ( binary )
+	ec2? ( binary )
+	firmware? ( binary )
+	libressl? ( binary )
 	luks? ( binary )
 	lvm? ( binary )
+	mdadm? ( binary )
 	microcode? ( binary )
 	plymouth? ( binary )
 	selinux? ( binary )
 	sign-modules? ( binary )
+	systemd? ( binary )
+	wireguard? ( binary )
 	zfs? ( binary )
 "
 
