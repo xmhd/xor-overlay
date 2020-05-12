@@ -426,7 +426,9 @@ pkg_postinst() {
                 einfo ">>> Dracut: Finished building initramfs"
 	fi
 
-	if [ -e /etc/boot.conf ]; then
-		ego boot update
+	if use binary; then
+		if [ -e /etc/boot.conf ]; then
+			ego boot update
+		fi
 	fi
 }
