@@ -38,7 +38,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs custom-cflags dracut ec2 firmware libressl luks lvm mdadm microcode selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs custom-cflags dracut ec2 firmware libressl luks lvm mdadm microcode plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -56,6 +56,10 @@ DEPEND="
 	luks? ( sys-fs/cryptsetup )
 	lvm? ( sys-fs/lvm2 )
 	mdadm? ( sys-fs/mdadm )
+	plymouth? (
+		x11-libs/libdrm[libkms]
+		sys-boot/plymouth[libkms,udev]
+	)
 	sign-modules? (
 		|| ( dev-libs/openssl ) ( dev-libs/libressl )
 		sys-apps/kmod
@@ -72,6 +76,7 @@ REQUIRED_USE="
 	luks? ( binary )
 	lvm? ( binary )
 	microcode? ( binary )
+	plymouth? ( binary )
 	selinux? ( binary )
 	sign-modules? ( binary )
 	zfs? ( binary )
