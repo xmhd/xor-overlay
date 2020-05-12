@@ -1,26 +1,26 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="5"
-PYTHON_COMPAT=( python3_6 )
+PYTHON_COMPAT=( python{2_7,3_5} )
 
 if [ ${PV} == "9999" ] ; then
 	inherit git-r3 linux-mod
 	AUTOTOOLS_AUTORECONF="1"
-	EGIT_REPO_URI="git://github.com/zfsonlinux/${PN}.git"
+	EGIT_REPO_URI="https://github.com/zfsonlinux/${PN}.git"
 else
 	SRC_URI="https://github.com/zfsonlinux/${PN}/releases/download/${P}/${P}.tar.gz"
-	KEYWORDS=""
+	KEYWORDS="amd64"
 fi
 
-inherit autotools-utils bash-completion-r1 flag-o-matic linux-info python-single-r1 systemd toolchain-funcs udev usr-ldscript
+inherit autotools-utils bash-completion-r1 flag-o-matic linux-info python-r1 systemd toolchain-funcs udev usr-ldscript
 
 DESCRIPTION="Userland utilities for ZFS Linux kernel module"
 HOMEPAGE="https://zfsonlinux.org/"
 
 LICENSE="BSD-2 CDDL MIT"
 SLOT="0"
-IUSE="custom-cflags debug kernel-builtin +rootfs systemd test-suite static-libs"
+IUSE="custom-cflags debug kernel-builtin +rootfs test-suite static-libs"
 RESTRICT="test"
 
 COMMON_DEPEND="
@@ -33,8 +33,10 @@ DEPEND="${COMMON_DEPEND}
 	virtual/pkgconfig
 "
 
+# Adding glibc >= 2.25 blocker for ZFS versions lower
+# than 0.7.0, due to bug 617628.
 RDEPEND="${COMMON_DEPEND}
-	${PYTHON_DEPS}
+	!>=sys-libs/glibc-2.25
 	!=sys-apps/grep-2.13*
 	!kernel-builtin? ( =sys-fs/zfs-kmod-${PV}* )
 	!sys-fs/zfs-fuse
@@ -47,27 +49,23 @@ RDEPEND="${COMMON_DEPEND}
 		sys-fs/mdadm
 		sys-process/procps
 		virtual/modutils
-	)
+		)
 	rootfs? (
-		app-arch/cpio
-		app-misc/pax-utils
+                app-arch/cpio
+                app-misc/pax-utils
                 || (
-                        !<sys-kernel/genkernel-3.5.1.1
+			!<sys-kernel/genkernel-3.5.1.1
                         sys-kernel/dracut
                 )
+
 	)
 	sys-fs/udev-init-scripts
 "
 
-REQUIRED_USE="${PYTHON_REQUIRED_USE}"
-
 AT_M4DIR="config"
 AUTOTOOLS_IN_SOURCE_BUILD="1"
 
-PATCHES=( "${FILESDIR}/0.7.13-ZPOOL_IMPORT_UDEV_TIMEOUT_MS.patch" )
-
 pkg_setup() {
-	python-single-r1_pkg_setup
 	if use kernel_linux && use test-suite; then
 		linux-info_pkg_setup
 		if  ! linux_config_exists; then
@@ -87,6 +85,7 @@ pkg_setup() {
 			fi
 		fi
 	fi
+
 }
 
 src_prepare() {
@@ -94,7 +93,7 @@ src_prepare() {
 	sed -e "s|/sbin/lsmod|/bin/lsmod|" \
 		-e "s|/usr/bin/scsi-rescan|/usr/sbin/rescan-scsi-bus|" \
 		-e "s|/sbin/parted|/usr/sbin/parted|" \
-		-i scripts/common.sh.in || die
+		-i scripts/common.sh.in
 
 	autotools-utils_src_prepare
 }
@@ -109,10 +108,10 @@ src_configure() {
 		--with-linux="${KV_DIR}"
 		--with-linux-obj="${KV_OUT_DIR}"
 		--with-udevdir="$(get_udevdir)"
+		--with-blkid
 		--with-systemdunitdir="$(systemd_get_systemunitdir)"
 		--with-systemdpresetdir="${EPREFIX}/lib/systemd/system-preset"
 		$(use_enable debug)
-		$(use_enable systemd)
 	)
 	autotools-utils_src_configure
 
@@ -138,9 +137,6 @@ src_install() {
 	exeinto /usr/libexec
 	doexe "${T}/zfs-init.sh"
 	systemd_dounit "${T}/zfs.service"
-
-	# enforce selected python implementation
-	python_fix_shebang "${ED}/bin"
 }
 
 pkg_postinst() {
@@ -209,6 +205,7 @@ pkg_postinst() {
 	systemd_reenable zfs-import.target
 	systemd_reenable zfs.target
 	systemd_reenable zfs.service
+
 }
 
 pkg_postrm() {

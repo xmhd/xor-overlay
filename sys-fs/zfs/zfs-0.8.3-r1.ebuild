@@ -16,7 +16,7 @@ if [[ ${PV} == "9999" ]] ; then
 	EGIT_REPO_URI="https://github.com/zfsonlinux/zfs.git"
 else
 	SRC_URI="https://github.com/zfsonlinux/${PN}/releases/download/${P}/${P}.tar.gz"
-	KEYWORDS="amd64 ~arm64 ~ppc64"
+	KEYWORDS="amd64 arm64 ppc64"
 fi
 
 LICENSE="BSD-2 CDDL MIT"
@@ -51,7 +51,10 @@ RDEPEND="${DEPEND}
 	rootfs? (
 		app-arch/cpio
 		app-misc/pax-utils
-		!<sys-kernel/genkernel-3.4
+		|| (
+			!<sys-kernel/genkernel-3.5.1.1
+                        sys-kernel/dracut
+                )
 	)
 	test-suite? (
 		sys-apps/util-linux
