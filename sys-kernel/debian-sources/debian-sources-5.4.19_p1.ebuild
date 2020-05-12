@@ -7,7 +7,7 @@
 
 EAPI=5
 
-inherit check-reqs eutils mount-boot
+inherit check-reqs eutils mount-boot toolchain-funcs
 
 SLOT=$PF
 CKV=${PV}
@@ -38,7 +38,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs custom-cflags dracut ec2 firmware libressl luks lvm mdadm microcode plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs custom-cflags ec2 firmware libressl luks lvm mdadm microcode plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -46,9 +46,8 @@ BDEPEND="
 "
 
 DEPEND="
-	binary? ( >=sys-kernel/genkernel-3.4.40.7 )
+	binary? ( sys-kernel/dracut )
 	btrfs? ( sys-fs/btrfs-progs )
-	dracut? ( sys-kernel/dracut )
 	firmware? (
 		sys-kernel/genkernel[firmware]
 		sys-kernel/linux-firmware
@@ -72,7 +71,6 @@ DEPEND="
 REQUIRED_USE="
 	btrfs? ( binary )
 	custom-cflags? ( binary )
-	dracut? ( binary )
 	ec2? ( binary )
 	firmware? ( binary )
 	libressl? ( binary )
@@ -153,6 +151,9 @@ pkg_setup() {
 }
 
 src_prepare() {
+
+	debug-print-function ${FUNCNAME} "${@}"
+
 	cd "${S}"
 	for debpatch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
 		epatch -p1 "${WORKDIR}/debian/patches/${debpatch}"
@@ -267,74 +268,95 @@ src_prepare() {
         fi
 	# get config into good state:
 	yes "" | make oldconfig >/dev/null 2>&1 || die
-	cp .config "${T}"/config || die
+	cp .config "${T}"/.config || die
 	make -s mrproper || die "make mrproper failed"
+}
+
+src_configure() {
+
+	! use binary && return
+
+	debug-print-function ${FUNCNAME} "${@}"
+
+	tc-export_build_env
+	MAKEARGS=(
+		V=1
+
+		HOSTCC="$(tc-getBUILD_CC)"
+		HOSTCXX="$(tc-getBUILD_CXX)"
+		HOSTCFLAGS="${BUILD_CFLAGS}"
+		HOSTLDFLAGS="${BUILD_LDFLAGS}"
+
+		CROSS_COMPILE=${CHOST}-
+		AS="$(tc-getAS)"
+		CC="$(tc-getCC)"
+		LD="$(tc-getLD)"
+		AR="$(tc-getAR)"
+		NM="$(tc-getNM)"
+		STRIP=":"
+		OBJCOPY="$(tc-getOBJCOPY)"
+		OBJDUMP="$(tc-getOBJDUMP)"
+
+		# we need to pass it to override colliding Gentoo envvar
+		ARCH=$(tc-arch-kernel)
+	)
+
+	mkdir -p "${WORKDIR}"/modprep || die
+	cp "${T}"/.config "${WORKDIR}"/modprep/ || die
+	emake O="${WORKDIR}"/modprep "${MAKEARGS[@]}" olddefconfig || die "kernel configure failed"
+	emake O="${WORKDIR}"/modprep "${MAKEARGS[@]}" modules_prepare || die "modules_prepare failed"
+	cp -pR "${WORKDIR}"/modprep "${WORKDIR}"/build || die
 }
 
 src_compile() {
 
-	# TEMPORARY FIX - TODO: Patch genkernel to not require disabling of sandbox
-	# Disable sandbox.
-	export SANDBOX_ON=0
-
 	! use binary && return
-	install -d "${WORKDIR}"/out/{lib,boot}
-	install -d "${T}"/{cache,twork}
-	install -d "${WORKDIR}"/build
-	cp "${T}"/config "${WORKDIR}"/build/.config
-	DEFAULT_KERNEL_SOURCE="${S}" CMD_KERNEL_DIR="${S}" genkernel ${GKARGS} \
-		--no-save-config \
-		--no-oldconfig \
-		--kernel-config="${T}"/config \
-		--kernname="${PN}" \
-		--kerneldir="${S}" \
-		--kernel-outputdir="${WORKDIR}"/build \
-		--makeopts="${MAKEOPTS}" \
-		--cachedir="${T}"/cache \
-		--tmpdir="${T}"/twork \
-		--logfile="${WORKDIR}"/genkernel.log \
-		--bootdir="${WORKDIR}"/out/boot \
-		--no-module-rebuild \
-		--disklabel \
-		$(usex btrfs --btrfs --no-btrfs) \
-		$(usex luks --luks --no-luks ) \
-		$(usex lvm --lvm --no-lvm ) \
-		$(usex mdadm --mdadm --no-mdadm) \
-		$(usex zfs --zfs --no-zfs) \
-		--module-prefix="${WORKDIR}"/out \
-		$(usex dracut kernel all) || die
+
+	debug-print-function ${FUNCNAME} "${@}"
+
+	emake O="${WORKDIR}"/build "${MAKEARGS[@]}" all || "kernel build failed"
 }
 
 src_install() {
+
+	debug-print-function ${FUNCNAME} "${@}"
+
+        TODO: Change to SANDBOX_WRITE=".." for installkernel writes
+	# Disable sandbox
+	export SANDBOX_ON=0
+
 	# copy sources into place:
 	dodir /usr/src
-	cp -a "${S}" "${D}"/usr/src/${LINUX_SRCDIR} || die
-	cd "${D}"/usr/src/${LINUX_SRCDIR}
+	cp -a "${S}" "${D}"/usr/src/linux-${PN}-${PV} || die
+	cd "${D}"/usr/src/linux-${PN}-${PV}
+
 	# prepare for real-world use and 3rd-party module building:
 	make mrproper || die
-	cp "${T}"/config .config || die
+	cp "${T}"/.config .config || die
 	cp -a "${T}"/debian debian || die
-
 
 	# if we didn't use genkernel, we're done. The kernel source tree is left in
 	# an unconfigured state - you can't compile 3rd-party modules against it yet.
 	use binary || return
 	make prepare || die
 	make scripts || die
-	# OK, now the source tree is configured to allow 3rd-party modules to be
-	# built against it, since we want that to work since we have a binary kernel
-	# built.
-	cp -a "${WORKDIR}"/out/* "${D}"/ || die "couldn't copy output files into place"
-	# module symlink fixup:
-	rm -f "${D}"/lib/modules/*/source || die
-	rm -f "${D}"/lib/modules/*/build || die
-	cd "${D}"/lib/modules
-	local moddir="$(ls -d [234]*)"
-	ln -s /usr/src/${LINUX_SRCDIR} "${D}"/lib/modules/${moddir}/source || die
-	ln -s /usr/src/${LINUX_SRCDIR} "${D}"/lib/modules/${moddir}/build || die
+
+        # Install kernel modules to /lib/modules/${PV}-{PN}
+        emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" modules_install
+	installkernel "${PN}-${PV}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
+
+	# module symlink fix-up:
+	rm -f "${D}"/lib/modules/${PV}-${PN}/source || die
+	rm -f "${D}"/lib/modules/${PV}-${PN}/build || die
+
+	# Set-up module symlinks:
+	ln -s /usr/src/linux-${PN}-${PV} "${D}"/lib/modules/${PV}-${PN}/source || die "failed to install source symlink"
+	ln -s /usr/src/linux-${PN}-${PV} "${D}"/lib/modules/${PV}-${PN}/build || die "failed to install build symlink"
+
 	# Fixes FL-14
-	cp "${WORKDIR}/build/System.map" "${D}/usr/src/${LINUX_SRCDIR}/" || die
-	cp "${WORKDIR}/build/Module.symvers" "${D}/usr/src/${LINUX_SRCDIR}/" || die
+	cp "${WORKDIR}/build/System.map" "${D}"/usr/src/linux-${PN}-${PV}/ || die "failed to install System.map"
+	cp "${WORKDIR}/build/Module.symvers" "${D}"/usr/src/linux-${PN}-${PV}/ || die "failed to install Module.symvers"
+
 	if use sign-modules; then
 		for x in $(find "${D}"/lib/modules -iname *.ko); do
 			# $certs_dir defined previously in this function.
@@ -346,13 +368,16 @@ src_install() {
 	fi
 }
 
+
 pkg_postinst() {
 
+	TODO: Change to SANDBOX_WRITE=".." for Dracut writes
 	export SANDBOX_ON=0
 
 	if use binary && [[ -h "${ROOT}"usr/src/linux ]]; then
 		rm "${ROOT}"usr/src/linux
 	fi
+
 	if use binary && [[ ! -e "${ROOT}"usr/src/linux ]]; then
 		ewarn "With binary use flag enabled /usr/src/linux"
 		ewarn "symlink automatically set to debian kernel"
@@ -360,7 +385,7 @@ pkg_postinst() {
 	fi
 
 	if [ -e ${ROOT}lib/modules ]; then
-		depmod -a $DEP_PV
+		depmod -a ${PV}-${PN}
 	fi
 
 	# TODO: tidy up below
@@ -378,10 +403,22 @@ pkg_postinst() {
 	# USE=zfs will pass '--zfs' to Dracut and USE=-systemd
 	# will pass '--omit dracut-systemd systemd systemd-networkd systemd-initrd'
 	# to exclude these (Dracut) modules from the initramfs.
-	if use binary && use dracut; then
+	if use binary; then
                 einfo ">>> Dracut: building initramfs"
                 dracut \
                 --force \
+		$(usex dmraid "-a dmraid" "-o dmraid") \
+		$(usex isci "-a isci" "-o isci") \
+		$(usex lvm "-a lvm" "-o lvm") \
+		$(usex luks "-a crypt" "-o crypt") \
+		$(usex mdadm "--mdadmconf" "--no-mdadmconf") \
+		$(usex mdraid "-a multipath" "-o multipath") \
+		$(usex microcode "--early-microcode" "--no-early-microcode") \
+		$(usex multipath "-a multipath" "-o multipath") \
+		$(usex plymouth "-a plymouth" "-o plymouth") \
+		$(usex selinux "-a selinux" "-o selinux") \
+		$(usex systemd "-a dracut-systemd systemd systemd-initrd systemd-networkd" "-o dracut-sysemd systemd systemd-initrd systemd-networkd") \
+
 		--kver "${PV}-${PN}" \
                 --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
                 --fwdir "${ROOT}"lib/firmware \
