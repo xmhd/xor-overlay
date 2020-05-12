@@ -19,7 +19,7 @@ And will also include software used for supporting hardware (printers, CAC keys,
 
 ### TLDR; Changelog for packages forked from main repositories ###
 
-* Chromium - includes hardware acceleration for video playback (currently X264, VP9 in progress), and jumbo-build option for those with muchas ram.
+* Chromium - includes hardware acceleration for video playback (currently X264, VP9 in progress), and WIP further hardening/privacy.
 * Python 2 - Maintained for legacy support.
 * Python - link-time-optmization and profile-guided-optimization support added to ebuilds.
 * sysvinit - Added fix to inittab to support shutting down containers from host.
@@ -34,12 +34,15 @@ And will also include software used for supporting hardware (printers, CAC keys,
 * Clang - some fixes with new CMAKE config options.
 * libcxx - Re-added libcxxrt as an alternative to libcxxabi.
 * polkit - Duktape is now an alternative provider of a JS engine, offering a more lightweight alternative to SpiderMonkey.
+* debianutils - remove dep on installkernel-gentoo packages as not used.
+* zfs + zfs-kmod - few USE flag + dep changes. Optional initramfs regeneration on pkg_postinst.
 
 ### TLDR; Changelog for packages not in the main repositories ###
 
 * Ego - Configuration tool from Funtoo Linux by Daniel Robbins. Replaces eselect-profile from Gentoo Linux.
 * DTrace - tracer from Solaris & BSD, supported in Oracle Linux and now *too Linux.
 * Eclipse Java IDE (including enterprise edition).
+* Netbeans IDE - IDE formerly by Sun, now under Apache.
 * Adobe Acrobat PDF Reader (ancient but some enterprise software will require it).
 * Various packages for CAC key support.
 * Various packages for PKCS11 support (including pam modules).
