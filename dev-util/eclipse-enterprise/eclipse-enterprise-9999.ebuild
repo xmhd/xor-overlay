@@ -28,7 +28,7 @@ SRC_URI_BASE="https://www.eclipse.org/downloads/download.php?file=/technology/ep
 MY_PN="eclipse"
 
 if [[ ${PV} == 4.15 ]]; then
-        SRC_URI="${SRC_URI_BASE}/2020-03/R/eclipse-jee-2020-03-R-incubation-linux-gtk-x86_64.tar.gz&r=1 -> eclipse-jee-2020-03-R-linux-gtk-x86_64-${PV}.tar.gz"
+        SRC_URI="${SRC_URI_BASE}/2020-03/R/eclipse-jee-2020-03-R-incubation-linux-gtk-x86_64.tar.gz&r=1 -> eclipse-jee-2020-03-R-incubation-linux-gtk-x86_64-${PV}.tar.gz"
         KEYWORDS="amd64"
 elif [[ ${PV} == 4.14 ]]; then
         SRC_URI="${SRC_URI_BASE}/2019-12/R/eclipse-jee-2019-12-R-linux-gtk-x86_64.tar.gz&r=1 -> eclipse-jee-2019-12-R-linux-gtk-x86_64-${PV}.tar.gz"
