@@ -49,7 +49,6 @@ DEPEND="
 	binary? ( sys-kernel/dracut )
 	btrfs? ( sys-fs/btrfs-progs )
 	firmware? (
-		sys-kernel/genkernel[firmware]
 		sys-kernel/linux-firmware
 	)
 	luks? ( sys-fs/cryptsetup )
