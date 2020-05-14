@@ -202,10 +202,10 @@ src_prepare() {
 	./config-extract ${arch} ${featureset} ${subarch} || die
 	set_no_config .config CONFIG_DEBUG
 	if use ec2; then
-		set_yes_config .config CONFIG_BLK_DEV_NVME
-		set_yes_config .config CONFIG_XEN_BLKDEV_FRONTEND
-		set_yes_config .config CONFIG_XEN_BLKDEV_BACKEND
-		set_yes_config .config CONFIG_IXGBEVF
+		tweak_config .config CONFIG_BLK_DEV_NVME y
+		tweak_config .config CONFIG_XEN_BLKDEV_FRONTEND y
+		tweak_config .config CONFIG_XEN_BLKDEV_BACKEND y
+		tweak_config .config CONFIG_IXGBEVF y
 	fi
         if use custom-cflags; then
                 MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
@@ -402,6 +402,20 @@ pkg_postinst() {
 	if [ -e ${ROOT}lib/modules ]; then
 		depmod -a ${PV}-${PN}
 	fi
+
+        if use hardened; then
+                ewarn "!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!"
+                ewarn "TODO"
+                ewarn "These KCONFIG options and patches change kernel behavior"
+                ewarn "Changes include:"
+                ewarn "Increased entropy for ALSR"
+                ewarn "GCC plugins (if using GCC)"
+                ewarn "Memory allocation"
+                ewarn "... and more"
+                ewarn "These changes will stop certain programs from functioning"
+                ewarn "e.g. VirtualBox, Skype"
+                ewarn "Full information available in $DOCUMENTATION"
+        fi
 
 	# TODO: tidy up below
 	if use binary && [[ -e "${ROOT}"var/lib/module-rebuild/moduledb ]]; then
