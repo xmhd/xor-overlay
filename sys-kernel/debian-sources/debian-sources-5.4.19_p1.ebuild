@@ -38,7 +38,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs custom-cflags ec2 firmware hardened initramfs-auto initramfs-generic initramfs-modular libressl luks lvm mdadm microcode plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs custom-cflags ec2 firmware hardened libressl luks lvm mdadm microcode plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -68,12 +68,6 @@ DEPEND="
 "
 
 REQUIRED_USE="
-        binary? ( || (
-            initramfs-auto
-            initramfs-generic
-            initramfs-modular
-        ) )
-
 	btrfs? ( binary )
 	custom-cflags? ( binary )
 	ec2? ( binary )
@@ -426,45 +420,25 @@ pkg_postinst() {
 	# to exclude these (Dracut) modules from the initramfs.
 	if use binary; then
             einfo ">>> Dracut: building initramfs"
-            if use initramfs-auto; then
-                dracut \
-                --force \
-                --hostonly \
-                --kver "${PV}-${PN}" \
-                --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
-                --fwdir "${ROOT}"lib/firmware \
-                --kernel-image "${ROOT}boot/kernel-${PV}-${PN}
-            elif use initramfs-generic; then
-                dracut \
-                --force \
-                --no-hostonly \
-                --kver "${PV}-${PN}"
-                --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
-                --fwdir "${ROOT}"lib/firmware \
-                --kernel-image "${ROOT}boot/kernel-${PV}-${PN}
-                # TODO:
-                # add modules ALL
-            elif use initramfs-modular; then
-                dracut \
-                --force \
-                $(usex btrfs "-a btrfs" "-o btrfs") \
-		$(usex dmraid "-a dmraid" "-o dmraid") \
-		$(usex isci "-a isci" "-o isci") \
-		$(usex lvm "-a lvm" "-o lvm") \
-		$(usex luks "-a crypt" "-o crypt") \
-		$(usex mdadm "--mdadmconf" "--no-mdadmconf") \
-		$(usex mdraid "-a multipath" "-o multipath") \
-		$(usex microcode "--early-microcode" "--no-early-microcode") \
-		$(usex multipath "-a multipath" "-o multipath") \
-		$(usex plymouth "-a plymouth" "-o plymouth") \
-		$(usex selinux "-a selinux" "-o selinux") \
-		$(usex systemd "-a dracut-systemd systemd systemd-initrd systemd-networkd" "-o dracut-sysemd systemd systemd-initrd systemd-networkd") \
-                $(usex zfs "-a zfs" "-o zfs") \
-		--kver "${PV}-${PN}" \
-                --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
-                --fwdir "${ROOT}"lib/firmware \
-                --kernel-image "${ROOT}"boot/kernel-${PV}-${PN}
-            fi
+            dracut \
+            --force \
+            $(usex btrfs "-a btrfs" "-o btrfs") \
+            $(usex dmraid "-a dmraid" "-o dmraid") \
+            $(usex isci "-a isci" "-o isci") \
+            $(usex lvm "-a lvm" "-o lvm") \
+            $(usex luks "-a crypt" "-o crypt") \
+            $(usex mdadm "--mdadmconf" "--no-mdadmconf") \
+            $(usex mdraid "-a multipath" "-o multipath") \
+            $(usex microcode "--early-microcode" "--no-early-microcode") \
+            $(usex multipath "-a multipath" "-o multipath") \
+            $(usex plymouth "-a plymouth" "-o plymouth") \
+            $(usex selinux "-a selinux" "-o selinux") \
+            $(usex systemd "-a dracut-systemd systemd systemd-initrd systemd-networkd" "-o dracut-sysemd systemd systemd-initrd systemd-networkd") \
+            $(usex zfs "-a zfs" "-o zfs") \
+            --kver "${PV}-${PN}" \
+            --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
+            --fwdir "${ROOT}"lib/firmware \
+            --kernel-image "${ROOT}"boot/kernel-${PV}-${PN}
             einfo ">>> Dracut: Finished building initramfs"
 	fi
 
