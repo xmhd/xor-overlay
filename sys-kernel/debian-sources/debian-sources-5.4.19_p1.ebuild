@@ -38,7 +38,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs custom-cflags ec2 firmware initramfs-auto initramfs-generic initramfs-modular libressl luks lvm mdadm microcode plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs custom-cflags ec2 firmware hardened initramfs-auto initramfs-generic initramfs-modular libressl luks lvm mdadm microcode plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -218,6 +218,22 @@ src_prepare() {
                 if [ -n "$MARCH" ]; then
                         sed -i -e 's/-mtune=generic/$MARCH/g' arch/x86/Makefile || die "Canna optimize this kernel anymore, captain!"
                 fi
+        fi
+        if use hardened; then
+            tweak_config .config CONFIG_AUDIT y
+            tweak_config .config CONFIG_EXPERT y
+            tweak_config .config CONFIG_SLUB_DEBUG y
+            tweak_config .config CONFIG_SLAB_MERGE_DEFAULT n
+            tweak_config .config CONFIG_SLAB_FREELIST_RANDOM y
+            tweak_config .config CONFIG_SLAB_FREELIST_HARDENED y
+            tweak_config .config CONFIG_SLAB_CANARY y
+            tweak_config .config CONFIG_SHUFFLE_PAGE_ALLOCATOR y
+            tweak_config .config CONFIG_GCC_PLUGINS y
+            tweak_config .config CONFIG_GCC_PLUGIN_LATENT_ENTROPY y
+            tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK y
+            tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL y
+            tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT y
+            tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE n
         fi
 	if use sign-modules; then
 		certs_dir=$(get_certs_dir)
