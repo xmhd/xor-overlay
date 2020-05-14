@@ -431,6 +431,7 @@ pkg_postinst() {
             elif use initramfs-modular; then
                 dracut \
                 --force \
+                $(usex btrfs "-a btrfs" "-o btrfs") \
 		$(usex dmraid "-a dmraid" "-o dmraid") \
 		$(usex isci "-a isci" "-o isci") \
 		$(usex lvm "-a lvm" "-o lvm") \
@@ -442,6 +443,7 @@ pkg_postinst() {
 		$(usex plymouth "-a plymouth" "-o plymouth") \
 		$(usex selinux "-a selinux" "-o selinux") \
 		$(usex systemd "-a dracut-systemd systemd systemd-initrd systemd-networkd" "-o dracut-sysemd systemd systemd-initrd systemd-networkd") \
+                $(usex zfs "-a zfs" "-o zfs") \
 		--kver "${PV}-${PN}" \
                 --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
                 --fwdir "${ROOT}"lib/firmware \
