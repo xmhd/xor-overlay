@@ -38,7 +38,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs custom-cflags ec2 firmware libressl luks lvm mdadm microcode plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs custom-cflags ec2 firmware initramfs-auto initramfs-generic initramfs-modular libressl luks lvm mdadm microcode plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -68,6 +68,12 @@ DEPEND="
 "
 
 REQUIRED_USE="
+        binary? ( || (
+            initramfs-auto
+            initramfs-generic
+            initramfs-modular
+        ) )
+
 	btrfs? ( binary )
 	custom-cflags? ( binary )
 	ec2? ( binary )
@@ -403,7 +409,26 @@ pkg_postinst() {
 	# will pass '--omit dracut-systemd systemd systemd-networkd systemd-initrd'
 	# to exclude these (Dracut) modules from the initramfs.
 	if use binary; then
-                einfo ">>> Dracut: building initramfs"
+            einfo ">>> Dracut: building initramfs"
+            if use initramfs-auto; then
+                dracut \
+                --force \
+                --hostonly \
+                --kver "${PV}-${PN}" \
+                --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
+                --fwdir "${ROOT}"lib/firmware \
+                --kernel-image "${ROOT}boot/kernel-${PV}-${PN}
+            elif use initramfs-generic; then
+                dracut \
+                --force \
+                --no-hostonly \
+                --kver "${PV}-${PN}"
+                --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
+                --fwdir "${ROOT}"lib/firmware \
+                --kernel-image "${ROOT}boot/kernel-${PV}-${PN}
+                # TODO:
+                # add modules ALL
+            elif use initramfs-modular; then
                 dracut \
                 --force \
 		$(usex dmraid "-a dmraid" "-o dmraid") \
@@ -417,12 +442,12 @@ pkg_postinst() {
 		$(usex plymouth "-a plymouth" "-o plymouth") \
 		$(usex selinux "-a selinux" "-o selinux") \
 		$(usex systemd "-a dracut-systemd systemd systemd-initrd systemd-networkd" "-o dracut-sysemd systemd systemd-initrd systemd-networkd") \
-
 		--kver "${PV}-${PN}" \
                 --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
                 --fwdir "${ROOT}"lib/firmware \
                 --kernel-image "${ROOT}"boot/kernel-${PV}-${PN}
-                einfo ">>> Dracut: Finished building initramfs"
+            fi
+            einfo ">>> Dracut: Finished building initramfs"
 	fi
 
 	if use binary; then
