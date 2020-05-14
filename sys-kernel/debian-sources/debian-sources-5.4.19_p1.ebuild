@@ -38,7 +38,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs custom-cflags ec2 firmware hardened libressl luks lvm mdadm microcode nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs ck custom-cflags ec2 firmware hardened libressl luks lvm mdadm microcode nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -185,7 +185,28 @@ src_prepare() {
 
 	## increase bluetooth polling patch
 	epatch "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-fix-bluetooth-polling.patch
+
+	# Restore export_kernel_fpu_functions for zfs
 	epatch "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
+
+	# ck stuff
+	epatch "${FILESDIR}"/ck-patches-5.4/0001-MultiQueue-Skiplist-Scheduler-v0.196.patch
+	epatch "${FILESDIR}"/ck-patches-5.4/0002-Make-preemptible-kernel-default.patch
+	epatch "${FILESDIR}"/ck-patches-5.4/0003-Expose-vmsplit-for-our-poor-32-bit-users.patch
+	epatch "${FILESDIR}"/ck-patches-5.4/0004-Create-highres-timeout-variants-of-schedule_timeout-.patch
+	epatch "${FILESDIR}"/ck-patches-5.4/0005-Special-case-calls-of-schedule_timeout-1-to-use-the-.patch
+        epatch "${FILESDIR}"/ck-patches-5.4/0006-Convert-msleep-to-use-hrtimers-when-active.patch
+        epatch "${FILESDIR}"/ck-patches-5.4/0007-Replace-all-schedule-timeout-1-with-schedule_min_hrt.patch
+        epatch "${FILESDIR}"/ck-patches-5.4/0008-Replace-all-calls-to-schedule_timeout_interruptible-.patch
+        epatch "${FILESDIR}"/ck-patches-5.4/0009-Replace-all-calls-to-schedule_timeout_uninterruptibl.patch
+        epatch "${FILESDIR}"/ck-patches-5.4/0010-Don-t-use-hrtimer-overlay-when-pm_freezing-since-som.patch
+        epatch "${FILESDIR}"/ck-patches-5.4/0011-Make-hrtimer-granularity-and-minimum-hrtimeout-confi.patch
+        epatch "${FILESDIR}"/ck-patches-5.4/0012-Make-threaded-IRQs-optionally-the-default-which-can-.patch
+        epatch "${FILESDIR}"/ck-patches-5.4/0013-Reinstate-default-Hz-of-100-in-combination-with-MuQS.patch
+        epatch "${FILESDIR}"/ck-patches-5.4/0014-Swap-sucks.patch
+        epatch "${FILESDIR}"/ck-patches-5.4/0015-Make-nohz_full-not-be-picked-up-as-a-default-config-.patch
+        epatch "${FILESDIR}"/ck-patches-5.4/0016-Add-ck1-version.patch
+
 	local arch featureset subarch
 	featureset="standard"
 	if [[ ${REAL_ARCH} == x86 ]]; then
@@ -444,7 +465,7 @@ pkg_postinst() {
             --force \
             --no-hostonly \
             --add "base biosdevname dash fs-lib i18n kernel-modules network resume rootfs-block shutdown terminfo udev-rules usrmount" \
-            --omit "caps convertfs debug dm dmsquash-live fstab-sys gensplash ifcfg img-lib livenet rpmversion securityfs ssh-client syslog url-lib"
+            --omit "caps convertfs debug dm dmsquash-live fstab-sys gensplash ifcfg img-lib livenet rpmversion securityfs ssh-client syslog url-lib" \
             $(usex btrfs "-a btrfs" "-o btrfs") \
             $(usex dmraid "-a dmraid" "-o dmraid") \
             $(usex isci "-a isci" "-o isci") \
