@@ -157,11 +157,18 @@ src_prepare() {
 
 	debug-print-function ${FUNCNAME} "${@}"
 
+        # apply debian patches
+
 	cd "${S}"
 	for debpatch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
 		epatch -p1 "${WORKDIR}/debian/patches/${debpatch}"
 	done
 	# end of debian-specific stuff...
+
+        # apply ck patches
+        for ckpatch in $( get_patch_list "${WORKDIR}/patches" ); do
+                epatch -p1 "${WORKDIR}/patches/${ckpatch}"
+        done
 
 	# do not include debian devs certificates
 	rm -rf "${WORKDIR}"/debian/certs
@@ -192,24 +199,6 @@ src_prepare() {
 
 	# Restore export_kernel_fpu_functions for zfs
 	epatch "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
-
-	# ck stuff
-	epatch "${FILESDIR}"/ck-patches-5.4/0001-MultiQueue-Skiplist-Scheduler-v0.196.patch
-	epatch "${FILESDIR}"/ck-patches-5.4/0002-Make-preemptible-kernel-default.patch
-	epatch "${FILESDIR}"/ck-patches-5.4/0003-Expose-vmsplit-for-our-poor-32-bit-users.patch
-	epatch "${FILESDIR}"/ck-patches-5.4/0004-Create-highres-timeout-variants-of-schedule_timeout-.patch
-	epatch "${FILESDIR}"/ck-patches-5.4/0005-Special-case-calls-of-schedule_timeout-1-to-use-the-.patch
-        epatch "${FILESDIR}"/ck-patches-5.4/0006-Convert-msleep-to-use-hrtimers-when-active.patch
-        epatch "${FILESDIR}"/ck-patches-5.4/0007-Replace-all-schedule-timeout-1-with-schedule_min_hrt.patch
-        epatch "${FILESDIR}"/ck-patches-5.4/0008-Replace-all-calls-to-schedule_timeout_interruptible-.patch
-        epatch "${FILESDIR}"/ck-patches-5.4/0009-Replace-all-calls-to-schedule_timeout_uninterruptibl.patch
-        epatch "${FILESDIR}"/ck-patches-5.4/0010-Don-t-use-hrtimer-overlay-when-pm_freezing-since-som.patch
-        epatch "${FILESDIR}"/ck-patches-5.4/0011-Make-hrtimer-granularity-and-minimum-hrtimeout-confi.patch
-        epatch "${FILESDIR}"/ck-patches-5.4/0012-Make-threaded-IRQs-optionally-the-default-which-can-.patch
-        epatch "${FILESDIR}"/ck-patches-5.4/0013-Reinstate-default-Hz-of-100-in-combination-with-MuQS.patch
-        epatch "${FILESDIR}"/ck-patches-5.4/0014-Swap-sucks.patch
-        epatch "${FILESDIR}"/ck-patches-5.4/0015-Make-nohz_full-not-be-picked-up-as-a-default-config-.patch
-        epatch "${FILESDIR}"/ck-patches-5.4/0016-Add-ck1-version.patch
 
 	local arch featureset subarch
 	featureset="standard"
