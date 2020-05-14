@@ -33,7 +33,6 @@ SRC_URI="
 
 S="$WORKDIR/linux-${DEB_PV_BASE}"
 
-DESCRIPTION="Debian Sources (and optional binary kernel)"
 DESCRIPTION="Linux kernel sources with Debian patches."
 DEB_UPSTREAM="http://http.debian.net/debian/pool/main/l/linux"
 HOMEPAGE="https://packages.debian.org/unstable/kernel/"
@@ -158,16 +157,19 @@ src_prepare() {
 	debug-print-function ${FUNCNAME} "${@}"
 
         # apply debian patches
-
 	cd "${S}"
 	for debpatch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
 		epatch -p1 "${WORKDIR}/debian/patches/${debpatch}"
 	done
 	# end of debian-specific stuff...
-
         # apply ck patches
         for ckpatch in $( get_patch_list "${WORKDIR}/patches" ); do
                 epatch -p1 "${WORKDIR}/patches/${ckpatch}"
+        done
+        # end ck stuff...
+        # start dtrace patches
+        for dtrace_patch in $( get_patch_list "${FILESDIR}/dtrace-patches/5.4.2" ); do
+                epatch -p1 "${FILESDIR}/dtrace-patches/5.4.2/${dtrace_patch}"
         done
 
 	# do not include debian devs certificates

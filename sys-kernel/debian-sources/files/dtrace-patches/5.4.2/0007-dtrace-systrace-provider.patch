@@ -1,0 +1,374 @@
+From 6841186044dfda7e14acbe8c64a05a42cc2c8e74 Mon Sep 17 00:00:00 2001
+From: Kris Van Hees <kris.van.hees@oracle.com>
+Date: Mon, 19 Nov 2018 17:58:09 +0000
+Subject: [PATCH 07/24] dtrace: systrace provider
+
+This implements the DTrace systrace provider, which intercepts system
+call invocations.
+
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Signed-off-by: Kris Van Hees <kris.van.hees@oracle.com>
+Signed-off-by: Tomas Jedlicka <tomas.jedlicka@oracle.com>
+Signed-off-by: Eugene Loh <eugene.loh@oracle.com>
+Signed-off-by: David Mc Lean <david.mclean@oracle.com>
+Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
+---
+ dtrace/Makefile       |   2 +
+ dtrace/systrace.h     |  33 +++++++
+ dtrace/systrace_dev.c | 224 ++++++++++++++++++++++++++++++++++++++++++
+ dtrace/systrace_mod.c |  52 ++++++++++
+ 4 files changed, 311 insertions(+)
+ create mode 100644 dtrace/systrace.h
+ create mode 100644 dtrace/systrace_dev.c
+ create mode 100644 dtrace/systrace_mod.c
+
+diff --git a/dtrace/Makefile b/dtrace/Makefile
+index 36a4b97b922c..b91bc69d3802 100644
+--- a/dtrace/Makefile
++++ b/dtrace/Makefile
+@@ -3,6 +3,7 @@
+ #
+ 
+ obj-$(CONFIG_DT_CORE)		+= dtrace.o
++obj-$(CONFIG_DT_SYSTRACE)	+= systrace.o
+ obj-$(CONFIG_DT_DT_TEST)	+= dt_test.o
+ 
+ dtrace-y			:= dtrace_mod.o dtrace_dev.o \
+@@ -14,6 +15,7 @@ dtrace-y			:= dtrace_mod.o dtrace_dev.o \
+ 				   dtrace_probe.o dtrace_probe_ctx.o \
+ 				   dtrace_ptofapi.o dtrace_predicate.o \
+ 				   dtrace_spec.o dtrace_state.o dtrace_util.o
++systrace-y			:= systrace_mod.o systrace_dev.o
+ dt_test-y			:= dt_test_mod.o dt_test_dev.o
+ 
+ -include arch/$(SRCARCH)/dtrace/Makefile.arch
+diff --git a/dtrace/systrace.h b/dtrace/systrace.h
+new file mode 100644
+index 000000000000..832bc613b966
+--- /dev/null
++++ b/dtrace/systrace.h
+@@ -0,0 +1,33 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Dynamic Tracing for Linux - syscall tracing provider
++ *
++ * Copyright (c) 2011, 2017, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#ifndef _SYSTRACE_H_
++#define _SYSTRACE_H_
++
++#include "dtrace.h"
++
++extern void systrace_provide(void *, const struct dtrace_probedesc *);
++extern int systrace_enable(void *arg, dtrace_id_t, void *);
++extern void systrace_disable(void *arg, dtrace_id_t, void *);
++extern void systrace_destroy(void *, dtrace_id_t, void *);
++
++extern dtrace_provider_id_t	syscall_id;
++
++extern int syscall_dev_init(void);
++extern void syscall_dev_exit(void);
++
++#endif /* _SYSTRACE_H_ */
+diff --git a/dtrace/systrace_dev.c b/dtrace/systrace_dev.c
+new file mode 100644
+index 000000000000..2ff3ba4329a5
+--- /dev/null
++++ b/dtrace/systrace_dev.c
+@@ -0,0 +1,224 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	systrace_dev.c
++ * DESCRIPTION:	DTrace - systrace provider device driver
++ *
++ * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/dtrace_syscall.h>
++#include <linux/fs.h>
++#include <linux/miscdevice.h>
++#include <asm/unistd.h>
++
++#include "dtrace.h"
++#include "dtrace_dev.h"
++#include "systrace.h"
++
++#define SYSTRACE_ARTIFICIAL_FRAMES	1
++
++#define SYSTRACE_SHIFT			16
++#define SYSTRACE_ENTRY(id)		((1 << SYSTRACE_SHIFT) | (id))
++#define SYSTRACE_RETURN(id)		(id)
++#define SYSTRACE_SYSNUM(x)		((int)(x) & ((1 << SYSTRACE_SHIFT) - 1))
++#define SYSTRACE_ISENTRY(x)		((int)(x) >> SYSTRACE_SHIFT)
++
++#if ((1 << SYSTRACE_SHIFT) <= NR_syscalls)
++# error 1 << SYSTRACE_SHIFT must exceed number of system calls
++#endif
++
++static struct systrace_info	*systrace_info;
++
++void systrace_provide(void *arg, const struct dtrace_probedesc *desc)
++{
++	int	failed_count = 0;
++	int	i;
++
++	ASSERT(systrace_info != NULL);
++
++	if (desc != NULL)
++		return;
++
++	for (i = 0; i < NR_syscalls; i++) {
++		const char		*nm = systrace_info->sysent[i].name;
++		dtrace_id_t		id;
++		int			sz;
++		size_t			wrap_len;
++
++		if (nm == NULL)
++			continue;
++
++		if (systrace_info->sysent[i].stsy_underlying == NULL)
++			continue;
++
++		wrap_len = strlen(DTRACE_SYSCALL_WRAP_PREFIX);
++		sz = strlen(nm);
++		if (sz > wrap_len &&
++		    memcmp(nm, DTRACE_SYSCALL_WRAP_PREFIX, wrap_len) == 0) {
++			nm += wrap_len;
++			sz -= wrap_len;
++		}
++		if (sz > 4 && memcmp(nm, "sys_", 4) == 0)
++			nm += 4;
++		else if (sz > 5 && memcmp(nm, "stub_", 5) == 0)
++			nm += 5;
++
++		id = dtrace_probe_lookup(syscall_id, dtrace_kmod->name, nm,
++					 "entry");
++		if (id == DTRACE_IDNONE) {
++			id = dtrace_probe_create(syscall_id, dtrace_kmod->name,
++						 nm, "entry",
++						 SYSTRACE_ARTIFICIAL_FRAMES,
++						 (void *)((uintptr_t)SYSTRACE_ENTRY(i)));
++			if (id == DTRACE_IDNONE)
++				failed_count++;
++
++			systrace_info->sysent[i].stsy_entry = DTRACE_IDNONE;
++		}
++
++		id = dtrace_probe_lookup(syscall_id, dtrace_kmod->name, nm,
++					 "return");
++		if (id == DTRACE_IDNONE) {
++			id = dtrace_probe_create(syscall_id, dtrace_kmod->name,
++						 nm, "return",
++						 SYSTRACE_ARTIFICIAL_FRAMES,
++						 (void *)((uintptr_t)SYSTRACE_RETURN(i)));
++			if (id == DTRACE_IDNONE)
++				failed_count++;
++
++			systrace_info->sysent[i].stsy_return = DTRACE_IDNONE;
++		}
++	}
++
++	if (failed_count > 0)
++		pr_warn("systrace: Failed to provide %d probes (out of memory)\n", failed_count);
++}
++
++static dt_sys_call_t get_intercept(int sysnum)
++{
++	switch (sysnum) {
++	default:
++		return systrace_info->syscall;
++#define DTRACE_SYSCALL_STUB(t, n) \
++	case __NR_##n: \
++		return systrace_info->stubs[SCE_##t];
++#include <asm/dtrace_syscall.h>
++#undef DTRACE_SYSCALL_STUB
++	}
++}
++
++int systrace_enable(void *arg, dtrace_id_t id, void *parg)
++{
++	int			sysnum = SYSTRACE_SYSNUM((uintptr_t)parg);
++	struct dtrace_syscalls	*sc = &systrace_info->sysent[sysnum];
++	int			enabled = sc->stsy_entry != DTRACE_IDNONE ||
++					  sc->stsy_return != DTRACE_IDNONE;
++	dt_sys_call_t		intercept = get_intercept(sysnum);
++
++	if (!enabled) {
++		if (cmpxchg(sc->stsy_tblent, sc->stsy_underlying,
++			    intercept) != sc->stsy_underlying)
++			return 1;
++	} else
++		ASSERT(*sc->stsy_tblent == intercept);
++
++	if (SYSTRACE_ISENTRY((uintptr_t)parg))
++		sc->stsy_entry = id;
++	else
++		sc->stsy_return = id;
++
++	return 0;
++}
++
++void systrace_disable(void *arg, dtrace_id_t id, void *parg)
++{
++	int			sysnum = SYSTRACE_SYSNUM((uintptr_t)parg);
++	struct dtrace_syscalls	*sc = &systrace_info->sysent[sysnum];
++	int			enabled =
++				(sc->stsy_entry != DTRACE_IDNONE ? 1 : 0) +
++				(sc->stsy_return != DTRACE_IDNONE ? 1 : 0);
++	dt_sys_call_t		intercept = get_intercept(sysnum);
++
++	/*
++	 * Every syscall can have 2 probes associated with it.  We need to keep
++	 * the interceptor in place until the last probe is getting disabled.
++	 */
++	if (enabled == 1)
++		(void)cmpxchg(sc->stsy_tblent, intercept, sc->stsy_underlying);
++
++	if (SYSTRACE_ISENTRY((uintptr_t)parg))
++		sc->stsy_entry = DTRACE_IDNONE;
++	else
++		sc->stsy_return = DTRACE_IDNONE;
++}
++
++void systrace_destroy(void *arg, dtrace_id_t id, void *parg)
++{
++	int	sysnum = SYSTRACE_SYSNUM((uintptr_t)parg);
++
++	/*
++	 * Nothing to be done here - just ensure our probe has been disabled.
++	 */
++	if (SYSTRACE_ISENTRY((uintptr_t)parg))
++		ASSERT(systrace_info->sysent[sysnum].stsy_entry ==
++		       DTRACE_IDNONE);
++	else
++		ASSERT(systrace_info->sysent[sysnum].stsy_return ==
++		       DTRACE_IDNONE);
++}
++
++static int systrace_open(struct inode *inode, struct file *file)
++{
++	return -EAGAIN;
++}
++
++static int systrace_close(struct inode *inode, struct file *file)
++{
++	return 0;
++}
++
++static const struct file_operations systrace_fops = {
++	.owner  = THIS_MODULE,
++	.open   = systrace_open,
++	.release = systrace_close,
++};
++
++static struct miscdevice systrace_dev = {
++	.minor = DT_DEV_SYSTRACE_MINOR,
++	.name = "systrace",
++	.nodename = "dtrace/provider/systrace",
++	.fops = &systrace_fops,
++};
++
++int syscall_dev_init(void)
++{
++	int	ret = 0;
++
++	systrace_info = dtrace_syscalls_init();
++
++	ret = misc_register(&systrace_dev);
++	if (ret)
++		pr_err("%s: Can't register misc device %d\n",
++		       systrace_dev.name, systrace_dev.minor);
++
++	*(systrace_info->probep) = (dtrace_systrace_probe_t)dtrace_probe;
++
++	return ret;
++}
++
++void syscall_dev_exit(void)
++{
++	*(systrace_info->probep) = systrace_info->stub;
++
++	misc_deregister(&systrace_dev);
++}
+diff --git a/dtrace/systrace_mod.c b/dtrace/systrace_mod.c
+new file mode 100644
+index 000000000000..d286f7d9d47a
+--- /dev/null
++++ b/dtrace/systrace_mod.c
+@@ -0,0 +1,52 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	systrace_mod.c
++ * DESCRIPTION:	DTrace - systrace provider kernel module
++ *
++ * Copyright (c) 2010, 2017, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/module.h>
++
++#include "dtrace.h"
++#include "dtrace_dev.h"
++#include "systrace.h"
++
++MODULE_AUTHOR("Kris Van Hees (kris.van.hees@oracle.com)");
++MODULE_DESCRIPTION("System Call Tracing");
++MODULE_VERSION("v0.1");
++MODULE_LICENSE("GPL");
++
++static const struct dtrace_pattr syscall_attr = {
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
++};
++
++static struct dtrace_pops syscall_pops = {
++	.dtps_provide = systrace_provide,
++	.dtps_provide_module = NULL,
++	.dtps_destroy_module = NULL,
++	.dtps_enable = systrace_enable,
++	.dtps_disable = systrace_disable,
++	.dtps_suspend = NULL,
++	.dtps_resume = NULL,
++	.dtps_getargdesc = NULL,
++	.dtps_getargval = NULL,
++	.dtps_usermode = NULL,
++	.dtps_destroy = systrace_destroy
++};
++
++DT_PROVIDER_MODULE(syscall, DTRACE_PRIV_USER)
+-- 
+2.26.2
+

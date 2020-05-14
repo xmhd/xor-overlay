@@ -1,0 +1,25 @@
+From a10d7e80145d5181200d57b2ce4c70955ed4de2f Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Mon, 9 Dec 2019 16:53:17 +0000
+Subject: [PATCH 22/24] fixup! dtrace: sdt provider core components
+
+---
+ scripts/link-vmlinux.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 60331458dbf6..7b7df98c0c5b 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -377,7 +377,7 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
+ 	fi
+ fi
+ 
+-vmlinux_link vmlinux "" "${kallsymso}" ${btf_vmlinux_bin_o}
++vmlinux_link vmlinux "" "${kallsymso}" ${btf_vmlinux_bin_o} ${sdtstubo} ${sdtinfoo}
+ 
+ if [ -n "${CONFIG_BUILDTIME_EXTABLE_SORT}" ]; then
+ 	info SORTEX vmlinux
+-- 
+2.26.2
+

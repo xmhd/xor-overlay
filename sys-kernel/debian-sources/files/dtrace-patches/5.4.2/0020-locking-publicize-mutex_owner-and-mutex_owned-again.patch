@@ -1,0 +1,86 @@
+From bb0c675b71b9800938f6d95d666b1411aac0d554 Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Mon, 9 Dec 2019 16:51:44 +0000
+Subject: [PATCH 20/24] locking: publicize mutex_owner and mutex_owned again
+
+DTrace uses both of them.
+
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+---
+ dtrace/dtrace_dif.c    |  2 +-
+ include/linux/mutex.h  | 16 +++++-----------
+ kernel/locking/mutex.c | 19 +++++++++++++++++++
+ 3 files changed, 25 insertions(+), 12 deletions(-)
+
+diff --git a/dtrace/dtrace_dif.c b/dtrace/dtrace_dif.c
+index ae7f01b4ed9b..798302d322a3 100644
+--- a/dtrace/dtrace_dif.c
++++ b/dtrace/dtrace_dif.c
+@@ -2439,7 +2439,7 @@ static void dtrace_dif_subr(uint_t subr, uint_t rd, uint64_t *regs,
+ 			break;
+ 
+ #ifdef CONFIG_SMP
+-		regs[rd] = (uintptr_t)__mutex_owner(&mtx);
++		regs[rd] = (uintptr_t)mutex_owner(&mtx);
+ #else
+ 		regs[rd] = 0;
+ #endif
+diff --git a/include/linux/mutex.h b/include/linux/mutex.h
+index f2861d68ade1..b65927b2f9d3 100644
+--- a/include/linux/mutex.h
++++ b/include/linux/mutex.h
+@@ -214,16 +214,10 @@ enum mutex_trylock_recursive_enum {
+ extern /* __deprecated */ __must_check enum mutex_trylock_recursive_enum
+ mutex_trylock_recursive(struct mutex *lock);
+ 
+-#if defined(CONFIG_DEBUG_MUTEXES) || defined(CONFIG_SMP)
+-static inline int mutex_owned(struct mutex *lock)
+-{
+-	return mutex_is_locked(lock) && __mutex_owner(lock) == current;
+-}
+-#else
+-static inline int mutex_owned(struct mutex *lock)
+-{
+-	return mutex_is_locked(lock);
+-}
+-#endif
++extern int
++mutex_owned(struct mutex *lock);
++
++extern struct task_struct *
++mutex_owner(struct mutex *lock);
+ 
+ #endif /* __LINUX_MUTEX_H */
+diff --git a/kernel/locking/mutex.c b/kernel/locking/mutex.c
+index 276f40678c50..2087046a901d 100644
+--- a/kernel/locking/mutex.c
++++ b/kernel/locking/mutex.c
+@@ -97,6 +97,25 @@ mutex_trylock_recursive(struct mutex *lock)
+ }
+ EXPORT_SYMBOL(mutex_trylock_recursive);
+ 
++struct task_struct *mutex_owner(struct mutex *lock)
++{
++	return __mutex_owner (lock);
++}
++EXPORT_SYMBOL(mutex_owner);
++
++#if defined(CONFIG_DEBUG_MUTEXES) || defined(CONFIG_SMP)
++int mutex_owned(struct mutex *lock)
++{
++	return mutex_is_locked(lock) && __mutex_owner(lock) == current;
++}
++#else
++int mutex_owned(struct mutex *lock)
++{
++	return mutex_is_locked(lock);
++}
++#endif
++EXPORT_SYMBOL(mutex_owned);
++
+ static inline unsigned long __owner_flags(unsigned long owner)
+ {
+ 	return owner & MUTEX_FLAGS;
+-- 
+2.26.2
+
