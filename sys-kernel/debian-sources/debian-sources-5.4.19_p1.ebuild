@@ -270,16 +270,14 @@ src_prepare() {
 		echo
 	fi
         if use wireguard; then
-                set_yes_config .config CONFIG_NET
-		set_yes_config .config CONFIG_INET
-		set_yes_config .config CONFIG_INET_UDP_TUNNEL
-		set_yes_config .config CONFIG_NF_CONNTRACK
-		set_yes_config .config CONFIG_NETFILTER_XT_MATCH_HASHLIMIT
-		set_yes_config .config CONFIG_IP6_NF_IPTABLES
-		set_yes_config .config CONFIG_CRYPTO_BLKCIPHER
-		set_yes_config .config CONFIG_PADATA
-		# TODO: add some log output here regarding rc-update add modules boot
-		# if using a kernel lower than 5.6, and thus wireguard-modules.
+                tweak_config .config CONFIG_NET y
+		tweak_config .config CONFIG_INET y
+		tweak_config .config CONFIG_INET_UDP_TUNNEL y
+		tweak_config .config CONFIG_NF_CONNTRACK y
+		tweak_config .config CONFIG_NETFILTER_XT_MATCH_HASHLIMIT y
+		tweak_config .config CONFIG_IP6_NF_IPTABLES y
+		tweak_config .config CONFIG_CRYPTO_BLKCIPHER y
+		tweak_config .config CONFIG_PADATA y
         fi
 	# get config into good state:
 	yes "" | make oldconfig >/dev/null 2>&1 || die
@@ -415,6 +413,14 @@ pkg_postinst() {
                 ewarn "These changes will stop certain programs from functioning"
                 ewarn "e.g. VirtualBox, Skype"
                 ewarn "Full information available in $DOCUMENTATION"
+        fi
+
+        if use wireguard && [[ ${PV} < "5.6.0" ]]; then
+                ewarn "WireGuard with Linux ${PV} is supported as an external kernel module"
+                ewarn "You are required to add WireGuard to /etc/conf.d/modules and"
+                ewarn "add the 'modules' service to the boot runlevel."
+                ewarn ""
+                ewarn "e.g rc-update add modules boot"
         fi
 
 	# TODO: tidy up below
