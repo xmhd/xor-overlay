@@ -26,7 +26,11 @@ DEB_PV="$DEB_PV_BASE${DEB_EXTRAVERSION}"
 KERNEL_ARCHIVE="linux_${DEB_PV_BASE}.orig.tar.xz"
 PATCH_ARCHIVE="linux_${DEB_PV}.debian.tar.xz"
 
-SRC_URI="$DEB_UPSTREAM/${KERNEL_ARCHIVE} $DEB_UPSTREAM/${PATCH_ARCHIVE}"
+SRC_URI="
+	$DEB_UPSTREAM/${KERNEL_ARCHIVE} $DEB_UPSTREAM/${PATCH_ARCHIVE}
+	http://ck.kolivas.org/patches/5.0/5.4/5.4-ck1/5.4-ck1-broken-out.tar.xz
+"
+
 S="$WORKDIR/linux-${DEB_PV_BASE}"
 
 DESCRIPTION="Debian Sources (and optional binary kernel)"
