@@ -38,7 +38,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs custom-cflags ec2 firmware hardened libressl luks lvm mdadm microcode plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs custom-cflags ec2 firmware hardened libressl luks lvm mdadm microcode nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -436,6 +436,9 @@ pkg_postinst() {
             einfo ">>> Dracut: building initramfs"
             dracut \
             --force \
+            --no-hostonly \
+            --add "base biosdevname dash fs-lib i18n kernel-modules network resume rootfs-block shutdown terminfo udev-rules usrmount" \
+            --omit "caps convertfs debug dm dmsquash-live fstab-sys gensplash ifcfg img-lib livenet rpmversion securityfs ssh-client syslog url-lib"
             $(usex btrfs "-a btrfs" "-o btrfs") \
             $(usex dmraid "-a dmraid" "-o dmraid") \
             $(usex isci "-a isci" "-o isci") \
@@ -445,6 +448,8 @@ pkg_postinst() {
             $(usex mdraid "-a multipath" "-o multipath") \
             $(usex microcode "--early-microcode" "--no-early-microcode") \
             $(usex multipath "-a multipath" "-o multipath") \
+            $(usex nbd "-a nbd" "-o nbd") \
+            $(usex nfs "-a nfs" "-o nfs") \
             $(usex plymouth "-a plymouth" "-o plymouth") \
             $(usex selinux "-a selinux" "-o selinux") \
             $(usex systemd "-a dracut-systemd systemd systemd-initrd systemd-networkd" "-o dracut-sysemd systemd systemd-initrd systemd-networkd") \
