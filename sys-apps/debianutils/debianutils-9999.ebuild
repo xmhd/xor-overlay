@@ -14,8 +14,8 @@ IUSE="+installkernel static"
 
 DEPEND="
     installkernel? (
-        !sys-apps/installkernel-gentoo
-        !sys-apps/installkernel-systemd-boot
+        !sys-kernel/installkernel-gentoo
+        !sys-kernel/installkernel-systemd-boot
     )
 "
 
