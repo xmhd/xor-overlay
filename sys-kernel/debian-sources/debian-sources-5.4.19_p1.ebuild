@@ -450,7 +450,7 @@ pkg_postinst() {
         --force \
         --no-hostonly \
         --add "base biosdevname dash dm fs-lib i18n kernel-modules network resume rootfs-block shutdown terminfo udev-rules usrmount" \
-        --omit "bootchart busybox caps convertfs debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh rpmversion securityfs ssh-client syslog url-lib" \
+        --omit "bootchart busybox caps convertfs debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh rpmversion securityfs ssh-client stratis syslog url-lib" \
         $(usex btrfs "-a btrfs" "-o btrfs") \
         $(usex dmraid "-a dmraid" "-o dmraid") \
         $(usex iscsi "-a iscsi" "-o iscsi") \
