@@ -39,7 +39,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs clang custom-cflags dmraid ec2 firmware hardened iscsi libressl luks lvm mdadm mdraid microcode multipath nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs clang custom-cflags dmraid ec2 firmware hardened iscsi libressl luks lvm mdadm microcode multipath nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -449,15 +449,15 @@ pkg_postinst() {
         dracut \
         --force \
         --no-hostonly \
-        --add "base biosdevname dash fs-lib i18n kernel-modules network resume rootfs-block shutdown terminfo udev-rules usrmount" \
-        --omit "caps convertfs debug dm dmsquash-live fstab-sys gensplash ifcfg img-lib livenet rpmversion securityfs ssh-client syslog url-lib" \
+        --add "base biosdevname dash dm fs-lib i18n kernel-modules network resume rootfs-block shutdown terminfo udev-rules usrmount" \
+        --omit "bootchart busybox caps convertfs debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh rpmversion securityfs ssh-client syslog url-lib" \
         $(usex btrfs "-a btrfs" "-o btrfs") \
         $(usex dmraid "-a dmraid" "-o dmraid") \
         $(usex iscsi "-a iscsi" "-o iscsi") \
         $(usex lvm "-a lvm" "-o lvm") \
         $(usex luks "-a crypt" "-o crypt") \
         $(usex mdadm "--mdadmconf" "--nomdadmconf") \
-        $(usex mdraid "-a multipath" "-o multipath") \
+        $(usex mdadm "-a mdraid" "-o mdraid") \
         $(usex microcode "--early-microcode" "--no-early-microcode") \
         $(usex multipath "-a multipath" "-o multipath") \
         $(usex nbd "-a nbd" "-o nbd") \
