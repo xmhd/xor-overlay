@@ -388,10 +388,9 @@ src_install() {
 	fi
 }
 
-
 pkg_postinst() {
 
-	TODO: Change to SANDBOX_WRITE=".." for Dracut writes
+	# TODO: Change to SANDBOX_WRITE=".." for Dracut writes
 	export SANDBOX_ON=0
 
 	if use binary && [[ -h "${ROOT}"usr/src/linux ]]; then
@@ -409,25 +408,25 @@ pkg_postinst() {
 	fi
 
     if use hardened; then
-            ewarn "!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!"
-            ewarn "TODO"
-            ewarn "These KCONFIG options and patches change kernel behavior"
-            ewarn "Changes include:"
-            ewarn "Increased entropy for ALSR"
-            ewarn "GCC plugins (if using GCC)"
-            ewarn "Memory allocation"
-            ewarn "... and more"
-            ewarn "These changes will stop certain programs from functioning"
-            ewarn "e.g. VirtualBox, Skype"
-            ewarn "Full information available in $DOCUMENTATION"
+        ewarn "!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!"
+        ewarn "TODO"
+        ewarn "These KCONFIG options and patches change kernel behavior"
+        ewarn "Changes include:"
+        ewarn "Increased entropy for ALSR"
+        ewarn "GCC plugins (if using GCC)"
+        ewarn "Memory allocation"
+        ewarn "... and more"
+        ewarn "These changes will stop certain programs from functioning"
+        ewarn "e.g. VirtualBox, Skype"
+        ewarn "Full information available in $DOCUMENTATION"
     fi
 
     if use wireguard && [[ ${PV} < "5.6.0" ]]; then
-            ewarn "WireGuard with Linux ${PV} is supported as an external kernel module"
-            ewarn "You are required to add WireGuard to /etc/conf.d/modules and"
-            ewarn "add the 'modules' service to the boot runlevel."
-            ewarn ""
-            ewarn "e.g rc-update add modules boot"
+        ewarn "WireGuard with Linux ${PV} is supported as an external kernel module"
+        ewarn "You are required to add WireGuard to /etc/conf.d/modules and"
+        ewarn "add the 'modules' service to the boot runlevel."
+        ewarn ""
+        ewarn "e.g rc-update add modules boot"
     fi
 
 	# TODO: tidy up below
@@ -446,32 +445,32 @@ pkg_postinst() {
 	# will pass '--omit dracut-systemd systemd systemd-networkd systemd-initrd'
 	# to exclude these (Dracut) modules from the initramfs.
 	if use binary; then
-            einfo ">>> Dracut: building initramfs"
-            dracut \
-            --force \
-            --no-hostonly \
-            --add "base biosdevname dash fs-lib i18n kernel-modules network resume rootfs-block shutdown terminfo udev-rules usrmount" \
-            --omit "caps convertfs debug dm dmsquash-live fstab-sys gensplash ifcfg img-lib livenet rpmversion securityfs ssh-client syslog url-lib" \
-            $(usex btrfs "-a btrfs" "-o btrfs") \
-            $(usex dmraid "-a dmraid" "-o dmraid") \
-            $(usex iscsi "-a iscsi" "-o iscsi") \
-            $(usex lvm "-a lvm" "-o lvm") \
-            $(usex luks "-a crypt" "-o crypt") \
-            $(usex mdadm "--mdadmconf" "--nomdadmconf") \
-            $(usex mdraid "-a multipath" "-o multipath") \
-            $(usex microcode "--early-microcode" "--no-early-microcode") \
-            $(usex multipath "-a multipath" "-o multipath") \
-            $(usex nbd "-a nbd" "-o nbd") \
-            $(usex nfs "-a nfs" "-o nfs") \
-            $(usex plymouth "-a plymouth" "-o plymouth") \
-            $(usex selinux "-a selinux" "-o selinux") \
-            $(usex systemd "-a dracut-systemd systemd systemd-initrd systemd-networkd" "-o dracut-sysemd systemd systemd-initrd systemd-networkd") \
-            $(usex zfs "-a zfs" "-o zfs") \
-            --kver "${PV}-${PN}" \
-            --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
-            --fwdir "${ROOT}"lib/firmware \
-            --kernel-image "${ROOT}"boot/kernel-${PV}-${PN}
-            einfo ">>> Dracut: Finished building initramfs"
+        einfo ">>> Dracut: building initramfs"
+        dracut \
+        --force \
+        --no-hostonly \
+        --add "base biosdevname dash fs-lib i18n kernel-modules network resume rootfs-block shutdown terminfo udev-rules usrmount" \
+        --omit "caps convertfs debug dm dmsquash-live fstab-sys gensplash ifcfg img-lib livenet rpmversion securityfs ssh-client syslog url-lib" \
+        $(usex btrfs "-a btrfs" "-o btrfs") \
+        $(usex dmraid "-a dmraid" "-o dmraid") \
+        $(usex iscsi "-a iscsi" "-o iscsi") \
+        $(usex lvm "-a lvm" "-o lvm") \
+        $(usex luks "-a crypt" "-o crypt") \
+        $(usex mdadm "--mdadmconf" "--nomdadmconf") \
+        $(usex mdraid "-a multipath" "-o multipath") \
+        $(usex microcode "--early-microcode" "--no-early-microcode") \
+        $(usex multipath "-a multipath" "-o multipath") \
+        $(usex nbd "-a nbd" "-o nbd") \
+        $(usex nfs "-a nfs" "-o nfs") \
+        $(usex plymouth "-a plymouth" "-o plymouth") \
+        $(usex selinux "-a selinux" "-o selinux") \
+        $(usex systemd "-a dracut-systemd systemd systemd-initrd" "-o dracut-systemd systemd systemd-initrd") \
+        $(usex zfs "-a zfs" "-o zfs") \
+        --kver "${PV}-${PN}" \
+        --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
+        --fwdir "${ROOT}"lib/firmware \
+        --kernel-image "${ROOT}"boot/kernel-${PV}-${PN}
+        einfo ">>> Dracut: Finished building initramfs"
 	fi
 
 	if use binary; then
