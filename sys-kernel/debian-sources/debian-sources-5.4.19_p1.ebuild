@@ -20,8 +20,7 @@ EXTRAVERSION="_p1"
 MODULE_EXT=${EXTRAVERSION}
 [ "$PR" != "r0" ] && MODULE_EXT=$MODULE_EXT-$PR
 MODULE_EXT=$MODULE_EXT-${PN}
-# install sources to /usr/src/$LINUX_SRCDIR
-LINUX_SRCDIR=linux-${PF}
+
 DEB_PV="$DEB_PV_BASE${DEB_EXTRAVERSION}"
 KERNEL_ARCHIVE="linux_${DEB_PV_BASE}.orig.tar.xz"
 PATCH_ARCHIVE="linux_${DEB_PV}.debian.tar.xz"
@@ -392,7 +391,7 @@ src_install() {
 			${WORKDIR}/build/scripts/sign-file sha512 $certs_dir/signing_key.pem $certs_dir/signing_key.x509 $x || die
 		done
 		# install the sign-file executable for future use.
-		exeinto /usr/src/${LINUX_SRCDIR}/scripts
+		exeinto /usr/src/linux-${PN}-${PV}/scripts
 		doexe ${WORKDIR}/build/scripts/sign-file
 	fi
 }
@@ -410,7 +409,7 @@ pkg_postinst() {
 	if use binary && [[ ! -e "${ROOT}"usr/src/linux ]]; then
 		ewarn "With binary use flag enabled /usr/src/linux"
 		ewarn "symlink automatically set to debian kernel"
-		ln -sf ${LINUX_SRCDIR} "${ROOT}"usr/src/linux
+		ln -sf linux-${PN}-${PV} "${ROOT}"usr/src/linux
 	fi
 
 	if [ -e ${ROOT}lib/modules ]; then
