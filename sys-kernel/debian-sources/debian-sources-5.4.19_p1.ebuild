@@ -457,7 +457,7 @@ pkg_postinst() {
             $(usex iscsi "-a iscsi" "-o iscsi") \
             $(usex lvm "-a lvm" "-o lvm") \
             $(usex luks "-a crypt" "-o crypt") \
-            $(usex mdadm "--mdadmconf" "--no-mdadmconf") \
+            $(usex mdadm "--mdadmconf" "--nomdadmconf") \
             $(usex mdraid "-a multipath" "-o multipath") \
             $(usex microcode "--early-microcode" "--no-early-microcode") \
             $(usex multipath "-a multipath" "-o multipath") \
