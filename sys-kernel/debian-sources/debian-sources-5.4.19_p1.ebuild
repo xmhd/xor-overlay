@@ -39,7 +39,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs clang custom-cflags dmraid ec2 firmware hardened iscsi libressl luks lvm mdadm microcode nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs clang custom-cflags dmraid ec2 firmware hardened iscsi libressl luks lvm mdadm mdraid microcode multipath nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
