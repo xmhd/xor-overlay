@@ -454,7 +454,7 @@ pkg_postinst() {
             --omit "caps convertfs debug dm dmsquash-live fstab-sys gensplash ifcfg img-lib livenet rpmversion securityfs ssh-client syslog url-lib" \
             $(usex btrfs "-a btrfs" "-o btrfs") \
             $(usex dmraid "-a dmraid" "-o dmraid") \
-            $(usex isci "-a isci" "-o isci") \
+            $(usex iscsi "-a iscsi" "-o iscsi") \
             $(usex lvm "-a lvm" "-o lvm") \
             $(usex luks "-a crypt" "-o crypt") \
             $(usex mdadm "--mdadmconf" "--no-mdadmconf") \
