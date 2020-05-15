@@ -27,7 +27,6 @@ PATCH_ARCHIVE="linux_${DEB_PV}.debian.tar.xz"
 
 SRC_URI="
 	$DEB_UPSTREAM/${KERNEL_ARCHIVE} $DEB_UPSTREAM/${PATCH_ARCHIVE}
-	http://ck.kolivas.org/patches/5.0/5.4/5.4-ck1/5.4-ck1-broken-out.tar.xz
 "
 
 S="$WORKDIR/linux-${DEB_PV_BASE}"
@@ -40,7 +39,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs custom-cflags ec2 firmware hardened libressl luks lvm mdadm microcode nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs clang custom-cflags dmraid ec2 firmware hardened libressl luks lvm mdadm microcode nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -123,14 +122,6 @@ zap_config() {
 	sed -i -e "/$2/d" $1
 }
 
-pkg_pretend() {
-	# Ensure we have enough disk space to compile
-	if use binary ; then
-		CHECKREQS_DISK_BUILD="5G"
-		check-reqs_pkg_setup
-	fi
-}
-
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
 	for subdir in $PF $P linux; do
@@ -144,6 +135,14 @@ get_certs_dir() {
 			return
 		fi
 	done
+}
+
+pkg_pretend() {
+	# Ensure we have enough disk space to compile
+	if use binary ; then
+		CHECKREQS_DISK_BUILD="5G"
+		check-reqs_pkg_setup
+	fi
 }
 
 pkg_setup() {
@@ -228,12 +227,14 @@ src_prepare() {
         tweak_config .config CONFIG_SLAB_FREELIST_HARDENED y
         tweak_config .config CONFIG_SLAB_CANARY y
         tweak_config .config CONFIG_SHUFFLE_PAGE_ALLOCATOR y
-        tweak_config .config CONFIG_GCC_PLUGINS y
-        tweak_config .config CONFIG_GCC_PLUGIN_LATENT_ENTROPY y
-        tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK y
-        tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL y
-        tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT y
-        tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE n
+        ! if use clang; then
+            tweak_config .config CONFIG_GCC_PLUGINS y
+            tweak_config .config CONFIG_GCC_PLUGIN_LATENT_ENTROPY y
+            tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK y
+            tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL y
+            tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT y
+            tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE n
+        fi
     fi
 	if use sign-modules; then
 		certs_dir=$(get_certs_dir)
