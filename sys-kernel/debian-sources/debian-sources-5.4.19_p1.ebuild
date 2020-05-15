@@ -40,7 +40,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs ck custom-cflags ec2 firmware hardened libressl luks lvm mdadm microcode nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs custom-cflags ec2 firmware hardened libressl luks lvm mdadm microcode nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -155,21 +155,12 @@ src_prepare() {
 
 	debug-print-function ${FUNCNAME} "${@}"
 
-        # apply debian patches
+    # apply debian patches
 	cd "${S}"
 	for debpatch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
 		epatch -p1 "${WORKDIR}/debian/patches/${debpatch}"
 	done
 	# end of debian-specific stuff...
-        # apply ck patches
-        for ckpatch in $( get_patch_list "${WORKDIR}/patches" ); do
-                epatch -p1 "${WORKDIR}/patches/${ckpatch}"
-        done
-        # end ck stuff...
-        # start dtrace patches
-        for dtrace_patch in $( get_patch_list "${FILESDIR}/dtrace-patches/5.4.2" ); do
-                epatch -p1 "${FILESDIR}/dtrace-patches/5.4.2/${dtrace_patch}"
-        done
 
 	# do not include debian devs certificates
 	rm -rf "${WORKDIR}"/debian/certs
@@ -216,34 +207,34 @@ src_prepare() {
 	chmod +x config-extract || die
 	./config-extract ${arch} ${featureset} ${subarch} || die
 	set_no_config .config CONFIG_DEBUG
+    if use custom-cflags; then
+            MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
+            if [ -n "$MARCH" ]; then
+                    sed -i -e 's/-mtune=generic/$MARCH/g' arch/x86/Makefile || die "Canna optimize this kernel anymore, captain!"
+            fi
+    fi
 	if use ec2; then
 		tweak_config .config CONFIG_BLK_DEV_NVME y
 		tweak_config .config CONFIG_XEN_BLKDEV_FRONTEND y
 		tweak_config .config CONFIG_XEN_BLKDEV_BACKEND y
 		tweak_config .config CONFIG_IXGBEVF y
 	fi
-        if use custom-cflags; then
-                MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
-                if [ -n "$MARCH" ]; then
-                        sed -i -e 's/-mtune=generic/$MARCH/g' arch/x86/Makefile || die "Canna optimize this kernel anymore, captain!"
-                fi
-        fi
-        if use hardened; then
-            tweak_config .config CONFIG_AUDIT y
-            tweak_config .config CONFIG_EXPERT y
-            tweak_config .config CONFIG_SLUB_DEBUG y
-            tweak_config .config CONFIG_SLAB_MERGE_DEFAULT n
-            tweak_config .config CONFIG_SLAB_FREELIST_RANDOM y
-            tweak_config .config CONFIG_SLAB_FREELIST_HARDENED y
-            tweak_config .config CONFIG_SLAB_CANARY y
-            tweak_config .config CONFIG_SHUFFLE_PAGE_ALLOCATOR y
-            tweak_config .config CONFIG_GCC_PLUGINS y
-            tweak_config .config CONFIG_GCC_PLUGIN_LATENT_ENTROPY y
-            tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK y
-            tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL y
-            tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT y
-            tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE n
-        fi
+    if use hardened; then
+        tweak_config .config CONFIG_AUDIT y
+        tweak_config .config CONFIG_EXPERT y
+        tweak_config .config CONFIG_SLUB_DEBUG y
+        tweak_config .config CONFIG_SLAB_MERGE_DEFAULT n
+        tweak_config .config CONFIG_SLAB_FREELIST_RANDOM y
+        tweak_config .config CONFIG_SLAB_FREELIST_HARDENED y
+        tweak_config .config CONFIG_SLAB_CANARY y
+        tweak_config .config CONFIG_SHUFFLE_PAGE_ALLOCATOR y
+        tweak_config .config CONFIG_GCC_PLUGINS y
+        tweak_config .config CONFIG_GCC_PLUGIN_LATENT_ENTROPY y
+        tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK y
+        tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL y
+        tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT y
+        tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE n
+    fi
 	if use sign-modules; then
 		certs_dir=$(get_certs_dir)
 		echo
@@ -284,8 +275,8 @@ src_prepare() {
 		ewarn "parameter (to params in /etc/boot.conf, and re-run boot-update.)"
 		echo
 	fi
-        if use wireguard; then
-                tweak_config .config CONFIG_NET y
+    if use wireguard; then
+        tweak_config .config CONFIG_NET y
 		tweak_config .config CONFIG_INET y
 		tweak_config .config CONFIG_INET_UDP_TUNNEL y
 		tweak_config .config CONFIG_NF_CONNTRACK y
@@ -293,7 +284,7 @@ src_prepare() {
 		tweak_config .config CONFIG_IP6_NF_IPTABLES y
 		tweak_config .config CONFIG_CRYPTO_BLKCIPHER y
 		tweak_config .config CONFIG_PADATA y
-        fi
+    fi
 	# get config into good state:
 	yes "" | make oldconfig >/dev/null 2>&1 || die
 	cp .config "${T}"/.config || die
@@ -349,7 +340,7 @@ src_install() {
 
 	debug-print-function ${FUNCNAME} "${@}"
 
-        TODO: Change to SANDBOX_WRITE=".." for installkernel writes
+    # TODO: Change to SANDBOX_WRITE=".." for installkernel writes
 	# Disable sandbox
 	export SANDBOX_ON=0
 
@@ -369,8 +360,8 @@ src_install() {
 	make prepare || die
 	make scripts || die
 
-        # Install kernel modules to /lib/modules/${PV}-{PN}
-        emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" modules_install
+    # Install kernel modules to /lib/modules/${PV}-{PN}
+    emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" modules_install
 	installkernel "${PN}-${PV}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
 	# module symlink fix-up:
@@ -416,27 +407,27 @@ pkg_postinst() {
 		depmod -a ${PV}-${PN}
 	fi
 
-        if use hardened; then
-                ewarn "!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!"
-                ewarn "TODO"
-                ewarn "These KCONFIG options and patches change kernel behavior"
-                ewarn "Changes include:"
-                ewarn "Increased entropy for ALSR"
-                ewarn "GCC plugins (if using GCC)"
-                ewarn "Memory allocation"
-                ewarn "... and more"
-                ewarn "These changes will stop certain programs from functioning"
-                ewarn "e.g. VirtualBox, Skype"
-                ewarn "Full information available in $DOCUMENTATION"
-        fi
+    if use hardened; then
+            ewarn "!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!"
+            ewarn "TODO"
+            ewarn "These KCONFIG options and patches change kernel behavior"
+            ewarn "Changes include:"
+            ewarn "Increased entropy for ALSR"
+            ewarn "GCC plugins (if using GCC)"
+            ewarn "Memory allocation"
+            ewarn "... and more"
+            ewarn "These changes will stop certain programs from functioning"
+            ewarn "e.g. VirtualBox, Skype"
+            ewarn "Full information available in $DOCUMENTATION"
+    fi
 
-        if use wireguard && [[ ${PV} < "5.6.0" ]]; then
-                ewarn "WireGuard with Linux ${PV} is supported as an external kernel module"
-                ewarn "You are required to add WireGuard to /etc/conf.d/modules and"
-                ewarn "add the 'modules' service to the boot runlevel."
-                ewarn ""
-                ewarn "e.g rc-update add modules boot"
-        fi
+    if use wireguard && [[ ${PV} < "5.6.0" ]]; then
+            ewarn "WireGuard with Linux ${PV} is supported as an external kernel module"
+            ewarn "You are required to add WireGuard to /etc/conf.d/modules and"
+            ewarn "add the 'modules' service to the boot runlevel."
+            ewarn ""
+            ewarn "e.g rc-update add modules boot"
+    fi
 
 	# TODO: tidy up below
 	if use binary && [[ -e "${ROOT}"var/lib/module-rebuild/moduledb ]]; then
