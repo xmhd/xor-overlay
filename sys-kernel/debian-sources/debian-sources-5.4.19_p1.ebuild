@@ -409,42 +409,6 @@ pkg_postinst() {
 		depmod -a ${PV}-${PN}
 	fi
 
-    if use hardened; then
-        ewarn "WARNING... WARNING... WARNING"
-        ewarn ""
-        ewarn "TODO"
-        ewarn "These KCONFIG options and patches change kernel behavior"
-        ewarn "Changes include:"
-        ewarn "Increased entropy for ALSR"
-        ewarn "GCC plugins (if using GCC)"
-        ewarn "Memory allocation"
-        ewarn "... and more"
-        ewarn "These changes will stop certain programs from functioning"
-        ewarn "e.g. VirtualBox, Skype"
-        ewarn "Full information available in $DOCUMENTATION"
-        ewarn ""
-    fi
-
-    if use wireguard && [[ ${PV} < "5.6.0" ]]; then
-        ewarn "WARNING... WARNING... WARNING..."
-        ewarn ""
-        ewarn "WireGuard with Linux ${PV} is supported as an external kernel module"
-        ewarn "You are required to add WireGuard to /etc/conf.d/modules and"
-        ewarn "add the 'modules' service to the boot runlevel."
-        ewarn ""
-        ewarn "e.g rc-update add modules boot"
-        ewarn ""
-    fi
-
-	# TODO: tidy up below
-	if use binary && [[ -e "${ROOT}"var/lib/module-rebuild/moduledb ]]; then
-		ewarn "!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!"
-		ewarn "External kernel modules are not yet automatically built"
-		ewarn "by USE=binary - emerge @modules-rebuild to do this"
-		ewarn "and regenerate your initramfs if you are using ZFS root filesystem"
-		ewarn ""
-	fi
-
 	# NOTE: WIP and not well tested yet.
 	#
 	# Dracut will build an initramfs when USE=binary.
@@ -500,6 +464,43 @@ pkg_postinst() {
         ewarn "    Where $SWAP is the swap device used by hibernate software of your choice."
         ewarn""
         ewarn "    Please consult "man 7 dracut.kernel" for additional kernel arguments."
+	fi
+
+    if use hardened; then
+        ewarn "WARNING... WARNING... WARNING"
+        ewarn ""
+        ewarn "TODO"
+        ewarn "These KCONFIG options and patches change kernel behavior"
+        ewarn "Changes include:"
+        ewarn "Increased entropy for ALSR"
+        ewarn "GCC plugins (if using GCC)"
+        ewarn "Memory allocation"
+        ewarn "... and more"
+        ewarn "These changes will stop certain programs from functioning"
+        ewarn "e.g. VirtualBox, Skype"
+        ewarn "Full information available in $DOCUMENTATION"
+        ewarn ""
+    fi
+
+    if use wireguard && [[ ${PV} < "5.6.0" ]]; then
+        ewarn "WARNING... WARNING... WARNING..."
+        ewarn ""
+        ewarn "WireGuard with Linux ${PV} is supported as an external kernel module"
+        ewarn "You are required to add WireGuard to /etc/conf.d/modules and"
+        ewarn "add the 'modules' service to the boot runlevel."
+        ewarn ""
+        ewarn "e.g rc-update add modules boot"
+        ewarn ""
+    fi
+
+	# TODO: tidy up below
+	if use binary && [[ -e "${ROOT}"var/lib/module-rebuild/moduledb ]]; then
+		ewarn "WARNING... WARNING... WARNING..."
+		ewarn ""
+		ewarn "External kernel modules are not yet automatically built"
+		ewarn "by USE=binary - emerge @modules-rebuild to do this"
+		ewarn "and regenerate your initramfs if you are using ZFS root filesystem"
+		ewarn ""
 	fi
 
 	if use binary; then
