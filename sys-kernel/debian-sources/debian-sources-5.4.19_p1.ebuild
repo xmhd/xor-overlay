@@ -447,14 +447,16 @@ pkg_postinst() {
 	if use binary; then
         einfo ">>> Dracut: building initramfs"
         dracut \
+        --stdlog=1 \
         --force \
         --no-hostonly \
-        --add "base biosdevname dash dm fs-lib i18n kernel-modules network resume rootfs-block shutdown terminfo udev-rules usrmount" \
-        --omit "bootchart busybox caps convertfs debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh rpmversion securityfs ssh-client stratis syslog url-lib" \
+        --add "base dm fs-lib i18n kernel-modules network resume rootfs-block shutdown terminfo udev-rules usrmount" \
+        --omit "biosdevname bootchart busybox caps convertfs dash debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh rpmversion securityfs ssh-client stratis syslog url-lib" \
         $(usex btrfs "-a btrfs" "-o btrfs") \
         $(usex dmraid "-a dmraid" "-o dmraid") \
         $(usex iscsi "-a iscsi" "-o iscsi") \
         $(usex lvm "-a lvm" "-o lvm") \
+        $(usex lvm "--lvmconf" "--nolvmconf") \
         $(usex luks "-a crypt" "-o crypt") \
         $(usex mdadm "--mdadmconf" "--nomdadmconf") \
         $(usex mdadm "-a mdraid" "-o mdraid") \
@@ -464,7 +466,7 @@ pkg_postinst() {
         $(usex nfs "-a nfs" "-o nfs") \
         $(usex plymouth "-a plymouth" "-o plymouth") \
         $(usex selinux "-a selinux" "-o selinux") \
-        $(usex systemd "-a dracut-systemd systemd systemd-initrd" "-o dracut-systemd systemd systemd-initrd") \
+        $(usex systemd "-a systemd systemd-initrd systemd-networkd" "-o systemd systemd-initrd systemd-networkd") \
         $(usex zfs "-a zfs" "-o zfs") \
         --kver "${PV}-${PN}" \
         --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
