@@ -99,7 +99,6 @@ get_patch_list() {
 tweak_config() {
 	einfo "Setting $2=$3 in kernel config."
 	sed -i -e "/^$2=/d" $1
-	echo "$2=$3" >> $1
 }
 
 set_no_config() {
