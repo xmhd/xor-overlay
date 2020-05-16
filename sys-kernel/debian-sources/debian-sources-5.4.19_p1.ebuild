@@ -398,8 +398,9 @@ pkg_postinst() {
 	fi
 
 	if use binary && [[ ! -e "${ROOT}"usr/src/linux ]]; then
-		ewarn "With binary use flag enabled /usr/src/linux"
-		ewarn "symlink automatically set to debian kernel"
+	    ewarn "WARNING... WARNING... WARNING"
+	    ewarn "/usr/src/linux symlink automatically set to ${PN}-${PV}"
+	    ewarn ""
 		ln -sf linux-${PN}-${PV} "${ROOT}"usr/src/linux
 	fi
 
@@ -408,7 +409,7 @@ pkg_postinst() {
 	fi
 
     if use hardened; then
-        ewarn "!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!"
+        ewarn "WARNING... WARNING... WARNING"
         ewarn "TODO"
         ewarn "These KCONFIG options and patches change kernel behavior"
         ewarn "Changes include:"
@@ -419,14 +420,17 @@ pkg_postinst() {
         ewarn "These changes will stop certain programs from functioning"
         ewarn "e.g. VirtualBox, Skype"
         ewarn "Full information available in $DOCUMENTATION"
+        ewarn ""
     fi
 
     if use wireguard && [[ ${PV} < "5.6.0" ]]; then
+        ewarn "WARNING... WARNING... WARNING..."
         ewarn "WireGuard with Linux ${PV} is supported as an external kernel module"
         ewarn "You are required to add WireGuard to /etc/conf.d/modules and"
         ewarn "add the 'modules' service to the boot runlevel."
         ewarn ""
         ewarn "e.g rc-update add modules boot"
+        ewarn ""
     fi
 
 	# TODO: tidy up below
@@ -435,6 +439,7 @@ pkg_postinst() {
 		ewarn "External kernel modules are not yet automatically built"
 		ewarn "by USE=binary - emerge @modules-rebuild to do this"
 		ewarn "and regenerate your initramfs if you are using ZFS root filesystem"
+		ewarn ""
 	fi
 
 	# NOTE: WIP and not well tested yet.
@@ -450,10 +455,11 @@ pkg_postinst() {
         --stdlog=1 \
         --force \
         --no-hostonly \
-        --add "base dm fs-lib i18n kernel-modules network resume rootfs-block shutdown terminfo udev-rules usrmount" \
-        --omit "biosdevname bootchart busybox caps convertfs dash debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh rpmversion securityfs ssh-client stratis syslog url-lib" \
+        --add "base dm fs-lib i18n kernel-modules network rootfs-block shutdown terminfo udev-rules usrmount" \
+        --omit "biosdevname bootchart busybox caps convertfs dash debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh network-manager qemu qemu-net rpmversion securityfs ssh-client stratis syslog url-lib" \
         $(usex btrfs "-a btrfs" "-o btrfs") \
         $(usex dmraid "-a dmraid" "-o dmraid") \
+        $(usex hardened "-o resume" "-a resume")
         $(usex iscsi "-a iscsi" "-o iscsi") \
         $(usex lvm "-a lvm" "-o lvm") \
         $(usex lvm "--lvmconf" "--nolvmconf") \
@@ -473,6 +479,24 @@ pkg_postinst() {
         --fwdir "${ROOT}"lib/firmware \
         --kernel-image "${ROOT}"boot/kernel-${PV}-${PN}
         einfo ">>> Dracut: Finished building initramfs"
+        ewarn "Dracut initramfs has been generated!"
+        ewarn ""
+        ewarn "Required kernel arguments:"
+        ewarn ""
+        ewarn "    root=/dev/$ROOT"
+        ewarn ""
+        ewarn "    Where $ROOT is the device node for your root partition as the"
+        ewarn "    one specified in /etc/fstab"
+        ewarn ""
+        ewarn "Additional kernel cmdline arguments that *may* be required to boot properly..."
+        ewarn ""
+        ewarn "If you use hibernation:"
+        ewarn ""
+        ewarn "    resume=/dev/$SWAP"
+        ewarn ""
+        ewarn "    Where $SWAP is the swap device used by hibernate software of your choice."
+        ewarn""
+        ewarn "    Please consult "man 7 dracut.kernel" for additional kernel arguments."
 	fi
 
 	if use binary; then
