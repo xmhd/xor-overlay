@@ -399,6 +399,7 @@ pkg_postinst() {
 
 	if use binary && [[ ! -e "${ROOT}"usr/src/linux ]]; then
 	    ewarn "WARNING... WARNING... WARNING"
+	    ewarn ""
 	    ewarn "/usr/src/linux symlink automatically set to ${PN}-${PV}"
 	    ewarn ""
 		ln -sf linux-${PN}-${PV} "${ROOT}"usr/src/linux
@@ -410,6 +411,7 @@ pkg_postinst() {
 
     if use hardened; then
         ewarn "WARNING... WARNING... WARNING"
+        ewarn ""
         ewarn "TODO"
         ewarn "These KCONFIG options and patches change kernel behavior"
         ewarn "Changes include:"
@@ -425,6 +427,7 @@ pkg_postinst() {
 
     if use wireguard && [[ ${PV} < "5.6.0" ]]; then
         ewarn "WARNING... WARNING... WARNING..."
+        ewarn ""
         ewarn "WireGuard with Linux ${PV} is supported as an external kernel module"
         ewarn "You are required to add WireGuard to /etc/conf.d/modules and"
         ewarn "add the 'modules' service to the boot runlevel."
@@ -483,16 +486,16 @@ pkg_postinst() {
         ewarn ""
         ewarn "Required kernel arguments:"
         ewarn ""
-        ewarn "    root=/dev/$ROOT"
+        ewarn "    root=/dev/ROOT"
         ewarn ""
-        ewarn "    Where $ROOT is the device node for your root partition as the"
+        ewarn "    Where ROOT is the device node for your root partition as the"
         ewarn "    one specified in /etc/fstab"
         ewarn ""
         ewarn "Additional kernel cmdline arguments that *may* be required to boot properly..."
         ewarn ""
         ewarn "If you use hibernation:"
         ewarn ""
-        ewarn "    resume=/dev/$SWAP"
+        ewarn "    resume=/dev/SWAP"
         ewarn ""
         ewarn "    Where $SWAP is the swap device used by hibernate software of your choice."
         ewarn""
