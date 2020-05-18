@@ -50,7 +50,6 @@ COMMON_DEPEND="
 			media-video/ffmpeg[-samba]
 			>=net-fs/samba-4.5.10-r1[-debug(-)]
 		)
-		!=net-fs/samba-4.5.12-r0
 		>=media-libs/opus-1.3.1:=
 	)
 	sys-apps/dbus:=
@@ -80,7 +79,6 @@ COMMON_DEPEND="
 "
 # For nvidia-drivers blocker, see bug #413637 .
 RDEPEND="${COMMON_DEPEND}
-	!<www-plugins/chrome-binary-plugins-57
 	x11-misc/xdg-utils
 	virtual/opengl
 	virtual/ttf-fonts
@@ -93,9 +91,6 @@ DEPEND="${COMMON_DEPEND}
 BDEPEND="
 	${PYTHON_DEPS}
 	>=app-arch/gzip-1.7
-	!arm? (
-		dev-lang/yasm
-	)
 	dev-lang/perl
 	dev-util/gn
 	dev-vcs/git
@@ -107,6 +102,10 @@ BDEPEND="
 	sys-devel/flex
 	closure-compile? ( virtual/jre )
 	virtual/pkgconfig
+        !system-libvpx? (
+            amd64? ( dev-lang/yasm )
+            x86? ( dev-lang/yasm )
+        )
 "
 
 : ${CHROMIUM_FORCE_CLANG=no}
@@ -138,6 +137,14 @@ theme that covers the appropriate MIME types, and configure this as your
 GTK+ icon theme.
 
 For native file dialogs in KDE, install kde-apps/kdialog.
+
+To make password storage work with your desktop environment you may
+have install one of the supported credentials management applications:
+- app-crypt/libsecret (GNOME)
+- kde-frameworks/kwallet (KDE)
+If you have one of above packages installed, but don't want to use
+them in Chromium, then add --password-store=basic to CHROMIUM_FLAGS
+in /etc/chromium/default.
 "
 
 PATCHES=(
@@ -402,6 +409,14 @@ src_prepare() {
 	if ! use system-libvpx; then
 		keeplibs+=( third_party/libvpx )
 		keeplibs+=( third_party/libvpx/source/libvpx/third_party/x86inc )
+		# we need to generate ppc64 stuff because upstream does not ship it yet
+		# it has to be done before unbundling.
+		if use ppc64; then
+			pushd third_party/libvpx >/dev/null || die
+			mkdir -p source/config/linux/ppc64 || die
+			./generate_gni.sh || die
+			popd >/dev/null || die
+		fi
 	fi
 	if use tcmalloc; then
 		keeplibs+=( third_party/tcmalloc )
@@ -569,6 +584,9 @@ src_configure() {
 	elif [[ $myarch = arm ]] ; then
 		myconf_gn+=" target_cpu=\"arm\""
 		ffmpeg_target_arch=$(usex cpu_flags_arm_neon arm-neon arm)
+	elif [[ $myarch = ppc64 ]] ; then
+		myconf_gn+=" target_cpu=\"ppc64\""
+		ffmpeg_target_arch=ppc64
 	else
 		die "Failed to determine target arch, got '$myarch'."
 	fi
