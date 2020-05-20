@@ -226,6 +226,21 @@ src_prepare() {
         tweak_config .config CONFIG_SLAB_FREELIST_HARDENED y
         tweak_config .config CONFIG_SLAB_CANARY y
         tweak_config .config CONFIG_SHUFFLE_PAGE_ALLOCATOR y
+        tweak_config .config CONFIG_RANDOMIZE_BASE y
+        tweak_config .config CONFIG_RANDOMIZE_MEMORY y
+        tweak_config .config CONFIG_HIBERNATION n
+        tweak_config .config CONFIG_HARDENED_USERCOPY y
+        tweak_config .config CONFIG_HARDENED_USERCOPY_FALLBACK n
+        tweak_config .config CONFIG_FORTIFY_SOURCE y
+        tweak_config .config CONFIG_STACKPROTECTOR y
+        tweak_config .config CONFIG_STACKPROTECTOR_STRONG y
+        tweak_config .config CONFIG_ARCH_MMAP_RND_BITS 32
+        tweak_config .config CONFIG_ARCH_MMAP_RND_COMPAT_BITS 16
+        tweak_config .config CONFIG_INIT_ON_FREE_DEFAULT_ON y
+        tweak_config .config CONFIG_INIT_ON_ALLOC_DEFAULT_ON y
+        tweak_config .config CONFIG_SLAB_SANITIZE_VERIFY y
+        tweak_config .config CONFIG_PAGE_SANITIZE_VERIFY y
+
         ! if use clang; then
             tweak_config .config CONFIG_GCC_PLUGINS y
             tweak_config .config CONFIG_GCC_PLUGIN_LATENT_ENTROPY y
@@ -233,6 +248,10 @@ src_prepare() {
             tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL y
             tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT y
             tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE n
+            tweak_config .config CONFIG_GCC_PLUGIN_STACKLEAK y
+            tweak_config .config CONFIG_STACKLEAK_TRACK_MIN_SIZE 100
+            tweak_config .config CONFIG_STACKLEAK_METRICS n
+            tweak_config .config CONFIG_STACKLEAK_RUNTIME_DISABLE n
         fi
     fi
 	if use sign-modules; then
