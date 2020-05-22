@@ -1,1 +1,0 @@
-USE="-* bindist build cxx gold plugins unicode internal-glib ssl curl openssl -libressl curl_ssl_openssl -curl_ssl_libressl threads xml pam kmod tools"
