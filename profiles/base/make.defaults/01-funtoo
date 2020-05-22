@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 #
 # System-wide defaults for the Portage system
@@ -50,7 +50,7 @@ PROFILE_ONLY_VARIABLES="${PROFILE_ONLY_VARIABLES} ELIBC IUSE_IMPLICIT KERNEL USE
 ELIBC="glibc"
 KERNEL="linux"
 USERLAND="GNU"
-INPUT_DEVICES="keyboard mouse"
+INPUT_DEVICES="libinput"
 
 # Accept only licenses in the FREE license group, i.e., with
 # the freedom to use, share, modify and share modifications
@@ -102,12 +102,6 @@ LCD_DEVICES="bayrad cfontz cfontz633 glk hd44780 lb216 lcdm001 mtxorb ncurses te
 # Updated to include ruby25 on 2019-07-17
 RUBY_TARGETS="ruby24 ruby25"
 
-# Samuli Suominen <ssuominen@gentoo.org> (2009-12-03)
-# Enable USE cxx by default so base-system and toolchain pkgs can start using USE cxx
-# instead of USE nocxx.
-# https://archives.gentoo.org/gentoo-dev/msg_a181cd0d36600067b599f4b996c6989f.xml
-#USE="${USE} cxx"
-
 # Enable extended filesystem attribute support by default.
 # https://archives.gentoo.org/gentoo-dev/message/ba0e3457e4b807e79816f0df03566af0
 USE="${USE} xattr"
@@ -127,12 +121,12 @@ PYTHONDONTWRITEBYTECODE="1"
 # This MUST be kept in sync with the PYTHON_TARGETS below
 # Mike Gilbert <floppym@gentoo.org> (2018-05-23)
 # sys-apps/baslayout-2.5 needs split-usr enabled.
-BOOTSTRAP_USE="unicode internal-glib pkg-config split-usr python_targets_python3_6 python_targets_python2_7"
+BOOTSTRAP_USE="unicode internal-glib pkg-config split-usr python_targets_python3_7 python_targets_python2_7"
 
 # Mike Gilbert <floppym@gentoo.org> (2012-05-15)
 # Default target(s) for python-r1.eclass
-# Mikle Kolyada <zlogene@gentoo.org> (2018-07-24)
-# Updated to python3_6
+# Mikle Kolyada <zlogene@gentoo.org> (2020-05-06)
+# Updated to python3_7
 PYTHON_TARGETS="python2_7 python3_7"
 PYTHON_SINGLE_TARGET="python3_7"
 
