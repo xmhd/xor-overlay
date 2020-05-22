@@ -1,1 +1,10 @@
-# BLANK
+# xor <xor@mail.com> (2020-05-22)
+# Mask packages known to break with a hardened kernel
+net-im/skypeforlinux
+net-im/skype-dbus-mock
+app-emulation/virtualbox
+app-emulation/virtualbox-bin
+app-emulation/virtualbox-extpack-oracle
+app-emulation/virtualbox-guest-additions
+app-emulation/virtualbox-modules
+app-emulation/phpvirtualbox

@@ -1,9 +1,14 @@
 # TODO
 #
-# We need to define what our scope for a hardened target is.
-# The previous hardened mix-in was specifically related to
-# grsecurity and pax, which are no longer freely available.
+# We need to define what our scope for a hardened profile is.
+# The previous hardened profile was specifically related to
+# grsecurity and PaX, which are no longer freely available.
 #
-# As a baseline we already have ssp, pie, stack-check, bind_now and FORTIFY.
+# grsecurity + PaX specific configurations now belong in the 'grsecurity' profile.
+#
+# Baseline: SSP, PIE, Stack-Clash-Protection, bind_now/relro and FORTIFY.
+# retpolines?
+# control-flow-integrity? (clang)
+# safe-stack? (clang)
 #
 # TODO: Discuss way forward.
