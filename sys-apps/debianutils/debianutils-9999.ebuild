@@ -33,9 +33,10 @@ src_install() {
 	fi
 
 	into /usr
+        dobin ischroot
 	dosbin savelog
 
-	doman tempfile.1 run-parts.8 savelog.8
+	doman ischroot.1 tempfile.1 run-parts.8 savelog.8
 	use installkernel && doman installkernel.8
 	cd debian || die
 	dodoc changelog control
