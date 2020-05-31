@@ -198,6 +198,9 @@ src_prepare() {
 	elif [[ ${REAL_ARCH} == amd64 ]]; then
 		arch="amd64"
 		subarch="amd64"
+	elif [[ ${REAL_ARCH} == arm64 ]]; then
+		arch="arm64"
+		subarch="arm64"
 	else
 	die "Architecture not handled in ebuild"
 	fi
@@ -485,15 +488,16 @@ pkg_postinst() {
 	fi
 
     if use hardened; then
-        ewarn "WARNING... WARNING... WARNING"
+        ewarn "WARNING... WARNING... WARNING..."
         ewarn ""
-        ewarn "TODO"
-        ewarn "These KCONFIG options and patches change kernel behavior"
+        ewarn "Hardened patches have been applied to the kernel and KCONFIG options have been set."
+        ewarn "These KCONFIG options and patches change kernel behavior."
         ewarn "Changes include:"
-        ewarn "Increased entropy for ALSR"
+        ewarn "Increased entropy for Address Space Layout Randomization"
         ewarn "GCC plugins (if using GCC)"
         ewarn "Memory allocation"
         ewarn "... and more"
+        ewarn ""
         ewarn "These changes will stop certain programs from functioning"
         ewarn "e.g. VirtualBox, Skype"
         ewarn "Full information available in $DOCUMENTATION"
