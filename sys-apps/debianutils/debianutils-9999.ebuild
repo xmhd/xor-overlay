@@ -17,6 +17,11 @@ if [[ ${PV} != 9999 ]]; then
     KEYWORDS="alpha amd64 arm arm64 hppa ia64 m68k mips ppc ppc64 riscv s390 sparc x86"
 fi
 
+DEPEND="
+    !sys-kernel/installkernel-gentoo
+    !sys-kernel/installkernel-systemd-boot
+"
+
 PATCHES=( "${FILESDIR}"/${PN}-3.4.2-no-bs-namespace.patch )
 
 src_configure() {
