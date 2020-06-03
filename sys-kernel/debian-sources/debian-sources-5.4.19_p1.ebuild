@@ -24,15 +24,16 @@ MODULE_EXT=$MODULE_EXT-${PN}
 DEB_PV="$DEB_PV_BASE${DEB_EXTRAVERSION}"
 KERNEL_ARCHIVE="linux_${DEB_PV_BASE}.orig.tar.xz"
 PATCH_ARCHIVE="linux_${DEB_PV}.debian.tar.xz"
+DEB_UPSTREAM="http://http.debian.net/debian/pool/main/l/linux"
 
 SRC_URI="
-	$DEB_UPSTREAM/${KERNEL_ARCHIVE} $DEB_UPSTREAM/${PATCH_ARCHIVE}
+	$DEB_UPSTREAM/${KERNEL_ARCHIVE}
+	$DEB_UPSTREAM/${PATCH_ARCHIVE}
 "
 
 S="$WORKDIR/linux-${DEB_PV_BASE}"
 
 DESCRIPTION="Linux kernel sources with Debian patches."
-DEB_UPSTREAM="http://http.debian.net/debian/pool/main/l/linux"
 HOMEPAGE="https://packages.debian.org/unstable/kernel/"
 
 RESTRICT="binchecks strip mirror"
