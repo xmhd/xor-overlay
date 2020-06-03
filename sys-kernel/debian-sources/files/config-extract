@@ -145,7 +145,7 @@ if mode == "run":
 # print out optimized list of available kernel configurations:
 
 if mode=="list":
-+	print()
+	print()
 	for flav in features:
 		label = flav
 		if label == None:
