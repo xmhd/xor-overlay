@@ -6,7 +6,7 @@ This overlay contains packages for software that:
 * aren't as up-to-date as I would like.
 * aren't maintained to a sufficient standard in the main repositories.
 * are missing critical features due to the maintainer not wishing to carry a minimal patchset.
-* does not have long-term-support releases (e.g. lxd).
+* does not have long-term-support releases (e.g. lxd, LibreOffice).
 * unsupported-ish upstream, but will be around in the enterprise for a long time to come yet (read: python2).
 
 This overlay will eventually (tm) provide users with the ability to create a DISA STIG compliant Gentoo/Funtoo Linux based system.
