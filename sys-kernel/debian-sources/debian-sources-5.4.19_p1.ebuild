@@ -73,7 +73,6 @@ REQUIRED_USE="
 	btrfs? ( binary )
 	custom-cflags? ( binary )
 	ec2? ( binary )
-	firmware? ( binary )
 	libressl? ( binary )
 	luks? ( binary )
 	lvm? ( binary )
