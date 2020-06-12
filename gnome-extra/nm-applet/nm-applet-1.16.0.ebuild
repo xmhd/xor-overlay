@@ -11,12 +11,12 @@ HOMEPAGE="https://wiki.gnome.org/Projects/NetworkManager"
 
 LICENSE="GPL-2+"
 SLOT="0"
-IUSE="appindicator gnome-keyring modemmanager selinux teamd"
+IUSE="appindicator modemmanager selinux teamd"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ia64 ~ppc ~ppc64 ~sparc ~x86"
 
 RDEPEND="
 	>=dev-libs/glib-2.38:2
-	gnome-keyring? ( >=app-crypt/libsecret-0.18 )
+	>=app-crypt/libsecret-0.18
 	>=net-libs/libnma-1.8.27
 	>=x11-libs/gtk+-3.10:3
 	>=dev-libs/libgudev-147:=
