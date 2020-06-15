@@ -362,7 +362,7 @@ src_install() {
 
 	debug-print-function ${FUNCNAME} "${@}"
 
-    # TODO: Change to SANDBOX_WRITE=".." for installkernel writes
+        # TODO: Change to SANDBOX_WRITE=".." for installkernel writes
 	# Disable sandbox
 	export SANDBOX_ON=0
 
@@ -382,8 +382,8 @@ src_install() {
 	make prepare || die
 	make scripts || die
 
-    # Install kernel modules to /lib/modules/${PV}-{PN}
-    emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" modules_install
+        # Install kernel modules to /lib/modules/${PV}-{PN}
+        emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" modules_install
 	installkernel "${PN}-${PV}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
 	# module symlink fix-up:
