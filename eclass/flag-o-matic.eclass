@@ -36,7 +36,7 @@ setup-allowed-flags() {
 		'-[DUILR]*' '-Wl,*'
 
 		# Linker choice flag
-		'-fuse-ld'
+		'-fuse-ld=*'
 	)
 
 	# allow a bunch of flags that negate features / control ABI
