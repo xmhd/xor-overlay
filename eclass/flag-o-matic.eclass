@@ -412,9 +412,8 @@ strip-flags() {
 		local new=()
 
 		for x in ${!var} ; do
-			local flag=${x%%=*}
 			for y in "${ALLOWED_FLAGS[@]}" ; do
-				if [[ -z ${flag%%${y}} ]] ; then
+                                if [[ ${x} == ${y} ]] ; then
 					new+=( "${x}" )
 					break
 				fi
