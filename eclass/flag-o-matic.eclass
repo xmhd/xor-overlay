@@ -60,6 +60,12 @@ setup-allowed-flags() {
 		-mfix-rm7000 -mno-fix-rm7000 -mfix-r10000 -mno-fix-r10000
 		-mr10k-cache-barrier -mthumb -marm
 
+		# Spectre mitigations etc
+                '-mfunction-return=*'
+                '-mindirect-branch=*'
+                -mindirect-branch-register
+                -fstack-clash-protection
+
 		# gcc 4.5
 		-mno-fma4 -mno-movbe -mno-xop -mno-lwp
 		# gcc 4.6
