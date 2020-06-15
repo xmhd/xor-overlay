@@ -23,7 +23,7 @@ all-flag-vars() {
 # Note: shell globs and character lists are allowed
 setup-allowed-flags() {
 	ALLOWED_FLAGS=(
-		-pipe -O '-O[12sg]' -mcpu -march -mtune
+		-pipe -O '-O[12sg]' '-mcpu=*' '-march=*' '-mtune=*'
 		'-fstack-protector*' '-fsanitize*' '-fstack-check*' -fno-stack-check
 		-fbounds-check -fbounds-checking -fno-strict-overflow
 		-fno-PIE -fno-pie -nopie -no-pie -fno-unit-at-a-time
