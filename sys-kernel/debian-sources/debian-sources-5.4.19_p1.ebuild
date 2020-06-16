@@ -382,8 +382,14 @@ src_install() {
 	make prepare || die
 	make scripts || die
 
-        # Install kernel modules to /lib/modules/${PV}-{PN}
-        emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" modules_install
+        local targets=( modules_install )
+
+        # ARM / ARM64 requires dtb
+        if (use arm || use arm64); then
+                targets+=( dtbs_install )
+        fi
+
+        emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
 	installkernel "${PN}-${PV}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
 	# module symlink fix-up:
