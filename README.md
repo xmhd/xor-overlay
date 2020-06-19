@@ -36,21 +36,40 @@ And will also include software used for supporting hardware (printers, CAC keys,
 * polkit - Duktape is now an alternative provider of a JS engine, offering a more lightweight alternative to SpiderMonkey.
 * debianutils - remove dep on installkernel-gentoo packages as not used.
 * zfs + zfs-kmod - few USE flag + dep changes. Optional initramfs regeneration on pkg_postinst.
+* OpenJDK - forked to add older OpenJDK versions and remove some java-pkg setup from ebuild as this overlay will not be building java files from source, rather installing the jar files to /usr/share/java.
+*           Only OpenJDK (or other JVM variants, e.g. GraalVM, Amazon Corretto, Azure Zulu) will benefit from being source built.
+* LibreOffice - forked to maintain the lts version for enterprise use.
+* debianutils - removed gentoo-installkernel stuff from ebuild as we use Debian' installkernel script.
 
 ### TLDR; Changelog for packages not in the main repositories ###
 
 * Ego - Configuration tool from Funtoo Linux by Daniel Robbins. Replaces eselect-profile from Gentoo Linux.
+* GCC - Re-written logic, further TODO.
 * DTrace - tracer from Solaris & BSD, supported in Oracle Linux and now *too Linux.
 * Eclipse Java IDE (including enterprise edition).
 * Netbeans IDE - IDE formerly by Sun, now under Apache.
 * Adobe Acrobat PDF Reader (ancient but some enterprise software will require it).
 * Various packages for CAC key support.
 * Various packages for PKCS11 support (including pam modules).
+* OpenRGB - Open source software for customising RGB LEDs on hardware.
+* MangoHUD - GUI overlay for displaying CPU + GPU temperatures, FPS etc during gaming.
+* PyWal - Match your terminal font colours to your wallpaper.
+* CDE - classic CDE desktop experience.
+
+### TLDR; Changelog for eclasses forked from main repositories ###
+
+* flag-o-matic - don't strip stack-clash-protection and retpoline flags.
+
+### TLDR; Changelog for eclasses not in the main repoositories ###
+
+* toolchain-enable - automatically set active gcc to the latest emerged gcc.
+* toolchain-gcc - WIP eclass to move as much gcc ebuild logic to eclass.
 
 ### TLDR; Changelog for profiles in this repository ###
 * Funtoo Linux styled profiles (flavors, mix-ins etc).
 * No support for prefix on Windows, MacOS etc.
 * glibc and musl supported.
+* Further system hardening.
 * NO UCLIBC/-NG SUPPORT - move to musl.
 * sysvinit+OpenRC supported as a first class citizens.
 * eudev supported as a first class citizen.
@@ -64,6 +83,7 @@ And will also include software used for supporting hardware (printers, CAC keys,
 
 ### TODO: ###
 * Continue STIG work.
+* Toolchain work.
 * Add additional kernel sources packages (RHEL, Kernel-self-protection, ???).
 * OpenJDK - legacy versions and removal of all from-source Java support as it's mostly broken and little to no gain building anything other than the JVM from source.
 * Profiles - continue expansion and further modularisation.
