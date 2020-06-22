@@ -128,10 +128,10 @@ LICENSE="GPL-3+ LGPL-3+ || ( GPL-3+ libgcc libstdc++ gcc-runtime-library-excepti
 KEYWORDS="*"
 
 RDEPEND="
-	sys-libs/zlib[static-libs,${MULTILIB_USEDEP}]
-	nls? ( sys-devel/gettext[static-libs,${MULTILIB_USEDEP}] )
+	sys-libs/zlib[${MULTILIB_USEDEP}]
+	nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
 	virtual/libiconv[${MULTILIB_USEDEP}]
-	objc-gc? ( >=dev-libs/boehm-gc-7.6[static-libs,${MULTILIB_USEDEP}] )
+	objc-gc? ( >=dev-libs/boehm-gc-7.6[${MULTILIB_USEDEP}] )
 	!sys-devel/gcc:5.3
 "
 DEPEND="${RDEPEND}
