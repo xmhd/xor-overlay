@@ -21,7 +21,7 @@ GCC_MAJOR="${PV%%.*}"
 
 IUSE="ada +cxx d go +fortran objc objc++ objc-gc " # Languages
 IUSE="$IUSE test" # Run tests
-IUSE="$IUSE doc nls system-zlib vanilla hardened +multilib" # docs/i18n/system flags
+IUSE="$IUSE doc nls vanilla hardened +multilib" # docs/i18n/system flags
 IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap bootstrap-lean bootstrap-profiled bootstrap-O3" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
@@ -532,7 +532,7 @@ src_configure() {
 		--enable-libmudflap \
 		--enable-secureplt \
 		--enable-lto \
-		$(use_with system-zlib) \
+		--with-system-zlib \
 		$(use_with graphite isl) \
 		--with-bugurl=http://bugs.funtoo.org \
 		--with-pkgversion="$branding" \
