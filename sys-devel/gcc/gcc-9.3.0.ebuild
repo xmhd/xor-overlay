@@ -392,6 +392,10 @@ gcc_conf_lang_opts() {
 
 	use d && GCC_LANG+=",d"
 
+    if use lto; then
+        GCC_LANG+=",lto"
+    fi
+
 	conf_gcc_lang+=" --enable-languages=${GCC_LANG} --disable-libgcj"
 
 	printf -- "${conf_gcc_lang}"
