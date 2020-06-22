@@ -240,11 +240,7 @@ eapply_gentoo() {
 
 src_prepare() {
 
-	# Patch from release to svn branch tip for backports
-	[ "x${GCC_SVN_PATCH}" = "x" ] || eapply "${GCC_SVN_PATCH}"
-
-	( use vanilla && use hardened ) \
-		&& die "vanilla and hardened USE flags are incompatible. Disable one of them"
+	( use vanilla && use hardened ) && die "vanilla and hardened USE flags are incompatible - Disable one of them."
 
 	# For some reason, when upgrading gcc, the gcc Makefile will install stuff
 	# like crtbegin.o into a subdirectory based on the name of the currently-installed
