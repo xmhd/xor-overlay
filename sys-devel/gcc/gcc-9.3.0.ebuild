@@ -86,7 +86,13 @@ GENTOO_PATCHES=(
 # Ada Support:
 GNAT32="gnat-gpl-2014-x86-linux-bin.tar.gz"
 GNAT64="gnat-gpl-2017-x86_64-linux-bin.tar.gz"
-SRC_URI="$SRC_URI ada? ( amd64? ( mirror://funtoo/gcc/${GNAT64} ) x86? ( mirror://funtoo/gcc/${GNAT32} ) )"
+SRC_URI="
+        $SRC_URI
+        ada? (
+                amd64? ( mirror://funtoo/gcc/${GNAT64} )
+                x86? ( mirror://funtoo/gcc/${GNAT32} )
+        )
+"
 
 # D support
 #DLANG_REPO_URI="https://github.com/D-Programming-GDC/GDC.git"
@@ -233,8 +239,6 @@ eapply_gentoo() {
 }
 
 src_prepare() {
-	# Run preperations for dependencies first
-	_gcc_prepare_mpfr
 
 	# Patch from release to svn branch tip for backports
 	[ "x${GCC_SVN_PATCH}" = "x" ] || eapply "${GCC_SVN_PATCH}"
@@ -295,15 +299,6 @@ src_prepare() {
 
 	# Must be called in src_prepare by EAPI6
 	eapply_user
-}
-
-_gcc_prepare_mpfr() {
-	if [ -n "${MPFR_PATCH_VER}" ];  then
-		[ -f "${MPFR_PATCH_FILE}" ] || die "Couldn't find mpfr patch '${MPFR_PATCH_FILE}"
-		pushd "${S}/mpfr" > /dev/null || die "Couldn't change to mpfr source directory."
-		patch -N -Z -p1 < "${MPFR_PATCH_FILE}" || die "Failed to apply mpfr patch '${MPFR_PATCH_FILE}'."
-		popd > /dev/null
-	fi
 }
 
 _gcc_prepare_harden() {
