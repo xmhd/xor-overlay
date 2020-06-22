@@ -212,7 +212,6 @@ pkg_setup() {
 
 src_unpack() {
 	unpack $GCC_A
-	mv "gcc-${GCC_ARCHIVE_VER}" "${S}"
 
 	# GNAT ada support
 	if use ada ; then
@@ -223,21 +222,6 @@ src_unpack() {
 		else
 			die "GNAT ada setup failed, only x86 and amd64 currently supported by this ebuild. Patches welcome!"
 		fi
-	fi
-
-	# gdc D support -- now included in mainline
-	if false && use d ; then
-		O_EGIT_BRANCH="${EGIT_BRANCH}"
-		O_EGIT_COMMIT="${EGIT_COMMIT}"
-		O_EGIT_COMMIT_DATE="${EGIT_COMMIT_DATE}"
-		EGIT_BRANCH="${DLANG_BRANCH}"
-		EGIT_COMMIT="${DLANG_COMMIT}"
-		EGIT_COMMIT_DATE="${DLANG_COMMIT_DATE}"
-		git-r3_fetch "${DLANG_REPO_URI}"
-		git-r3_checkout "${DLANG_REPO_URI}" "${DLANG_CHECKOUT_DIR}"
-		EGIT_BRANCH="${O_EGIT_BRANCH}"
-		EGIT_COMMIT="${O_EGIT_COMMIT}"
-		EGIT_COMMIT_DATE="${O_EGIT_COMMIT_DATE}"
 	fi
 
 	cd $S
