@@ -1,0 +1,36 @@
+Set the default behavior on alpha to use -mieee since the large majority of
+time we want this (bad/weird things can happen with packages built without
+it).
+
+To satisfy those people who may not want -mieee forced on them all the time,
+we also provide -mno-ieee.
+
+Patch by Mike Frysinger <vapier@gentoo.org>
+
+Note: upstream doesn't want to take this due to long standing behavior, and
+because it'd make behavior across OS's inconsistent:
+	https://gcc.gnu.org/ml/gcc-patches/2003-07/msg02144.html
+
+This makes sense for upstream, but Gentoo is more concerned about packages
+behaving the same across arches under Linux.
+
+--- gcc/config/alpha/alpha.h
++++ gcc/config/alpha/alpha.h
+@@ -96,7 +96,7 @@
+   while (0)
+ #endif
+ 
+-#define CPP_SPEC "%(cpp_subtarget)"
++#define CPP_SPEC "%(cpp_subtarget) %{!no-ieee:-mieee}"
+ 
+ #ifndef CPP_SUBTARGET_SPEC
+ #define CPP_SUBTARGET_SPEC ""
+@@ -301,6 +301,8 @@
+      N_("Request IEEE-conformant math library routines (OSF/1)")},	\
+     {"ieee", MASK_IEEE|MASK_IEEE_CONFORMANT,				\
+      N_("Emit IEEE-conformant code, without inexact exceptions")},	\
++    {"no-ieee", - (MASK_IEEE|MASK_IEEE_CONFORMANT),				\
++     N_("Do not emit IEEE-conformant code, without inexact exceptions")},	\
+     {"ieee-with-inexact", MASK_IEEE_WITH_INEXACT|MASK_IEEE_CONFORMANT,	\
+      N_("Emit IEEE-conformant code, with inexact exceptions")},		\
+     {"build-constants", MASK_BUILD_CONSTANTS,				\

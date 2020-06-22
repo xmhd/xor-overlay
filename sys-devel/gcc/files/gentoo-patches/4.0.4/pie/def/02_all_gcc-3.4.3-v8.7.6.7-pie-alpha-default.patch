@@ -1,0 +1,28 @@
+--- gcc-3.4.3/gcc/config/alpha/elf.h.def~	Mon Nov 22 17:56:44 2004
++++ gcc-3.4.3/gcc/config/alpha/elf.h	Mon Nov 22 17:59:09 2004
+@@ -391,8 +391,12 @@
+    support for getting C++ file-scope static object constructed
+    before entering `main'.  */
+ 
++#undef	HARDENED_STARTFILE_SPEC
+ #undef	STARTFILE_SPEC
+ #ifdef HAVE_LD_PIE
++#define HARDENED_STARTFILE_SPEC \
++  "%{!shared: %{pg|p:gcrt1.o%s;static|nopie:crt1.o%s;:Scrt1.o%s}}\
++   crti.o%s %{static:crtbeginT.o%s;nopie:crtbegin.o%s;:crtbeginS.o%s}"
+ #define STARTFILE_SPEC \
+   "%{!shared: %{pg|p:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}}\
+    crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+@@ -407,8 +411,12 @@
+    getting C++ file-scope static object constructed before entering
+    `main', followed by a normal ELF "finalizer" file, `crtn.o'.  */
+ 
++#undef	HARDENED_ENDFILE_SPEC
+ #undef	ENDFILE_SPEC
+ #ifdef HAVE_LD_PIE
++#define HARDENED_ENDFILE_SPEC \
++  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
++   %{static|nopie:crtend.o%s;:crtendS.o%s} crtn.o%s"
+ #define ENDFILE_SPEC \
+   "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+    %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"

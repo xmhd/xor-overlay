@@ -1,0 +1,130 @@
+2011-03-05	Matthias Klose		<doko@ubuntu.com>, Kees Cook	<kees@outflux.net>,
+			Magnus Granberg	<zorry@gentoo.org>
+
+		* gcc/objc/lang-specs.h	compiler spec			Add %(esp_options)
+		* gcc/objcp/lang-specs.h	compiler spec			Add %(esp_options)
+		* gcc/gcc.c			*cpp_options			Add %(esp_cpp_options)
+		* gcc/gcc.c			default_compilers[]		Add %(esp_options)
+		* gcc/cp/lang-specs.h		compiler spec			Add %(esp_options)
+
+--- a/gcc/gcc.c.orig	2009-12-21
++++ b/gcc/gcc.c	2009-12-21
+@@ -740,7 +749,7 @@
+ static const char *cpp_options =
+ "%(cpp_unique_options) %1 %{m*} %{std*&ansi&trigraphs} %{W*&pedantic*} %{w}\
+  %{f*} %{g*:%{!g0:%{g*} %{!fno-working-directory:-fworking-directory}}} %{O*}\
+- %{undef} %{save-temps*:-fpch-preprocess}";
++ %{undef} %{save-temps*:-fpch-preprocess} %(esp_cpp_options)";
+ 
+ /* This contains cpp options which are not passed when the preprocessor
+    output will be used by another program.  */
+@@ -914,9 +923,9 @@
+       %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
+ 	  %(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i} \n\
+ 	    cc1 -fpreprocessed %{save-temps*:%b.i} %{!save-temps*:%g.i} \
+-	  %(cc1_options)}\
++	  %(cc1_options) %(esp_options)}\
+       %{!save-temps*:%{!traditional-cpp:%{!no-integrated-cpp:\
+-	  cc1 %(cpp_unique_options) %(cc1_options)}}}\
++	  cc1 %(cpp_unique_options) %(cc1_options) %(esp_options)}}}\
+       %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 1},
+   {"-",
+    "%{!E:%e-E or -x required when input is from standard input}\
+@@ -953,7 +953,7 @@
+                     %W{o*:--output-pch=%*}}%V}}}}}}", 0, 0, 0},
+   {".i", "@cpp-output", 0, 0, 0},
+   {"@cpp-output",
+-   "%{!M:%{!MM:%{!E:cc1 -fpreprocessed %i %(cc1_options) %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
++   "%{!M:%{!MM:%{!E:cc1 -fpreprocessed %i %(cc1_options) %(esp_options) %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {".s", "@assembler", 0, 0, 0},
+   {"@assembler",
+    "%{!M:%{!MM:%{!E:%{!S:as %(asm_debug) %(asm_options) %i %A }}}}", 0, 0, 0},
+--- a/gcc/cp/lang-specs.h	2011-03-06 17:27:57.000000000 +0100
++++ b/gcc/cp/lang-specs.h	2011-03-26 13:30:40.312423000 +0100
+@@ -47,7 +47,7 @@
+ 		%(cpp_options) %2 -o %{save-temps*:%b.ii} %{!save-temps*:%g.ii} \n}\
+       cc1plus %{save-temps*|no-integrated-cpp:-fpreprocessed %{save-temps*:%b.ii} %{!save-temps*:%g.ii}}\
+ 	      %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}\
+-	%(cc1_options) %2\
++	%(cc1_options) %(esp_options) %2\
+ 	%{!fsyntax-only:%{!fdump-ada-spec*:-o %g.s %{!o*:--output-pch=%i.gch}\
+         %W{o*:--output-pch=%*}}%V}}}}",
+      CPLUSPLUS_CPP_SPEC, 0, 0},
+@@ -58,7 +58,7 @@
+ 		%(cpp_options) %2 -o %{save-temps*:%b.ii} %{!save-temps*:%g.ii} \n}\
+       cc1plus %{save-temps*|no-integrated-cpp:-fpreprocessed %{save-temps*:%b.ii} %{!save-temps*:%g.ii}}\
+ 	      %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}\
+-	%(cc1_options) %2\
++	%(cc1_options) %(esp_options) %2\
+        %{!fsyntax-only:%(invoke_as)}}}}",
+      CPLUSPLUS_CPP_SPEC, 0, 0},
+   {".ii", "@c++-cpp-output", 0, 0, 0},
+
+--- a/gcc/objcp/lang-specs.h	2011-03-06 17:27:57.000000000 +0100
++++ a/gcc/objcp/lang-specs.h	2011-03-26 14:19:12.596423000 +0100
+@@ -36,7 +36,7 @@
+ 		%(cpp_options) %2 -o %{save-temps*:%b.mii} %{!save-temps*:%g.mii} \n}\
+       cc1objplus %{save-temps*|no-integrated-cpp:-fpreprocessed %{save-temps*:%b.mii} %{!save-temps*:%g.mii}}\
+ 	      %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}\
+-	%(cc1_options) %2\
++	%(cc1_options) %(esp_options) %2\
+         -o %g.s %{!o*:--output-pch=%i.gch} %W{o*:--output-pch=%*}%V}}}",
+      CPLUSPLUS_CPP_SPEC, 0, 0},
+   {"@objective-c++",
+@@ -46,16 +46,16 @@
+ 		%(cpp_options) %2 -o %{save-temps*:%b.mii} %{!save-temps*:%g.mii} \n}\
+       cc1objplus %{save-temps*|no-integrated-cpp:-fpreprocessed %{save-temps*:%b.mii} %{!save-temps*:%g.mii}}\
+ 	      %{!save-temps*:%{!no-integrated-cpp:%(cpp_unique_options)}}\
+-	%(cc1_options) %2\
++	%(cc1_options) %(esp_options) %2\
+        %{!fsyntax-only:%(invoke_as)}}}}",
+      CPLUSPLUS_CPP_SPEC, 0, 0},
+   {".mii", "@objective-c++-cpp-output", 0, 0, 0},
+   {"@objective-c++-cpp-output",
+    "%{!M:%{!MM:%{!E:\
+-    cc1objplus -fpreprocessed %i %(cc1_options) %2\
++    cc1objplus -fpreprocessed %i %(cc1_options) %(esp_options) %2\
+     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {"@objc++-cpp-output",
+    "%nobjc++-cpp-output is deprecated; please use objective-c++-cpp-output instead\n\
+     %{!M:%{!MM:%{!E:\
+-    cc1objplus -fpreprocessed %i %(cc1_options) %2\
++    cc1objplus -fpreprocessed %i %(cc1_options) %(esp_options) %2\
+     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+--- a/gcc/objc/lang-specs.h	2011-03-06 17:27:57.000000000 +0100
++++ b/gcc/objc/lang-specs.h	2011-03-26 14:56:27.668423000 +0100
+@@ -30,9 +30,9 @@
+ 	%{traditional|traditional-cpp:\
+ %eGNU Objective C no longer supports traditional compilation}\
+ 	%{save-temps*|no-integrated-cpp:cc1obj -E %(cpp_options) -o %{save-temps*:%b.mi} %{!save-temps*:%g.mi} \n\
+-	    cc1obj -fpreprocessed %{save-temps*:%b.mi} %{!save-temps*:%g.mi} %(cc1_options) %{print-objc-runtime-info} %{gen-decls}}\
++	    cc1obj -fpreprocessed %{save-temps*:%b.mi} %{!save-temps*:%g.mi} %(cc1_options) %(esp_options) %{print-objc-runtime-info} %{gen-decls}}\
+ 	%{!save-temps*:%{!no-integrated-cpp:\
+-	    cc1obj %(cpp_unique_options) %(cc1_options) %{print-objc-runtime-info} %{gen-decls}}}\
++	    cc1obj %(cpp_unique_options) %(cc1_options) %(esp_options) %{print-objc-runtime-info} %{gen-decls}}}\
+         %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {"@objective-c-header",
+      "%{E|M|MM:cc1obj -E %{traditional|traditional-cpp:-traditional-cpp}\
+@@ -41,18 +41,18 @@
+ 	%{traditional|traditional-cpp:\
+ %eGNU Objective C no longer supports traditional compilation}\
+ 	%{save-temps*|no-integrated-cpp:cc1obj -E %(cpp_options) -o %{save-temps*:%b.mi} %{!save-temps*:%g.mi} \n\
+-	    cc1obj -fpreprocessed %b.mi %(cc1_options) %{print-objc-runtime-info} %{gen-decls}\
++	    cc1obj -fpreprocessed %b.mi %(cc1_options)%(esp_options)  %{print-objc-runtime-info} %{gen-decls}\
+                         -o %g.s %{!o*:--output-pch=%i.gch}\
+                         %W{o*:--output-pch=%*}%V}\
+ 	%{!save-temps*:%{!no-integrated-cpp:\
+-	    cc1obj %(cpp_unique_options) %(cc1_options) %{print-objc-runtime-info} %{gen-decls}\
++	    cc1obj %(cpp_unique_options) %(cc1_options) %(esp_options) %{print-objc-runtime-info} %{gen-decls}\
+                         -o %g.s %{!o*:--output-pch=%i.gch}\
+                         %W{o*:--output-pch=%*}%V}}}}}", 0, 0, 0},
+   {".mi", "@objective-c-cpp-output", 0, 0, 0},
+   {"@objective-c-cpp-output",
+-     "%{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(cc1_options) %{print-objc-runtime-info} %{gen-decls}\
++     "%{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(cc1_options) %(esp_options) %{print-objc-runtime-info} %{gen-decls}\
+ 			     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
+   {"@objc-cpp-output",
+       "%nobjc-cpp-output is deprecated; please use objective-c-cpp-output instead\n\
+-       %{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(cc1_options) %{print-objc-runtime-info} %{gen-decls}\
++       %{!M:%{!MM:%{!E:cc1obj -fpreprocessed %i %(cc1_options) %(esp_options) %{print-objc-runtime-info} %{gen-decls}\
+ 			     %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},

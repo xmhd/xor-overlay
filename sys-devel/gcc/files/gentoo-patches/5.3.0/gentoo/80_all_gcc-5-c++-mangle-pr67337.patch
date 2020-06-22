@@ -1,0 +1,66 @@
+https://gcc.gnu.org/PR67337
+https://bugs.gentoo.org/573068
+
+From 2e38ff51e1c314cffc7d2ddeb0704295f3e3616c Mon Sep 17 00:00:00 2001
+From: trippels <trippels@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 4 Dec 2015 11:44:17 +0000
+Subject: [PATCH] Fix c++/67337 (segfault in mangle.c)
+
+	PR c++/67337
+	* mangle.c (write_template_prefix): Guard against context==NULL.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-5-branch@231257 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/cp/ChangeLog                        |  5 +++++
+ gcc/cp/mangle.c                         |  2 +-
+ gcc/testsuite/g++.dg/template/pr67337.C | 25 +++++++++++++++++++++++++
+ 3 files changed, 31 insertions(+), 1 deletion(-)
+ create mode 100644 gcc/testsuite/g++.dg/template/pr67337.C
+
+diff --git a/gcc/cp/mangle.c b/gcc/cp/mangle.c
+index c89643d..4e0ed22 100644
+--- a/gcc/cp/mangle.c
++++ b/gcc/cp/mangle.c
+@@ -1160,7 +1160,7 @@ write_template_prefix (const tree node)
+      So, for the example above, `Outer<int>::Inner' is represented as a
+      substitution candidate by a TREE_LIST whose purpose is `Outer<int>'
+      and whose value is `Outer<T>::Inner<U>'.  */
+-  if (TYPE_P (context))
++  if (context && TYPE_P (context))
+     substitution = build_tree_list (context, templ);
+   else
+     substitution = templ;
+diff --git a/gcc/testsuite/g++.dg/template/pr67337.C b/gcc/testsuite/g++.dg/template/pr67337.C
+new file mode 100644
+index 0000000..df2651b
+--- /dev/null
++++ b/gcc/testsuite/g++.dg/template/pr67337.C
+@@ -0,0 +1,25 @@
++template <class> class A
++{
++  void m_fn1 (int *, int);
++};
++
++template <class> class B
++{
++public:
++  typedef int Type;
++};
++
++template <class> class C
++{
++public:
++  C (int);
++  template <template <class> class T> void m_fn2 (typename T<void>::Type);
++};
++
++template <>
++void
++A<int>::m_fn1 (int *, int)
++{
++  C<int> a (0);
++  a.m_fn2<B> (0);
++}
+-- 
+2.8.2
+

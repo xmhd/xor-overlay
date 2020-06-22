@@ -1,0 +1,766 @@
+2005-06-02  Alan Modra <amodra@bigpond.net.au>
+
+	* configure.ac: Add --enable-secureplt.
+	(HAVE_AS_REL16): Test for R_PPC_REL16 relocs.
+	* config.in: Regenerate.
+	* configure: Regenerate.
+	* config.gcc (powerpc64-*-linux*, powerpc-*-linux*): Add
+	rs6000/secureplt.h to tm_file when enable_secureplt.
+	* doc/invoke.texi (msecure-plt, mbss-plt): Document.
+	* doc/install.texi: Document --enable-targets and --enable-secureplt.
+	Correct xrefs to "Using the GNU Compiler Collection (GCC)".
+	* config/rs6000/secureplt.h: New file.
+	* config/rs6000/sysv4.h (MASK_SECURE_PLT): Define.
+	(SUBTARGET_SWITCHES): Add "secure-plt" and "bss-plt".  Move "newlib".
+	(SUBTARGET_OVERRIDE_OPTIONS): Error if -msecure-plt given without
+	assembler support.
+	(CC1_SECURE_PLT_DEFAULT_SPEC): Define.
+	(CC1_SPEC): Delete duplicate mno-sdata.  Invoke cc1_secure_plt_default.
+	(SUBTARGET_EXTRA_SPECS): Add cc1_secure_plt_default.
+	* config/rs6000/rs6000.h: Update target_flags free bits comment.
+	(TARGET_SECURE_PLT): Define.
+	* config/rs6000/rs6000.c (rs6000_emit_load_toc_table): Handle
+	TARGET_SECURE_PLT got register load sequence.
+	(rs6000_emit_prologue): Call rs6000_emit_load_toc_table when
+	TARGET_SECURE_PLT.
+	(rs6000_elf_declare_function_name): Don't emit toc address offset
+	word when TARGET_SECURE_PLT.
+	* config/rs6000/rs6000.md (elf_high, elf_low): Move past load_toc_*.
+	(load_toc_v4_PIC_1) Enable for TARGET_SECURE_PLT.
+	(load_toc_v4_PIC_3b, load_toc_v4_PIC_3c): New insns.
+	(call, call_value): Mark pic_offset_table_rtx used for sysv pic and
+	TARGET_SECURE_PLT.
+	(call_nonlocal_sysv, call_value_nonlocal_sysv, sibcall_nonlocal_sysv,
+	sibcall_value_nonlocal_sysv): Add 32768 offset when TARGET_SECURE_PLT
+	and -fPIC.
+	* config/rs6000/tramp.asm (trampoline_initial): Use "bcl 20,31".
+	(__trampoline_setup): Likewise.  Init r30 before plt call.
+
+	* src/powerpc/ppc_closure.S (ffi_closure_SYSV): Don't use JUMPTARGET
+	to call ffi_closure_helper_SYSV.  Append @local instead.
+	* src/powerpc/sysv.S (ffi_call_SYSV): Likewise for ffi_prep_args_SYSV.
+
+--- gcc/configure.ac	2005-05-11 18:20:56.000000000 +0930
++++ gcc/configure.ac	2005-06-01 21:52:52.000000000 +0930
+@@ -1429,6 +1429,10 @@ case "$LIBINTL" in *$LIBICONV*)
+ 	LIBICONV= ;;
+ esac
+ 
++AC_ARG_ENABLE(secureplt,
++[  --enable-secureplt      enable -msecure-plt by default for PowerPC],
++[], [])
++
+ # Windows32 Registry support for specifying GCC installation paths.
+ AC_ARG_ENABLE(win32-registry,
+ [  --disable-win32-registry
+@@ -2762,6 +2766,25 @@ foo:	nop
+       [$conftest_s],,
+       [AC_DEFINE(HAVE_AS_MFCRF, 1,
+ 	  [Define if your assembler supports mfcr field.])])
++
++    case $target in
++      *-*-aix*) conftest_s='	.csect .text[[PR]]
++LCF..0:
++	addis 11,30,_GLOBAL_OFFSET_TABLE_-LCF..0@ha';;
++      *-*-darwin*)
++	conftest_s='	.text
++LCF0:
++	addis r11,r30,_GLOBAL_OFFSET_TABLE_-LCF0@ha';;
++      *) conftest_s='	.text
++.LCF0:
++	addis 11,30,_GLOBAL_OFFSET_TABLE_-.LCF0@ha';;
++    esac
++
++    gcc_GAS_CHECK_FEATURE([rel16 relocs],
++      gcc_cv_as_powerpc_rel16, [2,17,0], -a32,
++      [$conftest_s],,
++      [AC_DEFINE(HAVE_AS_REL16, 1,
++	  [Define if your assembler supports R_PPC_REL16 relocs.])])
+     ;;
+ 
+   mips*-*-*)
+--- gcc/configure	2005-06-06 17:00:55.000000000 +0200
++++ gcc/configure	2005-07-27 11:17:45.000000000 +0200
+@@ -890,6 +890,7 @@ Optional Features:
+   --enable-initfini-array	use .init_array/.fini_array sections
+   --enable-sjlj-exceptions
+                           arrange to use setjmp/longjmp exception handling
++  --enable-secureplt      enable -msecure-plt by default for PowerPC
+   --disable-win32-registry
+                           disable lookup of installation paths in the
+                           Registry on Windows hosts
+@@ -12330,6 +12331,12 @@ case "$LIBINTL" in *$LIBICONV*)
+ 	LIBICONV= ;;
+ esac
+ 
++# Check whether --enable-secureplt or --disable-secureplt was given.
++if test "${enable_secureplt+set}" = set; then
++  enableval="$enable_secureplt"
++
++fi;
++
+ # Windows32 Registry support for specifying GCC installation paths.
+ # Check whether --enable-win32-registry or --disable-win32-registry was given.
+ if test "${enable_win32_registry+set}" = set; then
+@@ -14664,6 +14671,56 @@ cat >>confdefs.h <<\_ACEOF
+ _ACEOF
+ 
+ fi
++
++    case $target in
++      *-*-aix*) conftest_s='	.csect .text[PR]
++LCF..0:
++	addis 11,30,_GLOBAL_OFFSET_TABLE_-LCF..0@ha';;
++      *-*-darwin*)
++	conftest_s='	.text
++LCF0:
++	addis r11,r30,_GLOBAL_OFFSET_TABLE_-LCF0@ha';;
++      *) conftest_s='	.text
++.LCF0:
++	addis 11,30,_GLOBAL_OFFSET_TABLE_-.LCF0@ha';;
++    esac
++
++    echo "$as_me:$LINENO: checking assembler for rel16 relocs" >&5
++echo $ECHO_N "checking assembler for rel16 relocs... $ECHO_C" >&6
++if test "${gcc_cv_as_powerpc_rel16+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
++else
++  gcc_cv_as_powerpc_rel16=no
++    if test $in_tree_gas = yes; then
++    if test $gcc_cv_gas_vers -ge `expr \( \( 2 \* 1000 \) + 17 \) \* 1000 + 0`
++  then gcc_cv_as_powerpc_rel16=yes
++fi
++  elif test x$gcc_cv_as != x; then
++    echo "$conftest_s" > conftest.s
++    if { ac_try='$gcc_cv_as -a32 -o conftest.o conftest.s >&5'
++  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; }
++    then
++	gcc_cv_as_powerpc_rel16=yes
++    else
++      echo "configure: failed program was" >&5
++      cat conftest.s >&5
++    fi
++    rm -f conftest.o conftest.s
++  fi
++fi
++echo "$as_me:$LINENO: result: $gcc_cv_as_powerpc_rel16" >&5
++echo "${ECHO_T}$gcc_cv_as_powerpc_rel16" >&6
++if test $gcc_cv_as_powerpc_rel16 = yes; then
++
++cat >>confdefs.h <<\_ACEOF
++#define HAVE_AS_REL16 1
++_ACEOF
++
++fi
+     ;;
+ 
+   mips*-*-*)
+--- gcc/config.in	2005-06-06 17:00:53.000000000 +0200
++++ gcc/config.in	2005-07-27 11:19:13.000000000 +0200
+@@ -122,6 +122,9 @@
+ /* Define if your assembler supports .register. */
+ #undef HAVE_AS_REGISTER_PSEUDO_OP
+ 
++/* Define if your assembler supports R_PPC_REL16 relocs. */
++#undef HAVE_AS_REL16
++
+ /* Define if your assembler supports -relax option. */
+ #undef HAVE_AS_RELAX_OPTION
+ 
+--- gcc/config.gcc	2005-05-06 23:50:09.000000000 +0930
++++ gcc/config.gcc	2005-05-30 10:29:30.000000000 +0930
+@@ -1559,6 +1559,9 @@ powerpc64-*-linux*)
+ 	test x$with_cpu != x || cpu_is_64bit=yes
+ 	test x$cpu_is_64bit != xyes || tm_file="${tm_file} rs6000/default64.h"
+ 	tm_file="rs6000/biarch64.h ${tm_file} rs6000/linux64.h"
++	if test x${enable_secureplt} = xyes; then
++		tm_file="rs6000/secureplt.h ${tm_file}"
++	fi
+ 	tmake_file="rs6000/t-fprules ${tmake_file} rs6000/t-ppccomm rs6000/t-linux64"
+ 	;;
+ powerpc64-*-gnu*)
+@@ -1651,6 +1654,9 @@ powerpc-*-linux*)
+ 		tm_file="${tm_file} rs6000/linux.h"
+ 		;;
+ 	esac
++	if test x${enable_secureplt} = xyes; then
++		tm_file="rs6000/secureplt.h ${tm_file}"
++	fi
+ 	;;
+ powerpc-*-gnu-gnualtivec*)
+ 	tm_file="${cpu_type}/${cpu_type}.h elfos.h svr4.h freebsd-spec.h gnu.h rs6000/sysv4.h rs6000/linux.h rs6000/linuxaltivec.h rs6000/gnu.h"
+--- gcc/doc/install.texi	2005-05-02 08:26:07.000000000 +0930
++++ gcc/doc/install.texi	2005-06-01 21:44:56.000000000 +0930
+@@ -1071,6 +1071,27 @@ do a @samp{make -C gcc gnatlib_and_tools
+ Specify that the compiler should
+ use DWARF 2 debugging information as the default.
+ 
++@item --enable-targets=all
++@itemx --enable-targets=@var{target_list}
++Some GCC targets, e.g.@: powerpc64-linux, build bi-arch compilers.
++These are compilers that are able to generate either 64-bit or 32-bit
++code.  Typicially, the corresponding 32-bit target, e.g.@:
++powerpc-linux for powerpc64-linux, only generates 32-bit code.  This
++option enables the 32-bit target to be a bi-arch compiler, which is
++useful when you want a bi-arch compiler that defaults to 32-bit, and
++you are building a bi-arch or multi-arch binutils in a combined tree.
++Currently, this option only affects powerpc-linux.
++
++@item --enable-secureplt
++This option enables @option{-msecure-plt} by default for powerpc-linux.
++@ifnothtml
++@xref{RS/6000 and PowerPC Options,, RS/6000 and PowerPC Options, gcc,
++Using the GNU Compiler Collection (GCC)},
++@end ifnothtml
++@ifhtml
++See ``RS/6000 and PowerPC Options'' in the main manual
++@end ifhtml
++
+ @item --enable-win32-registry
+ @itemx --enable-win32-registry=@var{key}
+ @itemx --disable-win32-registry
+@@ -2464,7 +2485,7 @@ ARM-family processors.  These targets su
+ ATMEL AVR-family micro controllers.  These are used in embedded
+ applications.  There are no standard Unix configurations.
+ @ifnothtml
+-@xref{AVR Options,, AVR Options, gcc, Using and Porting the GNU Compiler
++@xref{AVR Options,, AVR Options, gcc, Using the GNU Compiler
+ Collection (GCC)},
+ @end ifnothtml
+ @ifhtml
+@@ -2502,8 +2523,8 @@ indicates that you should upgrade to a n
+ 
+ The Blackfin processor, an Analog Devices DSP.
+ @ifnothtml
+-@xref{Blackfin Options,, Blackfin Options, gcc, Using and Porting the GNU
+-Compiler Collection (GCC)},
++@xref{Blackfin Options,, Blackfin Options, gcc, Using the GNU Compiler
++Collection (GCC)},
+ @end ifnothtml
+ @ifhtml
+ See ``Blackfin Options'' in the main manual
+@@ -2521,8 +2542,8 @@ Texas Instruments TMS320C3x and TMS320C4
+ Processors.  These are used in embedded applications.  There are no
+ standard Unix configurations.
+ @ifnothtml
+-@xref{TMS320C3x/C4x Options,, TMS320C3x/C4x Options, gcc, Using and
+-Porting the GNU Compiler Collection (GCC)},
++@xref{TMS320C3x/C4x Options,, TMS320C3x/C4x Options, gcc, Using the
++GNU Compiler Collection (GCC)},
+ @end ifnothtml
+ @ifhtml
+ See ``TMS320C3x/C4x Options'' in the main manual
+@@ -2551,7 +2572,7 @@ CRIS is the CPU architecture in Axis Com
+ series.  These are used in embedded applications.
+ 
+ @ifnothtml
+-@xref{CRIS Options,, CRIS Options, gcc, Using and Porting the GNU Compiler
++@xref{CRIS Options,, CRIS Options, gcc, Using the GNU Compiler
+ Collection (GCC)},
+ @end ifnothtml
+ @ifhtml
+--- gcc/doc/invoke.texi	2005-05-19 18:44:04.000000000 +0930
++++ gcc/doc/invoke.texi	2005-06-01 21:43:42.000000000 +0930
+@@ -625,6 +625,7 @@ See RS/6000 and PowerPC Options.
+ -maix-struct-return  -msvr4-struct-return @gol
+ -mabi=altivec  -mabi=no-altivec @gol
+ -mabi=spe  -mabi=no-spe @gol
++-msecure-plt -mbss-plt @gol
+ -misel=yes  -misel=no @gol
+ -mspe=yes  -mspe=no @gol
+ -mfloat-gprs=yes  -mfloat-gprs=no -mfloat-gprs=single -mfloat-gprs=double @gol
+@@ -10515,6 +10516,18 @@ ABI@.
+ @opindex mabi=no-spe
+ Disable Booke SPE ABI extensions for the current ABI@.
+ 
++@item -msecure-plt
++@opindex msecure-plt
++Generate code that allows ld and ld.so to build executables and shared
++libraries with non-exec .plt and .got sections.  This is a PowerPC
++32-bit SYSV ABI option.
++
++@item -mbss-plt
++@opindex mbss-plt
++Generate code that uses a BSS .plt section that ld.so fills in, and
++requires .plt and .got sections that are both writable and executable.
++This is a PowerPC 32-bit SYSV ABI option.
++
+ @item -misel=@var{yes/no}
+ @itemx -misel
+ @opindex misel
+--- gcc/config/rs6000/secureplt.h	1970-01-01 09:30:00.000000000 +0930
++++ gcc/config/rs6000/secureplt.h	2005-05-30 10:29:30.000000000 +0930
+@@ -0,0 +1,21 @@
++/* Default to -msecure-plt.
++   Copyright (C) 2005 Free Software Foundation, Inc.
++
++This file is part of GCC.
++
++GCC is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 2, or (at your option)
++any later version.
++
++GCC is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with GCC; see the file COPYING.  If not, write to
++the Free Software Foundation, 59 Temple Place - Suite 330,
++Boston, MA 02111-1307, USA.  */
++
++#define CC1_SECURE_PLT_DEFAULT_SPEC "-msecure-plt"
+--- gcc/config/rs6000/sysv4.h	2005-02-16 09:06:57.000000000 +1030
++++ gcc/config/rs6000/sysv4.h	2005-05-30 10:52:01.000000000 +0930
+@@ -55,6 +55,7 @@ extern enum rs6000_sdata_type rs6000_sda
+ #define	MASK_REGNAMES		0x02000000	/* Use alternate register names.  */
+ #define	MASK_PROTOTYPE		0x01000000	/* Only prototyped fcns pass variable args.  */
+ #define MASK_NO_BITFIELD_WORD	0x00800000	/* Bitfields cannot cross word boundaries */
++#define MASK_SECURE_PLT		0x00400000	/* Use non-exec PLT/GOT.  */
+ 
+ #define	TARGET_NO_BITFIELD_TYPE	(target_flags & MASK_NO_BITFIELD_TYPE)
+ #define	TARGET_STRICT_ALIGN	(target_flags & MASK_STRICT_ALIGN)
+@@ -149,12 +150,16 @@ extern const char *rs6000_tls_size_strin
+     N_("Set the PPC_EMB bit in the ELF flags header") },		\
+   { "windiss",		 0, N_("Use the WindISS simulator") },		\
+   { "shlib",		 0, N_("no description yet") },			\
++  { "newlib",		 0, N_("no description yet") },			\
+   { "64",		 MASK_64BIT | MASK_POWERPC64 | MASK_POWERPC,	\
+ 			 N_("Generate 64-bit code") },			\
+   { "32",		 - (MASK_64BIT | MASK_POWERPC64),		\
+ 			 N_("Generate 32-bit code") },			\
+-  EXTRA_SUBTARGET_SWITCHES						\
+-  { "newlib",		 0, N_("no description yet") },
++  { "secure-plt",	 MASK_SECURE_PLT,				\
++			 N_("Generate code for non-exec PLT and GOT") },\
++  { "bss-plt",		 -MASK_SECURE_PLT,				\
++			 N_("Generate code for exec BSS PLT") },	\
++  EXTRA_SUBTARGET_SWITCHES
+ 
+ /* This is meant to be redefined in the host dependent files.  */
+ #define EXTRA_SUBTARGET_SWITCHES
+@@ -299,6 +304,11 @@ do {									\
+       error ("-mcall-aixdesc must be big endian");			\
+     }									\
+ 									\
++  if (TARGET_SECURE_PLT != (target_flags & MASK_SECURE_PLT))		\
++    {									\
++      error ("-msecure-plt not supported by your assembler");		\
++    }									\
++									\
+   /* Treat -fPIC the same as -mrelocatable.  */				\
+   if (flag_pic > 1 && DEFAULT_ABI != ABI_AIX)				\
+     target_flags |= MASK_RELOCATABLE | MASK_MINIMAL_TOC | MASK_NO_FP_IN_TOC; \
+@@ -844,6 +854,10 @@ extern int fixuplabelno;
+ 
+ #define	CC1_ENDIAN_DEFAULT_SPEC "%(cc1_endian_big)"
+ 
++#ifndef CC1_SECURE_PLT_DEFAULT_SPEC
++#define CC1_SECURE_PLT_DEFAULT_SPEC ""
++#endif
++
+ /* Pass -G xxx to the compiler and set correct endian mode.  */
+ #define	CC1_SPEC "%{G*} \
+ %{mlittle|mlittle-endian: %(cc1_endian_little);           \
+@@ -856,7 +870,6 @@ extern int fixuplabelno;
+   mcall-gnu             : -mbig %(cc1_endian_big);        \
+   mcall-i960-old        : -mlittle %(cc1_endian_little);  \
+                         : %(cc1_endian_default)}          \
+-%{mno-sdata: -msdata=none } \
+ %{meabi: %{!mcall-*: -mcall-sysv }} \
+ %{!meabi: %{!mno-eabi: \
+     %{mrelocatable: -meabi } \
+@@ -868,6 +881,7 @@ extern int fixuplabelno;
+     %{mcall-openbsd: -mno-eabi }}} \
+ %{msdata: -msdata=default} \
+ %{mno-sdata: -msdata=none} \
++%{!mbss-plt: %{!msecure-plt: %(cc1_secure_plt_default)}} \
+ %{profile: -p}"
+ 
+ /* Don't put -Y P,<path> for cross compilers.  */
+@@ -1308,6 +1322,7 @@ ncrtn.o%s"
+   { "cc1_endian_big",		CC1_ENDIAN_BIG_SPEC },			\
+   { "cc1_endian_little",	CC1_ENDIAN_LITTLE_SPEC },		\
+   { "cc1_endian_default",	CC1_ENDIAN_DEFAULT_SPEC },		\
++  { "cc1_secure_plt_default",	CC1_SECURE_PLT_DEFAULT_SPEC },		\
+   { "cpp_os_ads",		CPP_OS_ADS_SPEC },			\
+   { "cpp_os_yellowknife",	CPP_OS_YELLOWKNIFE_SPEC },		\
+   { "cpp_os_mvme",		CPP_OS_MVME_SPEC },			\
+--- gcc/config/rs6000/rs6000.h	2005-03-03 08:34:37.000000000 +1030
++++ gcc/config/rs6000/rs6000.h	2005-05-30 10:52:00.000000000 +0930
+@@ -201,8 +201,8 @@ extern int target_flags;
+ /* Use single field mfcr instruction.  */
+ #define MASK_MFCRF		0x00080000
+ 
+-/* The only remaining free bits are 0x00600000.  linux64.h uses
+-   0x00100000, and sysv4.h uses 0x00800000 -> 0x40000000.
++/* The only remaining free bit is 0x00200000.  linux64.h uses
++   0x00100000, and sysv4.h uses 0x00400000 -> 0x40000000.
+    0x80000000 is not available because target_flags is signed.  */
+ 
+ #define TARGET_POWER		(target_flags & MASK_POWER)
+@@ -234,6 +234,11 @@ extern int target_flags;
+ #define TARGET_MFCRF 0
+ #endif
+ 
++#ifdef HAVE_AS_REL16
++#define TARGET_SECURE_PLT	(target_flags & MASK_SECURE_PLT)
++#else
++#define TARGET_SECURE_PLT	0
++#endif
+ 
+ #define TARGET_32BIT		(! TARGET_64BIT)
+ #define TARGET_HARD_FLOAT	(! TARGET_SOFT_FLOAT)
+--- gcc/config/rs6000/rs6000.c	2005-05-11 18:23:48.000000000 +0930
++++ gcc/config/rs6000/rs6000.c	2005-05-30 10:29:30.000000000 +0930
+@@ -13466,15 +13520,49 @@ rs6000_emit_load_toc_table (int fromprol
+   rtx dest, insn;
+   dest = gen_rtx_REG (Pmode, RS6000_PIC_OFFSET_TABLE_REGNUM);
+ 
+-  if (TARGET_ELF && DEFAULT_ABI == ABI_V4 && flag_pic == 1)
++  if (TARGET_ELF && TARGET_SECURE_PLT && DEFAULT_ABI != ABI_AIX && flag_pic)
+     {
+-      rtx temp = (fromprolog
+-		  ? gen_rtx_REG (Pmode, LINK_REGISTER_REGNUM)
+-		  : gen_reg_rtx (Pmode));
+-      insn = emit_insn (gen_load_toc_v4_pic_si (temp));
++      char buf[30];
++      rtx lab, tmp1, tmp2, got, tempLR;
++
++      ASM_GENERATE_INTERNAL_LABEL (buf, "LCF", rs6000_pic_labelno);
++      lab = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (buf));
++      if (flag_pic == 2)
++	got = gen_rtx_SYMBOL_REF (Pmode, toc_label_name);
++      else
++	got = rs6000_got_sym ();
++      tmp1 = tmp2 = dest;
++      if (!fromprolog)
++	{
++	  tmp1 = gen_reg_rtx (Pmode);
++	  tmp2 = gen_reg_rtx (Pmode);
++	}
++      tempLR = (fromprolog
++		? gen_rtx_REG (Pmode, LINK_REGISTER_REGNUM)
++		: gen_reg_rtx (Pmode));
++      insn = emit_insn (gen_load_toc_v4_PIC_1 (tempLR, lab));
++      if (fromprolog)
++	rs6000_maybe_dead (insn);
++      insn = emit_move_insn (tmp1, tempLR);
++      if (fromprolog)
++	rs6000_maybe_dead (insn);
++      insn = emit_insn (gen_load_toc_v4_PIC_3b (tmp2, tmp1, got, lab));
++      if (fromprolog)
++	rs6000_maybe_dead (insn);
++      insn = emit_insn (gen_load_toc_v4_PIC_3c (dest, tmp2, got, lab));
++      if (fromprolog)
++	rs6000_maybe_dead (insn);
++    }
++  else if (TARGET_ELF && DEFAULT_ABI == ABI_V4 && flag_pic == 1)
++    {
++      rtx tempLR = (fromprolog
++		    ? gen_rtx_REG (Pmode, LINK_REGISTER_REGNUM)
++		    : gen_reg_rtx (Pmode));
++
++      insn = emit_insn (gen_load_toc_v4_pic_si (tempLR));
+       if (fromprolog)
+ 	rs6000_maybe_dead (insn);
+-      insn = emit_move_insn (dest, temp);
++      insn = emit_move_insn (dest, tempLR);
+       if (fromprolog)
+ 	rs6000_maybe_dead (insn);
+     }
+@@ -14565,7 +14653,8 @@ rs6000_emit_prologue (void)
+ 
+   /* If we are using RS6000_PIC_OFFSET_TABLE_REGNUM, we need to set it up.  */
+   if ((TARGET_TOC && TARGET_MINIMAL_TOC && get_pool_size () != 0)
+-      || (DEFAULT_ABI == ABI_V4 && flag_pic == 1
++      || (DEFAULT_ABI == ABI_V4
++	  && (flag_pic == 1 || (flag_pic && TARGET_SECURE_PLT))
+ 	  && regs_ever_live[RS6000_PIC_OFFSET_TABLE_REGNUM]))
+     {
+       /* If emit_load_toc_table will use the link register, we need to save
+@@ -18082,6 +18171,7 @@ rs6000_elf_declare_function_name (FILE *
+     }
+ 
+   if (TARGET_RELOCATABLE
++      && !TARGET_SECURE_PLT
+       && (get_pool_size () != 0 || current_function_profile)
+       && uses_TOC ())
+     {
+--- gcc/config/rs6000/rs6000.md	2005-03-31 21:02:13.000000000 +0930
++++ gcc/config/rs6000/rs6000.md	2005-05-30 10:29:30.000000000 +0930
+@@ -7653,26 +7653,6 @@
+ 
+ ;; Now define ways of moving data around.
+ 
+-;; Elf specific ways of loading addresses for non-PIC code.
+-;; The output of this could be r0, but we make a very strong
+-;; preference for a base register because it will usually
+-;; be needed there.
+-(define_insn "elf_high"
+-  [(set (match_operand:SI 0 "gpc_reg_operand" "=b*r")
+-	(high:SI (match_operand 1 "" "")))]
+-  "TARGET_ELF && ! TARGET_64BIT"
+-  "{liu|lis} %0,%1@ha")
+-
+-(define_insn "elf_low"
+-  [(set (match_operand:SI 0 "gpc_reg_operand" "=r,r")
+-	(lo_sum:SI (match_operand:SI 1 "gpc_reg_operand" "b,!*r")
+-		   (match_operand 2 "" "")))]
+-   "TARGET_ELF && ! TARGET_64BIT"
+-   "@
+-    {cal|la} %0,%2@l(%1)
+-    {ai|addic} %0,%1,%K2")
+-
+-
+ ;; Set up a register with a value from the GOT table
+ 
+ (define_expand "movsi_got"
+@@ -10133,7 +10111,8 @@
+   [(set (match_operand:SI 0 "register_operand" "=l")
+ 	(match_operand:SI 1 "immediate_operand" "s"))
+    (use (unspec [(match_dup 1)] UNSPEC_TOC))]
+-  "TARGET_ELF && DEFAULT_ABI != ABI_AIX && flag_pic == 2"
++  "TARGET_ELF && DEFAULT_ABI != ABI_AIX
++   && (flag_pic == 2 || (flag_pic && TARGET_SECURE_PLT))"
+   "bcl 20,31,%1\\n%1:"
+   [(set_attr "type" "branch")
+    (set_attr "length" "4")])
+@@ -10156,6 +10135,23 @@
+   "{l|lwz} %0,%2-%3(%1)"
+   [(set_attr "type" "load")])
+ 
++(define_insn "load_toc_v4_PIC_3b"
++  [(set (match_operand:SI 0 "gpc_reg_operand" "=b")
++	(plus:SI (match_operand:SI 1 "gpc_reg_operand" "r")
++		 (high:SI
++		   (minus:SI (match_operand:SI 2 "symbol_ref_operand" "s")
++			     (match_operand:SI 3 "symbol_ref_operand" "s")))))]
++  "TARGET_ELF && TARGET_SECURE_PLT && DEFAULT_ABI != ABI_AIX && flag_pic"
++  "{cau|addis} %0,%1,%2-%3@ha")
++
++(define_insn "load_toc_v4_PIC_3c"
++  [(set (match_operand:SI 0 "gpc_reg_operand" "=r")
++	(lo_sum:SI (match_operand:SI 1 "gpc_reg_operand" "b")
++		   (minus:SI (match_operand:SI 2 "symbol_ref_operand" "s")
++			     (match_operand:SI 3 "symbol_ref_operand" "s"))))]
++  "TARGET_ELF && TARGET_SECURE_PLT && DEFAULT_ABI != ABI_AIX && flag_pic"
++  "{cal|addi} %0,%1,%2-%3@l")
++
+ 
+ ;; If the TOC is shared over a translation unit, as happens with all
+ ;; the kinds of PIC that we support, we need to restore the TOC
+@@ -10190,6 +10186,26 @@
+     rs6000_emit_load_toc_table (FALSE);
+   DONE;
+ }")
++
++;; Elf specific ways of loading addresses for non-PIC code.
++;; The output of this could be r0, but we make a very strong
++;; preference for a base register because it will usually
++;; be needed there.
++(define_insn "elf_high"
++  [(set (match_operand:SI 0 "gpc_reg_operand" "=b*r")
++	(high:SI (match_operand 1 "" "")))]
++  "TARGET_ELF && ! TARGET_64BIT"
++  "{liu|lis} %0,%1@ha")
++
++(define_insn "elf_low"
++  [(set (match_operand:SI 0 "gpc_reg_operand" "=r,r")
++	(lo_sum:SI (match_operand:SI 1 "gpc_reg_operand" "b,!*r")
++		   (match_operand 2 "" "")))]
++   "TARGET_ELF && ! TARGET_64BIT"
++   "@
++    {cal|la} %0,%2@l(%1)
++    {ai|addic} %0,%1,%K2")
++
+ 
+ ;; A function pointer under AIX is a pointer to a data area whose first word
+ ;; contains the actual address of the function, whose second word contains a
+@@ -10306,6 +10322,25 @@
+ 
+   operands[0] = XEXP (operands[0], 0);
+ 
++  if (DEFAULT_ABI == ABI_V4 && TARGET_SECURE_PLT
++      && flag_pic
++      && GET_CODE (operands[0]) == SYMBOL_REF
++      && !SYMBOL_REF_LOCAL_P (operands[0]))
++    {
++      rtx call;
++      rtvec tmp;
++
++      tmp = gen_rtvec (3,
++		       gen_rtx_CALL (VOIDmode,
++				     gen_rtx_MEM (SImode, operands[0]),
++				     operands[1]),
++		       gen_rtx_USE (VOIDmode, operands[2]),
++		       gen_rtx_CLOBBER (VOIDmode, gen_rtx_SCRATCH (SImode)));
++      call = emit_call_insn (gen_rtx_PARALLEL (VOIDmode, tmp));
++      use_reg (&CALL_INSN_FUNCTION_USAGE (call), pic_offset_table_rtx);
++      DONE;
++    }
++
+   if (GET_CODE (operands[0]) != SYMBOL_REF
+       || (DEFAULT_ABI == ABI_AIX && !SYMBOL_REF_FUNCTION_P (operands[0]))
+       || (DEFAULT_ABI != ABI_DARWIN && (INTVAL (operands[2]) & CALL_LONG) != 0))
+@@ -10354,6 +10389,28 @@
+ 
+   operands[1] = XEXP (operands[1], 0);
+ 
++  if (DEFAULT_ABI == ABI_V4 && TARGET_SECURE_PLT
++      && flag_pic
++      && GET_CODE (operands[1]) == SYMBOL_REF
++      && !SYMBOL_REF_LOCAL_P (operands[1]))
++    {
++      rtx call;
++      rtvec tmp;
++
++      tmp = gen_rtvec (3,
++		       gen_rtx_SET (VOIDmode,
++				    operands[0],
++				    gen_rtx_CALL (VOIDmode,
++						  gen_rtx_MEM (SImode,
++							       operands[1]),
++						  operands[2])),
++		       gen_rtx_USE (VOIDmode, operands[3]),
++		       gen_rtx_CLOBBER (VOIDmode, gen_rtx_SCRATCH (SImode)));
++      call = emit_call_insn (gen_rtx_PARALLEL (VOIDmode, tmp));
++      use_reg (&CALL_INSN_FUNCTION_USAGE (call), pic_offset_table_rtx);
++      DONE;
++    }
++
+   if (GET_CODE (operands[1]) != SYMBOL_REF
+       || (DEFAULT_ABI == ABI_AIX && !SYMBOL_REF_FUNCTION_P (operands[1]))
+       || (DEFAULT_ABI != ABI_DARWIN && (INTVAL (operands[3]) & CALL_LONG) != 0))
+@@ -10624,7 +10681,18 @@
+ #if TARGET_MACHO
+   return output_call(insn, operands, 0, 2);
+ #else
+-  return (DEFAULT_ABI == ABI_V4 && flag_pic) ? "bl %z0@plt" : "bl %z0";
++  if (DEFAULT_ABI == ABI_V4 && flag_pic)
++    {
++      if (TARGET_SECURE_PLT && flag_pic == 2)
++	/* The magic 32768 offset here and in the other sysv call insns
++	   corresponds to the offset of r30 in .got2, as given by LCTOC1.
++	   See sysv4.h:toc_section.  */
++	return "bl %z0+32768@plt";
++      else
++	return "bl %z0@plt";
++    }
++  else
++    return "bl %z0";
+ #endif
+ }
+   [(set_attr "type" "branch,branch")
+@@ -10669,7 +10737,15 @@
+ #if TARGET_MACHO
+   return output_call(insn, operands, 1, 3);
+ #else
+-  return (DEFAULT_ABI == ABI_V4 && flag_pic) ? "bl %z1@plt" : "bl %z1";
++  if (DEFAULT_ABI == ABI_V4 && flag_pic)
++    {
++      if (TARGET_SECURE_PLT && flag_pic == 2)
++	return "bl %z1+32768@plt";
++      else
++	return "bl %z1@plt";
++    }
++  else
++    return "bl %z1";
+ #endif
+ }
+   [(set_attr "type" "branch,branch")
+@@ -10884,7 +10960,15 @@
+   else if (INTVAL (operands[2]) & CALL_V4_CLEAR_FP_ARGS)
+     output_asm_insn (\"creqv 6,6,6\", operands);
+ 
+-  return (DEFAULT_ABI == ABI_V4 && flag_pic) ? \"b %z0@plt\" : \"b %z0\";
++  if (DEFAULT_ABI == ABI_V4 && flag_pic)
++    {
++      if (TARGET_SECURE_PLT && flag_pic == 2)
++	return \"b %z0+32768@plt\";
++      else
++	return \"b %z0@plt\";
++    }
++  else
++    return \"b %z0\";
+ }"
+   [(set_attr "type" "branch,branch")
+    (set_attr "length" "4,8")])
+@@ -10930,7 +11014,15 @@
+   else if (INTVAL (operands[2]) & CALL_V4_CLEAR_FP_ARGS)
+     output_asm_insn (\"creqv 6,6,6\", operands);
+ 
+-  return (DEFAULT_ABI == ABI_V4 && flag_pic) ? \"b %z1@plt\" : \"b %z1\";
++  if (DEFAULT_ABI == ABI_V4 && flag_pic)
++    {
++      if (TARGET_SECURE_PLT && flag_pic == 2)
++	return \"b %z1+32768@plt\";
++      else
++	return \"b %z1@plt\";
++    }
++  else
++    return \"b %z1\";
+ }"
+   [(set_attr "type" "branch,branch")
+    (set_attr "length" "4,8")])
+--- gcc/config/rs6000/tramp.asm	2003-06-06 14:41:22.000000000 +0930
++++ gcc/config/rs6000/tramp.asm	2005-05-24 10:52:09.000000000 +0930
+@@ -44,7 +44,7 @@
+ 	.align	2
+ trampoline_initial:
+ 	mflr	r0
+-	bl	1f
++	bcl	20,31,1f
+ .Lfunc = .-trampoline_initial
+ 	.long	0			/* will be replaced with function address */
+ .Lchain = .-trampoline_initial
+@@ -67,7 +67,7 @@ trampoline_size = .-trampoline_initial
+ 
+ FUNC_START(__trampoline_setup)
+ 	mflr	r0		/* save return address */
+-        bl	.LCF0		/* load up __trampoline_initial into r7 */
++        bcl	20,31,.LCF0	/* load up __trampoline_initial into r7 */
+ .LCF0:
+         mflr	r11
+         addi	r7,r11,trampoline_initial-4-.LCF0 /* trampoline address -4 */
+@@ -105,6 +105,12 @@ FUNC_START(__trampoline_setup)
+ 	blr
+ 
+ .Labort:
++#if defined SHARED && defined HAVE_AS_REL16
++	bcl	20,31,1f
++1:	mflr	r30
++	addis	r30,r30,_GLOBAL_OFFSET_TABLE_-1b@ha
++	addi	r30,r30,_GLOBAL_OFFSET_TABLE_-1b@l
++#endif
+ 	bl	JUMP_TARGET(abort)
+ FUNC_END(__trampoline_setup)
+ 
+--- libffi/src/powerpc/ppc_closure.S	2004-09-03 22:42:23.000000000 +0930
++++ libffi/src/powerpc/ppc_closure.S	2005-05-24 10:25:49.000000000 +0930
+@@ -57,7 +57,7 @@ ENTRY(ffi_closure_SYSV)
+ 	addi %r7,%r1,152
+ 
+ 	# make the call
+-	bl JUMPTARGET(ffi_closure_helper_SYSV)
++	bl ffi_closure_helper_SYSV@local
+ 
+ 	# now r3 contains the return type
+ 	# so use it to look up in a table
+--- libffi/src/powerpc/sysv.S	2004-09-03 22:42:23.000000000 +0930
++++ libffi/src/powerpc/sysv.S	2005-05-24 10:25:47.000000000 +0930
+@@ -60,7 +60,7 @@ ENTRY(ffi_call_SYSV)
+ 
+ 	/* Call ffi_prep_args_SYSV.  */
+ 	mr	%r4,%r1
+-	bl	JUMPTARGET(ffi_prep_args_SYSV)
++	bl	ffi_prep_args_SYSV@local
+ 
+ 	/* Now do the call.  */
+ 	/* Set up cr1 with bits 4-7 of the flags.  */

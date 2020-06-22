@@ -1,0 +1,75 @@
+2		27 Oct 2019
+	U 98_all_cgraph_node-gcc-9.patch
+
+1.8		1 Jun 2019
+	+ 97_all_libjava-ucontext.patch
+	+ 98_all_cgraph_node-gcc-9.patch
+
+1.7		23 Sep 2018
+	+ 96_all_ucontext-to-ucontext_t.patch
+
+1.6		13 Jan 2016
+	- 00_all_gcc-trampolinewarn.patch
+	+ 44_all_gcc-4.1-log2-static-inline.patch
+
+1.5		27 Dec 2013
+	+ 27_all_gcj-glibc-2.15-pr50888.patch
+
+1.4		28 Nov 2012
+	+ 05_all_gcc-4.1.x-siginfo.patch
+
+1.3		19 Jan 2009
+	+ 36_all_gcc-arm-pr30486.patch
+
+1.2		10 Mar 2009
+	+ 47_all_arm-unbreak-armv4t.patch
+	+ 65_all_gcc-hppa-pr34627.patch
+
+1.1		15 Mar 2008
+	+ 41_all_gcc41-PR32389.patch
+	+ 55_all_gcc4-avr-attribute-alias.patch
+	+ 56_all_gcc4-avr-dwarf.patch
+	+ 57_all_gcc4-avr-new-devices-r1.16.patch
+	+ 58_all_gcc4-avr-atmega256x-r1.1.patch
+	U 62_all_gcc4-noteGNUstack.patch
+
+1.0.2	06 Oct 2007
+	+ 14_all_gcc-sparc64-bsd.patch
+
+1.0.1	14 May 2007
+	+ 12_all_gcc-libstdc++-ld-version.patch
+
+1.0		14 Feb 2007
+	+ 00_all_gcc-4.1-alpha-mieee-default.patch
+	+ 00_all_gcc-trampolinewarn.patch
+	+ 01_all_gcc4-ice-hack.patch
+	+ 02_all_gcc4-ppc64-m32-m64-multilib-only.patch
+	+ 03_all_gcc4-java-nomulti.patch
+	+ 04_all_gcc42-boehmgc-include.patch
+	+ 05_all_gcc42-multilib-print-search-dirs.patch
+	+ 06_all_gcc4-slow-pthread-self.patch
+	+ 10_all_gcc4-libltdl-multilib.patch
+	+ 11_all_gcc-netbsd-symbolic.patch
+	+ 13_all_gcc4-libjava-ia64-backtrace.patch
+	+ 15_all_gcc42-builtin-frame-address.patch
+	+ 20_all_cris-dont-force-limits-header.patch
+	+ 29_all_gcc4-pr19664.patch
+	+ 34_all_arm-bigendian.patch
+	+ 39_all_gcc-pr28516.patch
+	+ 40_all_gcc4-debian-hppa-cbranch.patch
+	+ 41_all_gcc4-debian-hppa-cbranch2.patch
+	+ 42_all_gcc4-pr27627.patch
+	+ 48_all_gcc4-hppa-mfctl.patch
+	+ 49_all_gcc41-pr30473.patch
+	+ 51_all_gcc-3.4-libiberty-pic.patch
+	+ 53_all_gcc4-superh-default-multilib.patch
+	+ 54_all_300-libstdc++-pic.patch
+	+ 61_all_gcc4-ia64-noteGNUstack.patch
+	+ 62_all_gcc4-noteGNUstack.patch
+	+ 74_all_sh-pr24836.patch
+	+ 85_all_gcc-ca-translation-typo.patch
+	+ 89_all_gcc42-sparc64-ssp.patch
+	+ 90_all_mips-add-march-r10k.patch
+	+ 91_all_mips-ip28_cache_barriers-v4.patch
+	+ 95_all_gcc-mips-dwarf-info.patch
+	+ 95_all_gcc-mips-dwarf-old-info.patch

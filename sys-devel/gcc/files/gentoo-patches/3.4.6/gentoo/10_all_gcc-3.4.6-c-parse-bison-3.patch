@@ -1,0 +1,18 @@
+fix building w/bison-3
+
+https://bugs.gentoo.org/519704
+
+--- a/gcc/c-parse.in
++++ b/gcc/c-parse.in
+@@ -58,6 +58,11 @@
+ /* Like YYERROR but do call yyerror.  */
+ #define YYERROR1 { yyerror ("syntax error"); YYERROR; }
+ 
++/* Newer bison doesn't define YYLEX anymore.  */
++#ifndef YYLEX
++# define YYLEX yylex()
++#endif
++
+ /* Like the default stack expander, except (1) use realloc when possible,
+    (2) impose no hard maxiumum on stack size, (3) REALLY do not use alloca.
+ 

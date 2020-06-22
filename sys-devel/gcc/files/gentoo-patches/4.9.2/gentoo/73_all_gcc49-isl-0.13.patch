@@ -1,0 +1,319 @@
+https://gcc.gnu.org/PR64017
+https://gcc.gnu.org/ml/gcc-patches/2014-11/msg03281.html
+
+From 0cd222d26facd482b4835a551e1ac12a6490a5ae Mon Sep 17 00:00:00 2001
+From: burnus <burnus@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Thu, 4 Dec 2014 18:25:37 +0000
+Subject: [PATCH] [Build, Graphite] PR64017 - support ISL-0.14 (gcc/configure.ac and gcc/graphite*.c)
+
+This patch adds a configure check for isl_schedule_constraints_compute_schedule,
+which is new in ISL 0.13 - and uses it for conditional compilation.
+
+The graphite*c patch is based on the one of Jack Howarth,
+https://gcc.gnu.org/ml/gcc-patches/2014-11/msg00906.html - without checking
+whether the ISL replacements make sense.
+
+With the patch, I have successfully bootstrapped GCC with ISL 0.12.2 and
+ISL 0.14 (both using an in-tree build).  [I still have to regtest the two
+variants and I also want to do a system-ISL built with ISL 0.12.2]
+
+Is the patch OK for the trunk?
+
+Tobias
+
+PS: I'd be happy if some others could run additional tests.
+
+PPS: If the patch is in, can someone put ISL 0.14 to infrastructure? Then
+one can update contrib/download_prerequisites - such that the graphite
+failure is at least fixed for in-tree builds (cf. PR64017, PR62289).
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_9-branch@218392 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ ChangeLog                      |  7 ++++++
+ Makefile.def                   |  4 ++++
+ Makefile.in                    | 32 +++++++++++++++++++++++++++
+ configure                      | 49 ++++++++++++++++++++++++++++++++++++++++++
+ configure.ac                   |  3 +++
+ gcc/ChangeLog                  | 14 ++++++++++++
+ gcc/config.in                  |  6 ++++++
+ gcc/configure                  | 40 ++++++++++++++++++++++++++++++++++
+ gcc/configure.ac               | 23 ++++++++++++++++++++
+ gcc/graphite-clast-to-gimple.c |  5 +++++
+ gcc/graphite-interchange.c     |  6 ++++++
+ gcc/graphite-optimize-isl.c    |  8 +++++++
+ gcc/graphite-poly.c            |  4 ++++
+ gcc/graphite-sese-to-poly.c    |  5 +++++
+ 14 files changed, 206 insertions(+)
+
+diff --git a/configure.ac b/configure.ac
+index 1bab680..2aee14a 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1658,6 +1658,9 @@ if test "x$with_isl" != "xno" &&
+     ISL_CHECK_VERSION(0,11)
+     if test "${gcc_cv_isl}" = no ; then
+       ISL_CHECK_VERSION(0,12)
++      if test "${gcc_cv_isl}" = no ; then
++        ISL_CHECK_VERSION(0,14)
++      fi
+     fi
+   fi
+   dnl Only execute fail-action, if ISL has been requested.
+diff --git a/configure b/configure
+index d1c67e5..d769d93 100755
+--- a/configure
++++ b/configure
+@@ -6024,6 +6024,55 @@ $as_echo "$gcc_cv_isl" >&6; }
+   fi
+ 
+ 
++      if test "${gcc_cv_isl}" = no ; then
++
++  if test "${ENABLE_ISL_CHECK}" = yes ; then
++    _isl_saved_CFLAGS=$CFLAGS
++    _isl_saved_LDFLAGS=$LDFLAGS
++    _isl_saved_LIBS=$LIBS
++
++    CFLAGS="${_isl_saved_CFLAGS} ${islinc} ${gmpinc}"
++    LDFLAGS="${_isl_saved_LDFLAGS} ${isllibs}"
++    LIBS="${_isl_saved_LIBS} -lisl"
++
++    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for version 0.14 of ISL" >&5
++$as_echo_n "checking for version 0.14 of ISL... " >&6; }
++    if test "$cross_compiling" = yes; then :
++  gcc_cv_isl=yes
++else
++  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++#include <isl/version.h>
++   #include <string.h>
++int
++main ()
++{
++if (strncmp (isl_version (), "isl-0.14", strlen ("isl-0.14")) != 0)
++     return 1;
++
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_run "$LINENO"; then :
++  gcc_cv_isl=yes
++else
++  gcc_cv_isl=no
++fi
++rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
++  conftest.$ac_objext conftest.beam conftest.$ac_ext
++fi
++
++    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_isl" >&5
++$as_echo "$gcc_cv_isl" >&6; }
++
++    CFLAGS=$_isl_saved_CFLAGS
++    LDFLAGS=$_isl_saved_LDFLAGS
++    LIBS=$_isl_saved_LIBS
++  fi
++
++
++      fi
+     fi
+   fi
+ 
+diff --git a/gcc/config.in b/gcc/config.in
+index 1e85325..71cf0c9 100644
+--- a/gcc/config.in
++++ b/gcc/config.in
+@@ -1211,6 +1211,12 @@
+ #endif
+ 
+ 
++/* Define if isl_schedule_constraints_compute_schedule exists. */
++#ifndef USED_FOR_TARGET
++#undef HAVE_ISL_SCHED_CONSTRAINTS_COMPUTE_SCHEDULE
++#endif
++
++
+ /* Define to 1 if you have the `kill' function. */
+ #ifndef USED_FOR_TARGET
+ #undef HAVE_KILL
+diff --git a/gcc/configure.ac b/gcc/configure.ac
+index b9a3799..e54df10 100644
+--- a/gcc/configure.ac
++++ b/gcc/configure.ac
+@@ -5495,8 +5495,31 @@ AC_ARG_VAR(CLOOGLIBS,[How to link CLOOG])
+ AC_ARG_VAR(CLOOGINC,[How to find CLOOG include files])
+ if test "x${CLOOGLIBS}" != "x" ; then 
+    AC_DEFINE(HAVE_cloog, 1, [Define if cloog is in use.])
++
++  # Check whether isl_schedule_constraints_compute_schedule is available;
++  # it's new in ISL-0.13.
++  saved_CFLAGS="$CFLAGS"
++  CFLAGS="$CFLAGS $ISLINC"
++  saved_LIBS="$LIBS"
++  LIBS="$LIBS $CLOOGLIBS $ISLLIBS $GMPLIBS"
++
++  AC_MSG_CHECKING([Checking for isl_schedule_constraints_compute_schedule])
++  AC_TRY_LINK([#include <isl/schedule.h>],
++              [isl_schedule_constraints_compute_schedule (NULL);],
++              [ac_has_isl_schedule_constraints_compute_schedule=yes],
++              [ac_has_isl_schedule_constraints_compute_schedule=no])
++  AC_MSG_RESULT($ac_has_isl_schedule_constraints_compute_schedule)
++
++  LIBS="$saved_LIBS"
++  CFLAGS="$saved_CFLAGS"
++
++  if test x"$ac_has_isl_schedule_constraints_compute_schedule" = x"yes"; then
++     AC_DEFINE(HAVE_ISL_SCHED_CONSTRAINTS_COMPUTE_SCHEDULE, 1,
++               [Define if isl_schedule_constraints_compute_schedule exists.])
++  fi
+ fi
+ 
++
+ # Check for plugin support
+ AC_ARG_ENABLE(plugin,
+ [AS_HELP_STRING([--enable-plugin], [enable plugin support])],
+diff --git a/gcc/configure b/gcc/configure
+index 291e463..f48dd18 100755
+--- a/gcc/configure
++++ b/gcc/configure
+@@ -27851,7 +27851,47 @@ if test "x${CLOOGLIBS}" != "x" ; then
+ 
+ $as_echo "#define HAVE_cloog 1" >>confdefs.h
+ 
++
++  # Check whether isl_schedule_constraints_compute_schedule is available;
++  # it's new in ISL-0.13.
++  saved_CFLAGS="$CFLAGS"
++  CFLAGS="$CFLAGS $ISLINC"
++  saved_LIBS="$LIBS"
++  LIBS="$LIBS $CLOOGLIBS $ISLLIBS $GMPLIBS"
++
++  { $as_echo "$as_me:${as_lineno-$LINENO}: checking Checking for isl_schedule_constraints_compute_schedule" >&5
++$as_echo_n "checking Checking for isl_schedule_constraints_compute_schedule... " >&6; }
++  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++#include <isl/schedule.h>
++int
++main ()
++{
++isl_schedule_constraints_compute_schedule (NULL);
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_has_isl_schedule_constraints_compute_schedule=yes
++else
++  ac_has_isl_schedule_constraints_compute_schedule=no
+ fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_has_isl_schedule_constraints_compute_schedule" >&5
++$as_echo "$ac_has_isl_schedule_constraints_compute_schedule" >&6; }
++
++  LIBS="$saved_LIBS"
++  CFLAGS="$saved_CFLAGS"
++
++  if test x"$ac_has_isl_schedule_constraints_compute_schedule" = x"yes"; then
++
++$as_echo "#define HAVE_ISL_SCHED_CONSTRAINTS_COMPUTE_SCHEDULE 1" >>confdefs.h
++
++  fi
++fi
++
+ 
+ # Check for plugin support
+ # Check whether --enable-plugin was given.
+diff --git a/gcc/graphite-clast-to-gimple.c b/gcc/graphite-clast-to-gimple.c
+index fc60845..134388c 100644
+--- a/gcc/graphite-clast-to-gimple.c
++++ b/gcc/graphite-clast-to-gimple.c
+@@ -30,6 +30,11 @@ along with GCC; see the file COPYING3.  If not see
+ #include <isl/aff.h>
+ #include <cloog/cloog.h>
+ #include <cloog/isl/domain.h>
++#ifdef HAVE_ISL_SCHED_CONSTRAINTS_COMPUTE_SCHEDULE
++#include <isl/deprecated/int.h>
++#include <isl/lp.h>
++#include <isl/deprecated/ilp_int.h>
++#endif
+ #endif
+ 
+ #include "system.h"
+diff --git a/gcc/graphite-interchange.c b/gcc/graphite-interchange.c
+index 55e3fab..2e625c1 100644
+--- a/gcc/graphite-interchange.c
++++ b/gcc/graphite-interchange.c
+@@ -31,6 +31,12 @@ along with GCC; see the file COPYING3.  If not see
+ #include <isl/ilp.h>
+ #include <cloog/cloog.h>
+ #include <cloog/isl/domain.h>
++#ifdef HAVE_ISL_SCHED_CONSTRAINTS_COMPUTE_SCHEDULE
++#include <isl/deprecated/int.h>
++#include <isl/deprecated/aff_int.h>
++#include <isl/deprecated/ilp_int.h>
++#include <isl/deprecated/constraint_int.h>
++#endif
+ #endif
+ 
+ #include "system.h"
+diff --git a/gcc/graphite-optimize-isl.c b/gcc/graphite-optimize-isl.c
+index 88d6d6c..fc12eeb 100644
+--- a/gcc/graphite-optimize-isl.c
++++ b/gcc/graphite-optimize-isl.c
+@@ -28,6 +28,10 @@ along with GCC; see the file COPYING3.  If not see
+ #include <isl/band.h>
+ #include <isl/aff.h>
+ #include <isl/options.h>
++#ifdef HAVE_ISL_SCHED_CONSTRAINTS_COMPUTE_SCHEDULE
++#include <isl/deprecated/int.h>
++#include <isl/deprecated/aff_int.h>
++#endif
+ #endif
+ 
+ #include "system.h"
+@@ -373,7 +377,11 @@ getScheduleForBandList (isl_band_list *BandList)
+ 	{
+ 	  for (i = ScheduleDimensions - 1 ;  i >= 0 ; i--)
+ 	    {
++#ifdef HAVE_ISL_SCHED_CONSTRAINTS_COMPUTE_SCHEDULE
++	      if (isl_band_member_is_coincident (Band, i))
++#else
+ 	      if (isl_band_member_is_zero_distance (Band, i))
++#endif
+ 		{
+ 		  isl_map *TileMap;
+ 		  isl_union_map *TileUMap;
+diff --git a/gcc/graphite-poly.c b/gcc/graphite-poly.c
+index 4ca62f9..fccc2ec 100644
+--- a/gcc/graphite-poly.c
++++ b/gcc/graphite-poly.c
+@@ -30,6 +30,10 @@ along with GCC; see the file COPYING3.  If not see
+ #include <isl/aff.h>
+ #include <cloog/cloog.h>
+ #include <cloog/isl/domain.h>
++#ifdef HAVE_ISL_SCHED_CONSTRAINTS_COMPUTE_SCHEDULE
++#include <isl/deprecated/int.h>
++#include <isl/deprecated/ilp_int.h>
++#endif
+ #endif
+ 
+ #include "system.h"
+diff --git a/gcc/graphite-sese-to-poly.c b/gcc/graphite-sese-to-poly.c
+index 28447e4..059c10d 100644
+--- a/gcc/graphite-sese-to-poly.c
++++ b/gcc/graphite-sese-to-poly.c
+@@ -29,6 +29,11 @@ along with GCC; see the file COPYING3.  If not see
+ #include <cloog/cloog.h>
+ #include <cloog/cloog.h>
+ #include <cloog/isl/domain.h>
++#ifdef HAVE_ISL_SCHED_CONSTRAINTS_COMPUTE_SCHEDULE
++#include <isl/deprecated/int.h>
++#include <isl/deprecated/aff_int.h>
++#include <isl/deprecated/constraint_int.h>
++#endif
+ #endif
+ 
+ #include "system.h"
+-- 
+2.3.5

@@ -1,0 +1,74 @@
+Linking errors with -O3 -march=core-avx2.
+
+eg. _randommodule.o: could not read symbols: Bad value
+
+https://bugs.gentoo.org/475482
+http://gcc.gnu.org/PR57777
+
+---
+
+commit 3c8f20477b88e933610f6141d99c3927f9733445
+Author: jakub <jakub@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Wed Jul 3 20:24:19 2013 +0000
+
+    	PR target/57777
+    	* config/i386/predicates.md (vsib_address_operand): Disallow
+    	SYMBOL_REF or LABEL_REF in parts.disp if TARGET_64BIT && flag_pic.
+    
+    	* gcc.target/i386/pr57777.c: New test.
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_8-branch@200650 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                           |  6 ++++++
+ gcc/config/i386/predicates.md           | 13 +++++++++++--
+ gcc/testsuite/ChangeLog                 |  3 +++
+ gcc/testsuite/gcc.target/i386/pr57777.c | 13 +++++++++++++
+ 4 files changed, 33 insertions(+), 2 deletions(-)
+
+--- a/gcc/config/i386/predicates.md
++++ b/gcc/config/i386/predicates.md
+@@ -835,9 +835,12 @@
+     return false;
+ 
+   /* VSIB addressing doesn't support (%rip).  */
+-  if (parts.disp && GET_CODE (parts.disp) == CONST)
++  if (parts.disp)
++    {
++      disp = parts.disp;
++      if (GET_CODE (disp) == CONST)
+     {
+-      disp = XEXP (parts.disp, 0);
++	  disp = XEXP (disp, 0);
+       if (GET_CODE (disp) == PLUS)
+ 	disp = XEXP (disp, 0);
+       if (GET_CODE (disp) == UNSPEC)
+@@ -849,6 +852,12 @@
+ 	    return false;
+ 	  }
+     }
++      if (TARGET_64BIT
++	  && flag_pic
++	  && (GET_CODE (disp) == SYMBOL_REF
++	      || GET_CODE (disp) == LABEL_REF))
++	return false;
++    }
+ 
+   return true;
+ })
+--- /dev/null
++++ b/gcc/testsuite/gcc.target/i386/pr57777.c
+@@ -0,0 +1,13 @@
++/* PR target/57777 */
++/* { dg-do assemble { target avx2 } } */
++/* { dg-options "-O3 -mavx2" } */
++/* { dg-additional-options "-fpic" { target fpic } } */
++
++void
++foo (unsigned long *x, int *y)
++{
++  static unsigned long b[2] = { 0x0UL, 0x9908b0dfUL };
++  int c;
++  for (c = 0; c < 512; c++)
++    x[c] = b[x[c] & 1UL];
++}

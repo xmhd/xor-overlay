@@ -1,0 +1,17 @@
+http://lists.parisc-linux.org/pipermail/parisc-linux/2007-January/031157.html
+
+Do not use ,w completer for register != cr11.
+
+Signed-off-by: Guy Martin <gmsoft@tuxicoman.be>
+
+--- gcc-4.1.1/gcc/config/pa/pa.md
++++ gcc-4.1.1/gcc/config/pa/pa.md
+@@ -9854,7 +9854,7 @@
+   [(set (match_operand:SI 0 "register_operand" "=r")
+ 	(unspec:SI [(const_int 0)] UNSPEC_TP))]
+   ""
+-  "{mfctl|mfctl,w} %%cr27,%0"
++  "mfctl %%cr27,%0"
+   [(set_attr "type" "multi")
+    (set_attr "length" "4")])
+ 

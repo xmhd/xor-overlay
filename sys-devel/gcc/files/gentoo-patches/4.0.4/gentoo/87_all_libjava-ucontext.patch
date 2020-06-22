@@ -1,0 +1,37 @@
+https://bugs.gentoo.org/629502
+
+From 9b9287cde20ea57578cf07efb2a96ed4cc0da36f Mon Sep 17 00:00:00 2001
+From: doko <doko@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Thu, 7 Sep 2017 07:22:07 +0000
+Subject: [PATCH] 2017-09-07  Matthias Klose  <doko@ubuntu.com>
+
+        * include/x86_64-signal.h (HANDLE_DIVIDE_OVERFLOW): Replace
+        'struct ucontext' with ucontext_t.
+        * include/i386-signal.h (HANDLE_DIVIDE_OVERFLOW): Likewise.
+        * include/s390-signal.h (HANDLE_DIVIDE_OVERFLOW): Likewise.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-5-branch@251832 138bc75d-0d04-0410-961f-82ee72b054a4
+
+--- a/libjava/include/pa-signal.h
++++ b/libjava/include/pa-signal.h
+@@ -24,7 +24,7 @@ static void _Jv_##_name (int _dummy, siginfo_t *_info, void *arg)
+ #define MAKE_THROW_FRAME(_exception)				\
+ do								\
+ {								\
+-  struct ucontext *uc = (struct ucontext *)arg;			\
++  ucontext_t *uc = (ucontext_t *)arg;				\
+   struct sigcontext *sc = &uc->uc_mcontext;			\
+   (void)_dummy;							\
+   (void)_info;							\
+--- a/libjava/include/x86_64-signal.h
++++ b/libjava/include/x86_64-signal.h
+@@ -40,7 +40,7 @@ do									     \
+   /* Advance the program counter so that it is after the start of the	     \
+      instruction:  the x86_64 exception handler expects			     \
+      the PC to point to the instruction after a call. */		     \
+-  struct ucontext *_uc = (struct ucontext *)_p;				     \
++  ucontext_t *_uc = (ucontext_t *)_p;					     \
+   volatile struct sigcontext *_sc = (struct sigcontext *) &_uc->uc_mcontext; \
+   _sc->rip += 2;							     \
+ }									     \

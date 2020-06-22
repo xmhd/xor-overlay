@@ -1,0 +1,99 @@
+--- gcc-3.4.3/gcc/config/rs6000/sysv4.h.def~	Mon Nov 22 18:42:04 2004
++++ gcc-3.4.3/gcc/config/rs6000/sysv4.h	Mon Nov 22 21:11:22 2004
+@@ -824,6 +824,28 @@
+   mcall-gnu             :-mbig;    \
+   mcall-i960-old        :-mlittle}"
+ 
++#ifdef HAVE_LD_PIE
++#if defined(EFAULT_PIE) || defined(EFAULT_PIE_SSP)
++#define	HARDENED_ASM_SPEC "%(asm_cpu) \
++%{.s: %{mregnames} %{mno-regnames}} %{.S: %{mregnames} %{mno-regnames}} \
++%{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
++%{mrelocatable} %{mrelocatable-lib} \
++%{!D__KERNEL__: %{!fno-PIC:%{!fno-pic:%{!fno-PIE:%{!fno-pie: %{!nopie:-K PIC} }}}} } \
++%{memb|msdata|msdata=eabi: -memb} \
++%{mlittle|mlittle-endian:-mlittle; \
++  mbig|mbig-endian      :-mbig;    \
++  mcall-aixdesc |		   \
++  mcall-freebsd |		   \
++  mcall-netbsd  |		   \
++  mcall-openbsd |		   \
++  mcall-linux   |		   \
++  mcall-gnu             :-mbig;    \
++  mcall-i960-old        :-mlittle}"
++#undef ASM_SPEC
++#define ASM_SPEC HARDENED_ASM_SPEC
++#endif
++#endif
++
+ #define	CC1_ENDIAN_BIG_SPEC ""
+ 
+ #define	CC1_ENDIAN_LITTLE_SPEC "\
+@@ -1104,7 +1126,12 @@
+ %{!mnewlib: %{pthread:-lpthread} %{shared:-lc} \
+ %{!shared: %{profile:-lc_p} %{!profile:-lc}}}"
+ 
++#undef HARDENED_STARTFILE_SPEC
+ #ifdef HAVE_LD_PIE
++#define	HARDENED_STARTFILE_LINUX_SPEC "\
++%{!shared: %{pg|p:gcrt1.o%s;static|nopie:crt1.o%s;:Scrt1.o%s}} \
++%{mnewlib:ecrti.o%s;:crti.o%s} \
++%{static:crtbeginT.o%s;nopie:crtbegin.o%s;:crtbeginS.o%s}"
+ #define	STARTFILE_LINUX_SPEC "\
+ %{!shared: %{pg|p:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}} \
+ %{mnewlib:ecrti.o%s;:crti.o%s} \
+@@ -1116,7 +1143,11 @@
+ %{static:crtbeginT.o%s;shared:crtbeginS.o%s;:crtbegin.o%s}"
+ #endif
+ 
++#undef HARDENED_ENDFILE_SPEC
+ #ifdef HAVE_LD_PIE
++#define	HARDENED_ENDFILE_LINUX_SPEC "\
++%{static|nopie:crtend.o%s;:crtendS.o%s} \
++%{mnewlib: ecrtn.o%s} %{!mnewlib: crtn.o%s}"
+ #define	ENDFILE_LINUX_SPEC "\
+ %{shared|pie:crtendS.o%s;:crtend.o%s} \
+ %{mnewlib: ecrtn.o%s} %{!mnewlib: crtn.o%s}"
+@@ -1126,6 +1157,15 @@
+ %{mnewlib: ecrtn.o%s} %{!mnewlib: crtn.o%s}"
+ #endif
+ 
++#ifdef HAVE_LD_PIE
++#if defined(EFAULT_PIE) || defined(EFAULT_PIE_SSP)
++#undef STARTFILE_LINUX_SPEC
++#define STARTFILE_LINUX_SPEC HARDENED_STARTFILE_LINUX_SPEC
++#undef ENDFILE_LINUX_SPEC
++#define ENDFILE_LINUX_SPEC HARDENED_ENDFILE_LINUX_SPEC
++#endif
++#endif
++
+ #define LINK_START_LINUX_SPEC ""
+ 
+ #define LINK_OS_LINUX_SPEC "-m elf32ppclinux %{!shared: %{!static: \
+--- gcc-3.4.3/gcc/config/rs6000/linux64.h.def~	Mon Nov 22 18:42:18 2004
++++ gcc-3.4.3/gcc/config/rs6000/linux64.h	Mon Nov 22 21:12:01 2004
+@@ -149,6 +149,24 @@
+     %{mcall-netbsd: -mbig} \
+ }}}}"
+ 
++#ifdef HAVE_LD_PIE
++#if defined(EFAULT_PIE) || defined(EFAULT_PIE_SSP)
++#define HARDENED_ASM_SPEC32 "-a32 %{n} %{T} %{Ym,*} %{Yd,*} \
++%{mrelocatable} %{mrelocatable-lib} \
++%{!D__KERNEL__: %{!fno-PIC:%{!fno-pic:%{!fno-PIE:%{!fno-pie: %{!nopie:-K PIC} }}}} } \
++%{memb} %{!memb: %{msdata: -memb} %{msdata=eabi: -memb}} \
++%{!mlittle: %{!mlittle-endian: %{!mbig: %{!mbig-endian: \
++    %{mcall-freebsd: -mbig} \
++    %{mcall-i960-old: -mlittle} \
++    %{mcall-linux: -mbig} \
++    %{mcall-gnu: -mbig} \
++    %{mcall-netbsd: -mbig} \
++}}}}"
++#undef ASM_SPEC32
++#define ASM_SPEC32 HARDENED_ASM_SPEC32
++#endif
++#endif
++
+ #define ASM_SPEC64 "-a64"
+ 
+ #define ASM_SPEC_COMMON "%(asm_cpu) \

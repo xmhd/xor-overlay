@@ -1,0 +1,44 @@
+The patch is a workaround to build this version of gcc with
+gcc-9.1.0: https://gcc.gnu.org/PR90677
+
+There gcc-9.1.0 pinned 'cgraph_node' to a wired-in type and
+disallows anything else (function names in this case) to share
+'cgraph_node' name.
+
+Without this patch build fails as:
+gcc-4.6.4/gcc/pretty-print.h:322:6: error: 'cgraph_node' is not defined as a type
+  322 |      ATTRIBUTE_GCC_PPDIAG(2,3);
+      |      ^~~~~~~~~~~~~
+--- a/gcc/c-tree.h
++++ b/gcc/c-tree.h
+@@ -609,7 +609,7 @@ extern void c_write_global_declarations (void);
+    diagnostic framework extensions, you must include this file before
+    toplev.h, not after.  */
+ #define GCC_DIAG_STYLE __gcc_cdiag__
+-#if GCC_VERSION >= 3005
++#if (GCC_VERSION >= 3005) && (__GNUC__ != 9) /* gcc-9 is buggy: https://gcc.gnu.org/PR90677  */
+ #define ATTRIBUTE_GCC_CDIAG(m, n) __attribute__ ((__format__ (GCC_DIAG_STYLE, m ,n))) ATTRIBUTE_NONNULL(m)
+ #else
+ #define ATTRIBUTE_GCC_CDIAG(m, n) ATTRIBUTE_NONNULL(m)
+--- a/gcc/pretty-print.h
++++ b/gcc/pretty-print.h
+@@ -253,7 +253,7 @@ extern void pp_base_append_text (pretty_printer *, const char *, const char *);
+ 
+ /* This header may be included before toplev.h, hence the duplicate
+    definitions to allow for GCC-specific formats.  */
+-#if GCC_VERSION >= 3005
++#if (GCC_VERSION >= 3005) && (__GNUC__ != 9) /* gcc-9 is buggy: https://gcc.gnu.org/PR90677  */
+ #define ATTRIBUTE_GCC_PPDIAG(m, n) __attribute__ ((__format__ (__gcc_diag__, m ,n))) ATTRIBUTE_NONNULL(m)
+ #else
+ #define ATTRIBUTE_GCC_PPDIAG(m, n) ATTRIBUTE_NONNULL(m)
+--- a/gcc/toplev.h
++++ b/gcc/toplev.h
+@@ -52,7 +52,7 @@ extern void _fatal_insn (const char *, rtx, const char *, int, const char *)
+    specifiers.  We must use custom format checks.  Note that at present
+    the front-end %D specifier is used in non-front-end code with some
+    functions, and those formats can only be checked in front-end code.  */
+-#if GCC_VERSION >= 3005
++#if (GCC_VERSION >= 3005) && (__GNUC__ != 9) /* gcc-9 is buggy: https://gcc.gnu.org/PR90677  */
+ #define ATTRIBUTE_GCC_DIAG(m, n) __attribute__ ((__format__ (GCC_DIAG_STYLE, m, n))) ATTRIBUTE_NONNULL(m)
+ #ifdef NO_FRONT_END_DIAG
+ #define ATTRIBUTE_GCC_FE_DIAG(m, n) ATTRIBUTE_NONNULL(m)

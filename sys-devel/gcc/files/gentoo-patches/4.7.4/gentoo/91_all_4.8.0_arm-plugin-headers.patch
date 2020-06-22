@@ -1,0 +1,102 @@
+ arm targets: missing headers for plugins
+
+ https://bugs.gentoo.org/467418
+ http://gcc.gnu.org/PR45078
+ http://gcc.gnu.org/viewcvs/gcc?view=revision&revision=196512
+ http://gcc.gnu.org/viewcvs/gcc?view=revision&revision=196629
+
+Backport from 4.8.0:
+
+commit 23910ff9443d3e5084628251a7dd3fb4506cb147
+Author: jakub <jakub@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Wed Mar 6 23:29:08 2013 +0000
+
+    	* config/arm/t-arm (TM_H, OPTIONS_H_EXTRA): Add arm-cores.def.
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@196512 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog        | 2 ++
+ gcc/config/arm/t-arm | 3 +++
+ 2 files changed, 5 insertions(+)
+
+
+commit 043cabe3b26006cb367d2a1663d7f0b8d47489f7
+Author: jakub <jakub@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Wed Mar 13 09:47:41 2013 +0000
+
+    	PR plugins/45078
+    	* config.gcc: On arm, mips, sh and sparc add vxworks-dummy.h to
+    	tm_file.
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@196629 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog  |  6 ++++++
+ gcc/config.gcc | 11 +++++++----
+ 2 files changed, 13 insertions(+), 4 deletions(-)
+
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -512,6 +512,9 @@ x86_64-*-*)
+ 	fi
+ 	tm_file="vxworks-dummy.h ${tm_file}"
+ 	;;
++arm*-*-* | mips*-*-* | sh*-*-* | sparc*-*-*)
++	tm_file="vxworks-dummy.h ${tm_file}"
++	;;
+ esac
+ 
+ # On a.out targets, we need to use collect2.
+@@ -843,7 +846,7 @@ arm*-*-freebsd*)
+ 	tmake_file="${tmake_file} arm/t-arm arm/t-strongarm-elf"
+ 	;;
+ arm*-*-netbsdelf*)
+-	tm_file="dbxelf.h elfos.h netbsd.h netbsd-elf.h arm/elf.h arm/aout.h arm/arm.h arm/netbsd-elf.h"
++	tm_file="dbxelf.h elfos.h netbsd.h netbsd-elf.h arm/elf.h arm/aout.h ${tm_file} arm/netbsd-elf.h"
+ 	extra_options="${extra_options} netbsd.opt netbsd-elf.opt"
+ 	tmake_file="${tmake_file} arm/t-arm"
+ 	;;
+@@ -877,7 +880,7 @@ arm*-*-linux*)			# ARM GNU/Linux with ELF
+ 	    ;;
+ 	esac
+ 	with_tls=${with_tls:-gnu}
+-	tm_file="$tm_file arm/aout.h arm/arm.h"
++	tm_file="$tm_file arm/aout.h vxworks-dummy.h arm/arm.h"
+ 	;;
+ arm*-*-uclinux*)		# ARM ucLinux
+ 	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/linux-gas.h arm/uclinux-elf.h glibc-stdint.h"
+@@ -893,7 +896,7 @@ arm*-*-uclinux*)		# ARM ucLinux
+ 	    # The EABI requires the use of __cxa_atexit.
+ 	    default_use_cxa_atexit=yes
+ 	esac
+-	tm_file="$tm_file arm/aout.h arm/arm.h"
++	tm_file="$tm_file arm/aout.h vxworks-dummy.h arm/arm.h"
+ 	;;
+ arm*-*-ecos-elf)
+ 	tm_file="dbxelf.h elfos.h newlib-stdint.h arm/unknown-elf.h arm/elf.h arm/aout.h arm/arm.h arm/ecos-elf.h"
+@@ -928,10 +931,10 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+ 	  tmake_file="${tmake_file} arm/t-symbian"
+ 	  ;;
+ 	esac
+-	tm_file="${tm_file} arm/aout.h arm/arm.h"
++	tm_file="${tm_file} arm/aout.h vxworks-dummy.h arm/arm.h"
+ 	;;
+ arm*-*-elf)
+-	tm_file="dbxelf.h elfos.h newlib-stdint.h arm/unknown-elf.h arm/elf.h arm/aout.h arm/arm.h"
++	tm_file="dbxelf.h elfos.h newlib-stdint.h arm/unknown-elf.h arm/elf.h arm/aout.h vxworks-dummy.h arm/arm.h"
+ 	tmake_file="arm/t-arm arm/t-arm-elf"
+ 	;;
+ arm*-wince-pe*)
+--- a/gcc/config/arm/t-arm
++++ b/gcc/config/arm/t-arm
+@@ -19,6 +19,9 @@
+ # along with GCC; see the file COPYING3.  If not see
+ # <http://www.gnu.org/licenses/>.
+ 
++TM_H += $(srcdir)/config/arm/arm-cores.def
++OPTIONS_H_EXTRA += $(srcdir)/config/arm/arm-cores.def
++
+ # All md files - except for arm.md.
+ # This list should be kept in alphabetical order and updated whenever an md
+ # file is added or removed.

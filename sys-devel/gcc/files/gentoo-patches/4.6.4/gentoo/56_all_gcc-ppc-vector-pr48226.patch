@@ -1,0 +1,37 @@
+https://bugs.gentoo.org/445606
+http://gcc.gnu.org/PR48226
+
+fix handling of "vector" with ppc targets
+
+From 0e6b798bb4a3d1024fbdfaf8235d0f7603d3e305 Mon Sep 17 00:00:00 2001
+From: meissner <meissner@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Tue, 29 Mar 2011 23:35:40 +0000
+Subject: [PATCH] Merge up to 171704
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@171707 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/config/rs6000/rs6000-c.c               |  5 ++++-
+ gcc/testsuite/gcc.dg/torture/va-arg-25.c   |  2 ++
+ gcc/testsuite/gcc.target/powerpc/pr48226.c | 14 ++++++++++++++
+ 3 files changed, 20 insertions(+), 1 deletion(-)
+ create mode 100644 gcc/testsuite/gcc.target/powerpc/pr48226.c
+
+diff --git a/gcc/config/rs6000/rs6000-c.c b/gcc/config/rs6000/rs6000-c.c
+index 3f4f90b..c1683bc 100644
+--- a/gcc/config/rs6000/rs6000-c.c
++++ b/gcc/config/rs6000/rs6000-c.c
+@@ -182,7 +182,10 @@ rs6000_macro_to_expand (cpp_reader *pfile, const cpp_token *tok)
+ 	  expand_this = C_CPP_HASHNODE (__vector_keyword);
+ 	  expand_bool_pixel = __bool_keyword;
+ 	}
+-      else if (ident)
++      /* The boost libraries have code with Iterator::vector vector in it.  If
++	 we allow the normal handling, this module will be called recursively,
++	 and the vector will be skipped.; */
++      else if (ident && (ident != C_CPP_HASHNODE (__vector_keyword)))
+ 	{
+ 	  enum rid rid_code = (enum rid)(ident->rid_code);
+ 	  if (ident->type == NT_MACRO)
+-- 
+1.8.0
+

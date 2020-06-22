@@ -1,0 +1,64 @@
+https://gcc.gnu.org/PR63681
+
+From e22c35e90184855a24c7dc436ba00dd62f539acf Mon Sep 17 00:00:00 2001
+From: bernds <bernds@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Wed, 21 May 2014 09:22:26 +0000
+Subject: [PATCH] Stop the cfglayout code from failing an assert when called
+ from hw-doloop.
+
+	* cfgrtl.c (cfg_layout_initialize): Weaken assert to only trigger if
+	flag_reorder_blocks_and_partition.
+	* hw-doloop.c (reorg_loops): Avoid reordering if that flag is set.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@210683 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog   |  6 ++++++
+ gcc/cfgrtl.c    | 16 ++++++++--------
+ gcc/hw-doloop.c |  4 +++-
+ 3 files changed, 17 insertions(+), 9 deletions(-)
+
+diff --git a/gcc/cfgrtl.c b/gcc/cfgrtl.c
+index eb25e89..49faf2e 100644
+--- a/gcc/cfgrtl.c
++++ b/gcc/cfgrtl.c
+@@ -4213,14 +4213,14 @@ cfg_layout_initialize (unsigned int flags)
+   rtx x;
+   basic_block bb;
+ 
+-  /* Once bb reordering is complete, cfg layout mode should not be re-entered.
+-     Entering cfg layout mode will perform optimizations on the cfg that
+-     could affect the bb layout negatively or even require fixups. An
+-     example of the latter is if edge forwarding performed when optimizing
+-     the cfg layout required moving a block from the hot to the cold section
+-     under -freorder-blocks-and-partition. This would create an illegal
+-     partitioning unless some manual fixup was performed.  */
+-  gcc_assert (!crtl->bb_reorder_complete);
++  /* Once bb partitioning is complete, cfg layout mode should not be
++     re-entered.  Entering cfg layout mode may require fixups.  As an
++     example, if edge forwarding performed when optimizing the cfg
++     layout required moving a block from the hot to the cold
++     section. This would create an illegal partitioning unless some
++     manual fixup was performed.  */
++  gcc_assert (!(crtl->bb_reorder_complete
++		&& flag_reorder_blocks_and_partition));
+ 
+   initialize_original_copy_tables ();
+ 
+diff --git a/gcc/hw-doloop.c b/gcc/hw-doloop.c
+index cc8f9b7..d182761 100644
+--- a/gcc/hw-doloop.c
++++ b/gcc/hw-doloop.c
+@@ -636,7 +636,9 @@ reorg_loops (bool do_reorder, struct hw_doloop_hooks *hooks)
+ 
+   loops = discover_loops (&loop_stack, hooks);
+ 
+-  if (do_reorder)
++  /* We can't enter cfglayout mode anymore if basic block partitioning
++     already happened.  */
++  if (do_reorder && !flag_reorder_blocks_and_partition)
+     {
+       reorder_loops (loops);
+       free_loops (loops);
+-- 
+2.6.2
+

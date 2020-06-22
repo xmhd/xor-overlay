@@ -1,0 +1,69 @@
+https://bugs.gentoo.org/571264
+https://gcc.gnu.org/PR69187
+
+From 01443309b8c2982ad32d08b330232ec7cd6bbb27 Mon Sep 17 00:00:00 2001
+From: jakub <jakub@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Wed, 10 Feb 2016 18:40:54 +0000
+Subject: [PATCH] Backported from mainline
+
+	2016-01-21  Stefan Sørensen  <stefan.sorensen@spectralink.com>
+		    Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/69187
+	PR target/65624
+	* config/arm/arm-builtins.c (arm_expand_neon_builtin): Increase
+	args array size by one to avoid buffer overflow.
+
+	* gcc.target/arm/pr69187.c: New test.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-5-branch@233296 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                          |  8 ++++++++
+ gcc/config/arm/arm-builtins.c          |  2 +-
+ gcc/testsuite/ChangeLog                |  4 ++++
+ gcc/testsuite/gcc.target/arm/pr69187.c | 19 +++++++++++++++++++
+ 4 files changed, 32 insertions(+), 1 deletion(-)
+ create mode 100644 gcc/testsuite/gcc.target/arm/pr69187.c
+
+diff --git a/gcc/config/arm/arm-builtins.c b/gcc/config/arm/arm-builtins.c
+index 4250c91..6f4fd9b 100644
+--- a/gcc/config/arm/arm-builtins.c
++++ b/gcc/config/arm/arm-builtins.c
+@@ -2161,7 +2161,7 @@ arm_expand_neon_builtin (int fcode, tree exp, rtx target)
+   neon_builtin_datum *d =
+ 		&neon_builtin_data[fcode - ARM_BUILTIN_NEON_BASE];
+   enum insn_code icode = d->code;
+-  builtin_arg args[SIMD_MAX_BUILTIN_ARGS];
++  builtin_arg args[SIMD_MAX_BUILTIN_ARGS + 1];
+   int num_args = insn_data[d->code].n_operands;
+   int is_void = 0;
+   int k;
+diff --git a/gcc/testsuite/gcc.target/arm/pr69187.c b/gcc/testsuite/gcc.target/arm/pr69187.c
+new file mode 100644
+index 0000000..9992a69
+--- /dev/null
++++ b/gcc/testsuite/gcc.target/arm/pr69187.c
+@@ -0,0 +1,19 @@
++/* PR target/69187 */
++/* { dg-do compile } */
++/* { dg-require-effective-target arm_neon } */
++/* { dg-options "-O0" }  */
++/* { dg-add-options arm_neon }  */
++
++#include <arm_neon.h>
++
++int32x4_t
++foo (void)
++{
++  int32x4_t vector_int32x4;
++  int16x4_t vector3_int16x4;
++  int16x4_t vector4_int16x4;
++  static int32_t buffer_int32x4[32];
++
++  vector_int32x4 = vld1q_s32(buffer_int32x4);
++  return vqdmlsl_lane_s16(vector_int32x4, vector3_int16x4, vector4_int16x4, 0);
++}
+-- 
+2.8.2
+

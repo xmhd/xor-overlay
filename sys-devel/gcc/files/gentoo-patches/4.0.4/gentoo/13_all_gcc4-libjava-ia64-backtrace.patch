@@ -1,0 +1,29 @@
+2005-07-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* configure.ac (HAVE_BACKTRACE): Define even on ia64.
+	* configure: Rebuilt.
+
+--- libjava/configure.ac.jj	2005-04-12 22:28:45.000000000 +0200
++++ libjava/configure.ac	2005-07-14 18:09:23.000000000 +0200
+@@ -769,9 +769,6 @@ else
+    AC_CHECK_HEADERS(execinfo.h unistd.h dlfcn.h) 
+    AC_CHECK_FUNC(backtrace, [
+      case "$host" in
+-       ia64-*-linux*)
+-	 # Has broken backtrace()
+-	 ;;
+        mips*-*-linux*)
+          # Has broken backtrace(), but we supply our own.
+          if test -d sysdep; then true; else mkdir -p sysdep; fi
+--- libjava/configure.jj	2005-04-12 22:28:34.000000000 +0200
++++ libjava/configure	2005-07-14 18:11:07.000000000 +0200
+@@ -9303,9 +9303,6 @@ echo "${ECHO_T}$ac_cv_func_backtrace" >&
+ if test $ac_cv_func_backtrace = yes; then
+ 
+      case "$host" in
+-       ia64-*-linux*)
+-	 # Has broken backtrace()
+-	 ;;
+        mips*-*-linux*)
+          # Has broken backtrace(), but we supply our own.
+          if test -d sysdep; then true; else mkdir -p sysdep; fi

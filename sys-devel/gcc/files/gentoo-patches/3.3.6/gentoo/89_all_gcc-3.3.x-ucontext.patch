@@ -1,0 +1,58 @@
+Fix for removal of struct ucontext in glibc 2.26
+
+Fix by Christian Schmidt.
+
+Bug: https://bugs.gentoo.org/664486
+--- a/gcc/config/alpha/linux.h
++++ b/gcc/config/alpha/linux.h
+@@ -89,7 +89,7 @@ Boston, MA 02111-1307, USA.  */
+       {									\
+ 	struct rt_sigframe {						\
+ 	  siginfo_t info;						\
+-	  struct ucontext uc;						\
++	  ucontext_t uc;						\
+ 	} *rt_ = (CONTEXT)->cfa;					\
+ 	sc_ = &rt_->uc.uc_mcontext;					\
+       }									\
+--- a/gcc/config/i386/linux.h
++++ b/gcc/config/i386/linux.h
+@@ -260,7 +260,7 @@ Boston, MA 02111-1307, USA.  */
+ 	  siginfo_t *pinfo;						\
+ 	  void *puc;							\
+ 	  siginfo_t info;						\
+-	  struct ucontext uc;						\
++	  ucontext_t uc;						\
+ 	} *rt_ = (CONTEXT)->cfa;					\
+ 	sc_ = (struct sigcontext *) &rt_->uc.uc_mcontext;		\
+       }									\
+--- a/gcc/config/i386/linux64.h
++++ b/gcc/config/i386/linux64.h
+@@ -112,7 +112,7 @@ Boston, MA 02111-1307, USA.  */
+     if (*(unsigned char *)(pc_+0) == 0x48				\
+ 	&& *(unsigned long *)(pc_+1) == 0x050f0000000fc0c7)		\
+       {									\
+-	struct ucontext *uc_ = (CONTEXT)->cfa;				\
++	ucontext_t *uc_ = (CONTEXT)->cfa;				\
+ 	sc_ = (struct sigcontext *) &uc_->uc_mcontext;			\
+       }									\
+     else								\
+@@ -182,7 +182,7 @@ Boston, MA 02111-1307, USA.  */
+ 	  siginfo_t *pinfo;						\
+ 	  void *puc;							\
+ 	  siginfo_t info;						\
+-	  struct ucontext uc;						\
++	  ucontext_t uc;						\
+ 	} *rt_ = (CONTEXT)->cfa;					\
+ 	sc_ = (struct sigcontext *) &rt_->uc.uc_mcontext;		\
+       }									\
+--- a/gcc/config/rs6000/linux.h
++++ b/gcc/config/rs6000/linux.h
+@@ -101,7 +101,7 @@ Boston, MA 02111-1307, USA.  */
+ 
+ struct kernel_old_ucontext {
+   unsigned long     uc_flags;
+-  struct ucontext  *uc_link;
++  ucontext_t       *uc_link;
+   stack_t           uc_stack;
+   struct sigcontext_struct uc_mcontext;
+   sigset_t          uc_sigmask;

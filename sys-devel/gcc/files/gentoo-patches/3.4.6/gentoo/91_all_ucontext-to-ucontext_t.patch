@@ -1,0 +1,66 @@
+https://bugs.gentoo.org/664486
+
+--- a/gcc/config/alpha/linux.h
++++ b/gcc/config/alpha/linux.h
+@@ -89,7 +89,7 @@ Boston, MA 02111-1307, USA.  */
+       {									\
+ 	struct rt_sigframe {						\
+ 	  siginfo_t info;						\
+-	  struct ucontext uc;						\
++	  ucontext_t uc;						\
+ 	} *rt_ = (CONTEXT)->cfa;					\
+ 	sc_ = &rt_->uc.uc_mcontext;					\
+       }									\
+--- a/gcc/config/i386/linux.h
++++ b/gcc/config/i386/linux.h
+@@ -260,7 +260,7 @@ Boston, MA 02111-1307, USA.  */
+ 	  siginfo_t *pinfo;						\
+ 	  void *puc;							\
+ 	  siginfo_t info;						\
+-	  struct ucontext uc;						\
++	  ucontext_t uc;						\
+ 	} *rt_ = (CONTEXT)->cfa;					\
+ 	sc_ = (struct sigcontext *) &rt_->uc.uc_mcontext;		\
+       }									\
+--- a/gcc/config/i386/linux64.h
++++ b/gcc/config/i386/linux64.h
+@@ -112,7 +112,7 @@ Boston, MA 02111-1307, USA.  */
+     if (*(unsigned char *)(pc_+0) == 0x48				\
+ 	&& *(unsigned long *)(pc_+1) == 0x050f0000000fc0c7)		\
+       {									\
+-	struct ucontext *uc_ = (CONTEXT)->cfa;				\
++	ucontext_t *uc_ = (CONTEXT)->cfa;				\
+ 	sc_ = (struct sigcontext *) &uc_->uc_mcontext;			\
+       }									\
+     else								\
+@@ -182,7 +182,7 @@ Boston, MA 02111-1307, USA.  */
+ 	  siginfo_t *pinfo;						\
+ 	  void *puc;							\
+ 	  siginfo_t info;						\
+-	  struct ucontext uc;						\
++	  ucontext_t uc;						\
+ 	} *rt_ = (CONTEXT)->cfa;					\
+ 	sc_ = (struct sigcontext *) &rt_->uc.uc_mcontext;		\
+       }									\
+--- a/gcc/config/sh/linux.h
++++ b/gcc/config/sh/linux.h
+@@ -251,7 +251,7 @@ do { \
+       {									\
+ 	struct rt_sigframe {						\
+ 	  siginfo_t info;						\
+-	  struct ucontext uc;						\
++	  ucontext_t uc;						\
+ 	} *rt_ = (CONTEXT)->cfa;					\
+ 	sc_ = (struct sigcontext *) &rt_->uc.uc_mcontext;		\
+       }									\
+--- a/libjava/include/x86_64-signal.h
++++ b/libjava/include/x86_64-signal.h
+@@ -40,7 +40,7 @@ do									     \
+   /* Advance the program counter so that it is after the start of the	     \
+      instruction:  the x86_64 exception handler expects			     \
+      the PC to point to the instruction after a call. */		     \
+-  struct ucontext *_uc = (struct ucontext *)_p;				     \
++  ucontext_t *_uc = (ucontext_t *)_p;				     \
+   volatile struct sigcontext *_sc = (struct sigcontext *) &_uc->uc_mcontext; \
+   _sc->rip += 2;							     \
+ }									     \

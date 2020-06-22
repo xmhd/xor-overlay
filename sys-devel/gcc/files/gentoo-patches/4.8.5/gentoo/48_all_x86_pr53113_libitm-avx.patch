@@ -1,0 +1,58 @@
+Force -mavx and -msse when needed.
+
+https://bugs.gentoo.org/417271
+https://gcc.gnu.org/PR53113
+https://gcc.gnu.org/viewcvs/gcc?view=revision&revision=206587
+
+commit 7986635822d172ab35a858b02fcd822afa41f628
+Author: hjl <hjl@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Mon Jan 13 19:36:17 2014 +0000
+
+    Make sure that -msse/-mavx are appended at the end
+    
+    	PR libitm/53113
+    	* Makefile.am (x86_sse.lo): Append -msse to CXXFLAGS.
+    	(x86_avx.lo): Append -mavx to CXXFLAGS.
+    	* Makefile.in: Regenerate.
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@206587 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ libitm/ChangeLog   | 7 +++++++
+ libitm/Makefile.am | 6 ++++--
+ libitm/Makefile.in | 6 ++++--
+ 3 files changed, 15 insertions(+), 4 deletions(-)
+
+
+--- a/libitm/Makefile.am
++++ b/libitm/Makefile.am
+@@ -67,10 +67,12 @@ libitm_la_SOURCES += hwcap.cc
+ endif
+ if ARCH_X86
+ libitm_la_SOURCES += x86_sse.cc x86_avx.cc
+-x86_sse.lo : XCFLAGS += -msse
++# Make sure -msse is appended at the end.
++x86_sse.lo : override CXXFLAGS += -msse
+ endif
+ if ARCH_X86_AVX
+-x86_avx.lo : XCFLAGS += -mavx
++# Make sure -mavx is appended at the end.
++x86_avx.lo : override CXXFLAGS += -mavx
+ endif
+ 
+ if ARCH_FUTEX
+--- a/libitm/Makefile.in
++++ b/libitm/Makefile.in
+@@ -1050,8 +1050,10 @@ vpath % $(strip $(search_path))
+ @LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@	 `echo $(libitm_la_LIBADD) | \
+ @LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@	    sed 's,/\([^/.]*\)\.la,/.libs/\1.a,g'` \
+ @LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@	 > $@ || (rm -f $@ ; exit 1)
+-@ARCH_X86_TRUE@x86_sse.lo : XCFLAGS += -msse
+-@ARCH_X86_AVX_TRUE@x86_avx.lo : XCFLAGS += -mavx
++# Make sure -msse is appended at the end.
++@ARCH_X86_TRUE@x86_sse.lo : override CXXFLAGS += -msse
++# Make sure -mavx is appended at the end.
++@ARCH_X86_AVX_TRUE@x86_avx.lo : override CXXFLAGS += -mavx
+ 
+ all-local: $(STAMP_GENINSRC)
+ 

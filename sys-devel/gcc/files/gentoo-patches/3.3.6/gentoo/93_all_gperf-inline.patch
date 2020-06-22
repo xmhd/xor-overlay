@@ -1,0 +1,22 @@
+--- a/gcc/java/keyword.gperf
++++ b/gcc/java/keyword.gperf
+@@ -33,7 +33,7 @@ static unsigned int hash		PARAMS ((const char *, unsigned int));
+ #ifdef __GNUC__
+ __inline
+ #endif
+-const struct java_keyword *java_keyword	PARAMS ((const char *, unsigned int));
++static const struct java_keyword *java_keyword	PARAMS ((const char *, unsigned int));
+ %%
+ abstract, ABSTRACT_TK
+ default, DEFAULT_TK
+--- a/gcc/java/keyword.h
++++ b/gcc/java/keyword.h
+@@ -33,7 +33,7 @@ static unsigned int hash		PARAMS ((const char *, unsigned int));
+ #ifdef __GNUC__
+ __inline
+ #endif
+-const struct java_keyword *java_keyword	PARAMS ((const char *, unsigned int));
++static const struct java_keyword *java_keyword	PARAMS ((const char *, unsigned int));
+ 
+ #define TOTAL_KEYWORDS 52
+ #define MIN_WORD_LENGTH 2

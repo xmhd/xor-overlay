@@ -1,0 +1,24 @@
+https://bugs.gentoo.org/629502
+
+From 9b9287cde20ea57578cf07efb2a96ed4cc0da36f Mon Sep 17 00:00:00 2001
+From: doko <doko@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Thu, 7 Sep 2017 07:22:07 +0000
+Subject: [PATCH] 2017-09-07  Matthias Klose  <doko@ubuntu.com>
+
+        * include/x86_64-signal.h (HANDLE_DIVIDE_OVERFLOW): Replace
+        'struct ucontext' with ucontext_t.
+        * include/i386-signal.h (HANDLE_DIVIDE_OVERFLOW): Likewise.
+        * include/s390-signal.h (HANDLE_DIVIDE_OVERFLOW): Likewise.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-5-branch@251832 138bc75d-0d04-0410-961f-82ee72b054a4
+
+--- a/libjava/include/x86_64-signal.h
++++ b/libjava/include/x86_64-signal.h
+@@ -28,5 +28,5 @@ static void _Jv_##_name (int, siginfo_t *,			\
+ #define HANDLE_DIVIDE_OVERFLOW						\
+ do									\
+ {									\
+-  struct ucontext *_uc = (struct ucontext *)_p;				\
++  ucontext_t *_uc = (ucontext_t *)_p;				\
+   volatile struct sigcontext *_sc = (struct sigcontext *) &_uc->uc_mcontext; \

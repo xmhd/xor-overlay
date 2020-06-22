@@ -1,0 +1,95 @@
+ 2008-11-26	Magnus Granberg		<zorry@ume.nu>
+		Peter S. Mazinger	<ps.m@gmx.net>
+
+	* gcc/config.gcc:	Add crtbeginTS.o
+	* gcc/Makefile.in:	Add -fnoPIE and crtbeginTS.o
+	* libgcc/config.host:	Add crtbeginTS.o
+	* libgcc/Makefile.in:	Add crtbeginTS.o
+
+--- gcc/config.gcc.zorry
++++ gcc/config.gcc
+@@ -493,7 +493,7 @@
+   ;;
+ *-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu)
+   # Must come before *-*-gnu* (because of *-*-linux-gnu* systems).
+-  extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
++  extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtbeginTS.o crtend.o crtendS.o"
+   extra_options="${extra_options} linux.opt"
+   gas=yes
+   gnu_ld=yes
+--- gcc/Makefile.in.zorry
++++ gcc/Makefile.in
+@@ -1665,36 +1665,43 @@
+ # constructors.
+ $(T)crtbegin.o: crtstuff.c $(GCC_PASSES) $(TCONFIG_H) auto-host.h \
+   gbl-ctors.h stmp-int-hdrs tsystem.h coretypes.h $(TM_H)
+-	$(GCC_FOR_TARGET) $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS) \
++	$(GCC_FOR_TARGET) -fno-PIE $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS) \
+ 	  -c $(srcdir)/crtstuff.c -DCRT_BEGIN \
+ 	  -o $(T)crtbegin$(objext)
+ 
+ $(T)crtend.o: crtstuff.c $(GCC_PASSES) $(TCONFIG_H) auto-host.h \
+   gbl-ctors.h stmp-int-hdrs tsystem.h coretypes.h $(TM_H)
+-	$(GCC_FOR_TARGET) $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS) \
++	$(GCC_FOR_TARGET) -fno-PIE $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS) \
+ 	  -c $(srcdir)/crtstuff.c -DCRT_END \
+ 	  -o $(T)crtend$(objext)
+ 
+ # These are versions of crtbegin and crtend for shared libraries.
+ $(T)crtbeginS.o: crtstuff.c $(GCC_PASSES) $(TCONFIG_H) auto-host.h \
+   gbl-ctors.h stmp-int-hdrs tsystem.h coretypes.h $(TM_H)
+-	$(GCC_FOR_TARGET) $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS_S) \
++	$(GCC_FOR_TARGET) -fno-PIE $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS_S) \
+ 	  -c $(srcdir)/crtstuff.c -DCRT_BEGIN -DCRTSTUFFS_O \
+ 	  -o $(T)crtbeginS$(objext)
+ 
+ $(T)crtendS.o: crtstuff.c $(GCC_PASSES) $(TCONFIG_H) auto-host.h \
+   gbl-ctors.h stmp-int-hdrs tsystem.h coretypes.h $(TM_H)
+-	$(GCC_FOR_TARGET) $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS_S) \
++	$(GCC_FOR_TARGET) -fno-PIE $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS_S) \
+ 	  -c $(srcdir)/crtstuff.c -DCRT_END -DCRTSTUFFS_O \
+ 	  -o $(T)crtendS$(objext)
+ 
+ # This is a version of crtbegin for -static links.
+ $(T)crtbeginT.o: crtstuff.c $(GCC_PASSES) $(TCONFIG_H) auto-host.h \
+   gbl-ctors.h stmp-int-hdrs tsystem.h coretypes.h $(TM_H)
+-	$(GCC_FOR_TARGET) $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS) \
++	$(GCC_FOR_TARGET) -fno-PIE $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS) \
+ 	  -c $(srcdir)/crtstuff.c -DCRT_BEGIN -DCRTSTUFFT_O \
+ 	  -o $(T)crtbeginT$(objext)
+ 
++# This is a version of crtbegin for -static -fPIE links.
++$(T)crtbeginTS.o: crtstuff.c $(GCC_PASSES) $(TCONFIG_H) auto-host.h \
++  gbl-ctors.h stmp-int-hdrs tsystem.h coretypes.h $(TM_H)
++	$(GCC_FOR_TARGET) -fno-PIE $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS_S) \
++	  -c $(srcdir)/crtstuff.c -DCRT_BEGIN -DCRTSTUFFT_O -DCRTSTUFFS_O \
++	  -o $(T)crtbeginTS$(objext)
++
+ # Compile the start modules crt0.o and mcrt0.o that are linked with
+ # every program
+ $(T)crt0.o: s-crt0 ; @true
+--- libgcc/config.host.zorry
++++ libgcc/config.host
+@@ -164,7 +164,7 @@
+   ;;
+ *-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu)
+   # Must come before *-*-gnu* (because of *-*-linux-gnu* systems).
+-  extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
++  extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtbeginTS.o crtend.o crtendS.o"
+   ;;
+ *-*-gnu*)
+   ;;
+--- libgcc/Makefile.in.zorry
++++ libgcc/Makefile.in
+@@ -783,6 +783,11 @@
+ crtbeginT.o: $(gcc_srcdir)/crtstuff.c
+ 	$(crt_compile) $(CRTSTUFF_T_CFLAGS) \
+ 	  -c $(gcc_srcdir)/crtstuff.c -DCRT_BEGIN -DCRTSTUFFT_O
++	  
++# This is a version of crtbegin for -static -fPIE links.
++crtbeginTS.o: $(gcc_srcdir)/crtstuff.c
++	$(crt_compile) $(CRTSTUFF_T_CFLAGS_S) \
++	  -c $(gcc_srcdir)/crtstuff.c -DCRT_BEGIN -DCRTSTUFFT_O	-DCRTSTUFFS_O  
+ endif
+ 
+ # Build extra startfiles in the libgcc directory.

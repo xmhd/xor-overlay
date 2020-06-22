@@ -1,0 +1,149 @@
+https://bugs.gentoo.org/503838
+https://gcc.gnu.org/PR60465
+
+From baa1cebceba62edf9d0dace8094f5162e07b1651 Mon Sep 17 00:00:00 2001
+From: vapier <vapier@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Tue, 19 Jan 2016 23:12:22 +0000
+Subject: [PATCH] ia64: don't use dynamic relocations for local symbols
+
+Backported from trunk for PR other/60465.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-5-branch@232594 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                                      |  9 ++++++++
+ gcc/config/ia64/ia64.c                             |  9 ++++++++
+ gcc/config/ia64/predicates.md                      | 26 +++++++++++++++++++++
+ gcc/testsuite/ChangeLog                            |  7 ++++++
+ .../gcc.target/ia64/pr60465-gprel64-c37.c          | 10 ++++++++
+ gcc/testsuite/gcc.target/ia64/pr60465-gprel64.c    | 27 ++++++++++++++++++++++
+ 6 files changed, 88 insertions(+)
+ create mode 100644 gcc/testsuite/gcc.target/ia64/pr60465-gprel64-c37.c
+ create mode 100644 gcc/testsuite/gcc.target/ia64/pr60465-gprel64.c
+
+2016-01-19  Sergei Trofimovich <siarheit@google.com>
+
+	Backport from mainline
+	PR other/60465
+	* config/ia64/ia64.c (ia64_expand_load_address): Use gprel64
+	for local symbolic operands.
+	* config/ia64/predicates.md (local_symbolic_operand64): New
+	predicate.
+
+diff --git a/gcc/config/ia64/ia64.c b/gcc/config/ia64/ia64.c
+index 21da9e2..cf42b0d 100644
+--- a/gcc/config/ia64/ia64.c
++++ b/gcc/config/ia64/ia64.c
+@@ -1146,6 +1146,15 @@ ia64_expand_load_address (rtx dest, rtx src)
+     emit_insn (gen_load_fptr (dest, src));
+   else if (sdata_symbolic_operand (src, VOIDmode))
+     emit_insn (gen_load_gprel (dest, src));
++  else if (local_symbolic_operand64 (src, VOIDmode))
++    {
++      /* We want to use @gprel rather than @ltoff relocations for local
++	 symbols:
++	  - @gprel does not require dynamic linker
++	  - and does not use .sdata section
++	 https://gcc.gnu.org/bugzilla/60465 */
++      emit_insn (gen_load_gprel64 (dest, src));
++    }
+   else
+     {
+       HOST_WIDE_INT addend = 0;
+diff --git a/gcc/config/ia64/predicates.md b/gcc/config/ia64/predicates.md
+index 2aa7a78..2e148f2e 100644
+--- a/gcc/config/ia64/predicates.md
++++ b/gcc/config/ia64/predicates.md
+@@ -97,6 +97,32 @@
+     }
+ })
+ 
++;; True if OP refers to a local symbol [+any offset].
++;; To be encoded as:
++;;   movl % = @gprel(symbol+offset)
++;;   add  % = %, gp
++(define_predicate "local_symbolic_operand64"
++  (match_code "symbol_ref,const")
++{
++  switch (GET_CODE (op))
++    {
++    case CONST:
++      op = XEXP (op, 0);
++      if (GET_CODE (op) != PLUS
++	  || GET_CODE (XEXP (op, 0)) != SYMBOL_REF
++	  || GET_CODE (XEXP (op, 1)) != CONST_INT)
++	return false;
++      op = XEXP (op, 0);
++      /* FALLTHRU */
++
++    case SYMBOL_REF:
++	return SYMBOL_REF_LOCAL_P (op);
++
++    default:
++      gcc_unreachable ();
++    }
++})
++
+ ;; True if OP refers to a symbol in the small address area.
+ (define_predicate "small_addr_symbolic_operand" 
+   (match_code "symbol_ref,const")
+
+2016-01-19  Sergei Trofimovich <siarheit@google.com>
+
+	Backport from mainline
+	PR other/60465
+	* gcc.target/ia64/pr60465-gprel64.c: New test.
+	* gcc.target/ia64/pr60465-gprel64-c37.c: New test.
+
+diff --git a/gcc/testsuite/gcc.target/ia64/pr60465-gprel64-c37.c b/gcc/testsuite/gcc.target/ia64/pr60465-gprel64-c37.c
+new file mode 100644
+index 0000000..a7e6809
+--- /dev/null
++++ b/gcc/testsuite/gcc.target/ia64/pr60465-gprel64-c37.c
+@@ -0,0 +1,10 @@
++/* { dg-do compile { target ia64-*-* } } */
++/* { dg-options "-O2 -fpic" } */
++/* { dg-final { scan-assembler-not "@ltoffx" } } */
++
++/* A bit of https://bugzilla.redhat.com/show_bug.cgi?id=33354
++   where many stores to static variables overflow .sdata */
++
++static const char *s90;
++void f() { s90 = "string 90"; }
++const char * g() { return s90; }
+diff --git a/gcc/testsuite/gcc.target/ia64/pr60465-gprel64.c b/gcc/testsuite/gcc.target/ia64/pr60465-gprel64.c
+new file mode 100644
+index 0000000..c00ecc9
+--- /dev/null
++++ b/gcc/testsuite/gcc.target/ia64/pr60465-gprel64.c
+@@ -0,0 +1,27 @@
++/* { dg-do compile { target ia64-*-* } } */
++/* { dg-options "-O2 -fpic" } */
++/* { dg-final { scan-assembler-not "@ltoffx" } } */
++
++/* Test imitates early ld.so setup in glibc
++   where no dynamic relocations must be present. */
++
++struct rtld_global
++{
++    long *p[77];
++};
++
++struct rtld_global _rtld_local __attribute__ ((visibility ("hidden"), section (".sdata")));
++
++static void __attribute__ ((unused, noinline))
++elf_get_dynamic_info (struct rtld_global * g, long * dyn)
++{
++  long **info = g->p;
++
++  info[(0x6ffffeff - *dyn) + 66] = dyn;
++}
++
++void __attribute__ ((unused, noinline))
++_dl_start (long * dyn)
++{
++  elf_get_dynamic_info(&_rtld_local, dyn);
++}
+-- 
+2.6.2
+

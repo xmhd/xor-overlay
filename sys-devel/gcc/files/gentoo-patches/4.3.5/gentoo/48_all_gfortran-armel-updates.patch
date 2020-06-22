@@ -1,0 +1,333 @@
+ripped from Debian
+
+ARM EABI (armel) Fortran support patches
+
+ChangeLog (enum-size-warning) 
+ 
+     gcc/testsuite/ 
+     * gfortran.dg/enum_10.f90: Use -Wl,--no-enum-size-warning on 
+     arm*-*-linux*eabi. 
+ 
+ChangeLog (line-endings) 
+ 
+     gcc/testsuite/ 
+     * gfortran.dg/fmt_l.f90: Modify dg-output regexp to allow it to 
+     match lines ending with CRLF. 
+
+ChangeLog (nested-function-alignment) 
+ 
+     gcc/ 
+     * config/arm/arm.c: (arm_compute_static_chain_stack_bytes): New 
+     function. 
+     (arm_compute_initial_elimination_offset): Use it. 
+     (arm_compute_save_reg_mask): Include static chain save slot when 
+     calculating alignment. 
+     (arm_get_frame_offsets): Ditto. 
+ 
+ChangeLog (r12) 
+ 
+     gcc/ 
+     * config/arm/arm.c: (thumb1_compute_save_reg_mask): Ensure we 
+     have a low register saved that we can use to decrement the stack 
+     when the stack decrement could be too big for an immediate value 
+     in a single insn. 
+     (thumb1_expand_prologue): Avoid using r12 for stack decrement. 
+
+Index: gcc/testsuite/gfortran.dg/enum_10.f90
+===================================================================
+*** gcc/testsuite/gfortran.dg/enum_10.f90	(revision 197947)
+--- gcc/testsuite/gfortran.dg/enum_10.f90	(working copy)
+***************
+*** 1,6 ****
+--- 1,7 ----
+  ! { dg-do run }
+  ! { dg-additional-sources enum_10.c }
+  ! { dg-options "-fshort-enums -w" }
++ ! { dg-options "-fshort-enums -w -Wl,--no-enum-size-warning" { target arm*-*-linux*eabi } }
+  ! Make sure short enums are indeed interoperable with the
+  ! corresponding C type.
+  
+Index: gcc/testsuite/gfortran.dg/fmt_l.f90
+===================================================================
+--- gcc/testsuite/gfortran.dg/fmt_l.f90	(revision 197947)
++++ gcc/testsuite/gfortran.dg/fmt_l.f90	(working copy)
+@@ -51,35 +51,35 @@
+   if (l8 .neqv. .false.) call abort
+ 
+ end program test_l
+-! { dg-output "At line 14 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 15 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 19 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 20 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 24 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 25 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 29 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 30 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 34 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 35 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 39 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 40 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 44 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 45 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 49 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
+-! { dg-output "At line 50 of file.*" }
+-! { dg-output "Fortran runtime warning: Positive width required in format\n" }
++! { dg-output "At line 14 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 15 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 19 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 20 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 24 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 25 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 29 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 30 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 34 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 35 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 39 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 40 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 44 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 45 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 49 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
++! { dg-output "At line 50 of file.*\n" }
++! { dg-output "Fortran runtime warning: Positive width required in format.\r?\n" }
+Index: gcc/config/arm/arm.c
+===================================================================
+--- gcc/config/arm/arm.c	(revision 206067)
++++ gcc/config/arm/arm.c	(working copy)
+@@ -62,6 +62,7 @@ const struct attribute_spec arm_attribut
+ void (*arm_lang_output_object_attributes_hook)(void);
+ 
+ /* Forward function declarations.  */
++static int arm_compute_static_chain_stack_bytes (void);
+ static arm_stack_offsets *arm_get_frame_offsets (void);
+ static void arm_add_gc_roots (void);
+ static int arm_gen_constant (enum rtx_code, enum machine_mode, rtx,
+@@ -10753,6 +10754,24 @@ arm_compute_save_reg0_reg12_mask (void)
+ }
+ 
+ 
++/* Compute the number of bytes used to store the static chain register on the 
++   stack, above the stack frame. We need to know this accurately to get the
++   alignment of the rest of the stack frame correct. */
++
++static int arm_compute_static_chain_stack_bytes (void)
++{
++  unsigned long func_type = arm_current_func_type ();
++  int static_chain_stack_bytes = 0;
++
++  if (frame_pointer_needed && TARGET_ARM &&
++      IS_NESTED (func_type) &&
++      df_regs_ever_live_p (3) && current_function_pretend_args_size == 0)
++    static_chain_stack_bytes = 4;
++
++  return static_chain_stack_bytes;
++}
++
++
+ /* Compute a bit mask of which registers need to be
+    saved on the stack for the current function.  */
+ 
+@@ -10804,7 +10823,9 @@ arm_compute_save_reg_mask (void)
+ 
+   if (TARGET_REALLY_IWMMXT
+       && ((bit_count (save_reg_mask)
+-	   + ARM_NUM_INTS (current_function_pretend_args_size)) % 2) != 0)
++	   + ARM_NUM_INTS (current_function_pretend_args_size + 
++			   arm_compute_static_chain_stack_bytes())
++	  ) % 2) != 0)
+     {
+       /* The total number of registers that are going to be pushed
+ 	 onto the stack is odd.  We need to ensure that the stack
+@@ -11926,7 +11947,13 @@ thumb_force_lr_save (void)
+   from the soft frame pointer to the hard frame pointer.
+ 
+   SFP may point just inside the local variables block to ensure correct
+-  alignment.  */
++  alignment.
++
++  FIXME: Under some circumstances arm_expand_prologue() may save the static
++  chain register on the stack before the normal function prologue.  For 
++  historical reasons all our offsets are wrong in this case, and
++  arm_compute_static_chain_stack_bytes is used to compensate.
++  arm_compute_initial_elimination_offset uses the same correction.  */
+ 
+ 
+ /* Calculate stack offsets.  These are used to calculate register elimination
+@@ -12032,9 +12059,11 @@ arm_get_frame_offsets (void)
+   if (ARM_DOUBLEWORD_ALIGN)
+     {
+       /* Ensure SP remains doubleword aligned.  */
+-      if (offsets->outgoing_args & 7)
++      if ((offsets->outgoing_args +
++	   arm_compute_static_chain_stack_bytes()) & 7)
+ 	offsets->outgoing_args += 4;
+-      gcc_assert (!(offsets->outgoing_args & 7));
++      gcc_assert (!((offsets->outgoing_args +
++		     arm_compute_static_chain_stack_bytes()) & 7));
+     }
+ 
+   return offsets;
+@@ -12069,14 +12098,9 @@ arm_compute_initial_elimination_offset (
+ 	  return offsets->soft_frame - offsets->saved_args;
+ 
+ 	case ARM_HARD_FRAME_POINTER_REGNUM:
+-	  /* If there is no stack frame then the hard
+-	     frame pointer and the arg pointer coincide.  */
+-	  if (offsets->frame == offsets->saved_regs)
+-	    return 0;
+-	  /* FIXME:  Not sure about this.  Maybe we should always return 0 ?  */
+-	  return (frame_pointer_needed
+-		  && cfun->static_chain_decl != NULL
+-		  && ! cfun->machine->uses_anonymous_args) ? 4 : 0;
++	  /* This is only non-zero in the case where the static chain register
++	     is stored above the frame.  */
++	  return arm_compute_static_chain_stack_bytes();
+ 
+ 	case STACK_POINTER_REGNUM:
+ 	  /* If nothing has been pushed on the stack at all
+@@ -12347,6 +12371,8 @@ arm_expand_prologue (void)
+ 	    insn = emit_set_insn (gen_rtx_REG (SImode, 3), ip_rtx);
+ 	  else if (args_to_push == 0)
+ 	    {
++	      gcc_assert(arm_compute_static_chain_stack_bytes() == 4);
++
+ 	      rtx dwarf;
+ 
+ 	      insn = gen_rtx_PRE_DEC (SImode, stack_pointer_rtx);
+Index: gcc/config/arm/arm.c
+===================================================================
+--- gcc/config/arm/arm.c	(revision 206069)
++++ gcc/config/arm/arm.c	(working copy)
+@@ -10910,6 +10910,26 @@ thumb1_compute_save_reg_mask (void)
+ 	mask |= 1 << reg;
+     }
+ 
++  /* The 504 below is 8 bytes less than 512 because there are two possible
++     alignment words.  We can't tell here if they will be present or not so we
++     have to play it safe and assume that they are. */
++  if ((CALLER_INTERWORKING_SLOT_SIZE +
++       ROUND_UP_WORD (get_frame_size ()) +
++       current_function_outgoing_args_size) >= 504)
++    {
++      /* This is the same as the code in thumb1_expand_prologue() which
++	 determines which register to use for stack decrement. */
++      for (reg = LAST_ARG_REGNUM + 1; reg <= LAST_LO_REGNUM; reg++)
++	if (mask & (1 << reg))
++	  break;
++
++      if (reg > LAST_LO_REGNUM)
++	{
++	  /* Make sure we have a register available for stack decrement. */
++	  mask |= 1 << LAST_LO_REGNUM;
++	}
++    }
++
+   return mask;
+ }
+ 
+@@ -16787,62 +16807,25 @@ thumb1_expand_prologue (void)
+ 	     been pushed at the start of the prologue and so we can corrupt
+ 	     it now.  */
+ 	  for (regno = LAST_ARG_REGNUM + 1; regno <= LAST_LO_REGNUM; regno++)
+-	    if (live_regs_mask & (1 << regno)
+-		&& !(frame_pointer_needed
+-		     && (regno == THUMB_HARD_FRAME_POINTER_REGNUM)))
++	    if (live_regs_mask & (1 << regno))
+ 	      break;
+ 
+-	  if (regno > LAST_LO_REGNUM) /* Very unlikely.  */
+-	    {
+-	      rtx spare = gen_rtx_REG (SImode, IP_REGNUM);
++	  gcc_assert(regno <= LAST_LO_REGNUM);
+ 
+-	      /* Choose an arbitrary, non-argument low register.  */
+-	      reg = gen_rtx_REG (SImode, LAST_LO_REGNUM);
++	  reg = gen_rtx_REG (SImode, regno);
+ 
+-	      /* Save it by copying it into a high, scratch register.  */
+-	      emit_insn (gen_movsi (spare, reg));
+-	      /* Add a USE to stop propagate_one_insn() from barfing.  */
+-	      emit_insn (gen_prologue_use (spare));
++	  emit_insn (gen_movsi (reg, GEN_INT (- amount)));
+ 
+-	      /* Decrement the stack.  */
+-	      emit_insn (gen_movsi (reg, GEN_INT (- amount)));
+-	      insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
+-					    stack_pointer_rtx, reg));
+-	      RTX_FRAME_RELATED_P (insn) = 1;
+-	      dwarf = gen_rtx_SET (VOIDmode, stack_pointer_rtx,
+-				   plus_constant (stack_pointer_rtx,
+-						  -amount));
+-	      RTX_FRAME_RELATED_P (dwarf) = 1;
+-	      REG_NOTES (insn)
+-		= gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, dwarf,
+-				     REG_NOTES (insn));
+-
+-	      /* Restore the low register's original value.  */
+-	      emit_insn (gen_movsi (reg, spare));
+-
+-	      /* Emit a USE of the restored scratch register, so that flow
+-		 analysis will not consider the restore redundant.  The
+-		 register won't be used again in this function and isn't
+-		 restored by the epilogue.  */
+-	      emit_insn (gen_prologue_use (reg));
+-	    }
+-	  else
+-	    {
+-	      reg = gen_rtx_REG (SImode, regno);
+-
+-	      emit_insn (gen_movsi (reg, GEN_INT (- amount)));
+-
+-	      insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
+-					    stack_pointer_rtx, reg));
+-	      RTX_FRAME_RELATED_P (insn) = 1;
+-	      dwarf = gen_rtx_SET (VOIDmode, stack_pointer_rtx,
+-				   plus_constant (stack_pointer_rtx,
+-						  -amount));
+-	      RTX_FRAME_RELATED_P (dwarf) = 1;
+-	      REG_NOTES (insn)
+-		= gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, dwarf,
+-				     REG_NOTES (insn));
+-	    }
++	  insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
++					stack_pointer_rtx, reg));
++	  RTX_FRAME_RELATED_P (insn) = 1;
++	  dwarf = gen_rtx_SET (VOIDmode, stack_pointer_rtx,
++			       plus_constant (stack_pointer_rtx,
++					      -amount));
++	  RTX_FRAME_RELATED_P (dwarf) = 1;
++	  REG_NOTES (insn)
++	    = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, dwarf,
++				 REG_NOTES (insn));
+ 	}
+     }
+ 

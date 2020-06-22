@@ -1,0 +1,56 @@
+[4.5 Regression] ICE in create_tmp_var, at gimplify.c:505
+
+http://gcc.gnu.org/PR46734
+https://bugs.gentoo.org/346845
+
+--- gcc/testsuite/g++.dg/tree-ssa/pr46734.C
++++ gcc/testsuite/g++.dg/tree-ssa/pr46734.C
+@@ -0,0 +1,34 @@
++/* { dg-do compile } */
++/* { dg-options "-O -fipa-sra" } */
++
++struct A
++{
++  int *p;
++  A() {p = (int *) -1;}
++  ~A() {if (p && p != (int *) -1) *p = 0;}
++};
++
++struct B
++{
++  A a;
++  char data[23];
++  B() : a() {data[0] = 0;}
++};
++
++extern A ga;
++extern int *gi;
++extern void *gz;
++extern B *gb;
++
++static int * __attribute__ ((noinline)) foo (B *b, void *z)
++{
++  __builtin_memcpy (gz, z, 28);
++  ga = b->a;
++  return b->a.p;
++}
++
++int *bar (B *b, void *z)
++{
++  gb = b;
++  return foo (b, z);
++}
+--- gcc/tree-sra.c
++++ gcc/tree-sra.c
+@@ -3413,7 +3413,10 @@
+ 	  else if (ac2->size != access->size)
+ 	    return NULL;
+ 
+-	  if (access_precludes_ipa_sra_p (ac2))
++	  if (access_precludes_ipa_sra_p (ac2)
++	      || (ac2->type != access->type
++		  && (TREE_ADDRESSABLE (ac2->type)
++		      || TREE_ADDRESSABLE (access->type))))
+ 	    return NULL;
+ 
+ 	  modification |= ac2->write;

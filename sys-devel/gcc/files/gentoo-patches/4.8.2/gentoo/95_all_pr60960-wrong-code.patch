@@ -1,0 +1,78 @@
+http://gcc.gnu.org/PR60960
+
+
+commit d33dfa66ca1928edf3692991143967bf03cb08e6
+Author: jakub <jakub@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Mon May 5 08:16:43 2014 +0000
+
+    	Backported from mainline
+    	2014-04-25  Jakub Jelinek  <jakub@redhat.com>
+    
+    	PR tree-optimization/60960
+    	* tree-vect-generic.c (expand_vector_operation): Only call
+    	expand_vector_divmod if type's mode satisfies VECTOR_MODE_P.
+    
+    	* gcc.c-torture/execute/pr60960.c: New test.
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_8-branch@210064 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                                 |  9 +++++++
+ gcc/testsuite/ChangeLog                       |  8 ++++++
+ gcc/testsuite/gcc.c-torture/execute/pr60960.c | 38 +++++++++++++++++++++++++++
+ gcc/tree-vect-generic.c                       |  3 ++-
+ 4 files changed, 57 insertions(+), 1 deletion(-)
+
+--- a/gcc/tree-vect-generic.c
++++ b/gcc/tree-vect-generic.c
+@@ -1006,7 +1006,8 @@ expand_vector_operation (gimple_stmt_iterator *gsi, tree type, tree compute_type
+ 
+ 	  if (!optimize
+ 	      || !VECTOR_INTEGER_TYPE_P (type)
+-	      || TREE_CODE (rhs2) != VECTOR_CST)
++	      || TREE_CODE (rhs2) != VECTOR_CST
++	      || !VECTOR_MODE_P (TYPE_MODE (type)))
+ 	    break;
+ 
+ 	  ret = expand_vector_divmod (gsi, type, rhs1, rhs2, code);
+--- /dev/null
++++ b/gcc/testsuite/gcc.c-torture/execute/pr60960.c
+@@ -0,0 +1,38 @@
++/* PR tree-optimization/60960 */
++
++typedef unsigned char v4qi __attribute__ ((vector_size (4)));
++
++__attribute__((noinline, noclone)) v4qi
++f1 (v4qi v)
++{
++  return v / 2;
++}
++
++__attribute__((noinline, noclone)) v4qi
++f2 (v4qi v)
++{
++  return v / (v4qi) { 2, 2, 2, 2 };
++}
++
++__attribute__((noinline, noclone)) v4qi
++f3 (v4qi x, v4qi y)
++{
++  return x / y;
++}
++
++int
++main ()
++{
++  v4qi x = { 5, 5, 5, 5 };
++  v4qi y = { 2, 2, 2, 2 };
++  v4qi z = f1 (x);
++  if (__builtin_memcmp (&y, &z, sizeof (y)) != 0)
++    __builtin_abort ();
++  z = f2 (x);
++  if (__builtin_memcmp (&y, &z, sizeof (y)) != 0)
++    __builtin_abort ();
++  z = f3 (x, y);
++  if (__builtin_memcmp (&y, &z, sizeof (y)) != 0)
++    __builtin_abort ();
++  return 0;
++}

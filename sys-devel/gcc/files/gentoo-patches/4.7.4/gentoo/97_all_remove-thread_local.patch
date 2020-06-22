@@ -1,0 +1,23 @@
+From 4f364235dcb67b1953b21be78391110b4c633e1b Mon Sep 17 00:00:00 2001
+From: jakub <jakub@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Tue, 5 Feb 2013 15:56:20 +0000
+Subject: [PATCH] 	* tree.h (struct tree_decl_with_vis): Remove
+ thread_local field.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@195762 138bc75d-0d04-0410-961f-82ee72b054a4
+--- a/gcc/tree.h
++++ b/gcc/tree.h
+@@ -3198,13 +3198,12 @@ struct GTY(()) tree_decl_with_vis {
+  /* Belong to VAR_DECL exclusively.  */
+  unsigned defer_output : 1;
+  unsigned hard_register : 1;
+- unsigned thread_local : 1;
+  unsigned common_flag : 1;
+  unsigned in_text_section : 1;
+  unsigned in_constant_pool : 1;
+  unsigned dllimport_flag : 1;
+  /* Don't belong to VAR_DECL exclusively.  */
+  unsigned weak_flag : 1;
+ 
+  unsigned seen_in_bind_expr : 1;
+  unsigned comdat_flag : 1;

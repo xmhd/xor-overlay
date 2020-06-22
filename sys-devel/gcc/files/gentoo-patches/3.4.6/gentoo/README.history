@@ -1,0 +1,94 @@
+3		27 Oct 2019
+	- 01_ppc_gcc34-multi32-hack.patch
+	- 01_sparc_gcc34-multi32-hack.patch
+
+2		06 Jun 2019
+	+ 93_all_gperf-inline.patch
+
+1.9		1 Jun 2019
+	- 00_all_gcc-trampolinewarn.patch
+	+ 91_all_ucontext-to-ucontext_t.patch
+	+ 92_all_libtool-pass-all.patch
+
+1.8		06 Apr 2015
+	+ 10_all_gcc-3.4.6-c-parse-bison-3.patch
+
+1.7		08 Jan 2013
+	+ 05_all_gcc-3.4.x-siginfo.patch
+	+ 09_all_gcc-3.4.6-c-parse-bison.patch
+
+1.6		15 Feb 2009
+	+ 16_all_gcc-open-perms.patch
+	U 65_all_gcc3.4-noteGNUstack.patch
+
+1.5		19 May 2007
+	+ 12_all_gcc-libstdc++-ld-version.patch
+	+ 55_all_gcc34-recursive-hash-usage.patch
+
+1.4		30 Dec 2006
+	U 84_all_gcc4-c++-warning.patch
+
+1.3		28 Nov 2006
+	U 02_all_gcc34-ice-hack.patch
+	+ 07_all_gcc34-unprotoize-deps.patch
+	+ 08_all_gcc4-gcc-update-tweak.patch
+	U 54_all_300-libstdc++-pic.patch
+	- 70_all_gcc34-reiser4-fix.patch
+	U 85_all_gcc-es-translation-ICE-workaround.patch
+	+ 89_all_gcc4-gentoo130307.patch
+
+1.2		23 Apr 2006
+	+ 86_all_gcc-3.4-doxygen-filter-locale.patch
+	+ 88_all_gcc-3.4-make-SHELL.patch
+
+1.1		18 Apr 2006
+	+ 85_all_gcc-ca-translation-typo.patch
+	+ 85_all_gcc-es-translation-ICE-workaround.patch
+	+ 86_all_gcc4-gentoo126279.patch
+
+1.0		18 Mar 2006
+	+ 00_all_gcc-3.4-alpha-mieee-default.patch
+	+ 00_all_gcc-trampolinewarn.patch
+	+ 00_all_gcc_unlink_if_ordinary.patch
+	+ 01_all_gcc-3.4.4-fbsd-linker.patch
+	+ 01_ppc_gcc34-multi32-hack.patch
+	+ 01_sparc_gcc34-multi32-hack.patch
+	+ 02_all_gcc34-ice-hack.patch
+	+ 03_all_gcc34-ppc64-m32-m64-multilib-only.patch
+	+ 04_all_gcc34-java-nomulti.patch
+	+ 04_all_gcc34-libgcc-cross-multilib.patch
+	+ 05_all_gcc34-ia64-libunwind.patch
+	+ 06_all_gcc34-ppc64-pr17751.patch
+	+ 11_all_gcc-netbsd-symbolic.patch
+	+ 11_all_gcc-openbsd.patch
+	+ 20_all_gcc34-visibility1.patch
+	+ 21_all_gcc34-visibility2.patch
+	+ 22_all_gcc34-visibility3.patch
+	+ 23_all_gcc34-visibility4.patch
+	+ 24_all_gcc34-visibility5.patch
+	+ 30_all_gcc34-arm-ldm-peephole.patch
+	+ 31_all_gcc34-arm-ldm.patch
+	+ 33_all_pr15068-fix.patch
+	+ 34_all_arm-bigendian.patch
+	+ 37_all_arm-ldm-peephole2.patch
+	+ 41_all_gcc-3.4.4-fix-sse2-pinsrw.patch
+	+ 44_all_debian-m68k-update.patch
+	+ 46_all_gcc-3.4.4-pr18300.patch
+	+ 48_all_gcc-3.4_x-avr-news-devs2.patch
+	+ 51_all_gcc-3.4-libiberty-pic.patch
+	+ 52_all_pr16625-fix.patch
+	+ 53_all_pr15666-fix.patch
+	+ 54_all_300-libstdc++-pic.patch
+	+ 61_all_fedora_gcc34-libffi-ia64-manyfp.patch
+	+ 63_all_fedora_gcc34-ia64-noteGNUstack.patch
+	+ 64_all_fedora_gcc34-ia64-lib64.patch
+	+ 65_all_gcc3.4-noteGNUstack.patch
+	+ 70_all_gcc34-reiser4-fix.patch
+	+ 71_all_sh-pr16665-fix.patch
+	+ 72_all_sh-no-reorder-blocks.patch
+	+ 73_all_sh-pr20617.patch
+	+ 74_all_sh-pr24836.patch
+	+ 76_all_sh-pr21623-workaround.patch
+	+ 80_all_canadian-cross-spec-and-syslimits.patch
+	+ 83_all_gcc-3.x-larger-g77-file-limit.patch
+	+ 84_all_gcc4-c++-warning.patch

@@ -1,0 +1,17 @@
+this is already in latest gcc-4 versions
+
+http://bugs.gentoo.org/195717
+
+--- a/gcc/config/sparc/sparc.h
++++ b/gcc/config/sparc/sparc.h
+@@ -681,6 +681,10 @@
+    && TYPE_MODE (TREE_TYPE (TYPE)) == QImode   \
+    && (ALIGN) < FASTEST_ALIGNMENT ? FASTEST_ALIGNMENT : (ALIGN))
+ 
++/* Make local arrays of chars word-aligned for the same reasons.  */
++/* Patched from gentoo bug #195717 */
++#define LOCAL_ALIGNMENT(TYPE, ALIGN) DATA_ALIGNMENT (TYPE, ALIGN)
++
+ /* Set this nonzero if move instructions will actually fail to work
+    when given unaligned data.  */
+ #define STRICT_ALIGNMENT 1

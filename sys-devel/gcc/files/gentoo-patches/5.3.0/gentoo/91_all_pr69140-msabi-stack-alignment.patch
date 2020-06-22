@@ -1,0 +1,72 @@
+https://bugs.gentoo.org/574044
+https://gcc.gnu.org/PR69140
+
+commit 11e330df4d27cf801f7edd61605082f66d1ee4ae
+Author: uros <uros@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Mon Jan 18 16:19:53 2016 +0000
+
+    	Backport from mainline
+    	2016-01-07  Uros Bizjak  <ubizjak@gmail.com>
+    
+    	PR target/69140
+    	* config/i386/i386.c (ix86_frame_pointer_required): Enable
+    	frame pointer for TARGET_64BIT_MS_ABI when stack is misaligned.
+    
+    testsuite/ChangeLog:
+    
+    	Backport from mainline
+    	2016-01-06  Uros Bizjak  <ubizjak@gmail.com>
+    
+    	PR target/69140
+    	* gcc.target/i386/pr69140.c: New test
+    
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-5-branch@232528 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                           |  9 +++++++++
+ gcc/config/i386/i386.c                  |  4 ++++
+ gcc/testsuite/ChangeLog                 |  8 ++++++++
+ gcc/testsuite/gcc.target/i386/pr69140.c | 24 ++++++++++++++++++++++++
+ 4 files changed, 45 insertions(+)
+
+--- a/gcc/config/i386/i386.c
++++ b/gcc/config/i386/i386.c
+@@ -9690,6 +9690,10 @@ ix86_frame_pointer_required (void)
+   if (TARGET_64BIT_MS_ABI && get_frame_size () > SEH_MAX_FRAME_SIZE)
+     return true;
+ 
++  /* SSE saves require frame-pointer when stack is misaligned.  */
++  if (TARGET_64BIT_MS_ABI && ix86_incoming_stack_boundary < 128)
++    return true;
++  
+   /* In ix86_option_override_internal, TARGET_OMIT_LEAF_FRAME_POINTER
+      turns off the frame pointer by default.  Turn it back on now if
+      we've not got a leaf function.  */
+--- /dev/null
++++ b/gcc/testsuite/gcc.target/i386/pr69140.c
+@@ -0,0 +1,24 @@
++/* { dg-do compile { target lp64 } } */
++/* { dg-options "-O2 -mincoming-stack-boundary=3" } */
++
++typedef struct {
++  unsigned int buf[4];
++  unsigned char in[64];
++} MD4_CTX;
++
++static void
++MD4Transform (unsigned int buf[4], const unsigned int in[16])
++{
++  unsigned int a, b, c, d;
++  (b) += ((((c)) & ((d))) | ((~(c)) & ((a)))) + (in[7]);
++  (a) += ((((b)) & ((c))) | ((~(b)) & ((d)))) + (in[8]);
++  (d) += ((((a)) & ((b))) | ((~(a)) & ((c)))) + (in[9]);
++  buf[3] += d;
++}
++
++void __attribute__((ms_abi))
++MD4Update (MD4_CTX *ctx, const unsigned char *buf)
++{
++  MD4Transform( ctx->buf, (unsigned int *)ctx->in);
++  MD4Transform( ctx->buf, (unsigned int *)ctx->in);
++}

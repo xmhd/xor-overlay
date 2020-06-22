@@ -1,0 +1,115 @@
+https://gcc.gnu.org/PR88561
+https://bugs.gentoo.org/676672
+
+From 497651ff19a85affaf1273b827db6920384af77d Mon Sep 17 00:00:00 2001
+From: marxin <marxin@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Thu, 27 Dec 2018 12:33:00 +0000
+Subject: [PATCH] Backport r267338
+
+2018-12-27  Martin Liska  <mliska@suse.cz>
+
+	Backport from mainline
+	2018-12-15  Jan Hubicka  <hubicka@ucw.cz>
+
+	PR ipa/88561
+	* ipa-polymorphic-call.c
+	(ipa_polymorphic_call_context::ipa_polymorphic_call_context): Handle
+	arguments of thunks correctly.
+	(ipa_polymorphic_call_context::get_dynamic_context): Be ready for
+	NULL instance pinter.
+	* lto-cgraph.c (lto_output_node): Always stream thunk info.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-8-branch@267433 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ipa-polymorphic-call.c              |  32 +++++-
+ gcc/lto-cgraph.c                        |   8 +-
+
+--- a/gcc/ipa-polymorphic-call.c
++++ b/gcc/ipa-polymorphic-call.c
+@@ -995,9 +995,22 @@ ipa_polymorphic_call_context::ipa_polymorphic_call_context (tree fndecl,
+ 	{
+ 	  outer_type
+ 	     = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (base_pointer)));
++	  cgraph_node *node = cgraph_node::get (current_function_decl);
+ 	  gcc_assert (TREE_CODE (outer_type) == RECORD_TYPE
+ 		      || TREE_CODE (outer_type) == UNION_TYPE);
+ 
++	  /* Handle the case we inlined into a thunk.  In this case
++	     thunk has THIS pointer of type bar, but it really receives
++	     address to its base type foo which sits in bar at
++	     0-thunk.fixed_offset.  It starts with code that adds
++	     think.fixed_offset to the pointer to compensate for this.
++
++	     Because we walked all the way to the begining of thunk, we now
++	     see pointer &bar-thunk.fixed_offset and need to compensate
++	     for it.  */
++	  if (node->thunk.fixed_offset)
++	    offset -= node->thunk.fixed_offset * BITS_PER_UNIT;
++
+ 	  /* Dynamic casting has possibly upcasted the type
+ 	     in the hiearchy.  In this case outer type is less
+ 	     informative than inner type and we should forget
+@@ -1005,7 +1018,11 @@ ipa_polymorphic_call_context::ipa_polymorphic_call_context (tree fndecl,
+ 	  if ((otr_type
+ 	       && !contains_type_p (outer_type, offset,
+ 				    otr_type))
+-	      || !contains_polymorphic_type_p (outer_type))
++	      || !contains_polymorphic_type_p (outer_type)
++	      /* If we compile thunk with virtual offset, the THIS pointer
++		 is adjusted by unknown value.  We can't thus use outer info
++		 at all.  */
++	      || node->thunk.virtual_offset_p)
+ 	    {
+ 	      outer_type = NULL;
+ 	      if (instance)
+@@ -1030,7 +1047,15 @@ ipa_polymorphic_call_context::ipa_polymorphic_call_context (tree fndecl,
+ 	      maybe_in_construction = false;
+ 	    }
+ 	  if (instance)
+-	    *instance = base_pointer;
++	    {
++	      /* If method is expanded thunk, we need to apply thunk offset
++		 to instance pointer.  */
++	      if (node->thunk.virtual_offset_p
++		  || node->thunk.fixed_offset)
++		*instance = NULL;
++	      else
++	        *instance = base_pointer;
++	    }
+ 	  return;
+ 	}
+       /* Non-PODs passed by value are really passed by invisible
+@@ -1547,6 +1572,9 @@ ipa_polymorphic_call_context::get_dynamic_type (tree instance,
+   HOST_WIDE_INT instance_offset = offset;
+   tree instance_outer_type = outer_type;
+ 
++  if (!instance)
++    return false;
++
+   if (otr_type)
+     otr_type = TYPE_MAIN_VARIANT (otr_type);
+ 
+--- a/gcc/lto-cgraph.c
++++ b/gcc/lto-cgraph.c
+@@ -546,7 +546,11 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
+   streamer_write_bitpack (&bp);
+   streamer_write_data_stream (ob->main_stream, section, strlen (section) + 1);
+ 
+-  if (node->thunk.thunk_p)
++  /* Stream thunk info always because we use it in
++     ipa_polymorphic_call_context::ipa_polymorphic_call_context
++     to properly interpret THIS pointers for thunks that has been converted
++     to Gimple.  */
++  if (node->definition)
+     {
+       streamer_write_uhwi_stream
+ 	 (ob->main_stream,
+@@ -1317,7 +1321,7 @@ input_node (struct lto_file_decl_data *file_data,
+   if (section)
+     node->set_section_for_node (section);
+ 
+-  if (node->thunk.thunk_p)
++  if (node->definition)
+     {
+       int type = streamer_read_uhwi (ib);
+       HOST_WIDE_INT fixed_offset = streamer_read_uhwi (ib);

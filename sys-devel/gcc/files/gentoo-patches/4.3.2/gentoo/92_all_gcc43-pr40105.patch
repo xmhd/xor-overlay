@@ -1,0 +1,208 @@
+http://gcc.gnu.org/bugzilla/show_bug.cgi?id=40105
+
+2009-05-21  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR rtl-optimization/40105
+	Backport from mainline:
+
+	2009-04-29  Eric Botcazou  <ebotcazou@adacore.com>
+		    Steven Bosscher  <steven@gcc.gnu.org>
+
+	* Makefile.in (cfgrtl.o): Add $(INSN_ATTR_H).
+	* cfgrtl.c: Include insn-attr.h.
+	(rest_of_pass_free_cfg): New function.
+	(pass_free_cfg): Use rest_of_pass_free_cfg as execute function.
+
+	2009-04-27  Richard Sandiford  <rdsandiford@googlemail.com>
+		    Eric Botcazou  <ebotcazou@adacore.com>
+
+	* resource.c (find_basic_block): Use BLOCK_FOR_INSN to look up
+	a label's basic block.
+	(mark_target_live_regs): Tidy and rework obsolete comments.
+	Change back DF problem to LIVE.  If a label starts a basic block,
+	assume that all registers that used to be live then still are.
+	(init_resource_info): If a label starts a basic block, set its
+	BLOCK_FOR_INSN accordingly.
+	(free_resource_info): Undo the setting of BLOCK_FOR_INSN.
+ 
+Index: gcc/resource.c
+===================================================================
+--- gcc/resource.c	(revision 147780)
++++ gcc/resource.c	(revision 147781)
+@@ -135,8 +135,6 @@
+ static int
+ find_basic_block (rtx insn, int search_limit)
+ {
+-  basic_block bb;
+-
+   /* Scan backwards to the previous BARRIER.  Then see if we can find a
+      label that starts a basic block.  Return the basic block number.  */
+   for (insn = prev_nonnote_insn (insn);
+@@ -157,11 +155,8 @@
+   for (insn = next_nonnote_insn (insn);
+        insn && LABEL_P (insn);
+        insn = next_nonnote_insn (insn))
+-    {
+-      FOR_EACH_BB (bb)
+-	if (insn == BB_HEAD (bb))
+-	  return bb->index;
+-    }
++    if (BLOCK_FOR_INSN (insn))
++      return BLOCK_FOR_INSN (insn)->index;
+ 
+   return -1;
+ }
+@@ -851,13 +846,12 @@
+    (with no intervening active insns) to see if any of them start a basic
+    block.  If we hit the start of the function first, we use block 0.
+ 
+-   Once we have found a basic block and a corresponding first insns, we can
+-   accurately compute the live status from basic_block_live_regs and
+-   reg_renumber.  (By starting at a label following a BARRIER, we are immune
+-   to actions taken by reload and jump.)  Then we scan all insns between
+-   that point and our target.  For each CLOBBER (or for call-clobbered regs
+-   when we pass a CALL_INSN), mark the appropriate registers are dead.  For
+-   a SET, mark them as live.
++   Once we have found a basic block and a corresponding first insn, we can
++   accurately compute the live status (by starting at a label following a
++   BARRIER, we are immune to actions taken by reload and jump.)  Then we
++   scan all insns between that point and our target.  For each CLOBBER (or
++   for call-clobbered regs when we pass a CALL_INSN), mark the appropriate
++   registers are dead.  For a SET, mark them as live.
+ 
+    We have to be careful when using REG_DEAD notes because they are not
+    updated by such things as find_equiv_reg.  So keep track of registers
+@@ -957,13 +951,10 @@
+      TARGET.  Otherwise, we must assume everything is live.  */
+   if (b != -1)
+     {
+-      regset regs_live = DF_LR_IN (BASIC_BLOCK (b));
++      regset regs_live = df_get_live_in (BASIC_BLOCK (b));
+       rtx start_insn, stop_insn;
+ 
+-      /* Compute hard regs live at start of block -- this is the real hard regs
+-	 marked live, plus live pseudo regs that have been renumbered to
+-	 hard regs.  */
+-
++      /* Compute hard regs live at start of block.  */
+       REG_SET_TO_HARD_REG_SET (current_live_regs, regs_live);
+ 
+       /* Get starting and ending insn, handling the case where each might
+@@ -1049,10 +1040,24 @@
+ 
+ 	  else if (LABEL_P (real_insn))
+ 	    {
++	      basic_block bb;
++
+ 	      /* A label clobbers the pending dead registers since neither
+ 		 reload nor jump will propagate a value across a label.  */
+ 	      AND_COMPL_HARD_REG_SET (current_live_regs, pending_dead_regs);
+ 	      CLEAR_HARD_REG_SET (pending_dead_regs);
++
++	      /* We must conservatively assume that all registers that used
++		 to be live here still are.  The fallthrough edge may have
++		 left a live register uninitialized.  */
++	      bb = BLOCK_FOR_INSN (real_insn);
++	      if (bb)
++		{
++		  HARD_REG_SET extra_live;
++
++		  REG_SET_TO_HARD_REG_SET (extra_live, df_get_live_in (bb));
++		  IOR_HARD_REG_SET (current_live_regs, extra_live);
++		}
+ 	    }
+ 
+ 	  /* The beginning of the epilogue corresponds to the end of the
+@@ -1124,6 +1129,7 @@
+ init_resource_info (rtx epilogue_insn)
+ {
+   int i;
++  basic_block bb;
+ 
+   /* Indicate what resources are required to be valid at the end of the current
+      function.  The condition code never is and memory always is.  If the
+@@ -1192,6 +1198,11 @@
+   /* Allocate and initialize the tables used by mark_target_live_regs.  */
+   target_hash_table = XCNEWVEC (struct target_info *, TARGET_HASH_PRIME);
+   bb_ticks = XCNEWVEC (int, last_basic_block);
++
++  /* Set the BLOCK_FOR_INSN of each label that starts a basic block.  */
++  FOR_EACH_BB (bb)
++    if (LABEL_P (BB_HEAD (bb)))
++      BLOCK_FOR_INSN (BB_HEAD (bb)) = bb;
+ }
+ 
+ /* Free up the resources allocated to mark_target_live_regs ().  This
+@@ -1200,6 +1211,8 @@
+ void
+ free_resource_info (void)
+ {
++  basic_block bb;
++
+   if (target_hash_table != NULL)
+     {
+       int i;
+@@ -1225,6 +1238,10 @@
+       free (bb_ticks);
+       bb_ticks = NULL;
+     }
++
++  FOR_EACH_BB (bb)
++    if (LABEL_P (BB_HEAD (bb)))
++      BLOCK_FOR_INSN (BB_HEAD (bb)) = NULL;
+ }
+ 
+ /* Clear any hashed information that we have stored for INSN.  */
+Index: gcc/Makefile.in
+===================================================================
+--- gcc/Makefile.in	(revision 147780)
++++ gcc/Makefile.in	(revision 147781)
+@@ -2664,7 +2664,8 @@
+    value-prof.h
+ cfgrtl.o : cfgrtl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
+    $(FLAGS_H) insn-config.h $(BASIC_BLOCK_H) $(REGS_H) hard-reg-set.h \
+-   output.h toplev.h $(FUNCTION_H) except.h $(TM_P_H) insn-config.h $(EXPR_H) \
++   output.h toplev.h $(FUNCTION_H) except.h $(TM_P_H) $(INSN_ATTR_H) \
++   insn-config.h $(EXPR_H) \
+    $(CFGLAYOUT_H) $(CFGLOOP_H) $(OBSTACK_H) $(TARGET_H) $(TREE_H) \
+    tree-pass.h $(DF_H)
+ cfganal.o : cfganal.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
+Index: gcc/cfgrtl.c
+===================================================================
+--- gcc/cfgrtl.c	(revision 147780)
++++ gcc/cfgrtl.c	(revision 147781)
+@@ -53,6 +53,7 @@
+ #include "toplev.h"
+ #include "tm_p.h"
+ #include "obstack.h"
++#include "insn-attr.h"
+ #include "insn-config.h"
+ #include "cfglayout.h"
+ #include "expr.h"
+@@ -427,11 +428,25 @@
+   return 0;
+ }
+ 
++static unsigned int
++rest_of_pass_free_cfg (void)
++{
++#ifdef DELAY_SLOTS
++  /* The resource.c machinery uses DF but the CFG isn't guaranteed to be
++     valid at that point so it would be too late to call df_analyze.  */
++  if (optimize > 0 && flag_delayed_branch)
++    df_analyze ();
++#endif
++
++  free_bb_for_insn ();
++  return 0;
++}
++
+ struct tree_opt_pass pass_free_cfg =
+ {
+   NULL,                                 /* name */
+   NULL,                                 /* gate */
+-  free_bb_for_insn,                     /* execute */
++  rest_of_pass_free_cfg,                /* execute */
+   NULL,                                 /* sub */
+   NULL,                                 /* next */
+   0,                                    /* static_pass_number */

@@ -1,0 +1,8 @@
+%include <hardenednossp.specs>
+%include <hardenednopie.specs>
+*esp_link_now:
+
+
+*esp_cc1_strict_overflow:
+
+

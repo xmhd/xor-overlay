@@ -1,0 +1,16 @@
+Link shared libs to libc on FreeBSD.
+
+http://bugs.gentoo.org/show_bug.cgi?id=317269
+
+--- gcc/config/freebsd-spec.h
++++ gcc/config/freebsd-spec.h
+@@ -139,7 +139,8 @@
+   %{!shared:								\
+     %{!pg: %{pthread:-lpthread} -lc}					\
+     %{pg:  %{pthread:-lpthread_p} -lc_p}				\
+-  }"
++  }                                                                     \
++  %{shared: %{pthread:-lpthread} -lc}"
+ #endif
+ #endif
+ 

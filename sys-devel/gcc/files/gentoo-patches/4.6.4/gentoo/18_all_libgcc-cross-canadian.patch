@@ -1,0 +1,55 @@
+fix canadian cross compiler builds where libgcc would get installed into the
+version of the compiler we using to build instead of the version we're building.
+
+From d2c6da38e9a897ded013ef69caf57db588605e9f Mon Sep 17 00:00:00 2001
+From: ian <ian@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 3 Aug 2012 23:42:20 +0000
+Subject: [PATCH] 	* Makefile.in (version): set to BASE-VER file from gcc
+ directory.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@190136 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ libgcc/ChangeLog   | 4 ++++
+ libgcc/Makefile.in | 2 +-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+2012-08-03  Jonathan Yong  <jon_y@users.sourceforge.net>
+
+	* Makefile.in (version): set to BASE-VER file from gcc directory.
+
+From 464810a0437a11a7c054bff9eecfecbadf6b9559 Mon Sep 17 00:00:00 2001
+From: hjl <hjl@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Sat, 4 Aug 2012 05:33:27 +0000
+Subject: [PATCH] Replace top_srcdir with srcdir
+
+	PR driver/54171
+	* Makefile.in (version): Replace top_srcdir with srcdir.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@190140 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ libgcc/ChangeLog   | 5 +++++
+ libgcc/Makefile.in | 2 +-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+2012-08-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR driver/54171
+	* Makefile.in (version): Replace top_srcdir with srcdir.
+
+diff --git a/libgcc/Makefile.in b/libgcc/Makefile.in
+index 22af1b4..fb7f9bd 100644
+--- a/libgcc/Makefile.in
++++ b/libgcc/Makefile.in
+@@ -207,7 +207,7 @@ export slibdir
+ export toolexecdir
+ export toolexeclibdir
+ 
+-version := $(shell $(CC) -dumpversion)
++version := $(shell cat $(srcdir)/../gcc/BASE-VER)
+ 
+ ifeq ($(decimal_float),yes)
+ ifeq ($(enable_decimal_float),bid)
+-- 
+1.8.2.1
+

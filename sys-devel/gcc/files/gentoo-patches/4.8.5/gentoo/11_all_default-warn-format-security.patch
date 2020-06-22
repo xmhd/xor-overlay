@@ -1,0 +1,36 @@
+Enable -Wformat and -Wformat-security by default.
+
+--- a/gcc/c-family/c.opt
++++ b/gcc/c-family/c.opt
+@@ -400,7 +400,7 @@ C ObjC C++ ObjC++ Var(warn_format_nonliteral) Warning LangEnabledBy(C ObjC C++ O
+ Warn about format strings that are not literals
+ 
+ Wformat-security
+-C ObjC C++ ObjC++ Var(warn_format_security) Warning LangEnabledBy(C ObjC C++ ObjC++,Wformat=, warn_format >= 2, 0)
++C ObjC C++ ObjC++ Var(warn_format_security) Init(1) Warning LangEnabledBy(C ObjC C++ ObjC++,Wformat=, warn_format >= 2, 0)
+ Warn about possible security problems with format functions
+ 
+ Wformat-y2k
+@@ -412,7 +412,7 @@ C ObjC C++ ObjC++ Var(warn_format_zero_length) Warning LangEnabledBy(C ObjC C++
+ Warn about zero-length formats
+ 
+ Wformat=
+-C ObjC C++ ObjC++ Joined RejectNegative UInteger Var(warn_format) Warning LangEnabledBy(C ObjC C++ ObjC++,Wall, 1, 0)
++C ObjC C++ ObjC++ Joined RejectNegative UInteger Var(warn_format) Init(1) Warning LangEnabledBy(C ObjC C++ ObjC++,Wall, 1, 0)
+ Warn about printf/scanf/strftime/strfmon format string anomalies
+ 
+ Wignored-qualifiers
+--- a/gcc/doc/invoke.texi
++++ b/gcc/doc/invoke.texi
+@@ -3362,6 +3362,11 @@ currently a subset of what @option{-Wformat-nonliteral} warns about, but
+ in future warnings may be added to @option{-Wformat-security} that are not
+ included in @option{-Wformat-nonliteral}.)
+ 
++In Gentoo this option is enabled by default for C, C++, ObjC, ObjC++.
++To disable, use @option{-Wno-format-security}, or disable all format
++warnings with @option{-Wformat=0}.  To make format security warnings
++fatal, specify @option{-Werror=format-security}.
++
+ @item -Wformat-y2k
+ @opindex Wformat-y2k
+ @opindex Wno-format-y2k

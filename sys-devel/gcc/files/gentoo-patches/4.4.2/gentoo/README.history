@@ -1,0 +1,33 @@
+1.1		[pending]
+	- 00_all_gcc-trampolinewarn.patch
+	+ 01_all_gcc-4.1-alpha-asm-mcpu.patch
+	+ 02_all_gcc-4.4-alpha-PR42113.patch
+	- 03_all_gcc43-java-nomulti.patch
+	+ 05_all_gcc-4.5.x-siginfo.patch
+	- 10_all_gcc-default-format-security.patch
+	- 10_all_gcc-default-fortify-source.patch
+	+ 15_all_libgfortran-Werror.patch
+	+ 27_all_gcj-glibc-2.15-pr50888.patch
+
+1.0		17 Oct 2009
+	+ 00_all_gcc-4.1-alpha-mieee-default.patch
+	+ 00_all_gcc-trampolinewarn.patch
+	+ 03_all_gcc43-java-nomulti.patch
+	+ 08_all_gcc-4.1-cross-compile.patch
+	+ 10_all_gcc-default-format-security.patch
+	+ 10_all_gcc-default-fortify-source.patch
+	+ 11_all_gcc-netbsd-symbolic.patch
+	+ 14_all_gcc-sparc64-bsd.patch
+	+ 15_all_gcc-libgomp-no-werror.patch
+	+ 18_all_904-flatten-switch-stmt-00.patch
+	+ 40_all_gcc-4.4-libiberty.h-asprintf.patch
+	+ 47_all_arm-unbreak-armv4t.patch
+	+ 51_all_gcc-3.4-libiberty-pic.patch
+	+ 53_all_gcc4-superh-default-multilib.patch
+	+ 54_all_300-libstdc++-pic.patch
+	+ 61_all_gcc4-ia64-noteGNUstack.patch
+	+ 73_all_sh-libgcc-stacks.patch
+	+ 74_all_sh-pr24836.patch
+	+ 90_all_gcc-freebsd.patch
+	+ 91_all_gcc-freebsd.patch
+

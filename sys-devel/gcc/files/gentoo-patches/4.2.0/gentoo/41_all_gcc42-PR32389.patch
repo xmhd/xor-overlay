@@ -1,0 +1,103 @@
+http://bugs.gentoo.org/182374
+http://gcc.gnu.org/PR32389
+
+2007-06-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/32389
+	* config/i386/i386.h (enum ix86_stack_slot): Add SLOT_VIRTUAL.
+	* config/i386/i386.c (assign_386_stack_local): Assert that
+	SLOT_VIRTUAL is valid only before virtual regs are instantiated.
+	(ix86_expand_builtin) [IX86_BUILTIN_LDMXCSR, IX86_BUILTIN_STMXCSR]:
+	Use SLOT_VIRTUAL stack slot instead of SLOT_TEMP.
+	* config/i386/i386.md (truncdfsf2, truncxfsf2, truncxfdf2): Ditto.
+
+Index: gcc-4_2-branch/gcc/testsuite/gcc.target/i386/pr32389.c
+===================================================================
+--- gcc-4_2-branch/gcc/testsuite/gcc.target/i386/pr32389.c	(revision 0)
++++ gcc-4_2-branch/gcc/testsuite/gcc.target/i386/pr32389.c	(revision 125911)
+@@ -0,0 +1,10 @@
++/* Testcase by Mike Frysinger <vapier@gentoo.org>  */
++
++/* { dg-do compile { target { { i?86-*-* x86_64-*-* } && ilp32 } } } */
++/* { dg-options "-msse" } */
++
++double f1();
++int f2() {
++  __builtin_ia32_stmxcsr();
++  return f1();
++}
+Index: gcc-4_2-branch/gcc/config/i386/i386.h
+===================================================================
+--- gcc-4_2-branch/gcc/config/i386/i386.h	(revision 125910)
++++ gcc-4_2-branch/gcc/config/i386/i386.h	(revision 125911)
+@@ -2164,7 +2164,8 @@ enum ix86_entity
+ 
+ enum ix86_stack_slot
+ {
+-  SLOT_TEMP = 0,
++  SLOT_VIRTUAL = 0,
++  SLOT_TEMP,
+   SLOT_CW_STORED,
+   SLOT_CW_TRUNC,
+   SLOT_CW_FLOOR,
+Index: gcc-4_2-branch/gcc/config/i386/i386.md
+===================================================================
+--- gcc-4_2-branch/gcc/config/i386/i386.md	(revision 125910)
++++ gcc-4_2-branch/gcc/config/i386/i386.md	(revision 125911)
+@@ -3716,7 +3716,7 @@
+     ;
+   else
+     {
+-      rtx temp = assign_386_stack_local (SFmode, SLOT_TEMP);
++      rtx temp = assign_386_stack_local (SFmode, SLOT_VIRTUAL);
+       emit_insn (gen_truncdfsf2_with_temp (operands[0], operands[1], temp));
+       DONE;
+     }
+@@ -3868,7 +3868,7 @@
+       DONE;
+     }
+   else
+-    operands[2] = assign_386_stack_local (SFmode, SLOT_TEMP);
++    operands[2] = assign_386_stack_local (SFmode, SLOT_VIRTUAL);
+ })
+ 
+ (define_insn "*truncxfsf2_mixed"
+@@ -3966,7 +3966,7 @@
+       DONE;
+     }
+   else
+-    operands[2] = assign_386_stack_local (DFmode, SLOT_TEMP);
++    operands[2] = assign_386_stack_local (DFmode, SLOT_VIRTUAL);
+ })
+ 
+ (define_insn "*truncxfdf2_mixed"
+Index: gcc-4_2-branch/gcc/config/i386/i386.c
+===================================================================
+--- gcc-4_2-branch/gcc/config/i386/i386.c	(revision 125910)
++++ gcc-4_2-branch/gcc/config/i386/i386.c	(revision 125911)
+@@ -13478,6 +13478,9 @@ assign_386_stack_local (enum machine_mod
+ 
+   gcc_assert (n < MAX_386_STACK_LOCALS);
+ 
++  /* Virtual slot is valid only before vregs are instantiated.  */
++  gcc_assert ((n == SLOT_VIRTUAL) == !virtuals_instantiated);
++
+   for (s = ix86_stack_locals; s; s = s->next)
+     if (s->mode == mode && s->n == n)
+       return s->rtl;
+@@ -16121,13 +16124,13 @@ ix86_expand_builtin (tree exp, rtx targe
+ 
+     case IX86_BUILTIN_LDMXCSR:
+       op0 = expand_normal (TREE_VALUE (arglist));
+-      target = assign_386_stack_local (SImode, SLOT_TEMP);
++      target = assign_386_stack_local (SImode, SLOT_VIRTUAL);
+       emit_move_insn (target, op0);
+       emit_insn (gen_sse_ldmxcsr (target));
+       return 0;
+ 
+     case IX86_BUILTIN_STMXCSR:
+-      target = assign_386_stack_local (SImode, SLOT_TEMP);
++      target = assign_386_stack_local (SImode, SLOT_VIRTUAL);
+       emit_insn (gen_sse_stmxcsr (target));
+       return copy_to_mode_reg (SImode, target);
+ 

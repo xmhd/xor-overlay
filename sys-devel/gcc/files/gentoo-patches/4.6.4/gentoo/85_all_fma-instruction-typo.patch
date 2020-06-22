@@ -1,0 +1,50 @@
+Haswell with -march=native - Error: no such instruction: `vfmadd312ss .LC21(%rip),%xmm1,%xmm0'
+https://bugs.gentoo.org/505960
+
+
+2014-03-29  Ryan Hill  <rhill@gentoo.org>
+
+	* config/i386/sse.md (fma_fmadd_<mode>): Fix typo.
+	(fma_fmsub_<mode>): Likewise.
+	(fma_fnmadd_<mode>): Likewise.
+	(fma_fnmsub_<mode>): Likewise.
+
+
+--- a/gcc/config/i386/sse.md
++++ b/gcc/config/i386/sse.md
+@@ -2067,7 +2067,7 @@
+   "TARGET_FMA"
+   "@
+    vfmadd132<ssemodesuffix>\t{%2, %3, %0|%0, %3, %2}
+-   vfmadd312<ssemodesuffix>\t{%3, %2, %0|%0, %2, %3}
++   vfmadd213<ssemodesuffix>\t{%3, %2, %0|%0, %2, %3}
+    vfmadd231<ssemodesuffix>\t{%2, %1, %0|%0, %1, %2}"
+   [(set_attr "type" "ssemuladd")
+    (set_attr "mode" "<MODE>")])
+@@ -2082,7 +2082,7 @@
+   "TARGET_FMA"
+   "@
+    vfmsub132<ssemodesuffix>\t{%2, %3, %0|%0, %3, %2}
+-   vfmsub312<ssemodesuffix>\t{%3, %2, %0|%0, %2, %3}
++   vfmsub213<ssemodesuffix>\t{%3, %2, %0|%0, %2, %3}
+    vfmsub231<ssemodesuffix>\t{%2, %1, %0|%0, %1, %2}"
+   [(set_attr "type" "ssemuladd")
+    (set_attr "mode" "<MODE>")])
+@@ -2097,7 +2097,7 @@
+   "TARGET_FMA"
+   "@
+    vfnmadd132<ssemodesuffix>\t{%2, %3, %0|%0, %3, %2}
+-   vfnmadd312<ssemodesuffix>\t{%3, %2, %0|%0, %2, %3}
++   vfnmadd213<ssemodesuffix>\t{%3, %2, %0|%0, %2, %3}
+    vfnmadd231<ssemodesuffix>\t{%2, %1, %0|%0, %1, %2}"
+   [(set_attr "type" "ssemuladd")
+    (set_attr "mode" "<MODE>")])
+@@ -2113,7 +2113,7 @@
+   "TARGET_FMA"
+   "@
+    vfnmsub132<ssemodesuffix>\t{%2, %3, %0|%0, %3, %2}
+-   vfnmsub312<ssemodesuffix>\t{%3, %2, %0|%0, %2, %3}
++   vfnmsub213<ssemodesuffix>\t{%3, %2, %0|%0, %2, %3}
+    vfnmsub231<ssemodesuffix>\t{%2, %1, %0|%0, %1, %2}"
+   [(set_attr "type" "ssemuladd")
+    (set_attr "mode" "<MODE>")])

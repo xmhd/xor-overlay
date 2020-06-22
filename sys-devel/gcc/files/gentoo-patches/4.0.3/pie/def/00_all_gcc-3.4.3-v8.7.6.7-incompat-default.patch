@@ -1,0 +1,11 @@
+--- gcc-3.4.3/gcc/gcc.c.def~	Mon Nov 22 17:56:44 2004
++++ gcc-3.4.3/gcc/gcc.c	Mon Nov 22 21:18:06 2004
+@@ -768,7 +768,7 @@
+ /* NB: This is shared amongst all front-ends.  */
+ static const char *cc1_options =
+ "%{pg:%{fomit-frame-pointer:%e-pg and -fomit-frame-pointer are incompatible}}\
+- %{shared:%{static|pie|fPIE|fpie|fno-PIC|fno-pic:%e-shared and -static|pie|fPIE|fpie|fno-PIC|fno-pic are incompatible}}\
++ %{shared:%{static|pie|fPIE|fpie|fno-PIC|fno-pic|nopie:%e-shared and -static|pie|fPIE|fpie|fno-PIC|fno-pic|nopie are incompatible}}\
+  %{pie:%{static|pg|p|profile:%e-pie and -static|pg|p|profile are incompatible}}\
+  %1 %{!Q:-quiet} -dumpbase %B %{d*} %{m*} %{a*}\
+  %{c|S:%{o*:-auxbase-strip %*}%{!o*:-auxbase %b}}%{!c:%{!S:-auxbase %b}}\

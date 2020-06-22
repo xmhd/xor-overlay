@@ -1,0 +1,27 @@
+diff -ur gcc-3.4.6-orig/gcc/cp/typeck.c gcc-3.4.6/gcc/cp/typeck.c
+--- gcc-3.4.6-orig/gcc/cp/typeck.c	2006-04-26 15:31:46.000000000 -0400
++++ gcc-3.4.6/gcc/cp/typeck.c	2006-04-26 15:36:22.000000000 -0400
+@@ -1948,12 +1948,6 @@
+ 	     or a BIT_NOT_EXPR.  */
+ 	  scope = TREE_OPERAND (name, 0);
+ 	  name = TREE_OPERAND (name, 1);
+-	  my_friendly_assert ((CLASS_TYPE_P (scope) 
+-			       || TREE_CODE (scope) == NAMESPACE_DECL),
+-			      20020804);
+-	  my_friendly_assert ((TREE_CODE (name) == IDENTIFIER_NODE
+-			       || TREE_CODE (name) == BIT_NOT_EXPR),
+-			      20020804);
+ 
+ 	  /* If SCOPE is a namespace, then the qualified name does not
+ 	     name a member of OBJECT_TYPE.  */
+@@ -1964,6 +1958,10 @@
+ 	      return error_mark_node;
+ 	    }
+ 
++	  my_friendly_assert (CLASS_TYPE_P (scope), 20020804);
++	  my_friendly_assert (TREE_CODE (name) == IDENTIFIER_NODE
++		      || TREE_CODE (name) == BIT_NOT_EXPR, 20020804);
++
+ 	  /* Find the base of OBJECT_TYPE corresponding to SCOPE.  */
+ 	  access_path = lookup_base (object_type, scope, ba_check, NULL);
+ 	  if (access_path == error_mark_node)

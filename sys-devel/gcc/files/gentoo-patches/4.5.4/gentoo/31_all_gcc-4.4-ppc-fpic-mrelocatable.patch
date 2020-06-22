@@ -1,0 +1,32 @@
+https://bugs.gentoo.org/347281
+
+backported from gcc-4.6
+
+From d8ff0b3f0b44480542eab04d1659f4368b6b09cf Mon Sep 17 00:00:00 2001
+From: Joakim Tjernlund <Joakim.Tjernlund@transmode.se>
+Date: Sun, 10 Oct 2010 10:34:50 +0200
+Subject: [PATCH] powerpc: Support -fpic too with mrelocatable
+
+
+Signed-off-by: Joakim Tjernlund <Joakim.Tjernlund@transmode.se>
+---
+ sysv4.h |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
+
+diff --git a/gcc/config/rs6000/sysv4.h b/gcc/config/rs6000/sysv4.h
+index 8da8410..e4b8280 100644
+--- a/gcc/config/rs6000/sysv4.h
++++ b/gcc/config/rs6000/sysv4.h
+@@ -227,7 +227,8 @@ do {									\
+     }									\
+ 									\
+   else if (TARGET_RELOCATABLE)						\
+-    flag_pic = 2;							\
++    if (!flag_pic)							\
++      flag_pic = 2;							\
+ } while (0)
+ 
+ #ifndef RS6000_BI_ARCH
+-- 
+1.7.2.2
+

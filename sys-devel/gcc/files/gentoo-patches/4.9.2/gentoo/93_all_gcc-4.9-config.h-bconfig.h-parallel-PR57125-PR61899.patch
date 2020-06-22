@@ -1,0 +1,234 @@
+https://gcc.gnu.org/ml/gcc-patches/2014-11/msg03092.html
+https://gcc.gnu.org/PR57125
+https://gcc.gnu.org/PR61899
+https://bugs.gentoo.org/463796
+https://bugs.gentoo.org/487398
+https://bugs.gentoo.org/545010
+
+fix parallel build issues around config.h/bconfig.h inclusion
+
+note: this also includes a small change to the flex command:
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57125#c9
+
+From ed89620f0e3de714864805f5d29dbab0341a1746 Mon Sep 17 00:00:00 2001
+From: jakub <jakub@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Wed, 3 Dec 2014 16:44:27 +0000
+Subject: [PATCH] Fix building of gengtype
+
+Found bootstrap failures even with this patch (dunno what changed on my box
+that I started getting these last night, make has not changed), that time
+with errors.o and gcc-ar.o.
+The generated headers are solved these days in automatic dependencies world
+through
+# In order for parallel make to really start compiling the expensive
+# objects from $(OBJS) as early as possible, build all their
+# prerequisites strictly before all objects.
+$(ALL_HOST_OBJS) : | $(generated_files)
+and build/*.o have explicit dependencies.
+I've tried to compare $(ALL_HOST_OBJS) on my box with all *.o */*.o files
+I had in stage3 directory, and besides build/*.o, I found:
+
+crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o crtfastmath.o crtprec32.o crtprec64.o crtprec80.o
+errors.o gcc-ar.o gcc-nm.o gcc-ranlib.o gengtype-lex.o gengtype.o gengtype-parse.o gengtype-state.o
+
+not being listed in ALL_HOST_OBJS.  The crt*.o files come from libgcc build
+and thus are ok, the rest I've tried to handle in the following updated
+patch.  If the #define GENERATOR_FILE inside of the 5 files is too ugly,
+another alternative might be to define both -DHOST_GENERATOR_FILE -DGENERATOR_FILE
+in Makefile.in and don't error in config.h if GENERATOR_FILE is defined,
+if HOST_GENERATOR_FILE is also defined.
+
+2014-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* Makefile.in (ALL_HOST_BACKEND_OBJS): Add $(GENGTYPE_OBJS),
+	gcc-ar.o, gcc-nm.o and gcc-ranlib.o.
+	(GENGTYPE_OBJS): New.
+	(gengtype-lex.o, gengtype-parse.o, gengtype-state.o, gengtype.o):
+	Remove explicit dependencies.
+	(CFLAGS-gengtype-lex.o, CFLAGS-gengtype-parse.o,
+	CFLAGS-gengtype-state.o, CFLAGS-gengtype.o): Add -DHOST_GENERATOR_FILE
+	instead of -DGENERATOR_FILE.
+	(CFLAGS-errors.o): New.
+	* gengtype.c: Instead of testing GENERATOR_FILE define, test
+	HOST_GENERATOR_FILE.  If defined, include config.h and define
+	GENERATOR_FILE afterwards, otherwise include bconfig.h.
+	* gengtype-parse.c: Likewise.
+	* gengtype-state.c: Likewise.
+	* gengtype-lex.l: Likewise.
+	* errors.c: Likewise.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@218325 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog        | 75 ++++++++++++++++++++++++++++++++--------------------
+ gcc/Makefile.in      | 20 +++++++-------
+ gcc/errors.c         |  7 ++---
+ gcc/gengtype-lex.l   |  7 ++---
+ gcc/gengtype-parse.c |  7 ++---
+ gcc/gengtype-state.c |  7 ++---
+ gcc/gengtype.c       |  7 ++---
+ 7 files changed, 77 insertions(+), 53 deletions(-)
+
+diff --git a/gcc/Makefile.in b/gcc/Makefile.in
+index 204bd85..3820d0b 100644
+--- a/gcc/Makefile.in
++++ b/gcc/Makefile.in
+@@ -1509,7 +1509,7 @@ ALL_HOST_FRONTEND_OBJS = $(foreach v,$(CONFIG_LANGUAGES),$($(v)_OBJS))
+ ALL_HOST_BACKEND_OBJS = $(GCC_OBJS) $(OBJS) $(OBJS-libcommon) \
+   $(OBJS-libcommon-target) @TREEBROWSER@ main.o c-family/cppspec.o \
+   $(COLLECT2_OBJS) $(EXTRA_GCC_OBJS) $(GCOV_OBJS) $(GCOV_DUMP_OBJS) \
+-  lto-wrapper.o
++  lto-wrapper.o $(GENGTYPE_OBJS) gcc-ar.o gcc-nm.o gcc-ranlib.o
+ 
+ # This lists all host object files, whether they are included in this
+ # compilation or not.
+@@ -2484,31 +2485,32 @@ build/gengenrtl.o : gengenrtl.c $(BCONFIG_H) $(SYSTEM_H) rtl.def
+ # on BCONFIG_H.  For the build objects, add -DGENERATOR_FILE manually,
+ # the build-%: rule doesn't apply to them.
+ 
++GENGTYPE_OBJS = gengtype.o gengtype-parse.o gengtype-state.o \
++  gengtype-lex.o errors.o
++
+ gengtype-lex.o build/gengtype-lex.o : gengtype-lex.c gengtype.h $(SYSTEM_H)
+-gengtype-lex.o: $(CONFIG_H) $(BCONFIG_H)
+-CFLAGS-gengtype-lex.o += -DGENERATOR_FILE
++CFLAGS-gengtype-lex.o += -DHOST_GENERATOR_FILE
+ build/gengtype-lex.o: $(BCONFIG_H)
+ 
+ gengtype-parse.o build/gengtype-parse.o : gengtype-parse.c gengtype.h \
+   $(SYSTEM_H)
+-gengtype-parse.o: $(CONFIG_H)
+-CFLAGS-gengtype-parse.o += -DGENERATOR_FILE
++CFLAGS-gengtype-parse.o += -DHOST_GENERATOR_FILE
+ build/gengtype-parse.o: $(BCONFIG_H)
+ 
+ gengtype-state.o build/gengtype-state.o: gengtype-state.c $(SYSTEM_H) \
+   gengtype.h errors.h double-int.h version.h $(HASHTAB_H) $(OBSTACK_H) \
+   $(XREGEX_H)
+-gengtype-state.o: $(CONFIG_H)
+-CFLAGS-gengtype-state.o += -DGENERATOR_FILE
++CFLAGS-gengtype-state.o += -DHOST_GENERATOR_FILE
+ build/gengtype-state.o: $(BCONFIG_H)
+ 
+ gengtype.o build/gengtype.o : gengtype.c $(SYSTEM_H) gengtype.h 	\
+   rtl.def insn-notes.def errors.h double-int.h version.h $(HASHTAB_H) \
+   $(OBSTACK_H) $(XREGEX_H)
+-gengtype.o: $(CONFIG_H)
+-CFLAGS-gengtype.o += -DGENERATOR_FILE
++CFLAGS-gengtype.o += -DHOST_GENERATOR_FILE
+ build/gengtype.o: $(BCONFIG_H)
+ 
++CFLAGS-errors.o += -DHOST_GENERATOR_FILE
++
+ build/genmddeps.o: genmddeps.c $(BCONFIG_H) $(SYSTEM_H) coretypes.h	\
+   errors.h $(READ_MD_H)
+ build/genmodes.o : genmodes.c $(BCONFIG_H) $(SYSTEM_H) errors.h		\
+@@ -2623,11 +2623,7 @@
+ # bconfig.h because AIX requires _LARGE_FILES to be defined before
+ # any system header is included.
+ gengtype-lex.c : gengtype-lex.l
+-	-$(FLEX) $(FLEXFLAGS) -o$@ $< && { \
+-	  echo '#include "bconfig.h"' > $@.tmp; \
+-	  cat $@ >> $@.tmp; \
+-	  mv $@.tmp $@; \
+-	}
++	$(FLEX) $(FLEXFLAGS) -o$@ $<
+ 
+ #
+ # Remake internationalization support.
+diff --git a/gcc/errors.c b/gcc/errors.c
+index be38b1f..a6a30fe 100644
+--- a/gcc/errors.c
++++ b/gcc/errors.c
+@@ -21,10 +21,11 @@ along with GCC; see the file COPYING3.  If not see
+    in the generator programs; the compiler has a more elaborate suite
+    of diagnostic printers, found in diagnostic.c.  */
+ 
+-#ifdef GENERATOR_FILE
+-#include "bconfig.h"
+-#else
++#ifdef HOST_GENERATOR_FILE
+ #include "config.h"
++#define GENERATOR_FILE 1
++#else
++#include "bconfig.h"
+ #endif
+ #include "system.h"
+ #include "errors.h"
+diff --git a/gcc/gengtype-lex.l b/gcc/gengtype-lex.l
+index 5e12885..0866603 100644
+--- a/gcc/gengtype-lex.l
++++ b/gcc/gengtype-lex.l
+@@ -21,10 +21,11 @@ along with GCC; see the file COPYING3.  If not see
+ %option noinput
+ 
+ %{
+-#ifdef GENERATOR_FILE
+-#include "bconfig.h"
+-#else
++#ifdef HOST_GENERATOR_FILE
+ #include "config.h"
++#define GENERATOR_FILE 1
++#else
++#include "bconfig.h"
+ #endif
+ #include "system.h"
+ 
+diff --git a/gcc/gengtype-parse.c b/gcc/gengtype-parse.c
+index 0f11cec..87b6917 100644
+--- a/gcc/gengtype-parse.c
++++ b/gcc/gengtype-parse.c
+@@ -17,10 +17,11 @@
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.  */
+ 
+-#ifdef GENERATOR_FILE
+-#include "bconfig.h"
+-#else
++#ifdef HOST_GENERATOR_FILE
+ #include "config.h"
++#define GENERATOR_FILE 1
++#else
++#include "bconfig.h"
+ #endif
+ #include "system.h"
+ #include "gengtype.h"
+diff --git a/gcc/gengtype-state.c b/gcc/gengtype-state.c
+index 5b7017f..7634f74 100644
+--- a/gcc/gengtype-state.c
++++ b/gcc/gengtype-state.c
+@@ -23,10 +23,11 @@
+    and Basile Starynkevitch <basile@starynkevitch.net>
+ */
+ 
+-#ifdef GENERATOR_FILE
+-#include "bconfig.h"
+-#else
++#ifdef HOST_GENERATOR_FILE
+ #include "config.h"
++#define GENERATOR_FILE 1
++#else
++#include "bconfig.h"
+ #endif
+ #include "system.h"
+ #include "errors.h"	/* For fatal.  */
+diff --git a/gcc/gengtype.c b/gcc/gengtype.c
+index 2dc857e..39d2918 100644
+--- a/gcc/gengtype.c
++++ b/gcc/gengtype.c
+@@ -17,10 +17,11 @@
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.  */
+ 
+-#ifdef GENERATOR_FILE
+-#include "bconfig.h"
+-#else
++#ifdef HOST_GENERATOR_FILE
+ #include "config.h"
++#define GENERATOR_FILE 1
++#else
++#include "bconfig.h"
+ #endif
+ #include "system.h"
+ #include "errors.h"		/* for fatal */
+-- 
+2.3.4

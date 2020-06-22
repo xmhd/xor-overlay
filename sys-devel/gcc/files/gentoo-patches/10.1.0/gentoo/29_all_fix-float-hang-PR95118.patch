@@ -1,0 +1,54 @@
+https://gcc.gnu.org/PR95118
+https://bugs.gentoo.org/722774
+
+From 568c985113b29574c4e25e1a016475668fc17c28 Mon Sep 17 00:00:00 2001
+From: Richard Biener <rguenther@suse.de>
+Date: Thu, 14 May 2020 08:53:03 +0200
+Subject: [PATCH] middle-end/95118 - fix printing of denormal zero
+
+This fixes printing a REAL_CST generated from value-numbering
+punning some bits to a real which turns out as zero with big
+negative exponent.  This causes the loop in real_to_decimal_for_mode to
+never terminate.
+
+2020-05-14  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/95118
+	* real.c (real_to_decimal_for_mode): Make sure we handle
+	a zero with nonzero exponent.
+
+	* gcc.dg/pr95118.c: New testcase.
+---
+ gcc/real.c                     |  4 ++--
+ gcc/testsuite/gcc.dg/pr95118.c | 11 +++++++++++
+
+--- a/gcc/real.c
++++ b/gcc/real.c
+@@ -1714,8 +1714,8 @@ real_to_decimal_for_mode (char *str, const REAL_VALUE_TYPE *r_orig,
+ 
+ 	  do_multiply (&u, &v, ten);
+ 
+-	  /* Stop if we're now >= 1.  */
+-	  if (REAL_EXP (&u) > 0)
++	  /* Stop if we're now >= 1 or zero.  */
++	  if (REAL_EXP (&u) > 0 || u.cl == rvc_zero)
+ 	    break;
+ 
+ 	  v = u;
+--- /dev/null
++++ b/gcc/testsuite/gcc.dg/pr95118.c
+@@ -0,0 +1,11 @@
++/* { dg-do compile } */
++/* { dg-options "-O2 -fdump-tree-fre" } */
++
++void a();
++void b() {
++    union {
++	int c[4];
++	long double d;
++    } e = {{0, 0, 4}};
++    a(e.d);
++}
+-- 
+2.26.2
+

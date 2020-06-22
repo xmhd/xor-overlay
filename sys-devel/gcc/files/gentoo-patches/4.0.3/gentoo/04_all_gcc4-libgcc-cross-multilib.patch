@@ -1,0 +1,49 @@
+Backport from gcc-4.1
+
+2005-04-19  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Makefile.in (libgcc.mk): Pass GCC_FOR_TARGET.
+	* mklibgcc.in: Use $GCC_FOR_TARGET instead of ./xgcc.
+
+Index: gcc-4_1-branch/gcc/Makefile.in
+===================================================================
+--- gcc-4_1-branch/gcc/Makefile.in	(revision 98419)
++++ gcc-4_1-branch/gcc/Makefile.in	(revision 98420)
+@@ -1262,6 +1262,7 @@
+ 	SHLIB_NM_FLAGS='$(SHLIB_NM_FLAGS)' \
+ 	MULTILIB_OSDIRNAMES='$(MULTILIB_OSDIRNAMES)' \
+ 	ASM_HIDDEN_OP='$(ASM_HIDDEN_OP)' \
++	GCC_FOR_TARGET='$(GCC_FOR_TARGET)' \
+ 	mkinstalldirs='$(mkinstalldirs)' \
+ 	  $(SHELL) mklibgcc > tmp-libgcc.mk
+ 	mv tmp-libgcc.mk libgcc.mk
+Index: gcc-4_1-branch/gcc/mklibgcc.in
+===================================================================
+--- gcc-4_1-branch/gcc/mklibgcc.in	(revision 98419)
++++ gcc-4_1-branch/gcc/mklibgcc.in	(revision 98420)
+@@ -40,6 +40,7 @@
+ # SHLIB_INSTALL
+ # MULTILIB_OSDIRNAMES
+ # ASM_HIDDEN_OP
++# GCC_FOR_TARGET
+ 
+ # Make needs VPATH to be literal.
+ echo 'srcdir = @srcdir@'
+@@ -178,7 +179,7 @@
+     if [ "$LIBUNWIND" ]; then
+       libunwind_so=$dir/libunwind${SHLIB_EXT}
+     fi
+-    os_multilib_dir=`./xgcc -B./ $flags --print-multi-os-directory`
++    os_multilib_dir=`$GCC_FOR_TARGET $flags --print-multi-os-directory`
+     if [ "$os_multilib_dir" != . ]; then
+       shlib_slibdir_qual="/$os_multilib_dir"
+     fi
+@@ -804,7 +805,7 @@
+     echo '	$(RANLIB_FOR_TARGET)' ${ldir}/libgcc_eh.a
+ 
+     shlib_slibdir_qual=
+-    os_multilib_dir=`./xgcc -B./ $flags --print-multi-os-directory`
++    os_multilib_dir=`$GCC_FOR_TARGET $flags --print-multi-os-directory`
+     if [ "$os_multilib_dir" != . ]; then
+       shlib_slibdir_qual="/$os_multilib_dir"
+     fi

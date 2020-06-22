@@ -1,0 +1,193 @@
+Pull out the differences between 4.1.1 and 4.1.2 so that we can get around
+this ICE when building glibc-2.4 with gcc-4.1.0:
+
+rtld.c: In function '_dl_start':
+rtld.c:562: error: unrecognizable insn:
+(insn 53 52 54 5 (set (reg:DI 103)
+        (const:DI (plus:DI (symbol_ref:DI ("_rtld_local") [flags 0x2] <var_decl 0x20000673580 _rtld_local>)
+                (const_int -14595029256 [0xfffffffc9a1186f8])))) -1 (nil)
+    (nil))
+rtld.c:562: internal compiler error: in extract_insn, at recog.c:2084
+
+--- gcc-4.1.1/gcc/config/s390/linux.h
++++ gcc-4.1.2/gcc/config/s390/linux.h
+@@ -89,6 +89,7 @@
+           %{m31:-dynamic-linker /lib/ld.so.1} \
+           %{m64:-dynamic-linker /lib/ld64.so.1}}}}"
+ 
++#define CPP_SPEC "%{posix:-D_POSIX_SOURCE} %{pthread:-D_REENTRANT}"
+ 
+ #define TARGET_ASM_FILE_END file_end_indicate_exec_stack
+ 
+--- gcc-4.1.1/gcc/config/s390/predicates.md
++++ gcc-4.1.2/gcc/config/s390/predicates.md
+@@ -62,7 +62,8 @@
+ ;; Allow SYMBOL_REFs and @PLT stubs.
+ 
+ (define_special_predicate "bras_sym_operand"
+-  (ior (match_code "symbol_ref")
++  (ior (and (match_code "symbol_ref")
++	    (match_test "!flag_pic || SYMBOL_REF_LOCAL_P (op)"))
+        (and (match_code "const")
+ 	    (and (match_test "GET_CODE (XEXP (op, 0)) == UNSPEC")
+ 		 (match_test "XINT (XEXP (op, 0), 1) == UNSPEC_PLT")))))
+@@ -125,8 +126,8 @@
+       if (GET_CODE (XEXP (op, 1)) != CONST_INT
+           || (INTVAL (XEXP (op, 1)) & 1) != 0)
+         return false;
+-      if (INTVAL (XEXP (op, 1)) >= (HOST_WIDE_INT)1 << 32
+-	  || INTVAL (XEXP (op, 1)) < -((HOST_WIDE_INT)1 << 32))
++      if (INTVAL (XEXP (op, 1)) >= (HOST_WIDE_INT)1 << 31
++	  || INTVAL (XEXP (op, 1)) < -((HOST_WIDE_INT)1 << 31))
+         return false;
+       op = XEXP (op, 0);
+     }
+--- gcc-4.1.1/gcc/config/s390/s390.c
++++ gcc-4.1.2/gcc/config/s390/s390.c
+@@ -767,6 +767,24 @@
+   return ret;
+ }
+ 
++/* Emit a SImode compare and swap instruction setting MEM to NEW if OLD
++   matches CMP.
++   Return the correct condition RTL to be placed in the IF_THEN_ELSE of the
++   conditional branch testing the result.  */
++
++static rtx
++s390_emit_compare_and_swap (enum rtx_code code, rtx old, rtx mem, rtx cmp, rtx new)
++{
++  rtx ret;
++
++  emit_insn (gen_sync_compare_and_swap_ccsi (old, mem, cmp, new));
++  ret = gen_rtx_fmt_ee (code, VOIDmode, s390_compare_emitted, const0_rtx);
++
++  s390_compare_emitted = NULL_RTX;
++
++  return ret;
++}
++
+ /* Emit a jump instruction to TARGET.  If COND is NULL_RTX, emit an
+    unconditional jump, else a conditional jump under condition COND.  */
+ 
+@@ -2823,6 +2841,8 @@
+   rtx new = orig;
+   rtx base;
+ 
++  gcc_assert (!TLS_SYMBOLIC_CONST (addr));
++
+   if (GET_CODE (addr) == LABEL_REF
+       || (GET_CODE (addr) == SYMBOL_REF && SYMBOL_REF_LOCAL_P (addr)))
+     {
+@@ -2975,13 +2995,20 @@
+       if (GET_CODE (addr) == PLUS)
+ 	{
+ 	  rtx op0 = XEXP (addr, 0), op1 = XEXP (addr, 1);
++
++	  gcc_assert (!TLS_SYMBOLIC_CONST (op0));
++	  gcc_assert (!TLS_SYMBOLIC_CONST (op1));
++
+ 	  /* Check first to see if this is a constant offset
+              from a local symbol reference.  */
+ 	  if ((GET_CODE (op0) == LABEL_REF
+ 		|| (GET_CODE (op0) == SYMBOL_REF && SYMBOL_REF_LOCAL_P (op0)))
+ 	      && GET_CODE (op1) == CONST_INT)
+ 	    {
+-              if (TARGET_CPU_ZARCH && larl_operand (op0, VOIDmode))
++              if (TARGET_CPU_ZARCH
++		  && larl_operand (op0, VOIDmode)
++		  && INTVAL (op1) < (HOST_WIDE_INT)1 << 31
++		  && INTVAL (op1) >= -((HOST_WIDE_INT)1 << 31))
+                 {
+                   if (INTVAL (op1) & 1)
+                     {
+@@ -2991,7 +3018,7 @@
+ 
+                       if (!DISP_IN_RANGE (INTVAL (op1)))
+                         {
+-                          int even = INTVAL (op1) - 1;
++                          HOST_WIDE_INT even = INTVAL (op1) - 1;
+                           op0 = gen_rtx_PLUS (Pmode, op0, GEN_INT (even));
+ 			  op0 = gen_rtx_CONST (Pmode, op0);
+                           op1 = const1_rtx;
+@@ -3347,6 +3374,12 @@
+       if (legitimate_address_p (mode, x, FALSE))
+ 	return x;
+     }
++  else if (GET_CODE (x) == PLUS
++	   && (TLS_SYMBOLIC_CONST (XEXP (x, 0)) 
++	       || TLS_SYMBOLIC_CONST (XEXP (x, 1))))
++    {
++      return x;
++    }
+   else if (flag_pic)
+     {
+       if (SYMBOLIC_CONST (x)
+@@ -4160,11 +4193,9 @@
+     newv = force_reg (SImode, expand_simple_binop (SImode, IOR, new, val,
+ 						   NULL_RTX, 1, OPTAB_DIRECT));
+ 
+-  /* Emit compare_and_swap pattern.  */
+-  emit_insn (gen_sync_compare_and_swap_ccsi (res, ac.memsi, cmpv, newv));
+-      
+   /* Jump to end if we're done (likely?).  */
+-  s390_emit_jump (csend, s390_emit_compare (EQ, cmpv, ac.memsi));
++  s390_emit_jump (csend, s390_emit_compare_and_swap (EQ, res, ac.memsi,
++						     cmpv, newv));
+ 
+   /* Check for changes outside mode.  */
+   resv = expand_simple_binop (SImode, AND, res, ac.modemaski, 
+@@ -4257,13 +4288,9 @@
+     default:
+       gcc_unreachable ();
+     }
+-  /* Emit compare_and_swap pattern.  */
+-  emit_insn (gen_sync_compare_and_swap_ccsi (cmp, ac.memsi, cmp, new));
+ 
+-  /* Loop until swapped (unlikely?).  */
+-  s390_emit_jump (csloop, gen_rtx_fmt_ee (NE, CCZ1mode,
+-					  gen_rtx_REG (CCZ1mode, CC_REGNUM),
+-					  const0_rtx));
++  s390_emit_jump (csloop, s390_emit_compare_and_swap (NE, cmp,
++						      ac.memsi, cmp, new));
+ 
+   /* Return the correct part of the bitfield.  */
+   if (target)
+@@ -6690,8 +6717,8 @@
+       /* Try to predict whether we'll need the base register.  */
+       base_used = cfun->machine->split_branches_pending_p
+ 		  || current_function_uses_const_pool
+-		  || (!DISP_IN_RANGE (-frame_size)
+-		      && !CONST_OK_FOR_K (-frame_size));
++		  || (!DISP_IN_RANGE (frame_size)
++		      && !CONST_OK_FOR_K (frame_size));
+ 
+       /* Decide which register to use as literal pool base.  In small
+ 	 leaf functions, try to use an unused call-clobbered register
+--- gcc-4.1.1/gcc/config/s390/s390.md
++++ gcc-4.1.2/gcc/config/s390/s390.md
+@@ -946,7 +946,11 @@
+   ""
+ {
+   /* Handle symbolic constants.  */
+-  if (TARGET_64BIT && SYMBOLIC_CONST (operands[1]))
++  if (TARGET_64BIT
++      && (SYMBOLIC_CONST (operands[1])
++	  || (GET_CODE (operands[1]) == PLUS
++	      && XEXP (operands[1], 0) == pic_offset_table_rtx
++	      && SYMBOLIC_CONST (XEXP (operands[1], 1)))))
+     emit_symbolic_move (operands);
+ })
+ 
+@@ -1197,7 +1201,11 @@
+   ""
+ {
+   /* Handle symbolic constants.  */
+-  if (!TARGET_64BIT && SYMBOLIC_CONST (operands[1]))
++  if (!TARGET_64BIT
++      && (SYMBOLIC_CONST (operands[1])
++	  || (GET_CODE (operands[1]) == PLUS
++	      && XEXP (operands[1], 0) == pic_offset_table_rtx
++	      && SYMBOLIC_CONST (XEXP(operands[1], 1)))))
+     emit_symbolic_move (operands);
+ })
+ 

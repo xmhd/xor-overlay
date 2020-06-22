@@ -1,0 +1,93 @@
+0.2.0	Magnus Granberg		<zorry@gentoo.org>
+
+		* hardenednopie.spec				Renamed esp_options_pie_check
+		to espf_link_pie_check
+
+0.1.9	Magnus Granberg		<zorry@gentoo.org>
+
+		* hardenednopiessp.spec				New file disable pie and ssp
+
+0.1.8	Magnus Granberg		<zorry@gentoo.org>
+
+		* README.Gentoo.patches				Updated links.
+
+0.1.7	Magnus Granberg		<zorry@ume.nu>
+
+		* hardenednopie.spec				new espf_options_pie_check
+		* vanilla.specs						new espf_cc1_strict_overflow: 
+		espf_link_now: 
+
+0.1.6	Magnus Grenberg		<zorry@ume.nu>
+
+		* strictoverflow.specs				new specs file 
+		espf_cc1_strict_overflow:			new specs
+		* vanilla							include strictoverflow.specs
+
+0.1.5	Magnus Granberg		<zorry@ume.nu>
+
+		* hardenednopie.specs				new espf_cc1_pie:
+		* hardenednossp.specs				new espf_cc1_ssp:
+
+0.1.4	Magnus Granberg		<zorry@ume.nu>
+
+		* nossp.specs						renamed to hardenednossp.specs
+		espf_cc1_options_ssp:				renamed to espf_options_ssp:
+		* nopie.specs						renamed to hardenednopie.specs
+		espf_compiler_command_pie:			renamed to espf_optios_pie:
+		espf_cc1_options_pie_incompatatible	removed
+		espf_link_command_pie:				renamed to espf_link_pie:
+		* noznow.specs						renamed to hardenednoznow.specs 
+		espf_link:							renamed to espf_link_now:
+		* vanilla.specs:					change nossp.specs to hardenednossp.specs
+		change nopie.specs to hardenednopie.specs
+		change noznow to hardenednoznow.specs
+
+0.1.3	Magnus Granberg		<zorry@ume.nu>
+
+		* nofortify.specs					removed
+		* strict.specs						removed
+		* nossp.specs	espf_cc1_ssp:		renamed to espf_cc1_options_ssp:
+		* nopie.specs	espf_cc1_pie:		renamed to espf_compiler_command_pie:
+		crtfile_gen							removed
+		crtbegin_t_gen:						removed
+		crtend_gen:							removed
+		link_pie:							removed
+		espf_cc1_options:					renamed espf_cc1_options_pie_incompatible:
+		espf_link_command_pie:				new
+		* noznow.specs	link_now:			removed %{nonow:}
+		* vanilla.specs		espf_cc1:		removed
+		nofortify.specs						removed
+		strict.specs						removed
+
+0.1.2	Magnus Granberg		<zorry@ume.nu>
+
+		* strict.specs						new
+		* vanilla.specs		strict.specs	new
+
+0.1.1	Magnus Granberg		<zorry@ume.nu>
+
+		* nofortify.specs	default_fortify:	renamed to espf_cpp_unique_options:
+		* nossp.specs		ssp_default:		renamed to espf_cc1_ssp:
+		* nossp_all.specs						removed
+		* nopie.specs		pie_default:		renamed to espf_cc1_pie:
+		pie_incompatible:						renamed to espf_cc1_options:
+		* strict.specs							removed
+		* vanilla.specs							removed strict.specs
+
+0.1.0 	Magnus Granberg		<zorry@ume.nu>
+
+		* fortify.specs							removed
+		* ssp.specs								removed
+		* sspall.specs							removed
+		* pie.specs								removed
+		* znow.specs							removed
+		* nofortify.specs	ccp_fortify:		renamed to default_fortify:
+		* nossp.specs		cc1_ssp:			renamed to ssp_default:
+		* nossp_all.specs						removed nosspall.specs
+		* nopie.specs		asm_pie:			removed
+		cc1_pie:								renamed	to pie_default:
+		hardend_crtfile_gen:					renamed to crtfile_gen:
+		hardeend_startfile_gen:					renamed to crtbegin_t_gen:
+		endfile_pie_gen:						renamed to crtend_gen:
+
+gcc-4.3.2-specs-0.9.12

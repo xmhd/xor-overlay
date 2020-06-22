@@ -1,0 +1,54 @@
+2	Abandoned
+	+ 97_all_remove-thread_local.patch
+
+1.6		1 Jun 2019
+	+ 96_all_libjava-ucontext.patch
+
+1.5		23 Sep 2018
+	+ 34_all_libjava-classpath-locale-sort.patch
+	+ 95_all_ucontext-to-ucontext_t.patch
+
+1.4		07 Aug 2015
+	+ 72_all_gcc-gperf-gnu-inline.patch
+
+1.3		27 May 2015
+	+ 45_all_linux-pthread-reentrant.patch
+	- 74_all_gcc46_cloog-dl.patch
+	- 90_all_gcc-4.7-x32.patch
+
+1.2     29 Sep 2014
+	+ 94_all_pr60155.patch
+
+1.1		31 Jul 2014
+	U 90_all_gcc-4.7-x32.patch
+
+1.0		17 Jun 2014
+	+ 10_all_default-fortify-source.patch
+	+ 11_all_default-warn-format-security.patch
+	+ 12_all_default-warn-trampolines.patch
+	+ 15_all_libgfortran-Werror.patch
+	+ 15_all_libgomp-Werror.patch
+	+ 16_all_libgo-Werror-pr53679.patch
+	+ 17_all_libitm-Werror.patch
+	+ 18_all_libgcc-cross-canadian.patch
+	+ 20_all_msgfmt-libstdc++-link.patch
+	+ 25_all_alpha-mieee-default.patch
+	+ 26_all_alpha-asm-mcpu.patch
+	+ 29_all_arm_armv4t-default.patch
+	+ 30_all_arm_armv4-no-thumb-fix-link.patch
+	+ 33_all_armhf.patch
+	+ 34_all_ia64_note.GNU-stack.patch
+	+ 38_all_sh_pr24836_all-archs.patch
+	+ 39_all_gfortran-sysroot-pr54725.patch
+	+ 42_all_superh_default-multilib.patch
+	+ 48_all_x86_pr53113_libitm-avx.patch
+	+ 49_all_x86_pr52695_libitm-m64.patch
+	+ 50_all_libiberty-asprintf.patch
+	+ 51_all_libiberty-pic.patch
+	+ 52_all_netbsd-Bsymbolic.patch
+	+ 67_all_gcc-poison-system-directories.patch
+	+ 74_all_gcc47_cloog-dl.patch
+	+ 90_all_gcc-4.7-x32.patch
+	+ 91_all_4.8.0_arm-plugin-headers.patch
+	+ 92_all_freebsd-pie.patch
+	+ 93_all_4.8.0_gengtype-lex_parallel_build.patch

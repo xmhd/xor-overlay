@@ -1,0 +1,215 @@
+2011-12-07	Magnus Granberg		<zorry@gentoo.org>, Anthony G. Basile	<basile@opensource.dyc.edu>
+
+		* configure		Add --enable-esp.  Add-fno-stack-protector
+		to stage1_cflags.
+		* gcc/configure		Add --enable-esp. Check -z now and -z relro.
+		Define ENABLE_ESP.
+		Check if we support crtbeginP and define ENABLE_CRTBEGINP.
+		* libmudflap/configure		Add AC_SUBST enable_esp.
+
+
+--- configure	2010-01-31 13:12:21.000000000 -0500
++++ configure	2010-02-07 14:29:51.000000000 -0500
+@@ -707,6 +707,7 @@
+ CFLAGS
+ CC
+ target_subdir
++enable_esp
+ host_subdir
+ build_subdir
+ build_libsubdir
+@@ -934,6 +934,11 @@
+   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+   --enable-gold           use gold instead of ld
+   --enable-libada         build libada directory
++  --enable-esp
++			   Enable Stack protector, Position independent executable as
++			   default if we have suppot for it when compiling
++			   and link with -z relro and -z now as default.
++			   Linux targets supported i*86, x86_64, powerpc, powerpc64, ia64 and arm
+   --enable-libssp         build libssp directory
+   --disable-ppl-version-check    disable check for PPL version
+   --disable-cloog-version-check  disable check for CLooG version
+@@ -2145,6 +2150,25 @@
+   noconfigdirs="$noconfigdirs gnattools"
+ fi
+ 
++# Check whether --enable-esp was given and target have the support.
++# Check whether --enable-esp or --disable-esp was given.
++if test "${enable_esp+set}" = set; then
++  enableval="$enable_esp"
++
++  case $target in
++    i?86*-*-linux* | x86_64*-*-linux* | powerpc-*-linux* | powerpc64-*-linux* | arm*-*-linux* | ia64-*-linux*)
++      enable_esp=yes
++      ;;
++    *)
++      { { echo "$as_me:$LINENO: error: *** --enable-esp is not supported on this $target target." >&5
++echo "$as_me: error: *** --enable-esp is not supported on this $target target." >&2;}
++   { (exit 1); exit 1; }; }
++      ;;
++  esac
++
++fi;
++
++
+ # Check whether --enable-libssp was given.
+ if test "${enable_libssp+set}" = set; then :
+   enableval=$enable_libssp; ENABLE_LIBSSP=$enableval
+@@ -14266,6 +14290,9 @@
+       *) stage1_cflags="-g -J" ;;
+     esac ;;
+ esac
++if test x$enable_esp = xyes; then
++       stage1_cflags="$stage1_cflags -fno-stack-protector"
++fi
+ 
+ # This is aimed to mimic bootstrap with a non-GCC compiler to catch problems.
+ if test "$GCC" = yes -a "$ENABLE_BUILD_WITH_CXX" != yes; then
+--- gcc/configure	2010-01-31 10:01:53.000000000 -0500
++++ gcc/configure	2010-02-07 14:29:56.000000000 -0500
+@@ -678,6 +678,8 @@
+ HOST_LIBS
+ GGC
+ libgcc_visibility
++enable_esp
++enable_crtbeginP
+ gcc_cv_readelf
+ gcc_cv_objdump
+ ORIGINAL_NM_FOR_TARGET
+@@ -24480,6 +24481,50 @@
+     ;;
+ esac
+ 
++echo "$as_me:$LINENO: checking linker -z now support" >&5
++echo $ECHO_N "checking linker -z now support... $ECHO_C" >&6
++if test "${gcc_cv_ld_now+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
++else
++  gcc_cv_ld_now=no
++if test $in_tree_ld = yes ; then
++  if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 16 -o "$gcc_cv_gld_major_version" -gt 2 \
++     && test $in_tree_ld_is_elf = yes; then
++    gcc_cv_ld_now=yes
++  fi
++elif test x$gcc_cv_ld != x; then
++       # Check if linker supports -z now options
++       if $gcc_cv_ld --help 2>/dev/null | grep now > /dev/null; then
++               gcc_cv_ld_now=yes
++       fi
++fi
++
++fi
++echo "$as_me:$LINENO: result: $gcc_cv_ld_now" >&5
++echo "${ECHO_T}$gcc_cv_ld_now" >&6
++
++echo "$as_me:$LINENO: checking linker -z relro support" >&5
++echo $ECHO_N "checking linker -z relro support... $ECHO_C" >&6
++if test "${gcc_cv_ld_relro+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
++else
++  gcc_cv_ld_relro=no
++if test $in_tree_ld = yes ; then
++  if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 16 -o "$gcc_cv_gld_major_version" -gt 2 \
++     && test $in_tree_ld_is_elf = yes; then
++    gcc_cv_ld_relro=yes
++  fi
++elif test x$gcc_cv_ld != x; then
++       # Check if linker supports -z relro and -z norelro options
++       if $gcc_cv_ld --help 2>/dev/null | grep relro > /dev/null; then
++               gcc_cv_ld_relro=yes
++       fi
++fi
++
++fi
++echo "$as_me:$LINENO: result: $gcc_cv_ld_relro" >&5
++echo "${ECHO_T}$gcc_cv_ld_relro" >&6
++
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking linker --build-id support" >&5
+ $as_echo_n "checking linker --build-id support... " >&6; }
+ if test "${gcc_cv_ld_buildid+set}" = set; then :
+@@ -24411,6 +23745,74 @@
+ 
+ fi
+ 
++if test x$enable_esp = xyes ; then
++case $target in
++		ia64*-*-linux*)
++			if test x$gcc_cv_ld_now = xyes; then
++				enable_esp_ld=yes
++			else
++				enable_esp_ld=no
++			fi
++			;;
++		*-*-linux*)
++			if test x$gcc_cv_ld_relro = xyes && test x$gcc_cv_ld_now = xyes; then
++				enable_esp_ld=yes
++			else
++				enable_esp_ld=no
++			fi
++			;;
++		*)
++			enable_esp_ld=no
++			;;
++	esac
++else
++	enable_espf_ld=no
++fi
++if test x$enable_esp_ld = xyes; then
++
++cat >>confdefs.h <<\_ACEOF
++#define ENABLE_ESP 1
++_ACEOF
++
++fi
++
++if test x$enable_esp = xyes && test x$enable_esp_ld = xno; then
++	{ { echo "$as_me:$LINENO: error: *** --enable-esp is not supported. You don't have -z,relro or -z,now support in the linker." >&5
++echo "$as_me: error: *** --enable-esp is not supported. You don't have -z,relro or -z,now support in the linker." >&2;}
++   { (exit 1); exit 1; }; }
++fi
++
++echo "$as_me:$LINENO: checking for crtbeginP.o support" >&5
++echo $ECHO_N "checking for crtbeginP.o support... $ECHO_C" >&6
++if test "${enable_crtbeginP+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
++else
++
++if test x$enable_esp = xyes ; then
++	case "$target" in
++	  ia64*-*-linux*)
++			enable_crtbeginP=no ;;
++      *-*-linux*)
++		if test x$gcc_cv_ld_pie = xyes && test x$lt_cv_prog_compiler_static_works = xyes; then
++			enable_crtbeginP=yes
++     	fi
++		;;
++  	  *) enable_crtbeginP=no ;;
++    esac
++fi
++
++fi
++echo "$as_me:$LINENO: result: $enable_crtbeginP" >&5
++echo "${ECHO_T}$enable_crtbeginP" >&6
++
++if test x$enable_crtbeginP = xyes; then
++
++cat >>confdefs.h <<\_ACEOF
++#define ENABLE_CRTBEGINP 1
++_ACEOF
++
++fi
++
+ # Check if TFmode long double should be used by default or not.
+ # Some glibc targets used DFmode long double, but with glibc 2.4
+ # and later they can use TFmode.
+--- libmudflap/configure	2009-12-05 12:18:53.000000000 -0500
++++ libmudflap/configure	2010-02-07 14:29:51.000000000 -0500
+@@ -652,6 +652,7 @@
+ MAINTAINER_MODE_FALSE
+ MAINTAINER_MODE_TRUE
+ am__untar
++enable_esp
+ am__tar
+ AMTAR
+ am__leading_dot

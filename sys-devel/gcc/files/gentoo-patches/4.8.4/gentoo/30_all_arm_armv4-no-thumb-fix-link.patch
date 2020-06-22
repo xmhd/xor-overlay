@@ -1,0 +1,52 @@
+From 73aa8c34427a4282930ca8667165d844ee698859 Mon Sep 17 00:00:00 2001
+From: Mike Frysinger <vapier@gentoo.org>
+Date: Fri, 19 Apr 2013 16:32:28 -0400
+Subject: [PATCH] gcc: arm: linux-eabi: fix handling of armv4 bx fixups when
+ linking
+
+The bpabi.h header already sets up defines to automatically use the
+--fix-v4bx flag with the assembler & linker as needed, and creates a
+default assembly & linker spec which uses those.  Unfortunately, the
+linux-eabi.h header clobbers the LINK_SPEC define and doesn't include
+the v4bx define when setting up its own.  So while the assembler spec
+is retained and works fine to generate the right relocs, building for
+armv4 targets doesn't invoke the linker correctly so all the relocs
+get processed as if we had an armv4t target.
+
+You can see this with -dumpspecs when configuring gcc for an armv4
+target and using --with-arch=armv4:
+$ armv4l-unknown-linux-gnueabi-gcc -dumpspecs |& grep -B 1 fix-v4bx
+*subtarget_extra_asm_spec:
+.... %{mcpu=arm8|mcpu=arm810|mcpu=strongarm*|march=armv4|mcpu=fa526|mcpu=fa626:--fix-v4bx} ...
+
+With this fix in place, we also get the link spec:
+$ armv4l-unknown-linux-gnueabi-gcc -dumpspecs |& grep -B 1 fix-v4bx
+*link:
+...  %{mcpu=arm8|mcpu=arm810|mcpu=strongarm*|march=armv4|mcpu=fa526|mcpu=fa626:--fix-v4bx} ...
+
+And all my hello world tests / glibc builds automatically turn the
+bx insn into the 'mov pc, lr' insn and all is right in the world.
+
+Signed-off-by: Mike Frysinger <vapier@gentoo.org>
+
+2013-04-19  Mike Frysinger  <vapier@gentoo.org>
+
+	* config/arm/linux-eabi.h (LINK_SPEC): Add TARGET_FIX_V4BX_SPEC.
+---
+ gcc/config/arm/linux-eabi.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/gcc/config/arm/linux-eabi.h
++++ b/gcc/config/arm/linux-eabi.h
+@@ -80,7 +80,7 @@
+ /* At this point, bpabi.h will have clobbered LINK_SPEC.  We want to
+    use the GNU/Linux version, not the generic BPABI version.  */
+ #undef  LINK_SPEC
+-#define LINK_SPEC BE8_LINK_SPEC						\
++#define LINK_SPEC TARGET_FIX_V4BX_SPEC BE8_LINK_SPEC			\
+   LINUX_OR_ANDROID_LD (LINUX_TARGET_LINK_SPEC,				\
+ 		       LINUX_TARGET_LINK_SPEC " " ANDROID_LINK_SPEC)
+ 
+-- 
+1.8.2.1
+

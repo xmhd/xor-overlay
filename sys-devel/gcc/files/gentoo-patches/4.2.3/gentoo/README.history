@@ -1,0 +1,33 @@
+1.1		[pending]
+	- 00_all_gcc-trampolinewarn.patch
+	- 03_all_gcc4-java-nomulti.patch
+	+ 56_all_gcc-4-pr32177.patch
+	+ 65_all_gcc-hppa-pr34627.patch
+
+1.0		16 Feb 2008
+	+ 00_all_gcc-4.1-alpha-mieee-default.patch
+	+ 00_all_gcc-trampolinewarn.patch
+	+ 01_all_gcc4-ice-hack.patch
+	+ 02_all_gcc4-ppc64-m32-m64-multilib-only.patch
+	+ 03_all_gcc4-java-nomulti.patch
+	+ 06_all_gcc4-slow-pthread-self.patch
+	+ 08_all_gcc-4.1-cross-compile.patch
+	+ 10_all_gcc4-libltdl-multilib.patch
+	+ 11_all_gcc-netbsd-symbolic.patch
+	+ 14_all_gcc-sparc64-bsd.patch
+	+ 18_all_904-flatten-switch-stmt-00.patch
+	+ 20_all_cris-dont-force-limits-header.patch
+	+ 34_all_arm-bigendian.patch
+	+ 35_all_gcc-arm-pragma-pack.patch
+	+ 36_all_gcc-arm-pr30486.patch
+	+ 51_all_gcc-3.4-libiberty-pic.patch
+	+ 53_all_gcc4-superh-default-multilib.patch
+	+ 54_all_300-libstdc++-pic.patch
+	+ 59_all_gcc-4-pr32893.patch
+	+ 61_all_gcc4-ia64-noteGNUstack.patch
+	+ 62_all_gcc4-noteGNUstack.patch
+	+ 74_all_sh-pr24836.patch
+	+ 85_all_gcc-ca-translation-typo.patch
+	+ 90_all_mips-add-march-r10k.patch
+	+ 91_all_mips-ip28_cache_barriers-v4.patch
+	+ 92_all_mips-pthread-with-shared.patch

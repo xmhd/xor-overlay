@@ -1,0 +1,34 @@
+1.3		[pending]
+	- 00_all_gcc-trampolinewarn.patch
+	- 03_all_gcc43-java-nomulti.patch
+	+ 05_all_gcc-4.5.x-siginfo.patch
+	+ 69_all-gcc43-pr38591-depend.patch
+
+1.2		10 May 2008
+	R 62_all_gcc43-pr27880.patch
+	+ 65_all_gcc43-pr35982.patch
+	+ 66_all_gcc43-pr25343.patch
+
+1.1		20 Apr 2008
+	+ 20_all_gcc-x86-emit-cld.patch
+	+ 60_all_gcc43-pr35440.patch
+	+ 61_all_gcc4-ia64-noteGNUstack.patch
+	+ 61_all_gcc43-pr24170.patch
+	+ 62_all_gcc4-noteGNUstack.patch
+	+ 62_all_gcc43-pr27880.patch
+	+ 63_all_gcc43-pr35705.patch
+	+ 64_all_gcc43-pr34571.patch
+
+1.0		16 Mar 2008
+	+ 00_all_gcc-4.1-alpha-mieee-default.patch
+	+ 00_all_gcc-trampolinewarn.patch
+	+ 03_all_gcc43-java-nomulti.patch
+	+ 08_all_gcc-4.1-cross-compile.patch
+	+ 11_all_gcc-netbsd-symbolic.patch
+	+ 14_all_gcc-sparc64-bsd.patch
+	+ 18_all_904-flatten-switch-stmt-00.patch
+	+ 51_all_gcc-3.4-libiberty-pic.patch
+	+ 53_all_gcc4-superh-default-multilib.patch
+	+ 54_all_300-libstdc++-pic.patch
+	+ 74_all_sh-pr24836.patch
+	+ 85_all_gcc-ca-translation-typo.patch

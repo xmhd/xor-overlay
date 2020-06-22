@@ -1,0 +1,32 @@
+1.2		[pending]
+	U 09_all_default-ssp.patch
+	U 74_all_gcc49_cloog-dl.patch
+
+1.1		15 Jun 2014
+	+ 93_all_4.9.0_pr60155.patch
+
+1.0		01 Jun 2014
+	+ 09_all_default-ssp.patch
+	+ 10_all_default-fortify-source.patch
+	+ 11_all_default-warn-format-security.patch
+	+ 12_all_default-warn-trampolines.patch
+	+ 15_all_libgfortran-Werror.patch
+	+ 16_all_libgomp-Werror.patch
+	+ 17_all_libitm-Werror.patch
+	+ 18_all_libatomic-Werror.patch
+	+ 19_all_libbacktrace-Werror.patch
+	+ 25_all_alpha-mieee-default.patch
+	+ 26_all_alpha-asm-mcpu.patch
+	+ 29_all_arm_armv4t-default.patch
+	+ 30_all_arm_armv4-no-thumb-fix-link.patch
+	+ 34_all_ia64_note.GNU-stack.patch
+	+ 38_all_sh_pr24836_all-archs.patch
+	+ 42_all_superh_default-multilib.patch
+	+ 48_all_x86_pr53113_libitm-avx.patch
+	+ 50_all_libiberty-asprintf.patch
+	+ 51_all_libiberty-pic.patch
+	+ 52_all_netbsd-Bsymbolic.patch
+	+ 67_all_gcc-poison-system-directories.patch
+	+ 74_all_gcc48_cloog-dl.patch
+	+ 90_all_pr55930-dependency-tracking.patch
+	+ 92_all_freebsd-pie.patch

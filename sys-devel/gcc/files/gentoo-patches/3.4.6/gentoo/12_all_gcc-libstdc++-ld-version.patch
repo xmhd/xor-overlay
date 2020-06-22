@@ -1,0 +1,108 @@
+http://bugs.gentoo.org/175900
+
+2007-04-23  Matthias Klose  <doko@debian.org>
+
+	Backport from mainline:
+	2007-02-27  Richard Guenther  <rguenther@suse.de>
+
+	* acinclude.m4: Adjust regular expression for ld version extraction.
+	* configure: Regenerate.
+
+Index: libstdc++-v3/acinclude.m4
+===================================================================
+--- libstdc++-v3/acinclude.m4	(revision 124063)
++++ libstdc++-v3/acinclude.m4	(revision 124064)
+@@ -225,7 +225,7 @@ AC_DEFUN([GLIBCXX_CHECK_LINKER_FEATURES]
+   # does some of this, but throws away the result.
+   changequote(,)
+   ldver=`$LD --version 2>/dev/null | head -1 | \
+-         sed -e 's/GNU ld version \([0-9.][0-9.]*\).*/\1/'`
++         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+   changequote([,])
+   glibcxx_gnu_ld_version=`echo $ldver | \
+          $AWK -F. '{ if (NF<3) [$]3=0; print ([$]1*100+[$]2)*100+[$]3 }'`
+Index: libstdc++-v3/configure
+===================================================================
+--- libstdc++-v3/configure	(revision 124063)
++++ libstdc++-v3/configure	(revision 124064)
+@@ -8281,7 +8281,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+   # does some of this, but throws away the result.
+ 
+   ldver=`$LD --version 2>/dev/null | head -1 | \
+-         sed -e 's/GNU ld version \([0-9.][0-9.]*\).*/\1/'`
++         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+ 
+   glibcxx_gnu_ld_version=`echo $ldver | \
+          $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
+@@ -53122,7 +53122,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+   # does some of this, but throws away the result.
+ 
+   ldver=`$LD --version 2>/dev/null | head -1 | \
+-         sed -e 's/GNU ld version \([0-9.][0-9.]*\).*/\1/'`
++         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+ 
+   glibcxx_gnu_ld_version=`echo $ldver | \
+          $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
+@@ -74456,7 +74456,7 @@ done
+   # does some of this, but throws away the result.
+ 
+   ldver=`$LD --version 2>/dev/null | head -1 | \
+-         sed -e 's/GNU ld version \([0-9.][0-9.]*\).*/\1/'`
++         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+ 
+   glibcxx_gnu_ld_version=`echo $ldver | \
+          $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
+@@ -75953,7 +75953,7 @@ done
+   # does some of this, but throws away the result.
+ 
+   ldver=`$LD --version 2>/dev/null | head -1 | \
+-         sed -e 's/GNU ld version \([0-9.][0-9.]*\).*/\1/'`
++         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+ 
+   glibcxx_gnu_ld_version=`echo $ldver | \
+          $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
+@@ -77326,7 +77326,7 @@ done
+   # does some of this, but throws away the result.
+ 
+   ldver=`$LD --version 2>/dev/null | head -1 | \
+-         sed -e 's/GNU ld version \([0-9.][0-9.]*\).*/\1/'`
++         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+ 
+   glibcxx_gnu_ld_version=`echo $ldver | \
+          $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
+@@ -79486,7 +79486,7 @@ done
+   # does some of this, but throws away the result.
+ 
+   ldver=`$LD --version 2>/dev/null | head -1 | \
+-         sed -e 's/GNU ld version \([0-9.][0-9.]*\).*/\1/'`
++         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+ 
+   glibcxx_gnu_ld_version=`echo $ldver | \
+          $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
+@@ -80305,7 +80305,7 @@ done
+   # does some of this, but throws away the result.
+ 
+   ldver=`$LD --version 2>/dev/null | head -1 | \
+-         sed -e 's/GNU ld version \([0-9.][0-9.]*\).*/\1/'`
++         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+ 
+   glibcxx_gnu_ld_version=`echo $ldver | \
+          $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
+@@ -81680,7 +81680,7 @@ done
+   # does some of this, but throws away the result.
+ 
+   ldver=`$LD --version 2>/dev/null | head -1 | \
+-         sed -e 's/GNU ld version \([0-9.][0-9.]*\).*/\1/'`
++         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+ 
+   glibcxx_gnu_ld_version=`echo $ldver | \
+          $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`
+@@ -83447,7 +83447,7 @@ echo "${ECHO_T}$glibcxx_cv_WRITEV" >&6
+   # does some of this, but throws away the result.
+ 
+   ldver=`$LD --version 2>/dev/null | head -1 | \
+-         sed -e 's/GNU ld version \([0-9.][0-9.]*\).*/\1/'`
++         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+ 
+   glibcxx_gnu_ld_version=`echo $ldver | \
+          $AWK -F. '{ if (NF<3) $3=0; print ($1*100+$2)*100+$3 }'`

@@ -1,0 +1,55 @@
+From 8cf9f4c372c8037046f91636fe820278ed3c7935 Mon Sep 17 00:00:00 2001
+From: Richard Henderson <rth@redhat.com>
+Date: Wed, 14 Jul 1999 17:32:02 +0000
+Subject: [PATCH]         * argv.c: Include stdlib.h and string.h instead of  
+       prototyping directly.         * choose-temp.c:
+ Conditionally include string.h.
+
+---
+ libiberty/ChangeLog     | 6 ++++++
+ libiberty/argv.c        | 8 ++------
+ libiberty/choose-temp.c | 3 +++
+ 3 files changed, 11 insertions(+), 6 deletions(-)
+
+1999-07-14  Richard Henderson  <rth@cygnus.com>
+
+	* argv.c: Include stdlib.h and string.h instead of
+	prototyping directly.
+	* choose-temp.c: Conditionally include string.h.
+
+diff --git a/libiberty/argv.c b/libiberty/argv.c
+index 85c17e9..f596ffd 100644
+--- a/libiberty/argv.c
++++ b/libiberty/argv.c
+@@ -35,12 +35,8 @@ Boston, MA 02111-1307, USA.  */
+ #ifdef __STDC__
+ 
+ #include <stddef.h>
+-extern void *memcpy (void *s1, const void *s2, size_t n);	/* 4.11.2.1 */
+-extern size_t strlen (const char *s);				/* 4.11.6.3 */
+-extern void *malloc (size_t size);				/* 4.10.3.3 */
+-extern void *realloc (void *ptr, size_t size);			/* 4.10.3.4 */
+-extern void free (void *ptr);					/* 4.10.3.2 */
+-extern char *strdup (const char *s);				/* Non-ANSI */
++#include <string.h>
++#include <stdlib.h>
+ 
+ #else	/* !__STDC__ */
+ 
+diff --git a/libiberty/choose-temp.c b/libiberty/choose-temp.c
+index 49c7386..7aae318 100644
+--- a/libiberty/choose-temp.c
++++ b/libiberty/choose-temp.c
+@@ -34,6 +34,9 @@ Boston, MA 02111-1307, USA.  */
+ #ifdef HAVE_STDLIB_H
+ #include <stdlib.h>
+ #endif
++#ifdef HAVE_STRING_H
++#include <string.h>
++#endif
+ #ifdef HAVE_SYS_FILE_H
+ #include <sys/file.h>   /* May get R_OK, etc. on some systems.  */
+ #endif
+-- 
+1.8.0
+

@@ -1,0 +1,14 @@
+Change the minimal SSP buffer size.
+
+https://bugs.gentoo.org/484714
+--- a/gcc/params.def	2016-03-30 09:47:40.000000000 +0200
++++ b/gcc/params.def	2016-09-19 12:56:58.443179039 +0200
+@@ -673,7 +673,7 @@ DEFPARAM (PARAM_INTEGER_SHARE_LIMIT,
+ DEFPARAM (PARAM_SSP_BUFFER_SIZE,
+ 	  "ssp-buffer-size",
+ 	  "The lower bound for a buffer to be considered for stack smashing protection.",
+-	  8, 1, 0)
++	  4, 1, 0)
+ 
+ DEFPARAM (PARAM_MIN_SIZE_FOR_STACK_SHARING,
+ 	  "min-size-for-stack-sharing",

@@ -1,0 +1,47 @@
+1.4		[pending]
+	- 00_all_gcc-trampolinewarn.patch
+	- 03_all_gcc43-java-nomulti.patch
+	+ 05_all_gcc-4.5.x-siginfo.patch
+	- 10_all_gcc-default-format-security.patch
+	- 10_all_gcc-default-fortify-source.patch
+	+ 15_all_libgfortran-Werror.patch
+	+ 27_all_gcj-glibc-2.15-pr50888.patch
+
+1.3		02 Jul 2011
+	+ 30_all_gcc-4.4-ppc-msingle-pic-base.patch
+	+ 31_all_gcc-4.4-ppc-fpic-mrelocatable.patch
+	+ 41_all_4.4.5-msabi.patch
+	+ 62_all_gcc-4.4-ia64-pr43603.patch
+
+1.2		12 Feb 2011
+	+ 60_all_4.4.5_hppa-wrong-code.patch
+
+1.1		29 Nov 2010
+	+ 05_all_gcc44-pr46173-all-tree.patch
+
+1.0		17 Oct 2010
+	+ 00_all_gcc-4.1-alpha-mieee-default.patch
+	+ 00_all_gcc-trampolinewarn.patch
+	+ 01_all_gcc-4.1-alpha-asm-mcpu.patch
+	+ 02_all_gcc-4.4-libgcj-as-needed-PR38298.patch
+	+ 03_all_gcc43-java-nomulti.patch
+	+ 08_all_gcc-4.1-cross-compile.patch
+	+ 10_all_gcc-default-format-security.patch
+	+ 10_all_gcc-default-fortify-source.patch
+	+ 11_all_gcc-netbsd-symbolic.patch
+	+ 14_all_gcc-sparc64-bsd.patch
+	+ 15_all_gcc-libgomp-no-werror.patch
+	+ 16_all_gcc-sparc-fbsd-c++-exceptions.patch
+	+ 18_all_904-flatten-switch-stmt-00.patch
+	+ 20_all_mudflap-setuid-env.patch
+	+ 40_all_gcc-4.4-libiberty.h-asprintf.patch
+	+ 47_all_arm-unbreak-armv4t.patch
+	+ 51_all_gcc-3.4-libiberty-pic.patch
+	+ 53_all_gcc4-superh-default-multilib.patch
+	+ 61_all_gcc4-ia64-noteGNUstack.patch
+	+ 73_all_sh-libgcc-stacks.patch
+	+ 74_all_sh-pr24836.patch
+	+ 90_all_gcc-freebsd.patch
+	+ 91_all_gcc-freebsd.patch
+	+ 93_all_gcc-4.4-cloog-dl.patch
+	+ 96_all_arm-pr43440.patch

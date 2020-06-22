@@ -1,0 +1,14 @@
+1.0		24 Dec 2016
+	+ 10_all_default-fortify-source.patch
+	+ 11_all_default-warn-format-security.patch
+	+ 12_all_default-warn-trampolines.patch
+	+ 13_all_default-ssp-fix.patch
+	+ 25_all_alpha-mieee-default.patch
+	+ 29_all_arm_armv4t-default.patch
+	+ 34_all_ia64_note.GNU-stack.patch
+	+ 42_all_superh_default-multilib.patch
+	+ 50_all_libiberty-asprintf.patch
+	+ 51_all_libiberty-pic.patch
+	+ 54_all_nopie-all-flags.patch
+	+ 55_all_extra-options.patch
+	+ 90_all_pr55930-dependency-tracking.patch

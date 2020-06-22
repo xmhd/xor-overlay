@@ -1,0 +1,195 @@
+From fbbaa06361e4835304307f496d2302747f0fb2bd Mon Sep 17 00:00:00 2001
+From: uros <uros@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 20 Feb 2015 07:07:00 +0000
+Subject: [PATCH] 	Backport from mainline 	2013-09-08  Richard Sandiford 
+ <rdsandiford@googlemail.com>
+
+	* ira.c (update_equiv_regs): Only call set_paradoxical_subreg
+	for non-debug insns.
+	* lra.c (new_insn_reg): Take the containing insn as a parameter.
+	Only modify lra_reg_info[].biggest_mode if it's non-debug insn.
+	(collect_non_operand_hard_regs, add_regs_to_insn_regno_info): Update
+	accordingly.
+
+testsuite/ChangeLog:
+
+	Backport from mainline
+	2013-09-08  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* g++.dg/debug/ra1.C: New test.
+
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_8-branch@220834 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ira.c                        |  7 ++--
+ gcc/lra.c                        | 18 +++++-----
+ gcc/testsuite/g++.dg/debug/ra1.C | 77 ++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 116 insertions(+), 21 deletions(-)
+ create mode 100644 gcc/testsuite/g++.dg/debug/ra1.C
+
+diff --git a/gcc/ira.c b/gcc/ira.c
+index 87e72f0..385441a 100644
+--- a/gcc/ira.c
++++ b/gcc/ira.c
+@@ -2944,11 +2944,8 @@ update_equiv_regs (void)
+      prevent access beyond allocated memory for paradoxical memory subreg.  */
+   FOR_EACH_BB (bb)
+     FOR_BB_INSNS (bb, insn)
+-      {
+-	if (! INSN_P (insn))
+-	  continue;
+-	for_each_rtx (&insn, set_paradoxical_subreg, (void *)pdx_subregs);
+-      }
++      if (NONDEBUG_INSN_P (insn))
++	for_each_rtx (&insn, set_paradoxical_subreg, (void *) pdx_subregs);
+ 
+   /* Scan the insns and find which registers have equivalences.  Do this
+      in a separate scan of the insns because (due to -fcse-follow-jumps)
+diff --git a/gcc/lra.c b/gcc/lra.c
+index 17962ea..797e388 100644
+--- a/gcc/lra.c
++++ b/gcc/lra.c
+@@ -446,13 +446,13 @@ init_insn_regs (void)
+     = create_alloc_pool ("insn regs", sizeof (struct lra_insn_reg), 100);
+ }
+ 
+-/* Create LRA insn related info about referenced REGNO with TYPE
+-   (in/out/inout), biggest reference mode MODE, flag that it is
++/* Create LRA insn related info about a reference to REGNO in INSN with
++   TYPE (in/out/inout), biggest reference mode MODE, flag that it is
+    reference through subreg (SUBREG_P), flag that is early clobbered
+    in the insn (EARLY_CLOBBER), and reference to the next insn reg
+    info (NEXT).	 */
+ static struct lra_insn_reg *
+-new_insn_reg (int regno, enum op_type type, enum machine_mode mode,
++new_insn_reg (rtx insn, int regno, enum op_type type, enum machine_mode mode,
+ 	      bool subreg_p, bool early_clobber, struct lra_insn_reg *next)
+ {
+   struct lra_insn_reg *ir;
+@@ -460,7 +460,8 @@ new_insn_reg (int regno, enum op_type type, enum machine_mode mode,
+   ir = (struct lra_insn_reg *) pool_alloc (insn_reg_pool);
+   ir->type = type;
+   ir->biggest_mode = mode;
+-  if (GET_MODE_SIZE (mode) > GET_MODE_SIZE (lra_reg_info[regno].biggest_mode))
++  if (GET_MODE_SIZE (mode) > GET_MODE_SIZE (lra_reg_info[regno].biggest_mode)
++      && NONDEBUG_INSN_P (insn))
+     lra_reg_info[regno].biggest_mode = mode;
+   ir->subreg_p = subreg_p;
+   ir->early_clobber = early_clobber;
+@@ -942,7 +943,7 @@ collect_non_operand_hard_regs (rtx *x, lra_insn_recog_data_t data,
+ 		     && ! (FIRST_STACK_REG <= regno
+ 			   && regno <= LAST_STACK_REG));
+ #endif
+-		list = new_insn_reg (regno, type, mode, subreg_p,
++		list = new_insn_reg (data->insn, regno, type, mode, subreg_p,
+ 				     early_clobber, list);
+ 	      }
+ 	  }
+@@ -1540,7 +1541,7 @@ add_regs_to_insn_regno_info (lra_insn_recog_data_t data, rtx x, int uid,
+       expand_reg_info ();
+       if (bitmap_set_bit (&lra_reg_info[regno].insn_bitmap, uid))
+ 	{
+-	  data->regs = new_insn_reg (regno, type, mode, subreg_p,
++	  data->regs = new_insn_reg (data->insn, regno, type, mode, subreg_p,
+ 				     early_clobber, data->regs);
+ 	  return;
+ 	}
+@@ -1552,8 +1553,9 @@ add_regs_to_insn_regno_info (lra_insn_recog_data_t data, rtx x, int uid,
+ 		if (curr->subreg_p != subreg_p || curr->biggest_mode != mode)
+ 		  /* The info can not be integrated into the found
+ 		     structure.  */
+-		  data->regs = new_insn_reg (regno, type, mode, subreg_p,
+-					     early_clobber, data->regs);
++		  data->regs = new_insn_reg (data->insn, regno, type, mode,
++					     subreg_p, early_clobber,
++					     data->regs);
+ 		else
+ 		  {
+ 		    if (curr->type != type)
+diff --git a/gcc/testsuite/g++.dg/debug/ra1.C b/gcc/testsuite/g++.dg/debug/ra1.C
+new file mode 100644
+index 0000000..b6f7bfc
+--- /dev/null
++++ b/gcc/testsuite/g++.dg/debug/ra1.C
+@@ -0,0 +1,77 @@
++/* { dg-options "-fcompare-debug" } */
++
++enum signop { SIGNED, UNSIGNED };
++enum tree_code { FOO, BAR };
++enum tree_code_class { tcc_type, tcc_other };
++extern enum tree_code_class tree_code_type[];
++
++struct tree_base {
++  enum tree_code code : 16;
++  unsigned unsigned_flag : 1;
++};
++
++struct tree_def {
++  tree_base base;
++  struct {
++    int precision;
++  } type_common;
++};
++
++typedef tree_def *tree;
++
++struct storage_ref
++{
++  storage_ref (const long *, unsigned int, unsigned int);
++
++  const long *val;
++  unsigned int len;
++  unsigned int precision;
++};
++
++inline storage_ref::storage_ref (const long *val_in,
++				 unsigned int len_in,
++				 unsigned int precision_in)
++  : val (val_in), len (len_in), precision (precision_in)
++{
++}
++
++struct hwi_with_prec
++{
++  long val;
++  unsigned int precision;
++  signop sgn;
++};
++
++inline storage_ref
++decompose (long *scratch, unsigned int precision,
++	   const hwi_with_prec &x)
++{
++  scratch[0] = x.val;
++  if (x.sgn == SIGNED || x.val >= 0 || precision <= sizeof (long) * 8)
++    return storage_ref (scratch, 1, precision);
++  scratch[1] = 0;
++  return storage_ref (scratch, 2, precision);
++}
++
++extern void tree_class_check_failed (int) __attribute__ ((__noreturn__));
++
++inline tree
++tree_class_check (tree t, const enum tree_code_class cls, int x)
++{
++  if (tree_code_type[t->base.code] != cls)
++    tree_class_check_failed (x);
++  return t;
++}
++
++tree wide_int_to_tree (tree, const storage_ref &);
++
++tree
++build_int_cstu (tree type, unsigned long val)
++{
++  hwi_with_prec x;
++  x.val = val;
++  x.precision = tree_class_check (type, tcc_type, 1)->type_common.precision;
++  x.sgn = (signop) tree_class_check (type, tcc_type, 2)->base.unsigned_flag;
++  long scratch[2];
++  return wide_int_to_tree (type, decompose (scratch, x.precision, x));
++}
+-- 
+2.0.5
+

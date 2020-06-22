@@ -1,0 +1,50 @@
+https://bugs.gentoo.org/396005
+
+
+2011-07-22  Romain Geissler  <romain.geissler@gmail.com>
+
+	PR plugins/45348
+	PR plugins/48425
+	PR plugins/46577
+	* Makefile.in: Do not flatten c-family directory when installing
+	plugin headers.
+
+
+2011-07-25  Romain Geissler  <romain.geissler@gmail.com>
+
+	* c-pretty-print.h: Search c-common.h in c-family.
+	
+
+--- gcc/c-family/c-pretty-print.h
++++ gcc/c-family/c-pretty-print.h
+@@ -23,7 +23,7 @@
+ #define GCC_C_PRETTY_PRINTER
+ 
+ #include "tree.h"
+-#include "c-common.h"
++#include "c-family/c-common.h"
+ #include "pretty-print.h"
+ 
+
+--- gcc/Makefile.in
++++ gcc/Makefile.in
+@@ -4602,8 +4602,8 @@
+ 
+ # Install the headers needed to build a plugin.
+ install-plugin: installdirs lang.install-plugin s-header-vars
+-# We keep the directory structure for files in config and .def files. All
+-# other files are flattened to a single directory.
++# We keep the directory structure for files in config or c-family and .def
++# files. All other files are flattened to a single directory.
+ 	$(mkinstalldirs) $(DESTDIR)$(plugin_includedir)
+ 	headers=`echo $(PLUGIN_HEADERS) | tr ' ' '\012' | sort -u`; \
+ 	srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`; \
+@@ -4615,7 +4615,7 @@
+ 	  else continue; \
+ 	  fi; \
+ 	  case $$path in \
+-	  "$(srcdir)"/config/* | "$(srcdir)"/*.def ) \
++	  "$(srcdir)"/config/* | "$(srcdir)"/c-family/* | "$(srcdir)"/*.def ) \
+ 	    base=`echo "$$path" | sed -e "s|$$srcdirstrip/||"`;; \
+ 	  *) base=`basename $$path` ;; \
+ 	  esac; \

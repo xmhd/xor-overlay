@@ -1,0 +1,43 @@
+Backport from 4.6
+
+http://gcc.gnu.org/PR45886
+https://bugs.gentoo.org/351851
+
+--- a/gcc/config/arm/arm.c
++++ b/gcc/config/arm/arm.c
+@@ -700,7 +700,7 @@ static int after_arm_reorg = 0;
+ /* The maximum number of insns to be used when loading a constant.  */
+ static int arm_constant_limit = 3;
+ 
+-static enum arm_pcs arm_pcs_default;
++enum arm_pcs arm_pcs_default;
+ 
+ /* For an explanation of these variables, see final_prescan_insn below.  */
+ int arm_ccfsm_state;
+--- a/gcc/config/arm/arm.h
++++ b/gcc/config/arm/arm.h
+@@ -94,7 +94,13 @@ extern char arm_arch_name[];
+ 	if (arm_arch_iwmmxt)				\
+ 	  builtin_define ("__IWMMXT__");		\
+ 	if (TARGET_AAPCS_BASED)				\
+-	  builtin_define ("__ARM_EABI__");		\
++	  {						\
++	    if (arm_pcs_default == ARM_PCS_AAPCS_VFP)	\
++	      builtin_define ("__ARM_PCS_VFP");		\
++	    else if (arm_pcs_default == ARM_PCS_AAPCS)	\
++	      builtin_define ("__ARM_PCS");		\
++	    builtin_define ("__ARM_EABI__");		\
++	  }						\
+     } while (0)
+ 
+ /* The various ARM cores.  */
+@@ -1648,6 +1654,9 @@ enum arm_pcs
+   ARM_PCS_UNKNOWN
+ };
+ 
++/* Default procedure calling standard of current compilation unit. */
++extern enum arm_pcs arm_pcs_default;
++
+ /* A C type for declaring a variable that is used as the first argument of
+    `FUNCTION_ARG' and other related values.  */
+ typedef struct

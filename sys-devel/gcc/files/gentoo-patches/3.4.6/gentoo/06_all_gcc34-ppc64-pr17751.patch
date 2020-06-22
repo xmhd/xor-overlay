@@ -1,0 +1,72 @@
+2004-10-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/17751
+	* config/rs6000/rs6000.c (rs6000_file_start): Create toc section
+	for AIX ABI or ELF -fPIC.
+	(rs6000_emit_load_toc_table): Don't create toc_section here.
+	(rs6000_xcoff_file_start): Nor here.
+
+	* gcc.dg/ppc64-toc.c: New test.
+
+--- gcc/config/rs6000/rs6000.c.jj	2004-10-04 14:56:03.000000000 +0200
++++ gcc/config/rs6000/rs6000.c	2004-10-18 16:09:05.265350895 +0200
+@@ -1179,6 +1179,12 @@ rs6000_file_start (void)
+       if (*start == '\0')
+ 	putc ('\n', file);
+     }
++
++  if (DEFAULT_ABI == ABI_AIX || (TARGET_ELF && flag_pic == 2))
++    {
++      toc_section ();
++      text_section ();
++    }
+ }
+ 
+ /* Return nonzero if this function is known to have a null epilogue.  */
+@@ -11455,13 +11461,6 @@ rs6000_emit_load_toc_table (int fromprol
+ 		   : gen_reg_rtx (Pmode));
+       rtx symF;
+ 
+-      /* possibly create the toc section */
+-      if (! toc_initialized)
+-	{
+-	  toc_section ();
+-	  function_section (current_function_decl);
+-	}
+-
+       if (fromprolog)
+ 	{
+ 	  rtx symL;
+@@ -15915,7 +15914,6 @@ rs6000_xcoff_file_start (void)
+   fputs ("\t.file\t", asm_out_file);
+   output_quoted_string (asm_out_file, main_input_filename);
+   fputc ('\n', asm_out_file);
+-  toc_section ();
+   if (write_symbols != NO_DEBUG)
+     private_data_section ();
+   text_section ();
+--- gcc/testsuite/gcc.dg/ppc64-toc.c.jj	2004-10-12 18:54:58.000000000 +0200
++++ gcc/testsuite/gcc.dg/ppc64-toc.c	2004-10-12 18:42:16.000000000 +0200
+@@ -0,0 +1,22 @@
++/* { dg-do link } */
++/* { dg-options "-m64 -mminimal-toc" { target powerpc64-*-* } } */
++
++char *strchr (const char *, int);
++
++int
++foo (int a)
++{
++  int b;
++
++  b = 0;
++  if ("/"[1] != '\0')
++    if (strchr ("/", a))
++      b = 1;
++  return b;
++}
++
++int
++main (void)
++{
++  return 0;
++}

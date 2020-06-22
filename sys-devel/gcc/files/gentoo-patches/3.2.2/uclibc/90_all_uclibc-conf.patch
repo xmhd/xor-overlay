@@ -1,0 +1,188 @@
+--- gcc-3.2.2/boehm-gc/configure
++++ gcc-3.2.2/boehm-gc/configure
+@@ -1931,6 +1931,11 @@
+   lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
+   ;;
+ 
++linux-uclibc*)
++  lt_cv_deplibs_check_method=pass_all
++  lt_cv_file_magic_test_file=`echo /lib/libuClibc-*.so`
++  ;;
++
+ netbsd*)
+   if echo __ELF__ | $CC -E - | grep __ELF__ > /dev/null; then
+     lt_cv_deplibs_check_method='match_pattern /lib[^/\.]+\.so\.[0-9]+\.[0-9]+$'
+--- gcc-3.2.2/boehm-gc/ltconfig
++++ gcc-3.2.2/boehm-gc/ltconfig
+@@ -450,6 +450,7 @@
+ # Transform linux* to *-*-linux-gnu*, to support old configure scripts.
+ case "$host_os" in
+ linux-gnu*) ;;
++linux-uclibc*) ;;
+ linux*) host=`echo $host | sed 's/^\(.*-.*-linux\)\(.*\)$/\1-gnu\2/'`
+ esac
+ 
+@@ -1957,7 +1958,7 @@
+   ;;
+ 
+ # This must be Linux ELF.
+-linux-gnu*)
++linux-gnu*|linux-uclibc*)
+   version_type=linux
+   need_lib_prefix=no
+   need_version=no
+--- gcc-3.2.2/gcc/config/mips/linux.h
++++ gcc-3.2.2/gcc/config/mips/linux.h
+@@ -204,6 +204,11 @@
+ 
+ /* Borrowed from sparc/linux.h */
+ #undef LINK_SPEC
+++#ifdef USE_UCLIBC
++# define ELF_DYNAMIC_LINKER "/lib/ld-uClibc.so.0"
++#else
++# define ELF_DYNAMIC_LINKER "/lib/ld.so.1"
++#endif
+ #define LINK_SPEC \
+  "%(endian_spec) \
+   %{shared:-shared} \
+@@ -211,7 +216,7 @@
+     %{!ibcs: \
+       %{!static: \
+         %{rdynamic:-export-dynamic} \
+-        %{!dynamic-linker:-dynamic-linker /lib/ld.so.1}} \
++        %{!dynamic-linker:-dynamic-linker " ELF_DYNAMIC_LINKER "}} \
+         %{static:-static}}}"
+ 
+ 
+--- gcc-3.2.2/gcc/config.gcc
++++ gcc-3.2.2/gcc/config.gcc
+@@ -3439,6 +3439,12 @@
+ 	;;
+ esac
+ 
++# Rather than hook into each target, just do it after all the linux
++# targets have been processed
++case ${target} in
++*-linux-uclibc*) tm_defines="${tm_defines} USE_UCLIBC" ; tmake_file="${tmake_file} t-linux-uclibc"
++esac
++
+ case $machine in
+ *-*-sysv*)
+ 	install_headers_dir=install-headers-cpio
+--- gcc-3.2.2/libf2c/configure
++++ gcc-3.2.2/libf2c/configure
+@@ -1634,6 +1634,11 @@
+   lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
+   ;;
+ 
++linux-uclibc*)
++  lt_cv_deplibs_check_method=pass_all
++  lt_cv_file_magic_test_file=`echo /lib/libuClibc-*.so`
++  ;;
++
+ netbsd*)
+   if echo __ELF__ | $CC -E - | grep __ELF__ > /dev/null; then
+     lt_cv_deplibs_check_method='match_pattern /lib[^/\.]+\.so\.[0-9]+\.[0-9]+$'
+--- gcc-3.2.2/libffi/configure
++++ gcc-3.2.2/libffi/configure
+@@ -1276,6 +1276,11 @@
+   lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
+   ;;
+ 
++linux-uclibc*)
++  lt_cv_deplibs_check_method=pass_all
++  lt_cv_file_magic_test_file=`echo /lib/libuClibc-*.so`
++  ;;
++
+ netbsd*)
+   if echo __ELF__ | $CC -E - | grep __ELF__ > /dev/null; then
+     lt_cv_deplibs_check_method='match_pattern /lib[^/\.]+\.so\.[0-9]+\.[0-9]+$'
+--- gcc-3.2.2/libjava/configure
++++ gcc-3.2.2/libjava/configure
+@@ -2040,6 +2040,11 @@
+   lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
+   ;;
+ 
++linux-uclibc*)
++  lt_cv_deplibs_check_method=pass_all
++  lt_cv_file_magic_test_file=`echo /lib/libuClibc-*.so`
++  ;;
++
+ netbsd*)
+   if echo __ELF__ | $CC -E - | grep __ELF__ > /dev/null; then
+     lt_cv_deplibs_check_method='match_pattern /lib[^/\.]+\.so\.[0-9]+\.[0-9]+$'
+--- gcc-3.2.2/libobjc/configure
++++ gcc-3.2.2/libobjc/configure
+@@ -1642,6 +1642,11 @@
+   lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
+   ;;
+ 
++linux-uclibc*)
++  lt_cv_deplibs_check_method=pass_all
++  lt_cv_file_magic_test_file=`echo /lib/libuClibc-*.so`
++  ;;
++
+ netbsd*)
+   if echo __ELF__ | $CC -E - | grep __ELF__ > /dev/null; then
+     lt_cv_deplibs_check_method='match_pattern /lib[^/\.]+\.so\.[0-9]+\.[0-9]+$'
+--- gcc-3.2.2/libstdc++-v3/configure
++++ gcc-3.2.2/libstdc++-v3/configure
+@@ -1992,6 +1992,11 @@
+   lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
+   ;;
+ 
++linux-uclibc*)
++  lt_cv_deplibs_check_method=pass_all
++  lt_cv_file_magic_test_file=`echo /lib/libuClibc-*.so`
++  ;;
++
+ netbsd*)
+   if echo __ELF__ | $CC -E - | grep __ELF__ > /dev/null; then
+     lt_cv_deplibs_check_method='match_pattern /lib[^/\.]+\.so\.[0-9]+\.[0-9]+$'
+--- gcc-3.2.2/libtool.m4
++++ gcc-3.2.2/libtool.m4
+@@ -606,6 +606,11 @@
+   lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
+   ;;
+ 
++linux-uclibc*)
++	lt_cv_deplibs_check_method=pass_all
++	lt_cv_file_magic_test_file=`echo /lib/libuClibc-*.so`
++	;;
++
+ netbsd*)
+   if echo __ELF__ | $CC -E - | grep __ELF__ > /dev/null; then
+     [lt_cv_deplibs_check_method='match_pattern /lib[^/\.]+\.so\.[0-9]+\.[0-9]+$']
+--- gcc-3.2.2/ltconfig
++++ gcc-3.2.2/ltconfig
+@@ -603,6 +603,7 @@
+ # Transform linux* to *-*-linux-gnu*, to support old configure scripts.
+ case $host_os in
+ linux-gnu*) ;;
++linux-uclibc*) ;;
+ linux*) host=`echo $host | sed 's/^\(.*-.*-linux\)\(.*\)$/\1-gnu\2/'`
+ esac
+ 
+@@ -1198,7 +1199,7 @@
+   ;;
+ 
+ # This must be Linux ELF.
+-linux-gnu*)
++linux-gnu*|linux-uclibc*)
+   version_type=linux
+   need_lib_prefix=no
+   need_version=no
+--- gcc-3.2.2/zlib/configure
++++ gcc-3.2.2/zlib/configure
+@@ -1580,6 +1580,11 @@
+   lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
+   ;;
+ 
++linux-uclibc*)
++  lt_cv_deplibs_check_method=pass_all
++  lt_cv_file_magic_test_file=`echo /lib/libuClibc-*.so`
++  ;;
++
+ netbsd*)
+   if echo __ELF__ | $CC -E - | grep __ELF__ > /dev/null; then
+     lt_cv_deplibs_check_method='match_pattern /lib[^/\.]+\.so\.[0-9]+\.[0-9]+$'

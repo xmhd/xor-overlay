@@ -1,0 +1,49 @@
+Backport from gcc-4.1
+
+2005-04-19  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Makefile.in (libgcc.mk): Pass GCC_FOR_TARGET.
+	* mklibgcc.in: Use $GCC_FOR_TARGET instead of ./xgcc.
+
+--- gcc-3_4-branch/gcc/Makefile.in
++++ gcc-3_4-branch/gcc/Makefile.in
+@@ -1262,6 +1262,7 @@
+ 	SHLIB_MAPFILES='$(SHLIB_MAPFILES)' \
+ 	SHLIB_NM_FLAGS='$(SHLIB_NM_FLAGS)' \
+ 	MULTILIB_OSDIRNAMES='$(MULTILIB_OSDIRNAMES)' \
++	GCC_FOR_TARGET='$(GCC_FOR_TARGET)' \
+ 	mkinstalldirs='$(SHELL) $(srcdir)/mkinstalldirs' \
+ 	  $(SHELL) mklibgcc > tmp-libgcc.mk
+ 	mv tmp-libgcc.mk libgcc.mk
+--- gcc-3_4-branch/gcc/mklibgcc.in
++++ gcc-3_4-branch/gcc/mklibgcc.in
+@@ -40,6 +40,7 @@
+ # SHLIB_NM_FLAGS
+ # SHLIB_INSTALL
+ # MULTILIB_OSDIRNAMES
++# GCC_FOR_TARGET
+ 
+ # Make needs VPATH to be literal.
+ echo 'srcdir = @srcdir@'
+@@ -178,8 +179,8 @@
+       shlib_slibdir_qual=
+       if [ -n "$MULTILIB_OSDIRNAMES" ]; then
+ 	if [ "$dir" != . ]; then
+-	  gcc_multilib_dir=`./xgcc -B./ $flags --print-multi-directory`
++	  gcc_multilib_dir=`$GCC_FOR_TARGET -B./ $flags --print-multi-directory`
+-	  os_multilib_dir=`./xgcc -B./ $flags --print-multi-os-directory`
++	  os_multilib_dir=`$GCC_FOR_TARGET -B./ $flags --print-multi-os-directory`
+ 	  shlib_dir="$dir"/
+ 	  gcc_multilib_sup=`echo $gcc_multilib_dir | sed 's~^[^/]*/~~'`
+ 	  os_multilib_base=`echo $os_multilib_dir | sed -n "s~/${gcc_multilib_sup}\$~~p"`
+@@ -707,8 +707,8 @@
+       shlib_dir=
+       shlib_slibdir_qual=
+       if [ -n "$MULTILIB_OSDIRNAMES" ]; then
+-	gcc_multilib_dir=`./xgcc -B./ $flags --print-multi-directory`
++	gcc_multilib_dir=`$GCC_FOR_TARGET -B./ $flags --print-multi-directory`
+-	os_multilib_dir=`./xgcc -B./ $flags --print-multi-os-directory`
++	os_multilib_dir=`$GCC_FOR_TARGET -B./ $flags --print-multi-os-directory`
+ 	if [ "$dir" != . ]; then
+ 	  shlib_dir="$dir"/
+ 	fi

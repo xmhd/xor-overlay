@@ -1,0 +1,163 @@
+Unbreak libc and libm detection by libtool when those
+are linker scripts: use file presence as a signal,
+not the output of 'file' command on linux-gnu*.
+
+Backport of upstream patch:
+
+From 7f93fe7a469fb4d342d90736e801fcafb23b5a8b Mon Sep 17 00:00:00 2001
+From: kcook <kcook@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Wed, 24 Nov 2004 22:04:38 +0000
+Subject: [PATCH] 2004-11-24  Kelley Cook  <kcook@gcc.gnu.org>
+
+	* libtool.m4 (AC_DEPLIBS_CHECK_METHOD): Import linux-gnu case
+	from CVS libtool to always pass_all.
+	* boehm-gc/configure: Regenerate.
+	* libffi/configure: Regenerate.
+	* libgfortran/configure: Regenerate.
+	* libjava/configure: Regenerate.
+	* libobjc/configure: Regenerate.
+	* libstdc++-v3/configure: Regenerate.
+	* zlib/configure: Regenerate.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@91200 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ ChangeLog              |   5 +
+ boehm-gc/ChangeLog     |   4 +
+ boehm-gc/configure     |  11 +-
+ libffi/ChangeLog       |   4 +
+ libffi/configure       |  11 +-
+ libgfortran/ChangeLog  |   4 +
+ libgfortran/configure  |  13 +-
+ libjava/ChangeLog      |   4 +
+ libjava/aclocal.m4     |   2 +-
+ libjava/configure      | 322 +++++++++++++++++++++++++----------------
+ libobjc/ChangeLog      |   4 +
+ libobjc/configure      |  13 +-
+ libstdc++-v3/ChangeLog |   4 +
+ libstdc++-v3/configure |  13 +-
+ libtool.m4             |   9 +-
+ zlib/ChangeLog.gcj     |   4 +
+ zlib/configure         |  11 +-
+ 17 files changed, 249 insertions(+), 189 deletions(-)
+
+--- a/boehm-gc/configure
++++ b/boehm-gc/configure
+@@ -4317,13 +4317,6 @@ irix5* | irix6*)
+ 
+ # This must be Linux ELF.
+ linux-gnu*)
+-  case $host_cpu in
+-  alpha* | hppa* | i*86 | powerpc* | sparc* | ia64* | sh* )
+-    lt_cv_deplibs_check_method=pass_all ;;
+-  *)
+-    # glibc up to 2.1.1 does not perform some relocations on ARM
+-    lt_cv_deplibs_check_method='file_magic ELF [0-9][0-9]*-bit [LM]SB (shared object|dynamic lib )' ;;
+-  esac
+-  lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
++  lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+--- a/libffi/configure
++++ b/libffi/configure
+@@ -3454,13 +3454,6 @@ irix5* | irix6*)
+ 
+ # This must be Linux ELF.
+ linux-gnu*)
+-  case $host_cpu in
+-  alpha* | hppa* | i*86 | powerpc* | sparc* | ia64* | sh* )
+-    lt_cv_deplibs_check_method=pass_all ;;
+-  *)
+-    # glibc up to 2.1.1 does not perform some relocations on ARM
+-    lt_cv_deplibs_check_method='file_magic ELF [0-9][0-9]*-bit [LM]SB (shared object|dynamic lib )' ;;
+-  esac
+-  lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
++  lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+--- a/libjava/configure
++++ b/libjava/configure
+@@ -4337,13 +4347,6 @@ irix5* | irix6*)
+ 
+ # This must be Linux ELF.
+ linux-gnu*)
+-  case $host_cpu in
+-  alpha* | hppa* | i*86 | powerpc* | sparc* | ia64* | sh* )
+-    lt_cv_deplibs_check_method=pass_all ;;
+-  *)
+-    # glibc up to 2.1.1 does not perform some relocations on ARM
+-    lt_cv_deplibs_check_method='file_magic ELF [0-9][0-9]*-bit [LM]SB (shared object|dynamic lib )' ;;
+-  esac
+-  lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
++  lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+--- a/libobjc/configure
++++ b/libobjc/configure
+@@ -3269,13 +3269,6 @@ irix5* | irix6*)
+ 
+ # This must be Linux ELF.
+ linux-gnu*)
+-  case $host_cpu in
+-  alpha* | hppa* | i*86 | powerpc* | sparc* | ia64* | sh* )
+-    lt_cv_deplibs_check_method=pass_all ;;
+-  *)
+-    # glibc up to 2.1.1 does not perform some relocations on ARM
+-    lt_cv_deplibs_check_method='file_magic ELF [0-9][0-9]*-bit [LM]SB (shared object|dynamic lib )' ;;
+-  esac
+-  lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
++  lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+index e87d8b27130..0024e82faa2 100755
+--- a/libstdc++-v3/configure
++++ b/libstdc++-v3/configure
+@@ -3995,13 +3995,6 @@ irix5* | irix6*)
+ 
+ # This must be Linux ELF.
+ linux-gnu*)
+-  case $host_cpu in
+-  alpha* | hppa* | i*86 | m68* | powerpc* | sparc* | ia64* | sh* )
+-    lt_cv_deplibs_check_method=pass_all ;;
+-  *)
+-    # glibc up to 2.1.1 does not perform some relocations on ARM
+-    lt_cv_deplibs_check_method='file_magic ELF [0-9][0-9]*-bit [LM]SB (shared object|dynamic lib )' ;;
+-  esac
+-  lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
++  lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+--- a/libtool.m4
++++ b/libtool.m4
+@@ -679,13 +679,6 @@ irix5* | irix6*)
+ 
+ # This must be Linux ELF.
+ linux-gnu*)
+-  case $host_cpu in
+-  alpha* | hppa* | i*86 | powerpc* | sparc* | ia64* | sh* )
+-    lt_cv_deplibs_check_method=pass_all ;;
+-  *)
+-    # glibc up to 2.1.1 does not perform some relocations on ARM
+-    lt_cv_deplibs_check_method=['file_magic ELF [0-9][0-9]*-bit [LM]SB (shared object|dynamic lib )'] ;;
+-  esac
+-  lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
++  lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+--- a/zlib/configure
++++ b/zlib/configure
+@@ -3423,13 +3423,6 @@ irix5* | irix6*)
+ 
+ # This must be Linux ELF.
+ linux-gnu*)
+-  case $host_cpu in
+-  alpha* | hppa* | i*86 | powerpc* | sparc* | ia64* | sh* )
+-    lt_cv_deplibs_check_method=pass_all ;;
+-  *)
+-    # glibc up to 2.1.1 does not perform some relocations on ARM
+-    lt_cv_deplibs_check_method='file_magic ELF [0-9][0-9]*-bit [LM]SB (shared object|dynamic lib )' ;;
+-  esac
+-  lt_cv_file_magic_test_file=`echo /lib/libc.so* /lib/libc-*.so`
++  lt_cv_deplibs_check_method=pass_all
+   ;;
+ 

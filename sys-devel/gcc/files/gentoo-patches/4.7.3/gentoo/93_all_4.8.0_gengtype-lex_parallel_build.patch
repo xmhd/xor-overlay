@@ -1,0 +1,20 @@
+[4.7] parallel build failure: /gcc/gengtype-lex.c:1:21: fatal error: bconfig.h: No such file or directory
+
+https://bugs.gentoo.org/show_bug.cgi?id=463796
+http://gcc.gnu.org/ml/gcc-patches/2012-11/msg01682.html
+
+    2012-11-21 Marcus Shawcroft <marcus.shawcroft@arm.com>
+
+    * Makefile.in (gengtype-lex.o): Add dependency on $(BCONFIG_H).
+
+--- a/gcc/Makefile.in
++++ b/gcc/Makefile.in
+@@ -3904,7 +3904,7 @@ build/genflags.o : genflags.c $(RTL_BASE_H) $(OBSTACK_H) $(BCONFIG_H)	\
+   $(SYSTEM_H) coretypes.h $(GTM_H) errors.h $(READ_MD_H) gensupport.h
+ build/gengenrtl.o : gengenrtl.c $(BCONFIG_H) $(SYSTEM_H) rtl.def
+ gengtype-lex.o build/gengtype-lex.o : gengtype-lex.c gengtype.h $(SYSTEM_H)
+-gengtype-lex.o: $(CONFIG_H)
++gengtype-lex.o: $(CONFIG_H) $(BCONFIG_H)
+ build/gengtype-lex.o: $(BCONFIG_H)
+ gengtype-parse.o build/gengtype-parse.o : gengtype-parse.c gengtype.h \
+   $(SYSTEM_H)

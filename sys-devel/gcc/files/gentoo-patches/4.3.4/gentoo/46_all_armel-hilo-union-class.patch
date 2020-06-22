@@ -1,0 +1,102 @@
+ripped from Debian
+
+This patch fixes a reload ICE in the Fortran vector_subscript_1.f90
+test case (as part of the work Andrew Jenner and I have been doing at
+CodeSourcery to fix ObjC and Fortran for Debian). It's been submitted
+for comments to gcc-patches@ also:
+
+  http://gcc.gnu.org/ml/gcc-patches/2008-04/msg02033.html
+
+So, an alternative patch may appear in due course, although this one
+works fine for the test case in question.
+
+Cheers,
+
+Julian
+
+ChangeLog
+
+    gcc/
+    * config/arm/arm.h (reg_class): Add HILO_REGS class as union of
+    HI_REGS and LO_REGS.
+    (REG_CLASS_NAMES): Likewise.
+    (REG_CLASS_CONTENTS): Likewise.
+    (PREFERRED_RELOAD_CLASS): Prefer LO_REGS for HILO_REGS reloads.
+    * config/arm/arm.md (*thumb1_movsi_insn): Only use
+    for !optimize_size.
+    (*thumb1_movsi_insn_osize): New. Use for optimize_size Thumb-1
+
+Index: gcc/config/arm/arm.h
+===================================================================
+--- gcc/config/arm/arm.h	(revision 206057)
++++ gcc/config/arm/arm.h	(working copy)
+@@ -1107,6 +1107,7 @@ enum reg_class
+   STACK_REG,
+   BASE_REGS,
+   HI_REGS,
++  HILO_REGS,
+   CC_REG,
+   VFPCC_REG,
+   GENERAL_REGS,
+@@ -1132,6 +1133,7 @@ enum reg_class
+   "STACK_REG",		\
+   "BASE_REGS",		\
+   "HI_REGS",		\
++  "HILO_REGS",		\
+   "CC_REG",		\
+   "VFPCC_REG",		\
+   "GENERAL_REGS",	\
+@@ -1156,6 +1158,7 @@ enum reg_class
+   { 0x00002000, 0x00000000, 0x00000000, 0x00000000 }, /* STACK_REG */	\
+   { 0x000020FF, 0x00000000, 0x00000000, 0x00000000 }, /* BASE_REGS */	\
+   { 0x0000FF00, 0x00000000, 0x00000000, 0x00000000 }, /* HI_REGS */	\
++  { 0x0000FFFF, 0x00000000, 0x00000000, 0x00000000 }, /* HILO_REGS */	\
+   { 0x01000000, 0x00000000, 0x00000000, 0x00000000 }, /* CC_REG */	\
+   { 0x00000000, 0x00000000, 0x00000000, 0x80000000 }, /* VFPCC_REG */	\
+   { 0x0200FFFF, 0x00000000, 0x00000000, 0x00000000 }, /* GENERAL_REGS */ \
+@@ -1217,7 +1220,8 @@ enum reg_class
+ #define PREFERRED_RELOAD_CLASS(X, CLASS)		\
+   (TARGET_ARM ? (CLASS) :				\
+    ((CLASS) == GENERAL_REGS || (CLASS) == HI_REGS	\
+-    || (CLASS) == NO_REGS ? LO_REGS : (CLASS)))
++    || (CLASS) == HILO_REGS || (CLASS) == NO_REGS	\
++    ? LO_REGS : (CLASS)))
+ 
+ /* Must leave BASE_REGS reloads alone */
+ #define THUMB_SECONDARY_INPUT_RELOAD_CLASS(CLASS, MODE, X)		\
+Index: gcc/config/arm/arm.md
+===================================================================
+--- gcc/config/arm/arm.md	(revision 206057)
++++ gcc/config/arm/arm.md	(working copy)
+@@ -4823,7 +4823,30 @@
+ 	(match_operand:SI 1 "general_operand"      "l, I,J,K,>,l,mi,l,*lh"))]
+   "TARGET_THUMB1
+    && (   register_operand (operands[0], SImode) 
+-       || register_operand (operands[1], SImode))"
++       || register_operand (operands[1], SImode))
++   && !optimize_size"
++  "@
++   mov	%0, %1
++   mov	%0, %1
++   #
++   #
++   ldmia\\t%1, {%0}
++   stmia\\t%0, {%1}
++   ldr\\t%0, %1
++   str\\t%1, %0
++   mov\\t%0, %1"
++  [(set_attr "length" "2,2,4,4,2,2,2,2,2")
++   (set_attr "type" "*,*,*,*,load1,store1,load1,store1,*")
++   (set_attr "pool_range" "*,*,*,*,*,*,1020,*,*")]
++)
++
++(define_insn "*thumb1_movsi_insn_osize"
++  [(set (match_operand:SI 0 "nonimmediate_operand" "=l,l,l,l,l,>,l, m,*l*h")
++	(match_operand:SI 1 "general_operand"      "l, I,J,K,>,l,mi,l,*l*h"))]
++  "TARGET_THUMB1
++   && (   register_operand (operands[0], SImode) 
++       || register_operand (operands[1], SImode))
++   && optimize_size"
+   "@
+    mov	%0, %1
+    mov	%0, %1

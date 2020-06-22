@@ -1,0 +1,17 @@
+https://github.com/ivmai/bdwgc/commit/76b3d3a57583fdb19152f4d911b11725e31b4a06
+
+2007-12-18  Hans Boehm <Hans.Boehm@hp.com> (really Radek Polak)
+
+	* include/gc.h: Don't define GC_HAVE_BUILTIN_BACKTRACE for uclibc.
+
+--- a/boehm-gc/include/gc.h
++++ b/boehm-gc/include/gc.h
+@@ -500,7 +500,7 @@
+ #ifdef __linux__
+ # include <features.h>
+ # if (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 1 || __GLIBC__ > 2) \
+-     && !defined(__ia64__)
++     && !defined(__ia64__) && !defined(__UCLIBC__)
+ #   ifndef GC_HAVE_BUILTIN_BACKTRACE
+ #     define GC_HAVE_BUILTIN_BACKTRACE
+ #   endif

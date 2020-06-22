@@ -1,0 +1,14 @@
+--- gcc/gcc/gcc.c.piedef~	2005-03-01 17:18:15 +0100
++++ gcc/gcc/gcc.c	2005-03-01 17:19:59 +0100
+@@ -724,7 +733,11 @@
+ 
+ static const char *asm_debug;
+ static const char *cpp_spec = CPP_SPEC BOUNDS_CPP_SPEC;
++#ifdef HARDENED_CC1_SPEC_SUFFIX
++static const char *cc1_spec = CC1_SPEC " " HARDENED_CC1_SPEC_SUFFIX;
++#else
+ static const char *cc1_spec = CC1_SPEC;
++#endif
+ static const char *cc1plus_spec = CC1PLUS_SPEC;
+ static const char *link_gcc_c_sequence_spec = LINK_GCC_C_SEQUENCE_SPEC;
+ static const char *asm_spec = ASM_SPEC;

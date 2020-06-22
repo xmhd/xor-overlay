@@ -1,0 +1,54 @@
+http://gcc.gnu.org/PR52999
+https://bugs.gentoo.org/405161
+
+2012-06-03  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/52999
+	* config/pa/pa.c (TARGET_SECTION_TYPE_FLAGS): Define.
+	(pa_section_type_flags): New.
+	* config/pa/pa.h (LEGITIMATE_CONSTANT_P): Revert previous change.
+
+--- branches/gcc-4_6-branch/gcc/config/pa/pa.c	2012/06/03 11:26:54	188149
++++ branches/gcc-4_6-branch/gcc/config/pa/pa.c	2012/06/03 12:41:02	188150
+@@ -185,6 +185,7 @@
+ static void pa_conditional_register_usage (void);
+ static enum machine_mode pa_c_mode_for_suffix (char);
+ static section *pa_function_section (tree, enum node_frequency, bool, bool);
++static unsigned int pa_section_type_flags (tree, const char *, int);
+ 
+ /* The following extra sections are only used for SOM.  */
+ static GTY(()) section *som_readonly_data_section;
+@@ -400,6 +401,9 @@
+ #undef TARGET_ASM_FUNCTION_SECTION
+ #define TARGET_ASM_FUNCTION_SECTION pa_function_section
+ 
++#undef TARGET_SECTION_TYPE_FLAGS
++#define TARGET_SECTION_TYPE_FLAGS pa_section_type_flags
++
+ struct gcc_target targetm = TARGET_INITIALIZER;
+ 
+ /* Parse the -mfixed-range= option string.  */
+@@ -10431,4 +10435,23 @@
+   return default_function_section (decl, freq, startup, exit);
+ }
+ 
++/* Implement TARGET_SECTION_TYPE_FLAGS.  */
++
++static unsigned int
++pa_section_type_flags (tree decl, const char *name, int reloc)
++{
++  unsigned int flags;
++
++  flags = default_section_type_flags (decl, name, reloc);
++
++  /* Function labels are placed in the constant pool.  This can
++     cause a section conflict if decls are put in ".data.rel.ro"
++     or ".data.rel.ro.local" using the __attribute__ construct.  */
++  if (strcmp (name, ".data.rel.ro") == 0
++      || strcmp (name, ".data.rel.ro.local") == 0)
++    flags |= SECTION_WRITE | SECTION_RELRO;
++
++  return flags;
++}
++
+ #include "gt-pa.h"

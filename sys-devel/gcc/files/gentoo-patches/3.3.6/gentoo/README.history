@@ -1,0 +1,89 @@
+3		Abandoned
+	- 01_ppc_gcc33-multi32-hack.patch
+	- 01_sparc_gcc33-multi32-hack.patch
+	- 09_arm_gcc32-arm-reload1-fix.patch
+
+2		06 Jun 2019
+	+ 93_all_gperf-inline.patch
+	+ 94_all_flag_jni.patch
+
+1.11		1 Jun 2019
+	+ 92_all_ucontext-to-ucontext_t.patch
+
+1.10		30 Sep 2018
+	+ 89_all_gcc-3.3.x-ucontext.patch
+	+ 90_all_libtool-pass-all.patch
+	+ 91_all_libexec-gcc-binutils.patch
+
+1.9		06 Apr 2015
+	R 05_all_gcc-4.3.x-siginfo.patch -> 05_all_gcc-3.3.x-siginfo.patch
+	+ 10_all_gcc-3.4.6-c-parse-bison-3.patch
+
+1.8		23 Jul 2012
+	+ 05_all_gcc-4.3.x-siginfo.patch
+	+ 09_all_gcc-3.4.6-c-parse-bison.patch
+
+1.7		09 Jun 2011
+	+ 08_all_gcc-3.3.6-cross-compile.patch
+	+ 53_all_pr14697-libstdc++-multilib-syms.patch
+
+1.6		15 Feb 2009
+	+ 16_all_gcc-open-perms.patch
+
+1.5		29 Dec 2007
+	U 02_all_gcc33-ice-hack.patch
+	U 25_all_gcc33-libstdc++-pic.patch
+	+ 70_all_gcc33-make-whitespace.patch
+	+ 71_all_gcc33-gnu-string-prototypes.patch
+
+1.4		23 Apr 2006
+	U 25_all_gcc33-libstdc++-pic.patch
+	+ 55_all_pr14925.patch
+	+ 55_all_pr17684.patch
+	+ 56_all_pr18153.patch
+	+ 57_all_pr18380.patch
+	+ 58_all_pr18508.patch
+	+ 59_all_pr23241.patch
+	+ 83_all_gcc-3.x-larger-g77-file-limit.patch
+	+ 85_all_gcc-ca-translation-typo.patch
+	+ 85_all_gcc-es-translation-ICE-workaround.patch
+	+ 86_all_gcc-3.3-doxygen-filter-locale.patch
+	+ 88_all_gcc-3.3-make-SHELL.patch
+
+1.3		17 Aug 2005
+	+ 12_all_gcc-3.3-arm-pr22528.patch
+	+ 46_all_gcc-3.3.6-pr18300.patch
+	+ 80_all_canadian-cross-spec-and-syslimits.patch
+
+1.2		30 May 2005
+	+ 00_all_alpha-mieee-default.patch
+
+1.1		25 May 2005
+	+ 25_all_gcc-3.3.3-libiberty-pic.patch
+
+1.0		24 May 2005
+	+ 00_all_gcc_unlink_if_ordinary.patch
+	+ 01_ppc_gcc33-multi32-hack.patch
+	+ 01_sparc_gcc33-multi32-hack.patch
+	+ 02_all_gcc33-ice-hack.patch
+	+ 09_arm_gcc32-arm-reload1-fix.patch
+	+ 10_all_gcc333-debian-arm-getoff.patch
+	+ 11_all_gcc333-debian-arm-ldm.patch
+	+ 12_all_gcc333_pre20040408-stack-size.patch
+	+ 15_all_gcc33-multi-os-directory.patch
+	+ 17_all_gcc33-c99-numbers.patch
+	+ 19_all_gcc33-sched-ebb-cselib.patch
+	+ 21_all_gcc33-sparc-tls.patch
+	+ 25_all_gcc33-libstdc++-pic.patch
+	+ 26_all_gcc33-m68k-const.patch
+	+ 27_all_gcc33-m68k-java-build.patch
+	+ 28_all_gcc33-m68k-loop.patch
+	+ 29_all_gcc33-m68k-subreg.patch
+	+ 31_all_gcc331-pr495.patch
+	+ 34_all_gcc-3.3.5-ffecom_gfrt_basictype-prototype.patch
+	+ 35_all_gcc-3.3.5-no-COPYING-cross-compile.patch
+	+ 40_all_gcc33-warn-unused-result.patch
+	+ 50_all_gcc33-coreutils-compat.patch
+	+ 54_all_pr10692-fix.patch
+	+ 60_all_loop.patch
+	+ 61_all_arm-bigendian.patch

@@ -1,0 +1,1234 @@
+diff -Naurp gcc-3.4.3.orig/gcc/Makefile.in gcc-3.4.3/gcc/Makefile.in
+--- gcc-3.4.3.orig/gcc/Makefile.in	2005-01-10 20:01:10.000000000 -0800
++++ gcc-3.4.3/gcc/Makefile.in	2005-01-11 00:04:11.000000000 -0800
+@@ -867,7 +867,7 @@ OBJS-common = \
+  sibcall.o simplify-rtx.o sreal.o stmt.o stor-layout.o stringpool.o 	   \
+  targhooks.o timevar.o toplev.o tracer.o tree.o tree-dump.o unroll.o	   \
+  varasm.o varray.o version.o vmsdbgout.o xcoffout.o alloc-pool.o	   \
+- et-forest.o cfghooks.o bt-load.o pretty-print.o $(GGC) web.o
++ et-forest.o cfghooks.o bt-load.o pretty-print.o $(GGC) web.o protector.o
+ 
+ OBJS-md = $(out_object_file)
+ OBJS-archive = $(EXTRA_OBJS) $(host_hook_obj) hashtable.o tree-inline.o	   \
+@@ -1549,7 +1549,7 @@ toplev.o : toplev.c $(CONFIG_H) $(SYSTEM
+    langhooks.h insn-flags.h cfglayout.h real.h cfgloop.h \
+    hosthooks.h $(LANGHOOKS_DEF_H) cgraph.h $(COVERAGE_H) alloc-pool.h
+ 	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+-	  -DTARGET_NAME=\"$(target_noncanonical)\" \
++	  -DTARGET_NAME=\"$(target_noncanonical)\" @ENABLESSP@ \
+ 	  -c $(srcdir)/toplev.c $(OUTPUT_OPTION)
+ main.o : main.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) toplev.h
+ 
+@@ -1852,6 +1852,10 @@ ifcvt.o : ifcvt.c $(CONFIG_H) $(SYSTEM_H
+ params.o : params.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(PARAMS_H) toplev.h
+ hooks.o: hooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(HOOKS_H)
+ pretty-print.o: $(CONFIG_H) $(SYSTEM_H) pretty-print.c $(PRETTY_PRINT_H)
++protector.o : protector.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) $(TREE_H) \
++   flags.h function.h $(EXPR_H) $(OPTABS_H) $(REGS_H) toplev.h hard-reg-set.h \
++   insn-config.h insn-flags.h $(RECOG_H) output.h toplev.h except.h reload.h \
++   $(TM_P_H) conditions.h $(INSN_ATTR_H) real.h protector.h
+ 
+ $(out_object_file): $(out_file) $(CONFIG_H) coretypes.h $(TM_H) $(TREE_H) $(GGC_H) \
+    $(RTL_H) $(REGS_H) hard-reg-set.h real.h insn-config.h conditions.h \
+diff -Naurp gcc-3.4.3.orig/gcc/c-cppbuiltin.c gcc-3.4.3/gcc/c-cppbuiltin.c
+--- gcc-3.4.3.orig/gcc/c-cppbuiltin.c	2005-01-10 20:01:31.000000000 -0800
++++ gcc-3.4.3/gcc/c-cppbuiltin.c	2005-01-11 00:04:11.000000000 -0800
+@@ -432,6 +432,12 @@ c_cpp_builtins (cpp_reader *pfile)
+   if (c_dialect_objc () && flag_next_runtime)
+     cpp_define (pfile, "__NEXT_RUNTIME__");
+ 
++  /* Make the choice of the stack protector runtime visible to source code.  */
++  if (flag_propolice_protection)
++    cpp_define (pfile, "__SSP__=1");
++  if (flag_stack_protection)
++    cpp_define (pfile, "__SSP_ALL__=2");
++
+   /* A straightforward target hook doesn't work, because of problems
+      linking that hook's body when part of non-C front ends.  */
+ # define preprocessing_asm_p() (cpp_get_options (pfile)->lang == CLK_ASM)
+diff -Naurp gcc-3.4.3.orig/gcc/calls.c gcc-3.4.3/gcc/calls.c
+--- gcc-3.4.3.orig/gcc/calls.c	2005-01-10 20:01:10.000000000 -0800
++++ gcc-3.4.3/gcc/calls.c	2005-01-11 00:04:11.000000000 -0800
+@@ -2321,8 +2321,12 @@ expand_call (tree exp, rtx target, int i
+ 	  {
+ 	    /* For variable-sized objects, we must be called with a target
+ 	       specified.  If we were to allocate space on the stack here,
+-	       we would have no way of knowing when to free it.  */
+-	    rtx d = assign_temp (TREE_TYPE (exp), 1, 1, 1);
++	       we would have no way of knowing when to free it.
++
++	       This is the structure of a function return object and it isn't
++	       a character array for the stack protection, so it is
++	       marked using the assignment of the KEEP argument to 5.  */
++	    rtx d = assign_temp (TREE_TYPE (exp), 5, 1, 1);
+ 
+ 	    mark_temp_addr_taken (d);
+ 	    structure_value_addr = XEXP (d, 0);
+diff -Naurp gcc-3.4.3.orig/gcc/combine.c gcc-3.4.3/gcc/combine.c
+--- gcc-3.4.3.orig/gcc/combine.c	2005-01-10 20:01:44.000000000 -0800
++++ gcc-3.4.3/gcc/combine.c	2005-01-11 00:04:11.000000000 -0800
+@@ -1401,6 +1401,10 @@ cant_combine_insn_p (rtx insn)
+ 	      && ! fixed_regs[REGNO (dest)]
+ 	      && CLASS_LIKELY_SPILLED_P (REGNO_REG_CLASS (REGNO (dest))))))
+     return 1;
++  /* Never combine loads and stores protecting argument that use set insn
++     with used flag on.  */
++  if (SET_VOLATILE_P (set))
++    return 1;
+ 
+   return 0;
+ }
+@@ -3781,7 +3785,20 @@ combine_simplify_rtx (rtx x, enum machin
+ 	  rtx inner_op0 = XEXP (XEXP (x, 0), 1);
+ 	  rtx inner_op1 = XEXP (x, 1);
+ 	  rtx inner;
+-
++	  
++#ifndef FRAME_GROWS_DOWNWARD
++	  /* For the case where the frame grows upward,
++	     the stack protector keeps the offset of the frame pointer
++	     positive integer.  */
++	  if (flag_propolice_protection
++	      && code == PLUS
++	      && other == frame_pointer_rtx
++	      && GET_CODE (inner_op0) == CONST_INT
++	      && GET_CODE (inner_op1) == CONST_INT
++	      && INTVAL (inner_op0) > 0
++	      && INTVAL (inner_op0) + INTVAL (inner_op1) <= 0)
++	    return x;
++#endif
+ 	  /* Make sure we pass the constant operand if any as the second
+ 	     one if this is a commutative operation.  */
+ 	  if (CONSTANT_P (inner_op0) && GET_RTX_CLASS (code) == 'c')
+@@ -4146,6 +4163,13 @@ combine_simplify_rtx (rtx x, enum machin
+ 	 they are now checked elsewhere.  */
+       if (GET_CODE (XEXP (x, 0)) == PLUS
+ 	  && CONSTANT_ADDRESS_P (XEXP (XEXP (x, 0), 1)))
++#ifndef FRAME_GROWS_DOWNWARD
++	/* The stack protector keeps the addressing style of a local variable
++	   to be able to change its stack position.  */
++	if (! (flag_propolice_protection
++	       && XEXP (XEXP (x, 0), 0) == frame_pointer_rtx
++	       && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST_INT))
++#endif
+ 	return gen_binary (PLUS, mode,
+ 			   gen_binary (PLUS, mode, XEXP (XEXP (x, 0), 0),
+ 				       XEXP (x, 1)),
+@@ -4273,8 +4297,14 @@ combine_simplify_rtx (rtx x, enum machin
+ 	}
+ 
+       /* Canonicalize (minus A (plus B C)) to (minus (minus A B) C) for
+-	 integers.  */
+-      if (GET_CODE (XEXP (x, 1)) == PLUS && INTEGRAL_MODE_P (mode))
++	 integers.
++	 
++	 The stack protector keeps the addressing style of
++	 a local variable.  */
++      if (GET_CODE (XEXP (x, 1)) == PLUS && INTEGRAL_MODE_P (mode)
++	  && (! (flag_propolice_protection
++		 && XEXP (XEXP (x, 1), 0) == frame_pointer_rtx
++		 && GET_CODE (XEXP (XEXP (x, 1), 1)) == CONST_INT)))
+ 	return gen_binary (MINUS, mode,
+ 			   gen_binary (MINUS, mode, XEXP (x, 0),
+ 				       XEXP (XEXP (x, 1), 0)),
+diff -Naurp gcc-3.4.3.orig/gcc/common.opt gcc-3.4.3/gcc/common.opt
+--- gcc-3.4.3.orig/gcc/common.opt	2005-01-10 20:01:46.000000000 -0800
++++ gcc-3.4.3/gcc/common.opt	2005-01-11 00:04:11.000000000 -0800
+@@ -152,6 +152,10 @@ Wunused-variable
+ Common
+ Warn when a variable is unused
+ 
++Wstack-protector
++Common
++Warn when not issuing stack smashing protection for some reason
++
+ aux-info
+ Common Separate
+ -aux-info <file>	Emit declaration information into <file>
+@@ -743,6 +747,14 @@ fzero-initialized-in-bss
+ Common
+ Put zero initialized data in the bss section
+ 
++fstack-protector
++Common
++Enables stack protection
++
++fstack-protector-all
++Common
++Enables stack protection of every function
++
+ g
+ Common JoinedOrMissing
+ Generate debug information in default format
+diff -Naurp gcc-3.4.3.orig/gcc/config/arm/arm.md gcc-3.4.3/gcc/config/arm/arm.md
+--- gcc-3.4.3.orig/gcc/config/arm/arm.md	2005-01-10 20:01:47.000000000 -0800
++++ gcc-3.4.3/gcc/config/arm/arm.md	2005-01-11 00:04:11.000000000 -0800
+@@ -3840,7 +3840,13 @@
+ 	(match_operand:DI 1 "general_operand" ""))]
+   "TARGET_EITHER"
+   "
+-  if (TARGET_THUMB)
++  if (TARGET_ARM)
++    {
++      /* Everything except mem = const or mem = mem can be done easily */
++      if (GET_CODE (operands[0]) == MEM)
++        operands[1] = force_reg (DImode, operands[1]);
++    }
++  else /* TARGET_THUMB.... */
+     {
+       if (!no_new_pseudos)
+         {
+diff -Naurp gcc-3.4.3.orig/gcc/config/t-linux gcc-3.4.3/gcc/config/t-linux
+--- gcc-3.4.3.orig/gcc/config/t-linux	2003-09-23 11:55:57.000000000 -0700
++++ gcc-3.4.3/gcc/config/t-linux	2005-01-11 00:04:11.000000000 -0800
+@@ -1,7 +1,7 @@
+ # Compile crtbeginS.o and crtendS.o with pic.
+ CRTSTUFF_T_CFLAGS_S = $(CRTSTUFF_T_CFLAGS) -fPIC
+ # Compile libgcc2.a with pic.
+-TARGET_LIBGCC2_CFLAGS = -fPIC
++TARGET_LIBGCC2_CFLAGS = -fPIC -DHAVE_SYSLOG
+ 
+ # Override t-slibgcc-elf-ver to export some libgcc symbols with
+ # the symbol versions that glibc used.
+diff -Naurp gcc-3.4.3.orig/gcc/configure gcc-3.4.3/gcc/configure
+--- gcc-3.4.3.orig/gcc/configure	2005-01-10 20:01:50.000000000 -0800
++++ gcc-3.4.3/gcc/configure	2005-01-11 00:04:12.000000000 -0800
+@@ -309,7 +309,7 @@ ac_includes_default="\
+ # include <unistd.h>
+ #endif"
+ 
+-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os build_subdir host_subdir target_subdir GENINSRC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT NO_MINUS_C_MINUS_O OUTPUT_OPTION CPP GNATBIND ac_ct_GNATBIND strict1_warn warn_cflags WERROR nocommon_flag EGREP valgrind_path valgrind_path_defines valgrind_command coverage_flags enable_multilib enable_shared TARGET_SYSTEM_ROOT TARGET_SYSTEM_ROOT_DEFINE CROSS_SYSTEM_HEADER_DIR onestep SET_MAKE AWK LN LN_S RANLIB ac_ct_RANLIB INSTALL INSTALL_PROGRAM INSTALL_DATA make_compare_target have_mktemp_command MAKEINFO BUILD_INFO GENERATED_MANPAGES FLEX BISON stage1_cflags COLLECT2_LIBS GNAT_LIBEXC LDEXP_LIB TARGET_GETGROUPS_T LIBICONV LIBICONV_DEP manext objext extra_modes_file FORBUILD PACKAGE VERSION USE_NLS LIBINTL LIBINTL_DEP INCINTL XGETTEXT GMSGFMT POSUB CATALOGS CROSS ALL SYSTEM_HEADER_DIR inhibit_libc BUILD_PREFIX BUILD_PREFIX_1 CC_FOR_BUILD BUILD_CFLAGS STMP_FIXINC STMP_FIXPROTO libgcc_visibility gthread_flags GGC zlibdir zlibinc MAINT gcc_tooldir dollar slibdir objdir subdirs srcdir all_boot_languages all_compilers all_gtfiles all_gtfiles_files_langs all_gtfiles_files_files all_lang_makefrags all_lang_makefiles all_languages all_stagestuff build_exeext build_install_headers_dir build_xm_file_list build_xm_include_list build_xm_defines check_languages cc_set_by_configure quoted_cc_set_by_configure cpp_install_dir xmake_file tmake_file extra_gcc_objs extra_headers_list extra_objs extra_parts extra_passes extra_programs float_h_file gcc_config_arguments gcc_gxx_include_dir libstdcxx_incdir gcc_version gcc_version_full gcc_version_trigger host_exeext host_xm_file_list host_xm_include_list host_xm_defines out_host_hook_obj install lang_opt_files lang_specs_files lang_tree_files local_prefix md_file objc_boehm_gc out_file out_object_file stage_prefix_set_by_configure quoted_stage_prefix_set_by_configure symbolic_link thread_file tm_file_list tm_include_list tm_defines tm_p_file_list tm_p_include_list xm_file_list xm_include_list xm_defines target_noncanonical c_target_objs cxx_target_objs target_cpu_default set_gcc_lib_path LIBOBJS LTLIBOBJS'
++ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os build_subdir host_subdir target_subdir GENINSRC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT NO_MINUS_C_MINUS_O OUTPUT_OPTION CPP GNATBIND ac_ct_GNATBIND strict1_warn warn_cflags WERROR nocommon_flag EGREP valgrind_path valgrind_path_defines valgrind_command coverage_flags enable_multilib enable_shared TARGET_SYSTEM_ROOT TARGET_SYSTEM_ROOT_DEFINE CROSS_SYSTEM_HEADER_DIR onestep ENABLESSP SET_MAKE AWK LN LN_S RANLIB ac_ct_RANLIB INSTALL INSTALL_PROGRAM INSTALL_DATA make_compare_target have_mktemp_command MAKEINFO BUILD_INFO GENERATED_MANPAGES FLEX BISON stage1_cflags COLLECT2_LIBS GNAT_LIBEXC LDEXP_LIB TARGET_GETGROUPS_T LIBICONV LIBICONV_DEP manext objext extra_modes_file FORBUILD PACKAGE VERSION USE_NLS LIBINTL LIBINTL_DEP INCINTL XGETTEXT GMSGFMT POSUB CATALOGS CROSS ALL SYSTEM_HEADER_DIR inhibit_libc BUILD_PREFIX BUILD_PREFIX_1 CC_FOR_BUILD BUILD_CFLAGS STMP_FIXINC STMP_FIXPROTO libgcc_visibility gthread_flags GGC zlibdir zlibinc MAINT gcc_tooldir dollar slibdir objdir subdirs srcdir all_boot_languages all_compilers all_gtfiles all_gtfiles_files_langs all_gtfiles_files_files all_lang_makefrags all_lang_makefiles all_languages all_stagestuff build_exeext build_install_headers_dir build_xm_file_list build_xm_include_list build_xm_defines check_languages cc_set_by_configure quoted_cc_set_by_configure cpp_install_dir xmake_file tmake_file extra_gcc_objs extra_headers_list extra_objs extra_parts extra_passes extra_programs float_h_file gcc_config_arguments gcc_gxx_include_dir libstdcxx_incdir gcc_version gcc_version_full gcc_version_trigger host_exeext host_xm_file_list host_xm_include_list host_xm_defines out_host_hook_obj install lang_opt_files lang_specs_files lang_tree_files local_prefix md_file objc_boehm_gc out_file out_object_file stage_prefix_set_by_configure quoted_stage_prefix_set_by_configure symbolic_link thread_file tm_file_list tm_include_list tm_defines tm_p_file_list tm_p_include_list xm_file_list xm_include_list xm_defines target_noncanonical c_target_objs cxx_target_objs target_cpu_default set_gcc_lib_path LIBOBJS LTLIBOBJS'
+ ac_subst_files='language_hooks'
+ 
+ # Initialize some variables set by options.
+@@ -878,6 +878,7 @@ Optional Features:
+   --enable-initfini-array	use .init_array/.fini_array sections
+   --enable-sjlj-exceptions
+                           arrange to use setjmp/longjmp exception handling
++  --enable-stack-protector	force use stack protection as default
+   --disable-win32-registry
+                           disable lookup of installation paths in the
+                           Registry on Windows hosts
+@@ -4809,6 +4810,18 @@ else
+ fi;
+ 
+ 
++
++# Determine whether or not stack protection is enabled.
++# Check whether --enable-stack-protector or --disable-stack-protector was given.
++if test "${enable_stack_protector+set}" = set; then
++  ENABLESSP="-DSTACK_PROTECTOR"
++
++else
++  ENABLESSP=""
++fi;
++
++
++
+ # -------------------------
+ # Checks for other programs
+ # -------------------------
+@@ -13098,6 +13111,7 @@ s,@TARGET_SYSTEM_ROOT@,$TARGET_SYSTEM_RO
+ s,@TARGET_SYSTEM_ROOT_DEFINE@,$TARGET_SYSTEM_ROOT_DEFINE,;t t
+ s,@CROSS_SYSTEM_HEADER_DIR@,$CROSS_SYSTEM_HEADER_DIR,;t t
+ s,@onestep@,$onestep,;t t
++s,@ENABLESSP@,$ENABLESSP,;t t
+ s,@SET_MAKE@,$SET_MAKE,;t t
+ s,@AWK@,$AWK,;t t
+ s,@LN@,$LN,;t t
+diff -Naurp gcc-3.4.3.orig/gcc/cse.c gcc-3.4.3/gcc/cse.c
+--- gcc-3.4.3.orig/gcc/cse.c	2004-10-26 11:05:42.000000000 -0700
++++ gcc-3.4.3/gcc/cse.c	2005-01-11 00:04:12.000000000 -0800
+@@ -4212,7 +4212,14 @@ fold_rtx (rtx x, rtx insn)
+ 
+ 	      if (new_const == 0)
+ 		break;
+-
++#ifndef FRAME_GROWS_DOWNWARD
++	      if (flag_propolice_protection
++		  && GET_CODE (y) == PLUS
++		  && XEXP (y, 0) == frame_pointer_rtx
++		  && INTVAL (inner_const) > 0
++		  && INTVAL (new_const) <= 0)
++		break;
++#endif
+ 	      /* If we are associating shift operations, don't let this
+ 		 produce a shift of the size of the object or larger.
+ 		 This could occur when we follow a sign-extend by a right
+@@ -4744,6 +4751,14 @@ cse_insn (rtx insn, rtx libcall_insn)
+       if (SET_DEST (x) == pc_rtx
+ 	  && GET_CODE (SET_SRC (x)) == LABEL_REF)
+ 	;
++      /* cut the reg propagation of stack-protected argument.  */
++      else if (SET_VOLATILE_P (x)) {
++	rtx x1 = SET_DEST (x);
++	if (GET_CODE (x1) == SUBREG && GET_CODE (SUBREG_REG (x1)) == REG)
++	  x1 = SUBREG_REG (x1);
++	if (! REGNO_QTY_VALID_P(REGNO (x1)))
++	  make_new_qty (REGNO (x1), GET_MODE (x1));
++      }
+ 
+       /* Don't count call-insns, (set (reg 0) (call ...)), as a set.
+ 	 The hard function value register is used only once, to copy to
+diff -Naurp gcc-3.4.3.orig/gcc/doc/invoke.texi gcc-3.4.3/gcc/doc/invoke.texi
+--- gcc-3.4.3.orig/gcc/doc/invoke.texi	2005-01-10 20:01:46.000000000 -0800
++++ gcc-3.4.3/gcc/doc/invoke.texi	2005-01-11 00:04:12.000000000 -0800
+@@ -228,7 +228,7 @@ in the following sections.
+ -Wno-multichar  -Wnonnull  -Wpacked  -Wpadded @gol
+ -Wparentheses  -Wpointer-arith  -Wredundant-decls @gol
+ -Wreturn-type  -Wsequence-point  -Wshadow @gol
+--Wsign-compare  -Wstrict-aliasing @gol
++-Wsign-compare  -Wstack-protector  -Wstrict-aliasing @gol
+ -Wswitch  -Wswitch-default  -Wswitch-enum @gol
+ -Wsystem-headers  -Wtrigraphs  -Wundef  -Wuninitialized @gol
+ -Wunknown-pragmas  -Wunreachable-code @gol
+@@ -676,6 +676,7 @@ in the following sections.
+ -fshort-double  -fshort-wchar @gol
+ -fverbose-asm  -fpack-struct  -fstack-check @gol
+ -fstack-limit-register=@var{reg}  -fstack-limit-symbol=@var{sym} @gol
++-fstack-protector  -fstack-protector-all @gol
+ -fargument-alias  -fargument-noalias @gol
+ -fargument-noalias-global  -fleading-underscore @gol
+ -ftls-model=@var{model} @gol
+@@ -3009,6 +3010,10 @@ effectively.  Often, the problem is that
+ complex; GCC will refuse to optimize programs when the optimization
+ itself is likely to take inordinate amounts of time.
+ 
++@item -Wstack-protector
++@opindex Wstack-protector
++Warn when not issuing stack smashing protection for some reason.
++
+ @item -Werror
+ @opindex Werror
+ Make all warnings into errors.
+@@ -11244,6 +11249,24 @@ and grows downwards, you can use the fla
+ @option{-Wl,--defsym,__stack_limit=0x7ffe0000} to enforce a stack limit
+ of 128KB@.  Note that this may only work with the GNU linker.
+ 
++@item -fstack-protector
++@item -fstack-protector-all
++@opindex fstack-protector
++@opindex fstack-protector-all
++@opindex fno-stack-protector
++Generate code to protect an application from a stack smashing
++attack. The features are (1) the insertion of random value next to the
++frame pointer to detect the integrity of the stack, (2) the reordering
++of local variables to place buffers after pointers to avoid the
++corruption of pointers that could be used to further corrupt arbitrary
++memory locations, (3) the copying of pointers in function arguments to
++an area preceding local variable buffers to prevent the corruption of
++pointers that could be used to further corrupt arbitrary memory
++locations, and the (4) omission of instrumentation code from some
++functions to decrease the performance overhead.  If the integrity
++would be broken, the program is aborted.  If stack-protector-all is
++specified, instrumentation codes are generated at every functions.
++
+ @cindex aliasing of parameters
+ @cindex parameters, aliased
+ @item -fargument-alias
+diff -Naurp gcc-3.4.3.orig/gcc/explow.c gcc-3.4.3/gcc/explow.c
+--- gcc-3.4.3.orig/gcc/explow.c	2005-01-10 20:01:10.000000000 -0800
++++ gcc-3.4.3/gcc/explow.c	2005-01-11 00:04:12.000000000 -0800
+@@ -84,7 +84,8 @@ plus_constant_wide (rtx x, HOST_WIDE_INT
+   rtx tem;
+   int all_constant = 0;
+ 
+-  if (c == 0)
++  if (c == 0
++      && ! (flag_propolice_protection && x == virtual_stack_vars_rtx))
+     return x;
+ 
+  restart:
+@@ -185,7 +186,10 @@ plus_constant_wide (rtx x, HOST_WIDE_INT
+       break;
+     }
+ 
+-  if (c != 0)
++  /* For the use of stack protection, keep the frame and offset pattern
++     even if the offset is zero.  */
++  if (c != 0
++      || (flag_propolice_protection && x == virtual_stack_vars_rtx))
+     x = gen_rtx_PLUS (mode, x, GEN_INT (c));
+ 
+   if (GET_CODE (x) == SYMBOL_REF || GET_CODE (x) == LABEL_REF)
+@@ -474,6 +478,26 @@ memory_address (enum machine_mode mode, 
+       if (memory_address_p (mode, oldx))
+ 	goto win2;
+ 
++      /* The stack protector keeps the addressing style of a local variable.
++	 LEGITIMIZE_ADDRESS changes the addressing to the machine-dependent
++	 style, so the protector split the frame address to a register using
++	 force_reg. */
++      if (flag_propolice_protection)
++	{
++#define FRAMEADDR_P(X) (GET_CODE (X) == PLUS				\
++			&& XEXP (X, 0) == virtual_stack_vars_rtx	\
++			&& GET_CODE (XEXP (X, 1)) == CONST_INT)
++	  rtx y;
++	  if (FRAMEADDR_P (x))
++	    goto win;
++	  for (y = x; y != 0 && GET_CODE (y) == PLUS; y = XEXP (y, 0))
++	    {
++	      if (FRAMEADDR_P (XEXP (y, 0)))
++		XEXP (y, 0) = force_reg (GET_MODE (XEXP (y, 0)), XEXP (y, 0));
++	      if (FRAMEADDR_P (XEXP (y, 1)))
++		XEXP (y, 1) = force_reg (GET_MODE (XEXP (y, 1)), XEXP (y, 1));
++	    }
++	}
+       /* Perform machine-dependent transformations on X
+ 	 in certain cases.  This is not necessary since the code
+ 	 below can handle all possible cases, but machine-dependent
+diff -Naurp gcc-3.4.3.orig/gcc/expr.c gcc-3.4.3/gcc/expr.c
+--- gcc-3.4.3.orig/gcc/expr.c	2005-01-10 20:01:10.000000000 -0800
++++ gcc-3.4.3/gcc/expr.c	2005-01-11 00:04:12.000000000 -0800
+@@ -48,6 +48,7 @@ Software Foundation, 59 Temple Place - S
+ #include "intl.h"
+ #include "tm_p.h"
+ #include "target.h"
++#include "protector.h"
+ 
+ /* Decide whether a function's arguments should be processed
+    from first to last or from last to first.
+@@ -1060,7 +1061,11 @@ can_move_by_pieces (unsigned HOST_WIDE_I
+ 
+    If ENDP is 0 return to, if ENDP is 1 return memory at the end ala
+    mempcpy, and if ENDP is 2 return memory the end minus one byte ala
+-   stpcpy.  */
++   stpcpy.
++
++   When the stack protector is used at the reverse move, it starts the move
++   instruction from the address within the region of a variable.
++   So it eliminates the first address decrement instruction.  */
+ 
+ rtx
+ move_by_pieces (rtx to, rtx from, unsigned HOST_WIDE_INT len,
+@@ -1123,6 +1128,8 @@ move_by_pieces (rtx to, rtx from, unsign
+ 
+       if (USE_LOAD_PRE_DECREMENT (mode) && data.reverse && ! data.autinc_from)
+ 	{
++	  if (flag_propolice_protection)
++	    len = len - GET_MODE_SIZE (mode);
+ 	  data.from_addr = copy_addr_to_reg (plus_constant (from_addr, len));
+ 	  data.autinc_from = 1;
+ 	  data.explicit_inc_from = -1;
+@@ -1137,6 +1144,8 @@ move_by_pieces (rtx to, rtx from, unsign
+ 	data.from_addr = copy_addr_to_reg (from_addr);
+       if (USE_STORE_PRE_DECREMENT (mode) && data.reverse && ! data.autinc_to)
+ 	{
++	  if (flag_propolice_protection)
++	    len = len - GET_MODE_SIZE (mode);
+ 	  data.to_addr = copy_addr_to_reg (plus_constant (to_addr, len));
+ 	  data.autinc_to = 1;
+ 	  data.explicit_inc_to = -1;
+@@ -1280,11 +1289,15 @@ move_by_pieces_1 (rtx (*genfun) (rtx, ..
+ 	from1 = adjust_address (data->from, mode, data->offset);
+ 
+       if (HAVE_PRE_DECREMENT && data->explicit_inc_to < 0)
+-	emit_insn (gen_add2_insn (data->to_addr,
+-				  GEN_INT (-(HOST_WIDE_INT)size)));
++	/* The stack protector skips the first address decrement instruction
++	   at the reverse move.  */
++	if (!flag_propolice_protection || data->explicit_inc_to < -1)
++	  emit_insn (gen_add2_insn (data->to_addr,
++				    GEN_INT (-(HOST_WIDE_INT)size)));
+       if (HAVE_PRE_DECREMENT && data->explicit_inc_from < 0)
+-	emit_insn (gen_add2_insn (data->from_addr,
+-				  GEN_INT (-(HOST_WIDE_INT)size)));
++	if (!flag_propolice_protection || data->explicit_inc_from < -1)
++	  emit_insn (gen_add2_insn (data->from_addr,
++				    GEN_INT (-(HOST_WIDE_INT)size)));
+ 
+       if (data->to)
+ 	emit_insn ((*genfun) (to1, from1));
+@@ -2475,7 +2488,12 @@ store_by_pieces_1 (struct store_by_piece
+ 
+       if (USE_STORE_PRE_DECREMENT (mode) && data->reverse && ! data->autinc_to)
+ 	{
+-	  data->to_addr = copy_addr_to_reg (plus_constant (to_addr, data->len));
++	  int len = data->len;
++	  /* The stack protector starts the store instruction from
++	     the address within the region of a variable.  */
++	  if (flag_propolice_protection)
++	    len -= GET_MODE_SIZE (mode);
++	  data->to_addr = copy_addr_to_reg (plus_constant (to_addr, len));
+ 	  data->autinc_to = 1;
+ 	  data->explicit_inc_to = -1;
+ 	}
+@@ -2544,8 +2562,11 @@ store_by_pieces_2 (rtx (*genfun) (rtx, .
+ 	to1 = adjust_address (data->to, mode, data->offset);
+ 
+       if (HAVE_PRE_DECREMENT && data->explicit_inc_to < 0)
+-	emit_insn (gen_add2_insn (data->to_addr,
+-				  GEN_INT (-(HOST_WIDE_INT) size)));
++	/* The stack protector skips the first address decrement instruction
++	   at the reverse store.  */
++	if (!flag_propolice_protection || data->explicit_inc_to < -1)
++	  emit_insn (gen_add2_insn (data->to_addr,
++				    GEN_INT (-(HOST_WIDE_INT) size)));
+ 
+       cst = (*data->constfun) (data->constfundata, data->offset, mode);
+       emit_insn ((*genfun) (to1, cst));
+@@ -5701,7 +5722,9 @@ force_operand (rtx value, rtx target)
+ 	  && GET_CODE (XEXP (value, 0)) == PLUS
+ 	  && GET_CODE (XEXP (XEXP (value, 0), 0)) == REG
+ 	  && REGNO (XEXP (XEXP (value, 0), 0)) >= FIRST_VIRTUAL_REGISTER
+-	  && REGNO (XEXP (XEXP (value, 0), 0)) <= LAST_VIRTUAL_REGISTER)
++	  && REGNO (XEXP (XEXP (value, 0), 0)) <= LAST_VIRTUAL_REGISTER
++	  && (!flag_propolice_protection
++	      || XEXP (XEXP (value, 0), 0) != virtual_stack_vars_rtx))
+ 	{
+ 	  rtx temp = expand_simple_binop (GET_MODE (value), code,
+ 					  XEXP (XEXP (value, 0), 0), op2,
+diff -Naurp gcc-3.4.3.orig/gcc/flags.h gcc-3.4.3/gcc/flags.h
+--- gcc-3.4.3.orig/gcc/flags.h	2005-01-10 20:01:46.000000000 -0800
++++ gcc-3.4.3/gcc/flags.h	2005-01-11 00:04:12.000000000 -0800
+@@ -210,6 +210,10 @@ extern bool warn_deprecated_decl;
+ 
+ extern bool warn_strict_aliasing;
+ 
++/* Warn when not issuing stack smashing protection for some reason.  */
++
++extern bool warn_stack_protector;
++
+ /* Nonzero if generating code to do profiling.  */
+ 
+ extern int profile_flag;
+@@ -795,4 +799,12 @@ extern int flag_abi_version;
+ #define HONOR_SIGN_DEPENDENT_ROUNDING(MODE) \
+   (MODE_HAS_SIGN_DEPENDENT_ROUNDING (MODE) && flag_rounding_math)
+ 
++/* Nonzero means use propolice as a stack protection method.  */
++
++extern int flag_propolice_protection;
++
++/* Nonzero means use a stack protection method for every function.  */
++
++extern int flag_stack_protection;
++
+ #endif /* ! GCC_FLAGS_H */
+diff -Naurp gcc-3.4.3.orig/gcc/function.c gcc-3.4.3/gcc/function.c
+--- gcc-3.4.3.orig/gcc/function.c	2005-01-10 20:01:10.000000000 -0800
++++ gcc-3.4.3/gcc/function.c	2005-01-11 00:11:08.000000000 -0800
+@@ -63,3 +63,4 @@ Software Foundation, 59 Temple Place - S
+ 
++#include "protector.h"
+ #ifndef TRAMPOLINE_ALIGNMENT
+ #define TRAMPOLINE_ALIGNMENT FUNCTION_BOUNDARY
+@@ -155,6 +156,10 @@ static GTY(()) varray_type epilogue;
+ /* Array of INSN_UIDs to hold the INSN_UIDs for each sibcall epilogue
+    in this function.  */
+ static GTY(()) varray_type sibcall_epilogue;
++
++/* Current boundary mark for character arrays.  */
++static int temp_boundary_mark = 0;
++
+ 
+ /* In order to evaluate some expressions, such as function calls returning
+    structures in memory, we need to temporarily allocate stack locations.
+@@ -208,6 +213,8 @@ struct temp_slot GTY(())
+   /* The size of the slot, including extra space for alignment.  This
+      info is for combine_temp_slots.  */
+   HOST_WIDE_INT full_size;
++  /* Boundary mark of a character array and the others. This info is for propolice.  */
++  int boundary_mark;
+ };
+ 
+ /* This structure is used to record MEMs or pseudos used to replace VAR, any
+@@ -641,6 +648,7 @@ assign_stack_local (enum machine_mode mo
+    whose lifetime is controlled by CLEANUP_POINT_EXPRs.  KEEP is 3
+    if we are to allocate something at an inner level to be treated as
+    a variable in the block (e.g., a SAVE_EXPR).
++   KEEP is 5 if we allocate a place to return structure.
+ 
+    TYPE is the type that will be used for the stack slot.  */
+ 
+@@ -651,6 +659,8 @@ assign_stack_temp_for_type (enum machine
+   unsigned int align;
+   struct temp_slot *p, *best_p = 0;
+   rtx slot;
++  int char_array = (flag_propolice_protection
++		    && keep == 1 && search_string_def (type));
+ 
+   /* If SIZE is -1 it means that somebody tried to allocate a temporary
+      of a variable size.  */
+@@ -676,7 +686,8 @@ assign_stack_temp_for_type (enum machine
+ 	&& ! p->in_use
+ 	&& objects_must_conflict_p (p->type, type)
+ 	&& (best_p == 0 || best_p->size > p->size
+-	    || (best_p->size == p->size && best_p->align > p->align)))
++	    || (best_p->size == p->size && best_p->align > p->align))
++	&& (! char_array || p->boundary_mark != 0))
+       {
+ 	if (p->align == align && p->size == size)
+ 	  {
+@@ -711,6 +722,7 @@ assign_stack_temp_for_type (enum machine
+ 	      p->address = 0;
+ 	      p->rtl_expr = 0;
+ 	      p->type = best_p->type;
++	      p->boundary_mark = best_p->boundary_mark;
+ 	      p->next = temp_slots;
+ 	      temp_slots = p;
+ 
+@@ -771,6 +783,7 @@ assign_stack_temp_for_type (enum machine
+       p->full_size = frame_offset - frame_offset_old;
+ #endif
+       p->address = 0;
++      p->boundary_mark = char_array ? ++temp_boundary_mark : 0;
+       p->next = temp_slots;
+       temp_slots = p;
+     }
+@@ -935,14 +948,16 @@ combine_temp_slots (void)
+ 	    int delete_q = 0;
+ 	    if (! q->in_use && GET_MODE (q->slot) == BLKmode)
+ 	      {
+-		if (p->base_offset + p->full_size == q->base_offset)
++		if (p->base_offset + p->full_size == q->base_offset &&
++		    p->boundary_mark == q->boundary_mark)
+ 		  {
+ 		    /* Q comes after P; combine Q into P.  */
+ 		    p->size += q->size;
+ 		    p->full_size += q->full_size;
+ 		    delete_q = 1;
+ 		  }
+-		else if (q->base_offset + q->full_size == p->base_offset)
++		else if (q->base_offset + q->full_size == p->base_offset &&
++			 p->boundary_mark == q->boundary_mark)
+ 		  {
+ 		    /* P comes after Q; combine P into Q.  */
+ 		    q->size += p->size;
+@@ -1457,8 +1472,9 @@ put_reg_into_stack (struct function *fun
+     }
+ 
+   if (new == 0)
+-    new = assign_stack_local_1 (decl_mode, GET_MODE_SIZE (decl_mode),
+-				consecutive_p ? -2 : 0, func);
++    new = function ?
++          assign_stack_local_1 (decl_mode, GET_MODE_SIZE (decl_mode), consecutive_p ? -2 : 0, func) :
++          assign_stack_local_for_pseudo_reg (decl_mode, GET_MODE_SIZE (decl_mode), consecutive_p ? -2 : 0);
+ 
+   PUT_CODE (reg, MEM);
+   PUT_MODE (reg, decl_mode);
+@@ -3946,10 +3962,13 @@ instantiate_virtual_regs_1 (rtx *loc, rt
+ 		}
+ 
+ 	      /* Otherwise copy the new constant into a register and replace
+-		 constant with that register.  */
++		 constant with that register.
++		 At the use of stack protection, stop to replace the frame
++		 offset with a register.  */
+ 	      temp = gen_reg_rtx (Pmode);
+ 	      XEXP (x, 0) = new;
+-	      if (validate_change (object, &XEXP (x, 1), temp, 0))
++	      if (validate_change (object, &XEXP (x, 1), temp, 0)
++		  && !flag_propolice_protection)
+ 		emit_insn_before (gen_move_insn (temp, new_offset), object);
+ 	      else
+ 		{
+diff -Naurp gcc-3.4.3.orig/gcc/gcse.c gcc-3.4.3/gcc/gcse.c
+--- gcc-3.4.3.orig/gcc/gcse.c	2004-10-30 11:02:53.000000000 -0700
++++ gcc-3.4.3/gcc/gcse.c	2005-01-11 00:04:12.000000000 -0800
+@@ -4176,9 +4176,13 @@ cprop_insn (rtx insn, int alter_jumps)
+ 	continue;
+ 
+       /* Find an assignment that sets reg_used and is available
+-	 at the start of the block.  */
++	 at the start of the block.
++
++         Skip the copy propagation not to eliminate the register that is
++	 the duplicated pointer of a function argument. It is used for
++	 the function argument protection.  */
+       set = find_avail_set (regno, insn);
+-      if (! set)
++      if (! set || SET_VOLATILE_P (set->expr))
+ 	continue;
+ 
+       pat = set->expr;
+diff -Naurp gcc-3.4.3.orig/gcc/integrate.c gcc-3.4.3/gcc/integrate.c
+--- gcc-3.4.3.orig/gcc/integrate.c	2004-01-23 15:36:00.000000000 -0800
++++ gcc-3.4.3/gcc/integrate.c	2005-01-11 00:04:12.000000000 -0800
+@@ -393,6 +393,11 @@ copy_decl_for_inlining (tree decl, tree 
+   /* These args would always appear unused, if not for this.  */
+   TREE_USED (copy) = 1;
+ 
++  /* The inlined variable is marked as INLINE not to change the location
++     by stack protector.  */
++  if (flag_propolice_protection && TREE_CODE (copy) == VAR_DECL)
++    DECL_COPIED (copy) = 1;
++
+   /* Set the context for the new declaration.  */
+   if (!DECL_CONTEXT (decl))
+     /* Globals stay global.  */
+@@ -1970,6 +1975,12 @@ copy_rtx_and_substitute (rtx orig, struc
+ 
+ 	      seq = get_insns ();
+ 	      end_sequence ();
++#ifdef ARGS_GROWS_DOWNWARD
++	      /* Mark this pointer as the top of the argument
++		 block. The pointer minus one is in the block.  */
++	      if (flag_propolice_protection && GET_CODE (seq) == SET)
++		RTX_INTEGRATED_P (SET_SRC (seq)) = 1;
++#endif
+ 	      emit_insn_after (seq, map->insns_at_start);
+ 	      return temp;
+ 	    }
+diff -Naurp gcc-3.4.3.orig/gcc/libgcc-std.ver gcc-3.4.3/gcc/libgcc-std.ver
+--- gcc-3.4.3.orig/gcc/libgcc-std.ver	2005-01-10 20:01:10.000000000 -0800
++++ gcc-3.4.3/gcc/libgcc-std.ver	2005-01-11 00:04:12.000000000 -0800
+@@ -174,6 +174,12 @@ GCC_3.0 {
+   _Unwind_SjLj_RaiseException
+   _Unwind_SjLj_ForcedUnwind
+   _Unwind_SjLj_Resume
++
++%if !defined(_LIBC_PROVIDES_SSP_)
++  # stack smash handler symbols
++  __guard
++  __stack_smash_handler
++%endif
+ }
+ 
+ %inherit GCC_3.3 GCC_3.0
+diff -Naurp gcc-3.4.3.orig/gcc/libgcc2.c gcc-3.4.3/gcc/libgcc2.c
+--- gcc-3.4.3.orig/gcc/libgcc2.c	2005-01-10 20:01:10.000000000 -0800
++++ gcc-3.4.3/gcc/libgcc2.c	2005-01-11 00:04:12.000000000 -0800
+@@ -1747,3 +1747,124 @@ func_ptr __DTOR_LIST__[2];
+ #endif /* no INIT_SECTION_ASM_OP and not CTOR_LISTS_DEFINED_EXTERNALLY */
+ #endif /* L_ctors */
+ 
++
++#ifdef L_stack_smash_handler
++#ifndef _LIBC_PROVIDES_SSP_
++#include <stdio.h>
++#include <string.h>
++#include <fcntl.h>
++#include <unistd.h>
++
++#ifdef _POSIX_SOURCE
++#include <signal.h>
++#endif
++
++#if defined(HAVE_SYSLOG)
++#include <sys/types.h>
++#include <sys/socket.h>
++#include <sys/un.h>
++
++#include <sys/syslog.h>
++#ifndef _PATH_LOG
++#define _PATH_LOG "/dev/log"
++#endif
++#endif
++
++long __guard[8] = {0, 0, 0, 0, 0, 0, 0, 0};
++static void __guard_setup (void) __attribute__ ((constructor));
++
++static void
++__guard_setup (void)
++{
++  int fd;
++  if (__guard[0] != 0)
++    return;
++  fd = open ("/dev/urandom", 0);
++  if (fd != -1) {
++    ssize_t size = read (fd, (char*)&__guard, sizeof(__guard));
++    close (fd) ;
++    if (size == sizeof(__guard))
++      return;
++  }
++  /* If a random generator can't be used, the protector switches the guard
++     to the "terminator canary".  */
++  ((char*)__guard)[0] = 0;
++  ((char*)__guard)[1] = 0;
++  ((char*)__guard)[2] = '\n';
++  ((char*)__guard)[3] = 255;
++}
++
++extern void __stack_smash_handler (char func[], ATTRIBUTE_UNUSED int damaged);
++void
++__stack_smash_handler (char func[], ATTRIBUTE_UNUSED int damaged)
++{
++#if defined (__GNU_LIBRARY__)
++  extern char * __progname;
++#endif
++  const char message[] = ": stack smashing attack in function ";
++  int bufsz = 256, len;
++  char buf[bufsz];
++#if defined(HAVE_SYSLOG)
++  int log_file;
++  struct sockaddr_un sys_log_addr;  /* AF_UNIX address of local logger.  */
++#endif
++#ifdef _POSIX_SOURCE
++  {
++    sigset_t mask;
++    sigfillset (&mask);
++    /* Block all signal handlers except SIGABRT.  */
++    sigdelset (&mask, SIGABRT);
++    sigprocmask (SIG_BLOCK, &mask, NULL);
++  }
++#endif
++
++  /* send LOG_CRIT.  */
++  strcpy (buf, "<2>"); len=3;
++#if defined (__GNU_LIBRARY__)
++  strncat (buf, __progname, bufsz - len - 1);
++  len = strlen (buf);
++#endif
++  if (bufsz > len)
++    {
++      strncat (buf, message, bufsz - len - 1);
++      len = strlen (buf);
++    }
++  if (bufsz > len)
++    {
++      strncat (buf, func, bufsz - len - 1);
++      len = strlen (buf);
++    }
++
++  /* Print error message.  */
++  write (STDERR_FILENO, buf + 3, len - 3);
++#if defined(HAVE_SYSLOG)
++  if ((log_file = socket (AF_UNIX, SOCK_DGRAM, 0)) != -1)
++    {
++
++    /* Send "found" message to the "/dev/log" path.  */
++    sys_log_addr.sun_family = AF_UNIX;
++    (void)strncpy (sys_log_addr.sun_path, _PATH_LOG,
++		   sizeof (sys_log_addr.sun_path) - 1);
++    sys_log_addr.sun_path[sizeof (sys_log_addr.sun_path) - 1] = '\0';
++    sendto(log_file, buf, len, 0, (struct sockaddr *)&sys_log_addr,
++	   sizeof (sys_log_addr));
++  }
++#endif
++
++#ifdef _POSIX_SOURCE
++  {
++    /* Make sure the default handler is associated with SIGABRT.  */
++    struct sigaction sa;
++    
++    memset (&sa, 0, sizeof(struct sigaction));
++    sigfillset (&sa.sa_mask);	/* Block all signals.  */
++    sa.sa_flags = 0;
++    sa.sa_handler = SIG_DFL;
++    sigaction (SIGABRT, &sa, NULL);
++    (void)kill (getpid(), SIGABRT);
++  }
++#endif
++  _exit (127);
++}
++#endif /* _LIBC_PROVIDES_SSP_ */
++#endif /* L_stack_smash_handler */
+diff -Naurp gcc-3.4.3.orig/gcc/loop.c gcc-3.4.3/gcc/loop.c
+--- gcc-3.4.3.orig/gcc/loop.c	2005-01-10 20:01:10.000000000 -0800
++++ gcc-3.4.3/gcc/loop.c	2005-01-11 00:04:12.000000000 -0800
+@@ -6525,6 +6525,14 @@ general_induction_var (const struct loop
+   if (GET_CODE (*mult_val) == USE)
+     *mult_val = XEXP (*mult_val, 0);
+ 
++#ifndef FRAME_GROWS_DOWNWARD
++  if (flag_propolice_protection
++      && GET_CODE (*add_val) == PLUS
++      && (XEXP (*add_val, 0) == frame_pointer_rtx
++	  || XEXP (*add_val, 1) == frame_pointer_rtx))
++    return 0;
++#endif
++
+   if (is_addr)
+     *pbenefit += address_cost (orig_x, addr_mode) - reg_address_cost;
+   else
+diff -Naurp gcc-3.4.3.orig/gcc/mklibgcc.in gcc-3.4.3/gcc/mklibgcc.in
+--- gcc-3.4.3.orig/gcc/mklibgcc.in	2004-10-18 09:00:43.000000000 -0700
++++ gcc-3.4.3/gcc/mklibgcc.in	2005-01-11 00:04:12.000000000 -0800
+@@ -57,7 +57,7 @@ lib2funcs='_muldi3 _negdi2 _lshrdi3 _ash
+ 	_enable_execute_stack _trampoline __main _absvsi2 _absvdi2 _addvsi3
+ 	_addvdi3 _subvsi3 _subvdi3 _mulvsi3 _mulvdi3 _negvsi2 _negvdi2 _ctors
+ 	_ffssi2 _ffsdi2 _clz _clzsi2 _clzdi2 _ctzsi2 _ctzdi2 _popcount_tab
+-	_popcountsi2 _popcountdi2 _paritysi2 _paritydi2'
++	_popcountsi2 _popcountdi2 _paritysi2 _paritydi2 _stack_smash_handler'
+ 
+ # Disable SHLIB_LINK if shared libgcc not enabled.
+ if [ "@enable_shared@" = "no" ]; then
+diff -Naurp gcc-3.4.3.orig/gcc/optabs.c gcc-3.4.3/gcc/optabs.c
+--- gcc-3.4.3.orig/gcc/optabs.c	2004-03-02 16:45:01.000000000 -0800
++++ gcc-3.4.3/gcc/optabs.c	2005-01-11 00:04:12.000000000 -0800
+@@ -678,6 +678,27 @@ expand_binop (enum machine_mode mode, op
+   if (target)
+     target = protect_from_queue (target, 1);
+ 
++  /* Keep the frame and offset pattern at the use of stack protection.  */
++  if (flag_propolice_protection
++      && binoptab->code == PLUS
++      && op0 == virtual_stack_vars_rtx
++      && GET_CODE(op1) == CONST_INT)
++    {
++      int icode = (int) binoptab->handlers[(int) mode].insn_code;
++      if (target)
++	temp = target;
++      else
++	temp = gen_reg_rtx (mode);
++
++      if (! (*insn_data[icode].operand[0].predicate) (temp, mode)
++	  || GET_CODE (temp) != REG)
++	temp = gen_reg_rtx (mode);
++
++      emit_insn (gen_rtx_SET (VOIDmode, temp,
++			      gen_rtx_PLUS (GET_MODE (op0), op0, op1)));
++      return temp;
++    }
++
+   if (flag_force_mem)
+     {
+       /* Load duplicate non-volatile operands once.  */
+diff -Naurp gcc-3.4.3.orig/gcc/opts.c gcc-3.4.3/gcc/opts.c
+--- gcc-3.4.3.orig/gcc/opts.c	2005-01-10 20:01:46.000000000 -0800
++++ gcc-3.4.3/gcc/opts.c	2005-01-11 00:04:13.000000000 -0800
+@@ -125,6 +125,9 @@ bool warn_unused_parameter;
+ bool warn_unused_variable;
+ bool warn_unused_value;
+ 
++/* Warn when not issuing stack smashing protection for some reason */
++bool warn_stack_protector;
++
+ /* Hack for cooperation between set_Wunused and set_Wextra.  */
+ static bool maybe_warn_unused_parameter;
+ 
+@@ -804,6 +807,10 @@ common_handle_option (size_t scode, cons
+       warn_unused_variable = value;
+       break;
+ 
++    case OPT_Wstack_protector:
++      warn_stack_protector = value;
++      break;
++
+     case OPT_aux_info:
+     case OPT_aux_info_:
+       aux_info_file_name = arg;
+@@ -1382,6 +1389,14 @@ common_handle_option (size_t scode, cons
+       stack_limit_rtx = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (arg));
+       break;
+ 
++    case OPT_fstack_protector:
++      flag_propolice_protection = value;
++      break;
++
++    case OPT_fstack_protector_all:
++      flag_stack_protection = value;
++      break;
++
+     case OPT_fstrength_reduce:
+       flag_strength_reduce = value;
+       break;
+diff -Naurp gcc-3.4.3.orig/gcc/reload1.c gcc-3.4.3/gcc/reload1.c
+--- gcc-3.4.3.orig/gcc/reload1.c	2005-01-10 20:01:10.000000000 -0800
++++ gcc-3.4.3/gcc/reload1.c	2005-01-11 00:04:13.000000000 -0800
+@@ -43,6 +43,7 @@ Software Foundation, 59 Temple Place - S
+ #include "toplev.h"
+ #include "except.h"
+ #include "tree.h"
++#include "protector.h"
+ 
+ /* This file contains the reload pass of the compiler, which is
+    run after register allocation has been done.  It checks that
+@@ -891,7 +892,7 @@ reload (rtx first, int global)
+       if (cfun->stack_alignment_needed)
+         assign_stack_local (BLKmode, 0, cfun->stack_alignment_needed);
+ 
+-      starting_frame_size = get_frame_size ();
++      starting_frame_size = get_frame_size () - get_frame_free_size ();
+ 
+       set_initial_elim_offsets ();
+       set_initial_label_offsets ();
+@@ -955,7 +956,7 @@ reload (rtx first, int global)
+ 	setup_save_areas ();
+ 
+       /* If we allocated another stack slot, redo elimination bookkeeping.  */
+-      if (starting_frame_size != get_frame_size ())
++      if (starting_frame_size != get_frame_size () - get_frame_free_size ())
+ 	continue;
+ 
+       if (caller_save_needed)
+@@ -974,7 +975,7 @@ reload (rtx first, int global)
+ 
+       /* If we allocated any new memory locations, make another pass
+ 	 since it might have changed elimination offsets.  */
+-      if (starting_frame_size != get_frame_size ())
++      if (starting_frame_size != get_frame_size () - get_frame_free_size ())
+ 	something_changed = 1;
+ 
+       {
+@@ -1066,11 +1067,11 @@ reload (rtx first, int global)
+   if (insns_need_reload != 0 || something_needs_elimination
+       || something_needs_operands_changed)
+     {
+-      HOST_WIDE_INT old_frame_size = get_frame_size ();
++      HOST_WIDE_INT old_frame_size = get_frame_size () - get_frame_free_size ();
+ 
+       reload_as_needed (global);
+ 
+-      if (old_frame_size != get_frame_size ())
++      if (old_frame_size != get_frame_size () - get_frame_free_size ())
+ 	abort ();
+ 
+       if (num_eliminable)
+@@ -1957,8 +1958,10 @@ alter_reg (int i, int from_reg)
+ 	 inherent space, and no less total space, then the previous slot.  */
+       if (from_reg == -1)
+ 	{
+-	  /* No known place to spill from => no slot to reuse.  */
+-	  x = assign_stack_local (GET_MODE (regno_reg_rtx[i]), total_size,
++	  /* No known place to spill from => no slot to reuse.
++	     For the stack protection, an allocated slot should be placed in
++	     the safe region from the stack smaching attack.  */
++	  x = assign_stack_local_for_pseudo_reg (GET_MODE (regno_reg_rtx[i]), total_size,
+ 				  inherent_size == total_size ? 0 : -1);
+ 	  if (BYTES_BIG_ENDIAN)
+ 	    /* Cancel the  big-endian correction done in assign_stack_local.
+diff -Naurp gcc-3.4.3.orig/gcc/rtl.h gcc-3.4.3/gcc/rtl.h
+--- gcc-3.4.3.orig/gcc/rtl.h	2004-10-12 16:35:32.000000000 -0700
++++ gcc-3.4.3/gcc/rtl.h	2005-01-11 00:04:13.000000000 -0800
+@@ -473,6 +473,18 @@ extern void rtvec_check_failed_bounds (r
+ 			     __FUNCTION__);				\
+    _rtx; })
+ 
++#define RTL_FLAG_CHECK9(NAME, RTX, C1, C2, C3, C4, C5, C6, C7, C8, C9)	\
++  __extension__								\
++({ rtx const _rtx = (RTX);						\
++   if (GET_CODE(_rtx) != C1 && GET_CODE(_rtx) != C2			\
++       && GET_CODE(_rtx) != C3 && GET_CODE(_rtx) != C4			\
++       && GET_CODE(_rtx) != C5 && GET_CODE(_rtx) != C6			\
++       && GET_CODE(_rtx) != C7 && GET_CODE(_rtx) != C8			\
++       && GET_CODE(_rtx) != C9)						\
++     rtl_check_failed_flag  (NAME, _rtx, __FILE__, __LINE__,		\
++			     __FUNCTION__);				\
++   _rtx; })
++
+ extern void rtl_check_failed_flag (const char *, rtx, const char *,
+ 				   int, const char *)
+     ATTRIBUTE_NORETURN
+@@ -488,6 +500,7 @@ extern void rtl_check_failed_flag (const
+ #define RTL_FLAG_CHECK6(NAME, RTX, C1, C2, C3, C4, C5, C6)		(RTX)
+ #define RTL_FLAG_CHECK7(NAME, RTX, C1, C2, C3, C4, C5, C6, C7)		(RTX)
+ #define RTL_FLAG_CHECK8(NAME, RTX, C1, C2, C3, C4, C5, C6, C7, C8)	(RTX)
++#define RTL_FLAG_CHECK9(NAME, RTX, C1, C2, C3, C4, C5, C6, C7, C8, C9)	(RTX)
+ #endif
+ 
+ #define CLEAR_RTX_FLAGS(RTX)	\
+@@ -583,9 +596,9 @@ do {				\
+ #define LOG_LINKS(INSN)	XEXP(INSN, 7)
+ 
+ #define RTX_INTEGRATED_P(RTX)						\
+-  (RTL_FLAG_CHECK8("RTX_INTEGRATED_P", (RTX), INSN, CALL_INSN,		\
++  (RTL_FLAG_CHECK9("RTX_INTEGRATED_P", (RTX), INSN, CALL_INSN,		\
+ 		   JUMP_INSN, INSN_LIST, BARRIER, CODE_LABEL, CONST,	\
+-		   NOTE)->integrated)
++		   PLUS, NOTE)->integrated)
+ #define RTX_UNCHANGING_P(RTX)						\
+   (RTL_FLAG_CHECK3("RTX_UNCHANGING_P", (RTX), REG, MEM, CONCAT)->unchanging)
+ #define RTX_FRAME_RELATED_P(RTX)					\
+@@ -1125,6 +1138,10 @@ do {									\
+   (RTL_FLAG_CHECK3("MEM_VOLATILE_P", (RTX), MEM, ASM_OPERANDS,		\
+ 		   ASM_INPUT)->volatil)
+ 
++/* 1 if RTX is an SET rtx that is not eliminated for the stack protection.  */
++#define SET_VOLATILE_P(RTX)					\
++  (RTL_FLAG_CHECK1("SET_VOLATILE_P", (RTX), SET)->volatil)
++
+ /* 1 if RTX is a mem that refers to an aggregate, either to the
+    aggregate itself of to a field of the aggregate.  If zero, RTX may
+    or may not be such a reference.  */
+diff -Naurp gcc-3.4.3.orig/gcc/simplify-rtx.c gcc-3.4.3/gcc/simplify-rtx.c
+--- gcc-3.4.3.orig/gcc/simplify-rtx.c	2005-01-10 20:01:10.000000000 -0800
++++ gcc-3.4.3/gcc/simplify-rtx.c	2005-01-11 00:04:13.000000000 -0800
+@@ -2288,6 +2288,7 @@ simplify_plus_minus (enum rtx_code code,
+   int n_ops = 2, input_ops = 2, input_consts = 0, n_consts;
+   int first, changed;
+   int i, j;
++  HOST_WIDE_INT fp_offset = 0;
+ 
+   memset (ops, 0, sizeof ops);
+ 
+@@ -2313,6 +2314,10 @@ simplify_plus_minus (enum rtx_code code,
+ 	  switch (this_code)
+ 	    {
+ 	    case PLUS:
++	    if (flag_propolice_protection
++		&& XEXP (this_op, 0) == virtual_stack_vars_rtx
++		&& GET_CODE (XEXP (this_op, 1)) == CONST_INT)
++	      fp_offset = INTVAL (XEXP (this_op, 1));
+ 	    case MINUS:
+ 	      if (n_ops == 7)
+ 		return NULL_RTX;
+@@ -2474,11 +2479,24 @@ simplify_plus_minus (enum rtx_code code,
+       && GET_CODE (ops[n_ops - 1].op) == CONST_INT
+       && CONSTANT_P (ops[n_ops - 2].op))
+     {
+-      rtx value = ops[n_ops - 1].op;
+-      if (ops[n_ops - 1].neg ^ ops[n_ops - 2].neg)
+-	value = neg_const_int (mode, value);
+-      ops[n_ops - 2].op = plus_constant (ops[n_ops - 2].op, INTVAL (value));
+-      n_ops--;
++      if (!flag_propolice_protection)
++	{
++	  rtx value = ops[n_ops - 1].op;
++	  if (ops[n_ops - 1].neg ^ ops[n_ops - 2].neg)
++	    value = neg_const_int (mode, value);
++	  ops[n_ops - 2].op = plus_constant (ops[n_ops - 2].op, INTVAL (value));
++	  n_ops--;
++	}
++      /* The stack protector keeps the addressing style of a local variable,
++	 so it doesn't use neg_const_int function not to change
++	 the offset value.  */
++      else {
++	HOST_WIDE_INT value = INTVAL (ops[n_ops - 1].op);
++	if (ops[n_ops - 1].neg ^ ops[n_ops - 2].neg)
++	  value = -value;
++	ops[n_ops - 2].op = plus_constant (ops[n_ops - 2].op, value);
++	n_ops--;
++      }
+     }
+ 
+   /* Count the number of CONSTs that we generated.  */
+@@ -2496,6 +2514,59 @@ simplify_plus_minus (enum rtx_code code,
+ 	  || (n_ops + n_consts == input_ops && n_consts <= input_consts)))
+     return NULL_RTX;
+ 
++  if (flag_propolice_protection)
++    {
++      /* keep the addressing style of local variables
++	 as (plus (virtual_stack_vars_rtx) (CONST_int x)).
++	 For the case array[r-1],
++	 converts from (+ (+VFP c1) (+r -1)) to (SET R (+VFP c1)) (+ R (+r -1)).
++
++	 This loop finds ops[i] which is the register for the frame
++	 addressing, Then, makes the frame addressing using the register and
++	 the constant of ops[n_ops - 1].  */
++      for (i = 0; i < n_ops; i++)
++#ifdef FRAME_GROWS_DOWNWARD
++	if (ops[i].op == virtual_stack_vars_rtx)
++#else
++	if (ops[i].op == virtual_stack_vars_rtx
++	    || ops[i].op == frame_pointer_rtx)
++#endif
++	  {
++	    if (GET_CODE (ops[n_ops - 1].op) == CONST_INT)
++	      {
++		HOST_WIDE_INT value = INTVAL (ops[n_ops - 1].op);
++		if (value >= fp_offset)
++		  {
++		    ops[i].op = plus_constant (ops[i].op, value);
++		    n_ops--;
++		  }
++		else
++		  {
++		    if (!force
++			&& (n_ops + 1 + n_consts > input_ops
++			    || (n_ops + 1 + n_consts == input_ops
++				&& n_consts <= input_consts)))
++		      return NULL_RTX;
++		    ops[n_ops - 1].op = GEN_INT (value-fp_offset);
++		    ops[i].op = plus_constant (ops[i].op, fp_offset);
++		  }
++	      }
++	    /* keep the following address pattern;
++	       (1) buf[BUFSIZE] is the first assigned variable.
++	       (+ (+ fp -BUFSIZE) BUFSIZE)
++	       (2) ((+ (+ fp 1) r) -1).  */
++	    else if (fp_offset != 0)
++	      return NULL_RTX;
++	    /* keep the (+ fp 0) pattern for the following case;
++	       (1) buf[i]: i: REG, buf: (+ fp 0) in !FRAME_GROWS_DOWNWARD
++	       (2) argument: the address is (+ fp 0).  */
++	    else if (fp_offset == 0)
++	      return NULL_RTX;
++
++	    break;
++	  }
++    }
++
+   /* Put a non-negated operand first, if possible.  */
+ 
+   for (i = 0; i < n_ops && ops[i].neg; i++)
+diff -Naurp gcc-3.4.3.orig/gcc/toplev.c gcc-3.4.3/gcc/toplev.c
+--- gcc-3.4.3.orig/gcc/toplev.c	2005-01-10 20:01:10.000000000 -0800
++++ gcc-3.4.3/gcc/toplev.c	2005-01-11 00:04:13.000000000 -0800
+@@ -79,6 +79,7 @@ Software Foundation, 59 Temple Place - S
+ #include "coverage.h"
+ #include "value-prof.h"
+ #include "alloc-pool.h"
++#include "protector.h"
+ 
+ #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
+ #include "dwarf2out.h"
+@@ -97,6 +98,10 @@ Software Foundation, 59 Temple Place - S
+ 				   declarations for e.g. AIX 4.x.  */
+ #endif
+ 
++#ifdef STACK_PROTECTOR
++#include "protector.h"
++#endif
++
+ #ifndef HAVE_conditional_execution
+ #define HAVE_conditional_execution 0
+ #endif
+@@ -979,6 +984,15 @@ int align_functions_log;
+    minimum function alignment.  Zero means no alignment is forced.  */
+ int force_align_functions_log;
+ 
++#if defined(STACK_PROTECTOR) && defined(STACK_GROWS_DOWNWARD)
++/* Nonzero means use propolice as a stack protection method */
++int flag_propolice_protection = 1;
++int flag_stack_protection = 0;
++#else
++int flag_propolice_protection = 0;
++int flag_stack_protection = 0;
++#endif
++
+ typedef struct
+ {
+   const char *const string;
+@@ -1154,7 +1168,9 @@ static const lang_independent_options f_
+   {"mem-report", &mem_report, 1 },
+   { "trapv", &flag_trapv, 1 },
+   { "wrapv", &flag_wrapv, 1 },
+-  { "new-ra", &flag_new_regalloc, 1 }
++  { "new-ra", &flag_new_regalloc, 1 },
++  {"stack-protector", &flag_propolice_protection, 1 },
++  {"stack-protector-all", &flag_stack_protection, 1 }
+ };
+ 
+ /* Here is a table, controlled by the tm.h file, listing each -m switch
+@@ -2686,6 +2702,9 @@ rest_of_handle_inlining (tree decl)
+ 
+   insns = get_insns ();
+ 
++  if (flag_propolice_protection)
++    prepare_stack_protection (inlinable);
++
+   /* Dump the rtl code if we are dumping rtl.  */
+ 
+   if (open_dump_file (DFI_rtl, decl))
+@@ -4482,6 +4501,12 @@ process_options (void)
+     /* The presence of IEEE signaling NaNs, implies all math can trap.  */
+     if (flag_signaling_nans)
+       flag_trapping_math = 1;
++
++  /* This combination makes optimized frame addressings and causes
++    a internal compilation error at prepare_stack_protection.
++    so don't allow it.  */
++  if (flag_stack_protection && !flag_propolice_protection)
++    flag_propolice_protection = TRUE;
+ }
+ 
+ /* Initialize the compiler back end.  */
+diff -Naurp gcc-3.4.3.orig/gcc/tree.h gcc-3.4.3/gcc/tree.h
+--- gcc-3.4.3.orig/gcc/tree.h	2005-01-10 20:01:46.000000000 -0800
++++ gcc-3.4.3/gcc/tree.h	2005-01-11 00:04:13.000000000 -0800
+@@ -1489,6 +1489,10 @@ struct tree_type GTY(())
+    where it is called.  */
+ #define DECL_INLINE(NODE) (FUNCTION_DECL_CHECK (NODE)->decl.inline_flag)
+ 
++/* In a VAR_DECL, nonzero if the declaration is copied for inlining.
++   The stack protector should keep its location in the stack.  */
++#define DECL_COPIED(NODE) (VAR_DECL_CHECK (NODE)->decl.inline_flag)
++
+ /* Nonzero in a FUNCTION_DECL means that this function was declared inline,
+    such as via the `inline' keyword in C/C++.  This flag controls the linkage
+    semantics of 'inline'; whether or not the function is inlined is

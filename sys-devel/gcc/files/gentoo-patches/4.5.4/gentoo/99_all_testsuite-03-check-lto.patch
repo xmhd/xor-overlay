@@ -1,0 +1,22 @@
+Backport from 4.6.0.
+
+http://gcc.gnu.org/PR45638
+http://gcc.gnu.org/viewcvs?view=revision&revision=165638
+
+make[3]: [check-parallel-g++] Error 1 (ignored)
+make[3]: Leaving directory `/var/tmp/portage/sys-devel/gcc-4.5.2/work/build/gcc'
+make[2]: *** No rule to make target `check-lto', needed by `check'.
+make[2]: Target `check' not remade because of errors.
+make[2]: Leaving directory `/var/tmp/portage/sys-devel/gcc-4.5.2/work/build/gcc'
+make[1]: *** [check-gcc] Error 2
+
+
+--- a/gcc/lto/Make-lang.in
++++ b/gcc/lto/Make-lang.in
+@@ -94,3 +94,6 @@ lto/lto-coff.o: lto/lto-coff.c $(CONFIG_H) coretypes.h $(SYSTEM_H) \
+ lto/lto-macho.o: lto/lto-macho.c $(CONFIG_H) coretypes.h $(SYSTEM_H) \
+ 	toplev.h $(LTO_H) $(TM_H) $(LIBIBERTY_H) $(GGC_H) $(LTO_STREAMER_H) \
+ 	lto/lto-macho.h lto/lto-endian.h
++
++# LTO testing is done as part of C/C++/Fortran etc. testing.
++check-lto:

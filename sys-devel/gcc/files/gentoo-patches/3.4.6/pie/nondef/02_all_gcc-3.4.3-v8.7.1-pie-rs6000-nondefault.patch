@@ -1,0 +1,22 @@
+--- gcc-3.4.0/gcc/config/rs6000/sysv4.h.nondef	Tue May 11 12:12:34 2004
++++ gcc-3.4.0/gcc/config/rs6000/sysv4.h	Tue May 11 12:41:19 2004
+@@ -817,7 +817,7 @@
+ #define	ASM_SPEC "%(asm_cpu) \
+ %{.s: %{mregnames} %{mno-regnames}} %{.S: %{mregnames} %{mno-regnames}} \
+ %{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
+-%{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE:-K PIC} \
++%{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE|pie:-K PIC} \
+ %{memb|msdata|msdata=eabi: -memb} \
+ %{mlittle|mlittle-endian:-mlittle; \
+   mbig|mbig-endian      :-mbig;    \
+--- gcc-3.4.0/gcc/config/rs6000/linux64.h.nondef	Thu Mar 11 04:25:06 2004
++++ gcc-3.4.0/gcc/config/rs6000/linux64.h	Tue May 11 12:44:26 2004
+@@ -134,7 +134,7 @@
+ #endif
+ 
+ #define ASM_SPEC32 "-a32 %{n} %{T} %{Ym,*} %{Yd,*} \
+-%{mrelocatable} %{mrelocatable-lib} %{fpic|fPIC|fpie|fPIE:-K PIC} \
++%{mrelocatable} %{mrelocatable-lib} %{fpic|fPIC|fpie|fPIE|pie:-K PIC} \
+ %{memb} %{!memb: %{msdata: -memb} %{msdata=eabi: -memb}} \
+ %{!mlittle: %{!mlittle-endian: %{!mbig: %{!mbig-endian: \
+     %{mcall-freebsd: -mbig} \

@@ -1,0 +1,47 @@
+sys-devel/gcc-4.7.3 ICE with --coverage -fprofile-use in gcov_open, at gcov-io.c:82
+
+https://bugs.gentoo.org/443092
+http://gcc.gnu.org/PR57269
+
+commit fe1300db054c1fd773cd7ea4491912902d4301c1
+Author: rguenth <rguenth@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Tue May 14 10:49:28 2013 +0000
+
+    2013-05-14  Richard Biener  <rguenther@suse.de>
+    
+    	PR gcov-profile/57269
+    	Backport from mainline
+    	2012-06-30  Nathan Sidwell  <nathan@acm.org>
+    
+    	* coverage.c (coverage_init): Read counts file before writing
+    	graph header.
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_7-branch@198875 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog  | 9 +++++++++
+ gcc/coverage.c | 6 +++---
+ 2 files changed, 12 insertions(+), 3 deletions(-)
+
+--- a/gcc/coverage.c
++++ b/gcc/coverage.c
+@@ -1099,6 +1099,9 @@ coverage_init (const char *filename)
+   memcpy (da_file_name + prefix_len, filename, len);
+   strcpy (da_file_name + prefix_len + len, GCOV_DATA_SUFFIX);
+ 
++  if (flag_branch_probabilities)
++    read_counts_file ();
++
+   /* Name of bbg file.  */
+   if (flag_test_coverage && !flag_compare_debug)
+     {
+@@ -1118,9 +1121,6 @@ coverage_init (const char *filename)
+ 	  gcov_write_unsigned (local_tick);
+ 	}
+     }
+-
+-  if (flag_branch_probabilities)
+-    read_counts_file ();
+ }
+ 
+ /* Performs file-level cleanup.  Close graph file, generate coverage

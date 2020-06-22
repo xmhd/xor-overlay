@@ -1,0 +1,98 @@
+[4.8/4.9 Regression] gcc-4.8.0 breaks -O2 optimization with Wine(64)
+
+http://gcc.gnu.org/PR57003
+https://bugs.gentoo.org/465894
+
+commit d25bf7e2b1274478ce7a612317b2ca6c5653e577
+Author: jakub <jakub@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Thu Apr 25 21:50:26 2013 +0000
+
+    	PR rtl-optimization/57003
+    	* regcprop.c (copyprop_hardreg_forward_1): If ksvd.ignore_set_reg,
+    	call note_stores with kill_clobbered_value callback again after
+    	killing regs_invalidated_by_call.
+    
+    	* gcc.target/i386/pr57003.c: New test.
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_8-branch@198321 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                           |  7 +++++
+ gcc/regcprop.c                          |  7 +++++
+ gcc/testsuite/ChangeLog                 |  5 +++
+ gcc/testsuite/gcc.target/i386/pr57003.c | 54 +++++++++++++++++++++++++++++++++
+ 4 files changed, 73 insertions(+)
+
+--- a/gcc/regcprop.c
++++ b/gcc/regcprop.c
+@@ -1015,6 +1015,13 @@ copyprop_hardreg_forward_1 (basic_block bb, struct value_data *vd)
+ 	  EXECUTE_IF_SET_IN_HARD_REG_SET (regs_invalidated_by_call, 0, regno, hrsi)
+ 	    if (regno < set_regno || regno >= set_regno + set_nregs)
+ 	      kill_value_regno (regno, 1, vd);
++
++	  /* If SET was seen in CALL_INSN_FUNCTION_USAGE, and SET_SRC
++	     of the SET isn't in regs_invalidated_by_call hard reg set,
++	     but instead among CLOBBERs on the CALL_INSN, we could wrongly
++	     assume the value in it is still live.  */
++	  if (ksvd.ignore_set_reg)
++	    note_stores (PATTERN (insn), kill_clobbered_value, vd);
+ 	}
+ 
+       /* Notice stores.  */
+--- /dev/null
++++ b/gcc/testsuite/gcc.target/i386/pr57003.c
+@@ -0,0 +1,54 @@
++/* PR rtl-optimization/57003 */
++/* { dg-do run } */
++/* { dg-options "-O2" } */
++
++#define N 2001
++unsigned short *b, *c, *d;
++
++__attribute__ ((noinline, noclone)) unsigned
++bar (void)
++{
++  asm volatile ("" : : : "memory");
++  return N;
++}
++
++__attribute__ ((noinline, noclone)) unsigned short *
++baz (unsigned long x)
++{
++  if (x != N * sizeof (unsigned short) + 20)
++    __builtin_abort ();
++  asm volatile ("" : : : "memory");
++  return d;
++}
++
++__attribute__ ((ms_abi, noinline, noclone))
++foo (void)
++{
++  unsigned d;
++  unsigned short *e;
++  if ((d = bar ()))
++    {
++      e = baz (d * sizeof (unsigned short) + 20);
++      __builtin_memcpy (e, b, d * sizeof (unsigned short));
++      c = e;
++    }
++}
++
++int
++main ()
++{
++  unsigned short a[2 * N];
++  int i;
++  for (i = 0; i < 2 * N; i++)
++    a[i] = i + 1;
++  b = a;
++  d = a + N;
++  asm volatile ("" : : : "memory");
++  foo ();
++  for (i = 0; i < N; i++)
++    if (a[i] != i + 1 || a[i + N] != i + 1)
++      __builtin_abort ();
++  if (c != a + N)
++    __builtin_abort ();
++  return 0;
++}

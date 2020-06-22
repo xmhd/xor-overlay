@@ -1,0 +1,326 @@
+Fixed in 4.5.2.
+
+-O2 -fno-strict-overflow causes wrong code generation
+
+http://bugs.gentoo.org/341743
+http://gcc.gnu.org/PR46315
+
+--- a/gcc/dce.c
++++ b/gcc/dce.c
+@@ -465,36 +465,16 @@ find_call_stack_args (rtx call_insn, bool do_mark, bool fast,
+ }
+ 
+ 
+-/* Delete all REG_EQUAL notes of the registers INSN writes, to prevent
+-   bad dangling REG_EQUAL notes. */
++/* Remove all REG_EQUAL and REG_EQUIV notes referring to the registers INSN
++   writes to.  */
+ 
+ static void
+-delete_corresponding_reg_eq_notes (rtx insn)
++remove_reg_equal_equiv_notes_for_defs (rtx insn)
+ {
+   df_ref *def_rec;
++
+   for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
+-    {
+-      df_ref def = *def_rec;
+-      unsigned int regno = DF_REF_REGNO (def);
+-      /* This loop is a little tricky.  We cannot just go down the
+-	 chain because it is being modified by the actions in the
+-	 loop.  So we just get the head.  We plan to drain the list
+-	 anyway.  */
+-      while (DF_REG_EQ_USE_CHAIN (regno))
+-	{
+-	  df_ref eq_use = DF_REG_EQ_USE_CHAIN (regno);
+-	  rtx noted_insn = DF_REF_INSN (eq_use);
+-	  rtx note = find_reg_note (noted_insn, REG_EQUAL, NULL_RTX);
+-	  if (!note)
+-	    note = find_reg_note (noted_insn, REG_EQUIV, NULL_RTX);
+-
+-	  /* This assert is generally triggered when someone deletes a
+-	     REG_EQUAL or REG_EQUIV note by hacking the list manually
+-	     rather than calling remove_note.  */
+-	  gcc_assert (note);
+-	  remove_note (noted_insn, note);
+-	}
+-    }
++    remove_reg_equal_equiv_notes_for_regno (DF_REF_REGNO (*def_rec));
+ }
+ 
+ 
+@@ -543,9 +523,9 @@ delete_unmarked_insns (void)
+ 	  if (dump_file)
+ 	    fprintf (dump_file, "DCE: Deleting insn %d\n", INSN_UID (insn));
+ 
+-	  /* Before we delete the insn we have to delete REG_EQUAL notes
++	  /* Before we delete the insn we have to remove the REG_EQUAL notes
+ 	     for the destination regs in order to avoid dangling notes.  */
+-	  delete_corresponding_reg_eq_notes (insn);
++	  remove_reg_equal_equiv_notes_for_defs (insn);
+ 
+ 	  /* If a pure or const call is deleted, this may make the cfg
+ 	     have unreachable blocks.  We rememeber this and call
+--- a/gcc/df-core.c
++++ b/gcc/df-core.c
+@@ -2010,6 +2010,17 @@ df_dump_bottom (basic_block bb, FILE *file)
+ }
+ 
+ 
++static void
++df_ref_dump (df_ref ref, FILE *file)
++{
++  fprintf (file, "%c%d(%d)",
++	   DF_REF_REG_DEF_P (ref)
++	   ? 'd'
++	   : (DF_REF_FLAGS (ref) & DF_REF_IN_NOTE) ? 'e' : 'u',
++	   DF_REF_ID (ref),
++	   DF_REF_REGNO (ref));
++}
++
+ void
+ df_refs_chain_dump (df_ref *ref_rec, bool follow_chain, FILE *file)
+ {
+@@ -2017,10 +2028,7 @@ df_refs_chain_dump (df_ref *ref_rec, bool follow_chain, FILE *file)
+   while (*ref_rec)
+     {
+       df_ref ref = *ref_rec;
+-      fprintf (file, "%c%d(%d)",
+-	       DF_REF_REG_DEF_P (ref) ? 'd' : (DF_REF_FLAGS (ref) & DF_REF_IN_NOTE) ? 'e' : 'u',
+-	       DF_REF_ID (ref),
+-	       DF_REF_REGNO (ref));
++      df_ref_dump (ref, file);
+       if (follow_chain)
+ 	df_chain_dump (DF_REF_CHAIN (ref), file);
+       ref_rec++;
+@@ -2037,10 +2045,7 @@ df_regs_chain_dump (df_ref ref,  FILE *file)
+   fprintf (file, "{ ");
+   while (ref)
+     {
+-      fprintf (file, "%c%d(%d) ",
+-	       DF_REF_REG_DEF_P (ref) ? 'd' : 'u',
+-	       DF_REF_ID (ref),
+-	       DF_REF_REGNO (ref));
++      df_ref_dump (ref, file);
+       ref = DF_REF_NEXT_REG (ref);
+     }
+   fprintf (file, "}");
+--- a/gcc/df-problems.c
++++ b/gcc/df-problems.c
+@@ -125,10 +125,13 @@ df_chain_dump (struct df_link *link, FILE *file)
+   for (; link; link = link->next)
+     {
+       fprintf (file, "%c%d(bb %d insn %d) ",
+-	       DF_REF_REG_DEF_P (link->ref) ? 'd' : 'u',
++	       DF_REF_REG_DEF_P (link->ref)
++	       ? 'd'
++	       : (DF_REF_FLAGS (link->ref) & DF_REF_IN_NOTE) ? 'e' : 'u',
+ 	       DF_REF_ID (link->ref),
+ 	       DF_REF_BBNO (link->ref),
+-	       DF_REF_IS_ARTIFICIAL (link->ref) ? -1 : DF_REF_INSN_UID (link->ref));
++	       DF_REF_IS_ARTIFICIAL (link->ref)
++	       ? -1 : DF_REF_INSN_UID (link->ref));
+     }
+   fprintf (file, "}");
+ }
+--- a/gcc/df-scan.c
++++ b/gcc/df-scan.c
+@@ -471,7 +471,7 @@ df_scan_start_dump (FILE *file ATTRIBUTE_UNUSED)
+ 	  }
+ 	if (DF_REG_EQ_USE_COUNT (i))
+ 	  {
+-	    fprintf (file, "%s%dd", sep, DF_REG_EQ_USE_COUNT (i));
++	    fprintf (file, "%s%de", sep, DF_REG_EQ_USE_COUNT (i));
+ 	    ecount += DF_REG_EQ_USE_COUNT (i);
+ 	  }
+ 	fprintf (file, "} ");
+@@ -487,8 +487,10 @@ df_scan_start_dump (FILE *file ATTRIBUTE_UNUSED)
+ 	    icount++;
+ 	}
+ 
+-  fprintf (file, "\n;;    total ref usage %d{%dd,%du,%de} in %d{%d regular + %d call} insns.\n",
+-	   dcount + ucount + ecount, dcount, ucount, ecount, icount + ccount, icount, ccount);
++  fprintf (file, "\n;;    total ref usage %d{%dd,%du,%de}"
++		 " in %d{%d regular + %d call} insns.\n",
++		 dcount + ucount + ecount, dcount, ucount, ecount,
++		 icount + ccount, icount, ccount);
+ }
+ 
+ /* Dump the bb_info for a given basic block. */
+--- a/gcc/ifcvt.c
++++ b/gcc/ifcvt.c
+@@ -3813,6 +3813,7 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
+ 		    basic_block other_bb, basic_block new_dest, int reversep)
+ {
+   rtx head, end, jump, earliest = NULL_RTX, old_dest, new_label = NULL_RTX;
++  bitmap merge_set = NULL;
+   /* Number of pending changes.  */
+   int n_validated_changes = 0;
+ 
+@@ -3901,6 +3902,7 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
+       earliest = jump;
+     }
+ #endif
++
+   /* Try the NCE path if the CE path did not result in any changes.  */
+   if (n_validated_changes == 0)
+     {
+@@ -3909,9 +3911,8 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
+ 	 that any registers modified are dead at the branch site.  */
+ 
+       rtx insn, cond, prev;
+-      bitmap merge_set, test_live, test_set;
+-      unsigned i, fail = 0;
+-      bitmap_iterator bi;
++      bitmap test_live, test_set;
++      bool intersect = false;
+ 
+       /* Check for no calls or trapping operations.  */
+       for (insn = head; ; insn = NEXT_INSN (insn))
+@@ -3950,12 +3951,7 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
+ 		       end of the block.  */
+ 
+       merge_set = BITMAP_ALLOC (&reg_obstack);
+-      test_live = BITMAP_ALLOC (&reg_obstack);
+-      test_set = BITMAP_ALLOC (&reg_obstack);
+ 
+-      /* ??? bb->local_set is only valid during calculate_global_regs_live,
+-	 so we must recompute usage for MERGE_BB.  Not so bad, I suppose,
+-         since we've already asserted that MERGE_BB is small.  */
+       /* If we allocated new pseudos (e.g. in the conditional move
+ 	 expander called from noce_emit_cmove), we must resize the
+ 	 array first.  */
+@@ -3980,17 +3976,22 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
+ 	 hard registers before reload.  */
+       if (SMALL_REGISTER_CLASSES && ! reload_completed)
+ 	{
++	  unsigned i;
++	  bitmap_iterator bi;
++
+           EXECUTE_IF_SET_IN_BITMAP (merge_set, 0, i, bi)
+ 	    {
+ 	      if (i < FIRST_PSEUDO_REGISTER
+ 		  && ! fixed_regs[i]
+ 		  && ! global_regs[i])
+-		fail = 1;
++		goto fail;
+ 	    }
+ 	}
+ 
+       /* For TEST, we're interested in a range of insns, not a whole block.
+ 	 Moreover, we're interested in the insns live from OTHER_BB.  */
++      test_live = BITMAP_ALLOC (&reg_obstack);
++      test_set = BITMAP_ALLOC (&reg_obstack);
+ 
+       /* The loop below takes the set of live registers
+          after JUMP, and calculates the live set before EARLIEST. */
+@@ -4014,17 +4015,16 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
+ 	   TEST_SET & DF_LIVE_IN (merge_bb)
+ 	 are empty.  */
+ 
+-      if (bitmap_intersect_p (test_set, merge_set)
+-	  || bitmap_intersect_p (test_live, merge_set)
++      if (bitmap_intersect_p (merge_set, test_set)
++	  || bitmap_intersect_p (merge_set, test_live)
+ 	  || bitmap_intersect_p (test_set, df_get_live_in (merge_bb)))
+-	fail = 1;
++	intersect = true;
+ 
+-      BITMAP_FREE (merge_set);
+       BITMAP_FREE (test_live);
+       BITMAP_FREE (test_set);
+ 
+-      if (fail)
+-	return FALSE;
++      if (intersect)
++	goto fail;
+     }
+ 
+  no_body:
+@@ -4074,8 +4074,8 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
+       if (end == BB_END (merge_bb))
+ 	BB_END (merge_bb) = PREV_INSN (head);
+ 
+-      /* PR 21767: When moving insns above a conditional branch, REG_EQUAL
+-	 notes might become invalid.  */
++      /* PR 21767: when moving insns above a conditional branch, the REG_EQUAL
++	 notes being moved might become invalid.  */
+       insn = head;
+       do
+ 	{
+@@ -4092,6 +4092,19 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
+ 	    remove_note (insn, note);
+ 	} while (insn != end && (insn = NEXT_INSN (insn)));
+ 
++      /* PR46315: when moving insns above a conditional branch, the REG_EQUAL
++	 notes referring to the registers being set might become invalid.  */
++      if (merge_set)
++	{
++	  unsigned i;
++	  bitmap_iterator bi;
++
++	  EXECUTE_IF_SET_IN_BITMAP (merge_set, 0, i, bi)
++	    remove_reg_equal_equiv_notes_for_regno (i);
++
++	  BITMAP_FREE (merge_set);
++	}
++
+       reorder_insns (head, end, PREV_INSN (earliest));
+     }
+ 
+@@ -4108,6 +4121,9 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
+ 
+  cancel:
+   cancel_changes (0);
++ fail:
++  if (merge_set)
++    BITMAP_FREE (merge_set);
+   return FALSE;
+ }
+ 
+--- a/gcc/rtl.h
++++ b/gcc/rtl.h
+@@ -1852,6 +1852,7 @@ extern rtx alloc_reg_note (enum reg_note, rtx, rtx);
+ extern void add_reg_note (rtx, enum reg_note, rtx);
+ extern void remove_note (rtx, const_rtx);
+ extern void remove_reg_equal_equiv_notes (rtx);
++extern void remove_reg_equal_equiv_notes_for_regno (unsigned int);
+ extern int side_effects_p (const_rtx);
+ extern int volatile_refs_p (const_rtx);
+ extern int volatile_insn_p (const_rtx);
+--- a/gcc/rtlanal.c
++++ b/gcc/rtlanal.c
+@@ -1951,6 +1951,33 @@ remove_reg_equal_equiv_notes (rtx insn)
+     }
+ }
+ 
++/* Remove all REG_EQUAL and REG_EQUIV notes referring to REGNO.  */
++
++void
++remove_reg_equal_equiv_notes_for_regno (unsigned int regno)
++{
++  df_ref eq_use;
++
++  if (!df)
++    return;
++
++  /* This loop is a little tricky.  We cannot just go down the chain because
++     it is being modified by the actions in the loop.  So we simply iterate
++     over the head.  We plan to drain the list anyway.  */
++  while ((eq_use = DF_REG_EQ_USE_CHAIN (regno)) != NULL)
++    {
++      rtx insn = DF_REF_INSN (eq_use);
++      rtx note = find_reg_equal_equiv_note (insn);
++
++      /* This assert is generally triggered when someone deletes a REG_EQUAL
++	 or REG_EQUIV note by hacking the list manually rather than calling
++	 remove_note.  */
++      gcc_assert (note);
++
++      remove_note (insn, note);
++    }
++}
++
+ /* Search LISTP (an EXPR_LIST) for an entry whose first operand is NODE and
+    return 1 if it is found.  A simple equality test is used to determine if
+    NODE matches.  */

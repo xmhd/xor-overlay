@@ -1,0 +1,16 @@
+2004-11-14	Peter S Mazinger <ps.m@gmx.net>
+
+	* gcc/gcc.c: Add some test spec.
+	Fix for incompatible spec options.
+
+--- gcc/gcc.c.mps
++++ gcc/gcc.c
+@@ -794,6 +794,8 @@
+ /* NB: This is shared amongst all front-ends.  */
+ static const char *cc1_options =
+ "%{pg:%{fomit-frame-pointer:%e-pg and -fomit-frame-pointer are incompatible}}\
++ %{shared:%{static|pie|fPIE|fpie|fno-PIC|fno-pic:%e-shared and -static|pie|fPIE|fpie|fno-PIC|fno-pic are incompatible}}\
++ %{pie:%{static|pg|p|profile:%e-pie and -static|pg|p|profile are incompatible}}\
+  %1 %{!Q:-quiet} -dumpbase %B %{d*} %{m*} %{a*}\
+  %{c|S:%{o*:-auxbase-strip %*}%{!o*:-auxbase %b}}%{!c:%{!S:-auxbase %b}}\
+  %{g*} %{O*} %{W*&pedantic*} %{w} %{std*&ansi}\

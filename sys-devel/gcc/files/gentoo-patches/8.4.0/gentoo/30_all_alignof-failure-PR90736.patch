@@ -1,0 +1,35 @@
+https://gcc.gnu.org/PR94929
+
+From f6965321b1c00bfb2b9c8407df56bcf38f096088 Mon Sep 17 00:00:00 2001
+From: Marek Polacek <polacek@redhat.com>
+Date: Mon, 4 May 2020 13:25:42 -0400
+Subject: [PATCH] c++: Bogus error with alignof [PR90736]
+
+	PR c++/90736 - bogus error with alignof.
+	* constexpr.c (adjust_temp_type): Use cv_unqualified type.
+---
+--- a/gcc/cp/constexpr.c
++++ b/gcc/cp/constexpr.c
+@@ -1255,7 +1255,9 @@ adjust_temp_type (tree type, tree temp)
+   if (TREE_CODE (temp) == EMPTY_CLASS_EXPR)
+     return build0 (EMPTY_CLASS_EXPR, type);
+   gcc_assert (scalarish_type_p (type));
+-  return cp_fold_convert (type, temp);
++  /* Now we know we're dealing with a scalar, and a prvalue of non-class
++     type is cv-unqualified.  */
++  return cp_fold_convert (cv_unqualified (type), temp);
+ }
+ 
+ /* Callback for walk_tree used by unshare_constructor.  */
+--- /dev/null
++++ b/gcc/testsuite/g++.dg/cpp0x/alignof5.C
+@@ -0,0 +1,6 @@
++// PR c++/90736 - bogus error with alignof.
++// { dg-do compile { target c++11 } }
++
++constexpr int fn(const int b) { return b; }
++constexpr int c = fn(alignof(int));
++alignas(c) char d;
+-- 
+2.26.2
+

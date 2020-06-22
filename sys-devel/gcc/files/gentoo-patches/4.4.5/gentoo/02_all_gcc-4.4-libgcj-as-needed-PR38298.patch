@@ -1,0 +1,57 @@
+http://gcc.gnu.org/PR38298
+http://gcc.gnu.org/viewcvs?view=revision&revision=152215
+http://bugs.gentoo.org/322031
+
+had to gut the patch to make it apply to gcc-4.4.x
+
+From 295fba81d7ad59f8f3a0e0ccb309b5d99046eadb Mon Sep 17 00:00:00 2001
+From: rwild <rwild@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Sun, 27 Sep 2009 06:49:33 +0000
+Subject: [PATCH] Fix library dependencies for -Wl,--as-needed.
+
+libjava/:
+	PR libgcj/38298
+	* Makefile.am (libgcj_tools_la_LIBADD): Add '-lm'.
+	* Makefile.in: Regenerate.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@152215 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ libjava/ChangeLog   |    6 ++++++
+ libjava/Makefile.am |    2 +-
+ libjava/Makefile.in |    2 +-
+
+2009-09-27  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR libgcj/38298
+	* Makefile.am (libgcj_tools_la_LIBADD): Add '-lm'.
+	* Makefile.in: Regenerate.
+
+diff --git a/libjava/Makefile.am b/libjava/Makefile.am
+index e923fa3..ad4fca2 100644
+--- a/libjava/Makefile.am
++++ b/libjava/Makefile.am
+@@ -496,6 +496,7 @@
+ libgcj_tools_la_LDFLAGS = -rpath $(toolexeclibdir) \
+  -version-info `grep -v '^\#' $(srcdir)/libtool-version` \
+  $(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
++libgcj_tools_la_LIBADD = -lm
+ libgcj_tools_la_DEPENDENCIES = libgcj.la libgcj.spec
+ libgcj_tools_la_LINK = $(LIBLINK)
+ 
+diff --git a/libjava/Makefile.in b/libjava/Makefile.in
+index 83c4c60..8c09373 100644
+--- a/libjava/Makefile.in
++++ b/libjava/Makefile.in
+@@ -1187,7 +1187,7 @@
+ am_lib_gnu_awt_xlib_la_OBJECTS = $(am__objects_1)
+ lib_gnu_awt_xlib_la_OBJECTS = $(am_lib_gnu_awt_xlib_la_OBJECTS)
+ @XLIB_AWT_TRUE@am_lib_gnu_awt_xlib_la_rpath = -rpath $(toolexeclibdir)
+-libgcj_tools_la_LIBADD =
++libgcj_tools_la_LIBADD = -lm
+ am_libgcj_tools_la_OBJECTS = classpath/tools/libgcj_tools_la-tools.lo
+ libgcj_tools_la_OBJECTS = $(am_libgcj_tools_la_OBJECTS)
+ @INTERPRETER_TRUE@am__DEPENDENCIES_1 = gnu/classpath/jdwp.lo \
+-- 
+1.7.1
+

@@ -1,0 +1,55 @@
+1.7		[pending]
+	- 03_all_gcc43-java-nomulti.patch
+	- 09_all_gcc-4.5-Wtrampolines.patch
+	- 10_all_gcc-default-format-security.patch
+	- 10_all_gcc-default-fortify-source.patch
+	+ 56_all_gcc-ppc-vector-pr48226.patch
+	- 99_all_testsuite-01-Wformat.patch
+	- 99_all_testsuite-02-Wtrampolines.patch
+
+1.6		27 Sep 2012
+	+ 05_all_gcc-4.5.x-siginfo.patch
+	+ 15_all_libgfortran-Werror.patch
+
+1.5		11 May 2012
+	+ 92_all_freebsd-pie.patch
+
+1.4		09 May 2012
+	+ 64_all_gcc-hppa-64bit-pr52408.patch
+
+1.3		08 May 2012
+	+ 33_all_armhf.patch
+
+1.2		15 Apr 2012
+	+ 27_all_gcj-glibc-2.15-pr50888.patch
+
+1.1		20 Feb 2012
+	+ 77_all_pr51106_4.5.4_ice-move_insn.patch
+
+1.0		05 Aug 2011
+	+ 00_all_gcc-4.1-alpha-mieee-default.patch
+	+ 01_all_gcc-4.1-alpha-asm-mcpu.patch
+	+ 03_all_gcc43-java-nomulti.patch
+	+ 08_all_gcc-4.1-cross-compile.patch
+	+ 09_all_gcc-4.5-Wtrampolines.patch
+	+ 10_all_gcc-default-format-security.patch
+	+ 10_all_gcc-default-fortify-source.patch
+	+ 11_all_gcc-netbsd-symbolic.patch
+	+ 14_all_gcc-sparc64-bsd.patch
+	+ 15_all_gcc-libgomp-no-werror.patch
+	+ 22_all_4.6_pr45094_arm-dword-move.patch
+	+ 23_all_4.6_pr45886_ARM_PCS_VFP.patch
+	+ 30_all_gcc-4.5-ppc-msingle-pic-base.patch
+	+ 31_all_gcc-4.4-ppc-fpic-mrelocatable.patch
+	+ 40_all_gcc-4.4-libiberty.h-asprintf.patch
+	+ 47_all_arm-unbreak-armv4t.patch
+	+ 51_all_gcc-3.4-libiberty-pic.patch
+	+ 53_all_gcc4-superh-default-multilib.patch
+	+ 61_all_gcc4-ia64-noteGNUstack.patch
+	+ 74_all_sh-pr24836.patch
+	+ 93_all_gcc-4.5-cloog-dl.patch
+	+ 94_all_gcc-4.5-pch-nostdinc.patch
+	+ 95_all_arm-pr43440.patch
+	+ 99_all_testsuite-01-Wformat.patch
+	+ 99_all_testsuite-02-Wtrampolines.patch
+	+ 99_all_testsuite-03-check-lto.patch

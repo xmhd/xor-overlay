@@ -1,0 +1,64 @@
+https://bugs.gentoo.org/543114
+
+From 446368efafb0139b7aac29c383cdf0ae2e349ca4 Mon Sep 17 00:00:00 2001
+From: Mike Frysinger <vapier@gentoo.org>
+Date: Wed, 27 May 2015 10:21:35 -0400
+Subject: [PATCH] hppa-linux: add missing cpp specs
+
+Define CPP_SPEC for parisc linux targets so that -posix & -pthread work
+like on all other linux targets.
+
+2015-05-27  Mike Frysinger  <vapier@gentoo.org>
+
+	* config/pa/pa-linux.h (CPP_SPEC): Define.
+---
+ gcc/config/pa/pa-linux.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gcc/config/pa/pa-linux.h b/gcc/config/pa/pa-linux.h
+index 396d321..f8da185 100644
+--- a/gcc/config/pa/pa-linux.h
++++ b/gcc/config/pa/pa-linux.h
+@@ -28,7 +28,7 @@ along with GCC; see the file COPYING3.  If not see
+   while (0)
+ 
+ #undef CPP_SPEC
+-#define CPP_SPEC "%{posix:-D_POSIX_SOURCE}"
++#define CPP_SPEC "%{posix:-D_POSIX_SOURCE} %{pthread:-D_REENTRANT}"
+ 
+ #undef ASM_SPEC
+ #define ASM_SPEC \
+-- 
+2.4.1
+
+From 7c5e214f79c1ac8ab3f49bf4560d66e654966143 Mon Sep 17 00:00:00 2001
+From: Mike Frysinger <vapier@gentoo.org>
+Date: Wed, 27 May 2015 10:22:25 -0400
+Subject: [PATCH] microblaze-linux: add missing cpp specs
+
+Define CPP_SPEC for microblaze linux targets so that -posix & -pthread
+work like on all other linux targets.
+
+2015-05-27  Mike Frysinger  <vapier@gentoo.org>
+
+	* config/microblaze/linux.h (CPP_SPEC): Define.
+---
+ gcc/config/microblaze/linux.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/gcc/config/microblaze/linux.h b/gcc/config/microblaze/linux.h
+index a7faa7d..655a70f 100644
+--- a/gcc/config/microblaze/linux.h
++++ b/gcc/config/microblaze/linux.h
+@@ -22,6 +22,9 @@
+ #undef TARGET_SUPPORTS_PIC
+ #define TARGET_SUPPORTS_PIC 1
+ 
++#undef CPP_SPEC
++#define CPP_SPEC "%{posix:-D_POSIX_SOURCE} %{pthread:-D_REENTRANT}"
++
+ #undef TLS_NEEDS_GOT
+ #define TLS_NEEDS_GOT 1
+ 
+-- 
+2.4.1

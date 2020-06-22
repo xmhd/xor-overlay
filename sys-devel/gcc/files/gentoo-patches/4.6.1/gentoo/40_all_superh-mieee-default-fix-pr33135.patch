@@ -1,0 +1,105 @@
+https://bugs.gentoo.org/439988
+http://gcc.gnu.org/PR33135
+
+From 5600384da45f999b6088ce92a12e707564f6cf61 Mon Sep 17 00:00:00 2001
+From: olegendo <olegendo@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Sun, 22 Jul 2012 23:49:56 +0000
+Subject: [PATCH] 	PR target/33135 	* config/sh/sh.opt (mieee):
+ Use Var instead of Mask.  Correct 	description. 	*
+ config/sh/sh.c (sh_option_override): Do not change 
+ flag_finite_math_only.  Set TARGET_IEEE to complement of 
+ flag_finite_math_only. 	* doc/invoke.texi (SH
+ options): Add mno-ieee.  Correct 	description of mieee
+ and mno-ieee behavior.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_6-branch@189762 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog        | 11 +++++++++++
+ gcc/config/sh/sh.c   | 10 +++++-----
+ gcc/config/sh/sh.opt |  4 ++--
+ gcc/doc/invoke.texi  | 18 ++++++++++--------
+ 4 files changed, 28 insertions(+), 15 deletions(-)
+
+diff --git a/gcc/config/sh/sh.c b/gcc/config/sh/sh.c
+index 39ef00d..11e537b 100644
+--- a/gcc/config/sh/sh.c
++++ b/gcc/config/sh/sh.c
+@@ -763,11 +763,6 @@ sh_option_override (void)
+   SUBTARGET_OVERRIDE_OPTIONS;
+   if (optimize > 1 && !optimize_size)
+     target_flags |= MASK_SAVE_ALL_TARGET_REGS;
+-  if (flag_finite_math_only == 2)
+-    flag_finite_math_only
+-      = !flag_signaling_nans && TARGET_SH2E && ! TARGET_IEEE;
+-  if (TARGET_SH2E && !flag_finite_math_only)
+-    target_flags |= MASK_IEEE;
+   sh_cpu = PROCESSOR_SH1;
+   assembler_dialect = 0;
+   if (TARGET_SH2)
+@@ -1007,6 +1002,11 @@ sh_option_override (void)
+ 	align_functions = min_align;
+     }
+ 
++  /* If the -mieee option was not explicitly set by the user, turn it on
++     unless -ffinite-math-only was specified.  See also PR 33135.  */
++  if (! global_options_set.x_TARGET_IEEE)
++    TARGET_IEEE = ! flag_finite_math_only;
++
+   if (sh_fixed_range_str)
+     sh_fix_range (sh_fixed_range_str);
+ 
+diff --git a/gcc/config/sh/sh.opt b/gcc/config/sh/sh.opt
+index 99a6373..8464bd7 100644
+--- a/gcc/config/sh/sh.opt
++++ b/gcc/config/sh/sh.opt
+@@ -270,8 +270,8 @@ Target Report RejectNegative Mask(HITACHI)
+ Follow Renesas (formerly Hitachi) / SuperH calling conventions
+ 
+ mieee
+-Target Report Mask(IEEE)
+-Increase the IEEE compliance for floating-point code
++Target Var(TARGET_IEEE)
++Increase the IEEE compliance for floating-point comparisons
+ 
+ mindexed-addressing
+ Target Report Mask(ALLOW_INDEXED_ADDRESS) Condition(SUPPORT_ANY_SH5_32MEDIA)
+diff --git a/gcc/doc/invoke.texi b/gcc/doc/invoke.texi
+index 4ed31b6..9cd24ad 100644
+--- a/gcc/doc/invoke.texi
++++ b/gcc/doc/invoke.texi
+@@ -853,8 +853,8 @@ See RS/6000 and PowerPC Options.
+ -m5-compact  -m5-compact-nofpu @gol
+ -mb  -ml  -mdalign  -mrelax @gol
+ -mbigtable -mfmovd -mhitachi -mrenesas -mno-renesas -mnomacsave @gol
+--mieee  -mbitops  -misize  -minline-ic_invalidate -mpadstruct  -mspace @gol
+--mprefergot  -musermode -multcost=@var{number} -mdiv=@var{strategy} @gol
++-mieee -mno-ieee -mbitops  -misize  -minline-ic_invalidate -mpadstruct @gol
++-mspace -mprefergot  -musermode -multcost=@var{number} -mdiv=@var{strategy} @gol
+ -mdivsi3_libfunc=@var{name} -mfixed-range=@var{register-range} @gol
+ -madjust-unroll -mindexed-addressing -mgettrcost=@var{number} -mpt-fixed @gol
+ -maccumulate-outgoing-args -minvalid-symbols}
+@@ -16938,13 +16938,15 @@ Mark the @code{MAC} register as call-clobbered, even if
+ @option{-mhitachi} is given.
+ 
+ @item -mieee
++@item -mno-ieee
+ @opindex mieee
+-Increase IEEE-compliance of floating-point code.
+-At the moment, this is equivalent to @option{-fno-finite-math-only}.
+-When generating 16 bit SH opcodes, getting IEEE-conforming results for
+-comparisons of NANs / infinities incurs extra overhead in every
+-floating point comparison, therefore the default is set to
+-@option{-ffinite-math-only}.
++@opindex mnoieee
++Control the IEEE compliance of floating-point comparisons, which affects the
++handling of cases where the result of a comparison is unordered.  By default
++@option{-mieee} is implicitly enabled.  If @option{-ffinite-math-only} is
++enabled @option{-mno-ieee} is implicitly set, which results in faster
++floating-point greater-equal and less-equal comparisons.  The implcit settings
++can be overridden by specifying either @option{-mieee} or @option{-mno-ieee}.
+ 
+ @item -minline-ic_invalidate
+ @opindex minline-ic_invalidate
+-- 
+1.7.12.4
+

@@ -1,0 +1,49 @@
+GTK code in gcj requires pango even in non-cairo code
+
+http://bugs.gentoo.org/110002
+http://gcc.gnu.org/bugzilla/show_bug.cgi?id=22889
+
+--- libjava/configure.ac
++++ libjava/configure.ac
+@@ -550,10 +550,10 @@
+ if test "x${enable_gtk_cairo}" = xyes
+ then
+ 	PKG_CHECK_MODULES(CAIRO, cairo)
+-	PKG_CHECK_MODULES(PANGOFT2, pangoft2)
+ fi
+ AC_SUBST(CAIRO_LIBS)
+ AC_SUBST(CAIRO_CFLAGS)
++PKG_CHECK_MODULES(PANGOFT2, pangoft2)
+ AC_SUBST(PANGOFT2_LIBS)
+ AC_SUBST(PANGOFT2_CFLAGS)
+ 
+--- libjava/configure
++++ libjava/configure
+@@ -8095,10 +8096,13 @@
+      { { echo "$as_me:$LINENO: error: Library requirements (cairo) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&5
+ echo "$as_me: error: Library requirements (cairo) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&2;}
+    { (exit 1); exit 1; }; }
+   fi
+ 
++fi
++
++
+ 
+   succeeded=no
+ 
+   if test -z "$PKG_CONFIG"; then
+     # Extract the first word of "pkg-config", so it can be a program name with args.
+@@ -8193,13 +8197,10 @@
+      { { echo "$as_me:$LINENO: error: Library requirements (pangoft2) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&5
+ echo "$as_me: error: Library requirements (pangoft2) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&2;}
+    { (exit 1); exit 1; }; }
+   fi
+ 
+-fi
+-
+-
+ 
+ 
+ 
+ # FIXME: this should be _libs on some hosts.
+ libsubdir=.libs

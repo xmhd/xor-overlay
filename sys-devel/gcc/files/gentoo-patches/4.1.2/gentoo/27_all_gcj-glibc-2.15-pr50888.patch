@@ -1,0 +1,66 @@
+libgcj does not link with >=glibc-2.15
+./.libs/libgcj.so: undefined reference to `__cxa_call_unexpected'
+
+http://gcc.gnu.org/PR50888
+
+
+--- a/libjava/prims.cc
++++ b/libjava/prims.cc
+@@ -33,7 +33,6 @@ details.  */
+ #endif
+ 
+ #ifndef DISABLE_GETENV_PROPERTIES
+-#include <ctype.h>
+ #include <java-props.h>
+ #define PROCESS_GCJ_PROPERTIES process_gcj_properties()
+ #else
+@@ -805,6 +804,8 @@ static java::lang::Thread *main_thread;
+ 
+ #ifndef DISABLE_GETENV_PROPERTIES
+ 
++#define c_isspace(c) (memchr (" \t\n\r\v\f", c, 6) != NULL)
++
+ static char *
+ next_property_key (char *s, size_t *length)
+ {
+@@ -813,7 +814,7 @@ next_property_key (char *s, size_t *length)
+   JvAssert (s);
+ 
+   // Skip over whitespace
+-  while (isspace (*s))
++  while (c_isspace (*s))
+     s++;
+ 
+   // If we've reached the end, return NULL.  Also return NULL if for
+@@ -825,7 +826,7 @@ next_property_key (char *s, size_t *length)
+ 
+   // Determine the length of the property key.
+   while (s[l] != 0
+-	 && ! isspace (s[l])
++	 && ! c_isspace (s[l])
+ 	 && s[l] != ':'
+ 	 && s[l] != '=')
+     {
+@@ -847,19 +848,19 @@ next_property_value (char *s, size_t *length)
+ 
+   JvAssert (s);
+ 
+-  while (isspace (*s))
++  while (c_isspace (*s))
+     s++;
+ 
+   if (*s == ':'
+       || *s == '=')
+     s++;
+ 
+-  while (isspace (*s))
++  while (c_isspace (*s))
+     s++;
+ 
+   // Determine the length of the property value.
+   while (s[l] != 0
+-	 && ! isspace (s[l])
++	 && ! c_isspace (s[l])
+ 	 && s[l] != ':'
+ 	 && s[l] != '=')
+     {

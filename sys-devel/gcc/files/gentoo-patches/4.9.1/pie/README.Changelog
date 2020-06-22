@@ -1,0 +1,416 @@
+0.6.1  Magnus Granberg  <zorry@gentoo.org>
+
+	* gcc/config/rs6000/sysv4.h	typo ESP_DRIVER_SELF_SPEC
+
+0.6.0  Magnus Granberg  <zorry@gentoo.org>
+
+	* gcc/configure			Regenerated
+	* gcc/config/esp.h.			Bumped for 4.9.0 release
+	* gcc/config/gnu-user.h		Bumped for 4.9.0 release
+	* gcc/doc/invoke.texi 		Bumped for 4.9.0 release
+	* libgcc/Makefile.in			Bumped for 4.9.0 release
+
+0.5.9  Magnus Granberg  <zorry@gentoo.org>
+
+	* configure.ac Remove
+	* configure Remove
+	* Makefile.in -fno-stack-protector moved to gentoo gcc patchset.
+	* gcc/gcc.c Update cc1_spec define
+	* gcc/doc/invoke.texi And note on ssp-all for --enable-esp and -ffreestanding
+
+0.5.8  Magnus Granberg  <zorry@gentoo.org>
+
+	* gcc/config/rs6000/linux64 (ASM_SPEC32): Allready applay.
+
+0.5.7 Magnus Granberg  <zorry@gentoo.org>
+
+	* gcc/config/esp.h Add -fstack-check as default.
+
+0.5.6 Magnus Granberg  <zorry@gentoo.org>
+
+	* gcc/config/ia64/linux.h Change ESP_DRIVER_SELF_SPECS To ESP_DRIVER_SELF_SPEC
+	* gcc/config/arm/elf.h  (SUBSUBTARGET_EXTRA_SPECS): Add ESP_EXTRA_SPECS.
+
+0.5.5 Magnus Granberg  <zorry@gentoo.org>
+
+		* configure.ac			Add mips
+		* configure				Regenerated
+		* gcc/configure.ac		Clean up the checksand add mips.
+		* gcc/configure			Regenerated
+		* gcc/config.in			Remove ENABLE_ESP_SSP
+		* gcc/Makefile.in		Bumped for 4.8.0 release
+		* gcc/gcc.c				Remove ESP_EXTRA_SPECS and
+		ESP_COMMAND_OPTIONS_SPEC
+		* gcc/config/rs6000/sysv4.h		Add ESP_DRIVER_SELF_SPEC
+		and ESP_EXTRA_SPECS
+		* gcc/config/i386/gnu-user-common.h	Add ESP_DRIVER_SELF_SPEC
+		* gcc/config/i386/gnu-user.h	Add ESP_DRIVER_SELF_SPEC
+		* gcc/config/i386/i386.h	Add ESP_DRIVER_SELF_SPEC
+		* gcc/config/arm/arm.h		Add ESP_DRIVER_SELF_SPEC and
+		ESP_EXTRA_SPECS
+		* gcc/config/mips/gnu-user.h	Add ESP_DRIVER_SELF_SPEC
+		* gcc/config/mips/gnu-user64.h	Add ESP_DRIVER_SELF_SPEC
+		* gcc/config/mips/mips.h		Add ESP_EXTRA_SPECS
+		* gcc/config/ia64/linux.h		Add ESP_DRIVER_SELF_SPECS
+		* gcc/config/ia64/ia64.h		Add ESP_EXTRA_SPECS
+		* gcc/config/esp.h			Bump for ESP_DRIVER_SELF_SPEC support
+
+0.5.4 Magnus Granberg		<zorry@gentoo.org>
+
+		#436924
+		* configure.ac			Add --enable-esp.  Add -fno-stack-protector
+		to stage1_cflags.
+		* gcc/configure.ac		Add --enable-esp and check if SSP works.
+		Define ENABLE_ESP ENABLE_ESP_SSP.
+		Check if we support crtbeginP and define ENABLE_CRTBEGINP.
+		* gcc/configure			Fix a typo
+		
+0.5.3 Magnus Granberg		<zorry@gentoo.org>
+
+		* gcc/configure			Clean up the checks and added
+			check for uclibc ssp support.
+		* gcc/config.in				Add define for ENABLE_ESP_SSP
+		* gcc/esp.h				Check for ENABLE_ESP_SSP
+
+0.5.2 Magnus Granberg		<zorry@gentoo.org>
+
+		* gcc/common.opt 			Add -nopie
+
+0.5.1 Magnus Granberg		<zorry@gentoo.org>
+
+		* configure				Bumped for 4.7.0 release
+		* gcc/configure			Bumped for 4.7.0 release and
+			added some checks.
+		* gcc/Makefile				Bumped for 4.7.0 release
+		* gcc/gcc.c				Bumped for 4.7.0 release
+		* libgcc/Makefile			Bumped for 4.7.0 release
+
+0.5.0 Magnus Granberg		<zorry@gentoo.org>
+
+		#393321
+		* gcc/Makefile.in			Rename crtbeginTS.o to crtbeginP.o
+		* gcc/config/gnu-user.h		Rename crtbeginTS.o to crtbeginP.o
+		* gcc/config/rs6000/sysv4.h	Rename crtbeginTS.o to crtbeginP.o
+		* gcc/esp.h				Rename crtbeginTS.o to crtbeginP.o
+		* gcc/configure			Rename crtbeginTS.o to crtbeginP.o
+		* gcc/config.in				Rename crtbeginTS.o to crtbeginP.o
+		* libgcc/Makefile.in			Rename crtbeginTS.o to crtbeginP.o
+
+0.4.9 Magnus Granberg		<zorry@gentoo.org>
+
+		#380823
+		* gcc/Makefile.in			added ESP_NOPIE_CFLAGS to ALL_CXXFLAGS
+
+0.4.8 Magnus Granberg		<zorry@gentoo.org>
+	      
+	      * gcc/objc/lang-specs.h		Bumped for gcc 4.6.0 release
+	      * gcc/objcp/lang-specs.h		Bumped for gcc 4.6.0 release
+	      * gcc/cp/lang-specs.h			Bumped for gcc 4.6.0 release
+
+0.4.7	Magnus Granberg		<zorry@gentoo.org>
+
+		* gcc/gcc.c					Add %(esp_options) and %(esp_cpp_options)
+		* gcc/esp.h					Use the esp.h patch from gcc-4.4 patchset
+		* gcc/config/rs6000/linux64.h	Bumed for >2011-02-26 snapshot
+		* gcc/objc/lang-specs.h		Add %(esp_options)
+		* gcc/objcp/lang-specs.h		Add %(esp_options)
+		* gcc/cp/lang-specs.h			Add %(esp_options)
+		* gcc/config/gnu-user.h		Add crtbeginTS.o support
+	      
+0.4.6	Magnus Granberg		<zorry@gentoo.org>
+
+		* Makefile.in				Bumped for gcc 4.6
+		* gcc/Makefile.in			Bumped for gcc 4.6
+		added ESP_NOPIE_CFLAGS to ALL_CFLAGS
+		remove any ESP_NOSSP_CFLAGS
+		remove any ESP_NOPIE_CFLAGS from crt* when not needed
+		* gcc/gcc.c				Bumped for gcc 4.6
+		moved espf_options_ssp  to espf_command_options_spec
+		* gcc/esp.h				Added espf_options_ssp to espf_cc1_command_spec
+		* gcc/config/rs6000/linux64.h	Bumped for gcc 4.6
+		* gcc/config/linux.h			Bumped for gcc 4.6
+
+0.4.5	Magnus Granberg		<zorry@gentoo.org>
+
+		* gcc/config/rs6000/sysv4.h		Fix a typo in the static spec rules
+
+0.4.4	Magnus Granberg		<zorry@gentoo.org>
+
+		* gcc/esp.h			Renamed ESP_CC1_STRICT_SPEC to  ESP_CC1_STRICT_OVERFLOW_SPEC
+		Renamed	ESP_OPTIONS_PIE_CHECK_SPEC to ESP_LINK_PIE_CHECK_SPEC
+
+0.4.3	Magnus Granberg		<zorry@gentoo.org>
+
+		#299061 b.g.o
+		* gcc/gcc.c			removed the pie incompatible specs rule call
+		* gcc/esp.h			Move the -pie incompatible check to esp_link
+		remove the -shared incompatible check
+
+0.4.2	Magnus granberg		<zorry@gentoo.org>
+
+		* configure			remove the changes from 0.4.1
+		* Makefile.in		remove the changes from 0.4.1 remove -fstack-protector check.
+		* gcc/configure		remove the changes from 0.4.1
+		* gcc/config.in		remove the changes from 0.4.1 remove HAVE_GCC_SSP
+		* gcc/Makefile		remove the changes from 0.4.1
+		* gcc/esp.h			change HAVE_GCC_LD_PIE to (EFAULT_PIE || EFAULT_PIE_SSP)
+		change HAVE_GCC_SSP to (EFAULT_SSP || EFAULT_PIE_SSP)
+		* libmudflap/Makefiles.in remove the changes from 0.4.1
+
+0.4.1	Magnus Granberg		<zorry@gentoo.org>
+
+		*configure						removed check for --enable-esp removed enable_esp
+		added check for --enable-esp=(no|all|nopie|nossp). added enable_esp_set
+		*Makefile.in					renamed enable_esp to enable_esp_set
+		*gcc/configure					removed check for --enable-esp removed enable_esp
+		added check for --enable-esp=(no|all|nopie|nossp). added enable_esp_set
+		added a -fPIE -pie check. change AC_COMPILE_IFELSE to AC_LINK_IFELSE in the
+		-fstack-protector check.
+		* gcc/config.in					Added HAVE_GCC_LD_PIE
+		*gcc/Makefile.in				renamed enable_esp to enable_esp_set
+		*gcc/esp.h						Renamed HAVE_LD_PIE to HAVE_GCC_LD_PIE
+		Added HAVE_GCC_LD_PIE to #define ESP_CC1_PIE_SPEC. Move ESP_COMMAND_OPTIONS_SPEC
+		* libmudflap/Makefiles.in		In enable_esp change ifeq to ifdef.
+
+		#293843 b.g.o
+		*gcc/esp.h						Added -nonow to the -z now specs.
+		
+0.4.0	Anthony G. Basile	<basile@opensource.dyc.edu>
+
+		rename espf to esp and change espf-patchset to piepatchset
+
+0.3.9	Magnus Granberg		<zorry@gentoo.org>
+
+		* gcc/configure					Added check for TLS on the target in the SSP check.
+
+		#149292 b.g.o
+		* gcc/config/i386/linux.h		Removed uclibc don't support TLS on stack-protector
+		* gcc/config/i386/linux64.h		Removed uclibc don't support TLS on stack-protector
+		* gcc/config/rs6000/linux.h		Removed uclibc don't support TLS on stack-protector
+		* gcc/config/i386/linux.h		Removed uclibc don't support TLS on stack-protector
+		* gcc/config/sparc/linux.h		Removed uclibc don't support TLS on stack-protector
+		* gcc/config/sparc/linux64.h	Removed uclibc don't support TLS on stack-protector
+
+0.3.8	Magnus Granberg		<zorry@gentoo.org>
+
+		* gcc/configure					Redone the -fstack-protector check.
+		* gcc/config.in					Added HAVE_GCC_SSP
+		* gcc/gcc.c						Removed code for espf_link_spec in X
+		* gcc/espf.h					Added ifdef HAVE_GCC_SSP, change code for espf_link_spec and link_pie_spec
+
+0.3.7_beta	Anthony G. Basile	<basile@opensource.dyc.edu>
+
+		* gcc/configure					Check if -fstack-protector is supported by gcc on ARCH
+		Updated AC_SUBST enable_espf
+		* gcc/Makefile.in				Remove the fix for $(out_object_file): ix86_split_to_parts() stack smashing attack b.g.o #149292.
+		* gcc/gcc.c						Updaded the .c .cc compiler specs.
+
+0.3.6	Magnus Granberg		<zorry@ume.nu>
+
+		* configure						Check --enable-espf change ppc* to powerpc*, powerpc64 and add ia64.
+		* gcc/configure					Don't check for -z,relro on ia64. Disable crtbeginTS for ia64.
+		* gcc/espf.h					ia64 don't support -fstack-protector*
+
+0.3.5	Maguns Granberg		<zorry@ume.nu>
+
+		* gcc/espf.h					Change the specs for crtbegin.TS.o.
+		* gcc/gcc.c						Rename espf_cc1_options to espf_options_pie_check.
+		* gcc/config/linux.h			Fix typos ENABLE_CRTBEGINS to ENABLE_CRTBEGINTS
+		* gcc/config/rs6000/linux64.h	ASM_SPEC32: %{fpic:-K PIC} %{fPIC:-K PIC} to
+		%{fpic|fPIC|fpie|fPIE:-K PIC}
+
+0.3.4	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/configure					Add crtbeginTS.o support.
+		* gcc/Makefile.in				Add crtbeginTS.o support.
+		* gcc/gcc.c						Add espf_cc1_options.
+		* gcc/espf.h					Added espf_cc1_options, crtbeginTS.o support,
+		espf_cc1_options and espf_cc1_strictoverflow.
+		* gcc/config.in					Add crtbeginTS.o support.
+		* gcc/config/linux.h			Add crtbeginTS.o support.
+		* gcc/config/rs6000/sysv4.h		Add crtbeginTS.o support.
+		* gcc/doc/invoke.texi			Add NOTES about -fstack-protector-all,
+		-pie and -fPIE.
+		* libgcc/Makefile.in			Add crtbeginTS.o support.
+
+0.3.3	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/opts.c		change #ifdef ENABLE_ESPF to #ifndef ENABLE_ESPF
+
+0.3.2	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/opts.c		disable flag_delete_null_pointer_checks >= -O2
+		* gcc/espf.h		add ESPF_CC1_SSP_SPEC and ESPF_CC1_PIE_SPEC to fix bugs on -vanilla spec
+
+		#149292 b.g.o
+		* gcc/config/i386/linux.h		uclibc don't support TLS on stack-protector
+		* gcc/config/i386/linux64.h		uclibc don't support TLS on stack-protector
+		* gcc/config/rs6000/linux.h		uclibc don't support TLS on stack-protector
+		* gcc/config/i386/linux.h		uclibc don't support TLS on stack-protector
+		* gcc/config/sparc/linux.h		uclibc don't support TLS on stack-protector
+		* gcc/config/sparc/linux64.h	uclibc don't support TLS on stack-protector
+
+0.3.1	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/cp/Make-lang.in	cc1plus: pch test fail when cc1plus is compile with -fPIE.
+		* gcc/configure			fix --enable-espf when USE"-hardened"
+
+4.4.1-espf-0.3.0	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/espf.h	add ESPF_LINK_SPEC ESPF_LINK_NOW_SPEC
+		* gcc/gcc.c		move	do_self_spec (espf_command_options_spec)
+		do_spec_1()		add espf_link_spec
+
+0.3.0	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/objc/lang-specs.h		Add %(espf_options)
+		* gcc/objcp/lang-specs.h	Add %(espf_options)
+		* gcc/cp/lang-specs.h		Add %(espf_options)
+		* gcc/config.in				removed ENABLE_LIBSSP
+		* Makefile.in	We add -fno-stack-protector to
+		BOOT_CFLAGS, LIBCFLAGS and LIBCXXFLAGS
+		cc1: pch.exp test fail when cc1 is compile with -fPIE
+		* libmudflap/Makefiles.in	Add -fno-stack-protector -U_FORTIFY_SOURCE
+		to AM_CFLAGS
+		* configure		add --enable-espf
+		add -fno-stack-protector to stage1_cflags
+		add targes ppc* arm sparc*
+		* gcc/configure		change code for check --enable-espf
+		* libmudflap/configure add enable_espf
+		* gcc/espf.h	ESPF_CC1_OPTIONS_SPEC renamed to ESPF_OPTIONS_SPEC
+		add ESPF_CPP_OPTIONS_SPEC ESPF_COMMAND_OPTIONS_SPEC
+		ESPF_CC1_OPTIONS_SSP_SPEC renamed to ESPF_OPTIONS_SSP_SPEC
+		ESPF_COMPILER_COMMAND_PIE_SPEC renamed to ESPF_OPTIONS_PIE_SPEC
+		ESPF_LINK_COMMAND_PIE_SPEC renamed to ESPF_LINK_PIE_SPEC
+		add !p !pg to ESPF_LINK_PIE_SPEC
+		removed ESPF_LINK_SPEC ESPF_CC1_OPTIONS_PIE_INCOMPATIBLE_SPEC
+		* gcc/gcc.c		cpp_options		add %(espf_cpp_options)
+		compiler spec	add %(espf_options)
+		change code for ESPF_EXTRA_SPECS
+		process_command():			Check for lazy, or now
+		do_spec_1():				Add -z now and -z relro
+		main()						add do_self_spec (espf_command_options_spec)
+		removed do_self_spec (espf_cc1_command_spec) do_self_spec (espf_link_command_spec)
+
+0.2.9	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/espf.h		add ESPF_COMPILER_COMMAND_PIE_SPEC
+		add ESPF_LINK_COMMAND_PIE_SPEC
+		change ESPF_COMPILER_COMMAND_SPEC ESPF_LINK_COMMAND_SPEC
+
+0.2.8	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/configure				removed check crtbeginTS.o
+		* gcc/espf.h	added notes
+		add ESPF_CC1_SPEC
+		removed ESPF_CPP_UNIQUE_OPTIONS espf_override_options()
+		* gcc/gcc.c					cc1_spec	Set it to CC1_SPEC if ! ENABLE_ESPF
+		* gcc/toplev.c				removed ESPF_OVERRIDE_OPTIONS
+
+0.2.7	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/opts.c	(decode_options):		Remove flag_strict_overflow as opt2
+		* gcc/config.in				removed HAVE_CRTBEGINTS
+		* gcc/Makefile				removed crtbeginTS.o
+		* libgcc/Makefile.in		removed crtbeginTS.o
+		* gcc/config/i386/i386.h	removed espf_override_options ESPF_EXTRA_SPECS
+		* gcc/config/linux.h		remoevd crtbeginTS.o
+		* gcc/espf.h		ESPF_CC1_OPTIONS_PIE_SPEC renamed to ESPF_CC1_COMMAND_SPEC
+		* gcc/gcc.c					add ESPF_EXTRA_SPECS
+		main()			add do_self_spec (espf_cc1_command_spec)
+
+0.2.6	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/config/i386/i386.h	add espf_override_options() to OVERRIDE_OPTIONS
+		* gcc/espf.h				add espf_override_options()
+		* gcc/toplev.c				add ESPF_OVERRIDE_OPTIONS
+
+0.2.5	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/config/i386/i386.h	removed espf_cc1
+		* gcc/config/i386/linux.h	removed espf_cc1 %(crtend_gen)
+		* gcc/config/i386/x86-64.h  removed espf_cc1 %(crtend_gen)
+		* gcc/config/linux.h  		removed espf_cc1 %(crtfile_gen) 
+		%(crtbegin_t_gen) %(crtend_gen)
+		add crtbeginTS.o
+		* gcc/config.in				removed TARGET_LIBC_PROVIDES_PIE
+		add HAVE_CRTBEGINTS
+		* gcc/Makefile.in	add ESPF_NOPIE_CFLAGS ESPF_NOSSP_CFLAGS to
+		CRTSTUFF_T_CFLAGS 
+		add ESPF_NOSSP_CFLAGS to CRTSTUFF_T_CFLAGS_S
+		* espf.h	ESPF_CC1_SPEC renamed to ESPF_CC1_OPTIONS_SPEC
+		add ESPF_LINK_SPEC
+		ESPF_CC1_SSP_SPEC renamed to ESPF_CC1_OPTIONS_SSP_SPEC
+		ESPF_CC1_PIE_SPEC renamed to ESPF_CC1_OPTIONS_PIE_SPEC
+		ESPF_CC1_OPTIONS_SPEC renamed to ESPF_CC1_OPTIONS_PIE_INCOMPATIBLE_SPEC
+		LINK_PIE_SPEC renamed to ESPF_LINK_COMMAND_SPEC
+		removed ESPF_CC1_STRICT_SPEC CRTFILE_GEN_SPEC CRTBEGIN_GEN_SPEC
+		CRTBEGIN_T_GEN_SPEC CRTEND_GEN_SPEC
+		* gcc/configure 	remove TARGET_LIBC_PROVIDES_PIE
+		define HAVE_CRTBEGINTS
+		* gcc/gcc.c			LINK_COMMAND_SPEC add %(espf_link)
+		main()			add do_self_spec (espf_link_command_spec)
+
+0.2.4	Magnus Granberg		<zorry@ume.nu>
+
+		libgcc/Makefile.in clean specs
+
+0.2.3	Magnus Granberg		<zorry@ume.nu>
+
+		*gcc/espf.h			add ESPF_CC1_STRICT_SPEC
+
+0.2.2	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/config/i386/i386.h 	Add espf_cc1
+		Add ESPF_EXTRA_SPECS
+		* gcc/config/i386/linux.h	Add espf_cc1
+		* gcc/config/i386/x86-64.h  Add espf_cc1
+		* gcc/config/linux.h  Add espf_cc1
+		* gcc/Makefile.in	add crtbeginTS.o to EXTRA_PARTS list
+		* libgcc/Makefile.in	add crtbeginTS.o to EXTRA_PARTS list
+		* gcc/configure 	add define ENABLE_LIBSSP
+		* gcc/gcc.c  %(fortify_default) renamed to %(espf_cpp_unique_options)
+		%(pie_incompatible) renamed to %(espf_cc1_options)
+		removed ESPF_EXTRA_SPECS
+		* gcc/espf.h	ESPF_DEFAULT_SPEC renamed to ESPF_CC1_SPEC
+		SSP_DEFAULT_SPEC renamed to ESPF_CC1_SSP_SPEC
+		FORTIFY_DEFAULT_SPEC renamed to ESPF_CPP_UNIQUE_OPTIONS
+		PIE_DEFAULT_SPEC renamed to ESPF_CC1_PIE_SPEC
+		PIE_INCOMPATIBLE_SPEC renamed to ESPF_CC1_OPTIONS_SPEC
+		add new CRTFILE_GEN_SPEC CRTBEGIN_T_GEN_SPEC CRTEND_GEN_SPEC if !
+		TARGET_LIBC_PROVIDES_PIE
+
+4.4.0-espf-0.2.1	Magnus Granberg		<zorry@ume.nu>
+
+		* gcc/gcc.c		include:	espf.h
+		cc1_spec 	= CC1_SPEC if not ENABLE_ESPF
+		cpp_unique_options			add %(fortify_default)
+		cc1_options					add %(pie_incompatible)
+		EXTRA_SPECS					add ESPF_EXTRA_SPECS
+		* libgcc/Makefile.in		add crtbeginTs.o
+		gcc/Makefile.in				add ESPF_NOPIE_CFLAGS and ESPF_NOSSP_CFLAGS
+		LIBGCC2_CFLAGS				add ESPF_NOSSP_CFLAGS
+		CRTSTUFF_CFLAGS				add ESPF_NOPIE_CFLAGS and ESPF_NOSSP_CFLAGS
+		crtbegin*					add crtbeginTS
+		$(out_object_file): ix86_split_to_parts() stack smashing attack b.g.o #149292
+		* libgcc/configure			add enable_espf
+		* gcc/config/linux.h		add %(crtfile_gen) %(crtbegin_t_gen) %(crtend_gen)
+		* gcc/config/i386/linux.h	add %(crtend_gen)
+		* gcc/config/i386/linux64.h	add %(crtend_gen)
+		* gcc/config.gcc	extra_parts		add crtbeginTS.o
+		* libgcc/config.host	extra_parts		add crtbeginTS.o
+		* gcc/configure		check -z relro
+		check -z now
+		check FORTIFY_SOURCES level 2
+		check Scrt1.o
+		check --enable-espf
+		check crtbeginTS.o
+		* gcc/espf.h			new file
+		* gcc/varasm.c (decl_tls_model): Check flag_pic instead of flag_shlib
+		* gcc/config.in				add ENABLE_LIBSSP
+		add ENABLE_ESPF
+		add TARGET_LIBC_PROVIDES_FORTIFY2
+		add TARGET_LIBC_PROVIDES_PIE
+		* configure		define ENABLE_LIBSSP
+
+gcc-4.3.3-piepatches-v10.2.1

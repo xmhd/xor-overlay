@@ -1,0 +1,348 @@
+add support for "--enable-targets=all" to sparc*-*-linux-* just like for
+powerpc and x86
+
+http://bugs.gentoo.org/214765
+
+the bulk of this patch is removing the duplicated linux bits from the sparc
+headers and using the gcc/linux.h work
+
+--- gcc/config.gcc
++++ gcc/config.gcc
+@@ -355,7 +355,7 @@
+ score*-*-*)
+ 	cpu_type=score
+ 	;;
+-sparc64*-*-*)
++sparc*-*-*)
+ 	cpu_type=sparc
+ 	need_64bit_hwint=yes
+ 	;;
+@@ -2337,9 +2337,15 @@
+ 	use_fixproto=yes
+ 	;;
+ sparc-*-linux*)		# SPARC's running GNU/Linux, libc6
+-	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sparc/linux.h"
++	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h linux.h"
+ 	extra_options="${extra_options} sparc/long-double-switch.opt"
+-	tmake_file="${tmake_file} sparc/t-linux sparc/t-crtfm"
++	if test x$enable_targets = xall; then
++		tm_file="sparc/biarch64.h ${tm_file} sparc/linux64.h"
++		tmake_file="${tmake_file} sparc/t-linux64 sparc/t-crtfm"
++	else
++		tm_file="${tm_file} sparc/linux.h"
++		tmake_file="${tmake_file} sparc/t-linux sparc/t-crtfm"
++	fi
+ 	;;
+ sparc-*-rtems*)
+ 	tm_file="${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sparc/sp-elf.h sparc/rtemself.h rtems.h"
+@@ -2471,7 +2477,7 @@
+ 	need_64bit_hwint=yes
+ 	;;
+ sparc64-*-linux*)		# 64-bit SPARC's running GNU/Linux
+-	tm_file="sparc/biarch64.h ${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h sparc/linux64.h"
++	tm_file="sparc/biarch64.h ${tm_file} dbxelf.h elfos.h svr4.h sparc/sysv4.h linux.h sparc/linux64.h"
+ 	extra_options="${extra_options} sparc/long-double-switch.opt"
+ 	tmake_file="${tmake_file} sparc/t-linux sparc/t-linux64 sparc/t-crtfm"
+ 	;;
+--- gcc/config/sparc/linux.h
++++ gcc/config/sparc/linux.h
+@@ -22,39 +22,12 @@
+ #define TARGET_OS_CPP_BUILTINS()		\
+   do						\
+     {						\
+-      builtin_define_std ("unix");		\
+-      builtin_define_std ("linux");		\
+-      builtin_define ("__gnu_linux__");		\
+-      builtin_assert ("system=linux");		\
+-      builtin_assert ("system=unix");		\
+-      builtin_assert ("system=posix");		\
++      LINUX_TARGET_OS_CPP_BUILTINS();		\
+       if (TARGET_LONG_DOUBLE_128)       	\
+ 	builtin_define ("__LONG_DOUBLE_128__");	\
+     }						\
+   while (0)
+ 
+-/* Don't assume anything about the header files.  */
+-#define NO_IMPLICIT_EXTERN_C
+-
+-#undef MD_EXEC_PREFIX
+-#undef MD_STARTFILE_PREFIX
+-
+-/* Provide a STARTFILE_SPEC appropriate for GNU/Linux.  Here we add
+-   the GNU/Linux magical crtbegin.o file (see crtstuff.c) which
+-   provides part of the support for getting C++ file-scope static
+-   object constructed before entering `main'.  */
+-   
+-#undef  STARTFILE_SPEC
+-#if defined HAVE_LD_PIE
+-#define STARTFILE_SPEC \
+-  "%{!shared: %{pg|p:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}}\
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+-#else
+-#define STARTFILE_SPEC \
+-  "%{!shared: %{pg|p:gcrt1.o%s;:crt1.o%s}}\
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+-#endif
+-
+ /* Provide a ENDFILE_SPEC appropriate for GNU/Linux.  Here we tack on
+    the GNU/Linux magical crtend.o file (see crtstuff.c) which
+    provides part of the support for getting C++ file-scope static
+@@ -63,8 +36,8 @@
+ 
+ #undef  ENDFILE_SPEC
+ #define ENDFILE_SPEC \
+-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+-   %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
++  "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s\
++   %{ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
+ 
+ /* This is for -profile to use -lc_p instead of -lc.  */
+ #undef	CC1_SPEC
+@@ -75,10 +48,6 @@
+ %{mv8:-mcpu=v8} %{msupersparc:-mcpu=supersparc} \
+ "
+ 
+-/* The GNU C++ standard library requires that these macros be defined.  */
+-#undef CPLUSPLUS_CPP_SPEC
+-#define CPLUSPLUS_CPP_SPEC "-D_GNU_SOURCE %(cpp)"
+-
+ #undef TARGET_VERSION
+ #define TARGET_VERSION fprintf (stderr, " (sparc GNU/Linux with ELF)");
+ 
+@@ -98,12 +67,6 @@
+ #define CPP_SUBTARGET_SPEC \
+ "%{posix:-D_POSIX_SOURCE} %{pthread:-D_REENTRANT}"
+ 
+-#undef LIB_SPEC
+-#define LIB_SPEC \
+-  "%{pthread:-lpthread} \
+-   %{shared:-lc} \
+-   %{!shared:%{mieee-fp:-lieee} %{profile:-lc_p}%{!profile:-lc}}"
+-
+ /* Provide a LINK_SPEC appropriate for GNU/Linux.  Here we provide support
+    for the special GCC options -static and -shared, which allow us to
+    link things in one of these three modes by applying the appropriate
+@@ -121,15 +84,6 @@
+ /* If ELF is the default format, we should not use /lib/elf.  */
+ 
+ #define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.2"
+-#define UCLIBC_DYNAMIC_LINKER "/lib/ld-uClibc.so.0"
+-#if UCLIBC_DEFAULT
+-#define CHOOSE_DYNAMIC_LINKER(G, U) "%{mglibc:%{muclibc:%e-mglibc and -muclibc used together}" G ";:" U "}"
+-#else
+-#define CHOOSE_DYNAMIC_LINKER(G, U) "%{muclibc:%{mglibc:%e-mglibc and -muclibc used together}" U ";:" G "}"
+-#endif
+-#define LINUX_DYNAMIC_LINKER \
+-  CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER, UCLIBC_DYNAMIC_LINKER)
+-
+ 
+ #undef  LINK_SPEC
+ #define LINK_SPEC "-m elf32_sparc -Y P,/usr/lib %{shared:-shared} \
+@@ -191,10 +145,6 @@
+ 
+ #undef DITF_CONVERSION_LIBFUNCS
+ #define DITF_CONVERSION_LIBFUNCS 1
+-
+-#if defined(HAVE_LD_EH_FRAME_HDR)
+-#define LINK_EH_SPEC "%{!static:--eh-frame-hdr} "
+-#endif
+ 
+ #ifdef HAVE_AS_TLS
+ #undef TARGET_SUN_TLS
+@@ -203,31 +153,10 @@
+ #define TARGET_GNU_TLS 1
+ #endif
+ 
+-/* Don't be different from other Linux platforms in this regard.  */
+-#define HANDLE_PRAGMA_PACK_PUSH_POP
+-
+ /* We use GNU ld so undefine this so that attribute((init_priority)) works.  */
+ #undef CTORS_SECTION_ASM_OP
+ #undef DTORS_SECTION_ASM_OP
+ 
+-/* Determine whether the entire c99 runtime is present in the
+-   runtime library.  */
+-#define TARGET_C99_FUNCTIONS (OPTION_GLIBC)
+-
+-/* Whether we have sincos that follows the GNU extension.  */
+-#define TARGET_HAS_SINCOS (OPTION_GLIBC)
+-
+-#define TARGET_POSIX_IO
+-
+-#undef LINK_GCC_C_SEQUENCE_SPEC
+-#define LINK_GCC_C_SEQUENCE_SPEC \
+-  "%{static:--start-group} %G %L %{static:--end-group}%{!static:%G}"
+-
+-/* Use --as-needed -lgcc_s for eh support.  */
+-#ifdef HAVE_LD_AS_NEEDED
+-#define USE_LD_AS_NEEDED 1
+-#endif
+-
+ #define MD_UNWIND_SUPPORT "config/sparc/linux-unwind.h"
+ 
+ /* Linux currently uses RMO in uniprocessor mode, which is equivalent to
+--- gcc/config/sparc/linux64.h
++++ gcc/config/sparc/linux64.h
+@@ -34,12 +34,6 @@
+     }							\
+   while (0)
+ 
+-/* Don't assume anything about the header files.  */
+-#define NO_IMPLICIT_EXTERN_C
+-
+-#undef MD_EXEC_PREFIX
+-#undef MD_STARTFILE_PREFIX
+-
+ #if TARGET_CPU_DEFAULT == TARGET_CPU_v9 \
+     || TARGET_CPU_DEFAULT == TARGET_CPU_ultrasparc \
+     || TARGET_CPU_DEFAULT == TARGET_CPU_ultrasparc3 \
+@@ -54,25 +48,10 @@
+    + MASK_STACK_BIAS + MASK_APP_REGS + MASK_FPU + MASK_LONG_DOUBLE_128)
+ #endif
+ 
+-#undef ASM_CPU_DEFAULT_SPEC
+-#define ASM_CPU_DEFAULT_SPEC "-Av9a"
+-
+-/* Provide a STARTFILE_SPEC appropriate for GNU/Linux.  Here we add
+-   the GNU/Linux magical crtbegin.o file (see crtstuff.c) which
+-   provides part of the support for getting C++ file-scope static
+-   object constructed before entering `main'.  */
+-   
+-#undef  STARTFILE_SPEC
+-
+-#ifdef HAVE_LD_PIE
+-#define STARTFILE_SPEC \
+-  "%{!shared:%{pg|p:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}}\
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbeginS.o%s}"
+-#else
+-#define STARTFILE_SPEC \
+-  "%{!shared:%{pg|p:gcrt1.o%s;:crt1.o%s}}\
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbeginS.o%s}"
+-#endif
++/* This must be v9a not just v9 because by default we enable
++   -mvis.  */
++#undef ASM_CPU64_DEFAULT_SPEC
++#define ASM_CPU64_DEFAULT_SPEC "-Av9a"
+ 
+ /* Provide a ENDFILE_SPEC appropriate for GNU/Linux.  Here we tack on
+    the GNU/Linux magical crtend.o file (see crtstuff.c) which
+@@ -80,15 +59,10 @@
+    GNU/Linux "finalizer" file, `crtn.o'.  */
+ 
+ #undef  ENDFILE_SPEC
+-
+ #define ENDFILE_SPEC \
+   "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s\
+    %{ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
+ 
+-/* The GNU C++ standard library requires that these macros be defined.  */
+-#undef CPLUSPLUS_CPP_SPEC
+-#define CPLUSPLUS_CPP_SPEC "-D_GNU_SOURCE %(cpp)"
+-
+ #undef TARGET_VERSION
+ #define TARGET_VERSION fprintf (stderr, " (sparc64 GNU/Linux with ELF)");
+ 
+@@ -122,12 +96,6 @@
+ %{pthread:-D_REENTRANT} \
+ "
+ 
+-#undef LIB_SPEC
+-#define LIB_SPEC \
+-  "%{pthread:-lpthread} \
+-   %{shared:-lc} \
+-   %{!shared: %{mieee-fp:-lieee} %{profile:-lc_p}%{!profile:-lc}}"
+-
+ /* Provide a LINK_SPEC appropriate for GNU/Linux.  Here we provide support
+    for the special GCC options -static and -shared, which allow us to
+    link things in one of these three modes by applying the appropriate
+@@ -146,17 +114,6 @@
+ 
+ #define GLIBC_DYNAMIC_LINKER32 "/lib/ld-linux.so.2"
+ #define GLIBC_DYNAMIC_LINKER64 "/lib64/ld-linux.so.2"
+-#define UCLIBC_DYNAMIC_LINKER32 "/lib/ld-uClibc.so.0"
+-#define UCLIBC_DYNAMIC_LINKER64 "/lib/ld64-uClibc.so.0"
+-#if UCLIBC_DEFAULT
+-#define CHOOSE_DYNAMIC_LINKER(G, U) "%{mglibc:%{muclibc:%e-mglibc and -muclibc used together}" G ";:" U "}"
+-#else
+-#define CHOOSE_DYNAMIC_LINKER(G, U) "%{muclibc:%{mglibc:%e-mglibc and -muclibc used together}" U ";:" G "}"
+-#endif
+-#define LINUX_DYNAMIC_LINKER32 \
+-  CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER32, UCLIBC_DYNAMIC_LINKER32)
+-#define LINUX_DYNAMIC_LINKER64 \
+-  CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER64, UCLIBC_DYNAMIC_LINKER64)
+ 
+ #ifdef SPARC_BI_ARCH
+ 
+@@ -203,7 +160,7 @@
+ 
+ #undef	CC1_SPEC
+ #if DEFAULT_ARCH32_P
+-#define CC1_SPEC "\
++#define CC1_SPEC "%{profile:-p} \
+ %{sun4:} %{target:} \
+ %{mcypress:-mcpu=cypress} \
+ %{msparclite:-mcpu=sparclite} %{mf930:-mcpu=f930} %{mf934:-mcpu=f934} \
+@@ -214,7 +171,7 @@
+   %{!mno-vis:%{!mcpu=v9:-mvis}}} \
+ "
+ #else
+-#define CC1_SPEC "\
++#define CC1_SPEC "%{profile:-p} \
+ %{sun4:} %{target:} \
+ %{mcypress:-mcpu=cypress} \
+ %{msparclite:-mcpu=sparclite} %{mf930:-mcpu=f930} %{mf934:-mcpu=f934} \
+@@ -325,9 +282,6 @@
+ #undef DITF_CONVERSION_LIBFUNCS
+ #define DITF_CONVERSION_LIBFUNCS 1
+ 
+-#if defined(HAVE_LD_EH_FRAME_HDR)
+-#define LINK_EH_SPEC "%{!static:--eh-frame-hdr} "
+-#endif
+ 
+ #ifdef HAVE_AS_TLS
+ #undef TARGET_SUN_TLS
+@@ -336,31 +290,10 @@
+ #define TARGET_GNU_TLS 1
+ #endif
+ 
+-/* Don't be different from other Linux platforms in this regard.  */
+-#define HANDLE_PRAGMA_PACK_PUSH_POP
+-
+ /* We use GNU ld so undefine this so that attribute((init_priority)) works.  */
+ #undef CTORS_SECTION_ASM_OP
+ #undef DTORS_SECTION_ASM_OP
+ 
+-/* Determine whether the entire c99 runtime is present in the
+-   runtime library.  */
+-#define TARGET_C99_FUNCTIONS (OPTION_GLIBC)
+-
+-/* Whether we have sincos that follows the GNU extension.  */
+-#define TARGET_HAS_SINCOS (OPTION_GLIBC)
+-
+-#define TARGET_POSIX_IO
+-
+-#undef LINK_GCC_C_SEQUENCE_SPEC
+-#define LINK_GCC_C_SEQUENCE_SPEC \
+-  "%{static:--start-group} %G %L %{static:--end-group}%{!static:%G}"
+-
+-/* Use --as-needed -lgcc_s for eh support.  */
+-#ifdef HAVE_LD_AS_NEEDED
+-#define USE_LD_AS_NEEDED 1
+-#endif
+-
+ #define MD_UNWIND_SUPPORT "config/sparc/linux-unwind.h"
+ 
+ /* Linux currently uses RMO in uniprocessor mode, which is equivalent to
+--- libcpp/configure
++++ libcpp/configure
+@@ -8308,9 +8308,7 @@
+ 	powerpc*-*-* | \
+ 	rs6000*-*-* | \
+ 	s390*-*-* | \
+-	sparc64*-*-* | ultrasparc-*-freebsd* | \
+-	sparcv9-*-solaris2* | \
+-	sparc-*-solaris2.[789] | sparc-*-solaris2.1[0-9]* | \
++	sparc*-*-* | \
+ 	spu-*-* | \
+ 	sh[123456789l]*-*-*)
+ 		need_64bit_hwint=yes ;;

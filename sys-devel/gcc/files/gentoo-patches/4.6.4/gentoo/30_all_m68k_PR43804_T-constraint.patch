@@ -1,0 +1,33 @@
+https://bugs.gentoo.org/458094
+http://gcc.gnu.org/PR43804
+
+
+commit 58ba8f5d02eea2498cd9b1404a2f95d94a4fde2d
+Author: schwab <schwab@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Sun Apr 24 20:04:24 2011 +0000
+
+    Author: Richard Sandiford <richard.sandiford@linaro.org>
+    
+    PR target/43804
+    * gcc/config/m68k/constraints.md (T): Allow PIC operands that satisfy
+    LEGITIMATE_PIC_OPERAND_P.
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@172920 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                  | 6 ++++++
+ gcc/config/m68k/constraints.md | 3 ++-
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+--- a/gcc/config/m68k/constraints.md
++++ b/gcc/config/m68k/constraints.md
+@@ -94,7 +94,8 @@
+ (define_constraint "T"
+   "Used for operands that satisfy 's' when -mpcrel is not in effect."
+   (and (match_code "symbol_ref,label_ref,const")
+-       (match_test "!flag_pic")))
++       (match_test "!TARGET_PCREL")
++       (match_test "!flag_pic || LEGITIMATE_PIC_OPERAND_P (op)")))
+ 
+ (define_memory_constraint "Q"
+   "Means address register indirect addressing mode."

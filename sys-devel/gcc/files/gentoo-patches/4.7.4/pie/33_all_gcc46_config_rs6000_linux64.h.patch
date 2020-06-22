@@ -1,0 +1,16 @@
+2011-03-05		Peter S. Mazinger	<ps.m@gmx.net>, Magnus Granberg		<zorry@gentoo.org>
+
+		* gcc/config/rs6000/linux64.h	ASM_SPEC32 Change %{fpic:-K PIC} %{fPIC:-K PIC}
+		to %{fpic|fPIC|fpie|fPIE:-K PIC}
+
+--- gcc/config/rs6000/linux64.h.psm	2009-04-10 01:23:07.000000000 +0200
++++ gcc/config/rs6000/linux64.h	2009-09-23 12:34:26.000000000 +0200
+@@ -162,7 +162,7 @@
+ #endif
+ 
+ #define ASM_SPEC32 "-a32 \
+-%{mrelocatable} %{mrelocatable-lib} %{fpic:-K PIC} %{fPIC:-K PIC} \
++%{mrelocatable} %{mrelocatable-lib} %{fpic|fPIC|fpie|fPIE:-K PIC} \
+ %{memb} %{!memb: %{msdata=eabi: -memb}} \
+ %{!mlittle: %{!mlittle-endian: %{!mbig: %{!mbig-endian: \
+     %{mcall-freebsd: -mbig} \

@@ -1,0 +1,61 @@
+Before gcc-3.4 gcc libraries and searched executables
+were in /usr/lib/gcc-lib/<TARGET> (STANDARD_EXEC_PREFIX)
+
+After gcc-3.4 the split happened:
+- /usr/lib/gcc/<TARGET> for libraries (STARDARD_EXEC_PREFIX)
+- /usr/libexec/gcc/<TARGET> for executables (STANDARD_LIBEXEC_PREFIX)
+
+This patch adds STANDARD_LIBEXEC_PREFIX to allow bootstrapping
+on 3.4+-only system.
+--- a/gcc/Makefile.in
++++ b/gcc/Makefile.in
+@@ -271,8 +271,13 @@ exec_prefix = @exec_prefix@
+ bindir = @bindir@
+ # Directory in which to put the directories used by the compiler.
+ libdir = @libdir@
++# Directory in which GCC puts its executables.
++libexecdir = @libexecdir@
++
+ # Directory in which the compiler finds executables, libraries, etc.
+ libsubdir = $(libdir)/gcc-lib/$(target_alias)/$(version)
++# Directory in which the compiler finds executables
++libexecsubdir = $(libexecdir)/gcc/$(target_alias)/$(version)
+ # Used to produce a relative $(gcc_tooldir) in gcc.o
+ unlibsubdir = ../../..
+ # Directory in which to find other cross-compilation tools and headers.
+@@ -650,6 +655,7 @@ ORDINARY_FLAGS_TO_PASS = \
+ 	"gcc_tooldir=$(gcc_tooldir)" \
+ 	"bindir=$(bindir)" \
+ 	"libsubdir=$(libsubdir)" \
++	"libexecsubdir=$(libsubdir)" \
+ 	"datadir=$(datadir)" \
+ 	"distdir=../tmp/\$$(subdir)" \
+ 	"localedir=$(localedir)"
+@@ -1412,6 +1418,7 @@ c-common.o : c-common.c $(CONFIG_H) system.h $(TREE_H) c-tree.h c-lex.h \
+ DRIVER_DEFINES = \
+   -DSTANDARD_STARTFILE_PREFIX=\"$(libdir)/\" \
+   -DSTANDARD_EXEC_PREFIX=\"$(libdir)/gcc-lib/\" \
++  -DSTANDARD_LIBEXEC_PREFIX=\"$(libexecdir)/gcc/\" \
+   -DDEFAULT_TARGET_VERSION=\"$(version)\" \
+   -DDEFAULT_TARGET_MACHINE=\"$(target_alias)\" \
+   -DTOOLDIR_BASE_PREFIX=\"$(exec_prefix)/\"
+--- a/gcc/gcc.c
++++ b/gcc/gcc.c
+@@ -1379,6 +1379,8 @@ static const char *standard_exec_prefix_1 = "/usr/lib/gcc/";
+ static const char *md_exec_prefix = MD_EXEC_PREFIX;
+ #endif
+ 
++static const char *standard_libexec_prefix = STANDARD_LIBEXEC_PREFIX;
++
+ #ifndef STANDARD_STARTFILE_PREFIX
+ #define STANDARD_STARTFILE_PREFIX "/usr/local/lib/"
+ #endif /* !defined STANDARD_STARTFILE_PREFIX */
+@@ -3062,6 +3064,8 @@ process_command (argc, argv)
+ 	      0, 2, warn_std_ptr);
+   add_prefix (&exec_prefixes, standard_exec_prefix_1, "BINUTILS",
+ 	      0, 2, warn_std_ptr);
++  add_prefix (&exec_prefixes, standard_libexec_prefix, "BINUTILS",
++	      0, 2, warn_std_ptr);
+ #endif
+ 
+   add_prefix (&startfile_prefixes, standard_exec_prefix, "BINUTILS",

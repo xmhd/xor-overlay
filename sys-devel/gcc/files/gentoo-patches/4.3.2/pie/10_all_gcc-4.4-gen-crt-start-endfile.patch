@@ -1,0 +1,220 @@
+2008-12-29	Magnus Granberg		<zorry@ume.nu>
+		Petet S. Mazinger	<ps.m@gmx.net>
+
+	* gcc/config/alpha/elf.h:	Move CRT, START and ENDFILE to gcc/gcc.c
+	* gcc/config/i386/linux64.h:	Likewise.
+	* gcc/config/i386/linux.h:	Likewise.
+	* gcc/config/ia64/linux.h:	Likewise.
+	* gcc/config/linux.h:		Likewise.
+	* gcc/config/rs6000/linux64.h:	Likewise.
+	* gcc/config/rs6000/sysv4.h:	Likewise.
+	* gcc/gcc.c			Add CRT, START and ENDFILE
+
+--- gcc/config/alpha/elf.h.zorry
++++ gcc/config/alpha/elf.h
+@@ -360,15 +360,7 @@
+    before entering `main'.  */
+ 
+ #undef	STARTFILE_SPEC
+-#ifdef HAVE_LD_PIE
+-#define STARTFILE_SPEC \
+-  "%{!shared: %{pg|p:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}}\
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+-#else
+-#define STARTFILE_SPEC \
+-  "%{!shared: %{pg|p:gcrt1.o%s;:crt1.o%s}}\
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+-#endif
++#define STARTFILE_SPEC "%(ld_pie_crtfile_gen) crti.o%s %(startfile_pie_t_gen)"
+ 
+ /* Provide a ENDFILE_SPEC appropriate for ELF.  Here we tack on the
+    magical crtend.o file which provides part of the support for
+@@ -378,7 +370,7 @@
+ #undef	ENDFILE_SPEC
+ #define ENDFILE_SPEC \
+   "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+-   %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
++   %(endfile_pie_gen) crtn.o%s"
+ 
+ /* We support #pragma.  */
+ #define HANDLE_SYSV_PRAGMA 1
+--- gcc/config/i386/linux64.h.zorry
++++ gcc/config/i386/linux64.h
+@@ -81,7 +81,7 @@
+    %{mpc32:crtprec32.o%s} \
+    %{mpc64:crtprec64.o%s} \
+    %{mpc80:crtprec80.o%s} \
+-   %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
++   %(endfile_pie_gen) crtn.o%s"
+ 
+ #if TARGET_64BIT_DEFAULT
+ #define MULTILIB_DEFAULTS { "m64" }
+--- gcc/config/i386/linux.h.zorry
++++ gcc/config/i386/linux.h
+@@ -123,7 +123,7 @@
+    %{mpc32:crtprec32.o%s} \
+    %{mpc64:crtprec64.o%s} \
+    %{mpc80:crtprec80.o%s} \
+-   %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
++   %(endfile_pie_gen) crtn.o%s"
+ 
+ /* A C statement (sans semicolon) to output to the stdio stream
+    FILE the assembler definition of uninitialized global DECL named
+--- gcc/config/ia64/linux.h.zorry
++++ gcc/config/ia64/linux.h
+@@ -20,21 +20,13 @@
+ 
+ /* Need to override linux.h STARTFILE_SPEC, since it has crtbeginT.o in.  */
+ #undef STARTFILE_SPEC
+-#ifdef HAVE_LD_PIE
+-#define STARTFILE_SPEC \
+-  "%{!shared: %{pg|p|profile:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}}\
+-   crti.o%s %{shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+-#else
+-#define STARTFILE_SPEC \
+-  "%{!shared: %{pg|p|profile:gcrt1.o%s;:crt1.o%s}}\
+-   crti.o%s %{shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+-#endif
++#define STARTFILE_SPEC "%(ld_pie_crtfile_gen) crti.o%s %(startfile_pie_gen)"
+ 
+ /* Similar to standard Linux, but adding -ffast-math support.  */
+ #undef  ENDFILE_SPEC
+ #define ENDFILE_SPEC \
+   "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+-   %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
++   %(endfile_pie_gen) crtn.o%s"
+ 
+ /* Define this for shared library support because it isn't in the main
+    linux.h file.  */
+--- gcc/config/linux.h.zorry
++++ gcc/config/linux.h
+@@ -38,15 +38,7 @@
+    object constructed before entering `main'.  */
+    
+ #undef	STARTFILE_SPEC
+-#if defined HAVE_LD_PIE
+-#define STARTFILE_SPEC \
+-  "%{!shared: %{pg|p|profile:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}} \
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+-#else
+-#define STARTFILE_SPEC \
+-  "%{!shared: %{pg|p|profile:gcrt1.o%s;:crt1.o%s}} \
+-   crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+-#endif
++#define STARTFILE_SPEC "%(ld_pie_crtfile_gen) crti.o%s %(startfile_pie_t_gen)"
+ 
+ /* Provide a ENDFILE_SPEC appropriate for GNU/Linux.  Here we tack on
+    the GNU/Linux magical crtend.o file (see crtstuff.c) which
+@@ -55,8 +47,7 @@
+    GNU/Linux "finalizer" file, `crtn.o'.  */
+ 
+ #undef	ENDFILE_SPEC
+-#define ENDFILE_SPEC \
+-  "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
++#define ENDFILE_SPEC "%(endfile_pie_gen) crtn.o%s"
+ 
+ /* This is for -profile to use -lc_p instead of -lc.  */
+ #ifndef CC1_SPEC
+--- gcc/config/rs6000/linux64.h.zorry
++++ gcc/config/rs6000/linux64.h
+@@ -151,7 +151,7 @@
+ #endif
+ 
+ #define ASM_SPEC32 "-a32 %{n} %{T} %{Ym,*} %{Yd,*} \
+-%{mrelocatable} %{mrelocatable-lib} %{fpic:-K PIC} %{fPIC:-K PIC} \
++%{mrelocatable} %{mrelocatable-lib} %{fpic|fPIC|fpie|fPIE:-K PIC} %(asm_pie) \
+ %{memb} %{!memb: %{msdata: -memb} %{msdata=eabi: -memb}} \
+ %{!mlittle: %{!mlittle-endian: %{!mbig: %{!mbig-endian: \
+     %{mcall-freebsd: -mbig} \
+--- gcc/config/rs6000/sysv4.h.zorry
++++ gcc/config/rs6000/sysv4.h
+@@ -873,20 +873,13 @@
+ %{!mnewlib: %{pthread:-lpthread} %{shared:-lc} \
+ %{!shared: %{profile:-lc_p} %{!profile:-lc}}}"
+ 
+-#ifdef HAVE_LD_PIE
+ #define	STARTFILE_LINUX_SPEC "\
+-%{!shared: %{pg|p|profile:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}} \
++%(ld_pie_crtfile_gen) \
+ %{mnewlib:ecrti.o%s;:crti.o%s} \
+-%{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+-#else
+-#define	STARTFILE_LINUX_SPEC "\
+-%{!shared: %{pg|p|profile:gcrt1.o%s;:crt1.o%s}} \
+-%{mnewlib:ecrti.o%s;:crti.o%s} \
+-%{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+-#endif
++%(startfile_pie_t_gen)"
+ 
+ #define	ENDFILE_LINUX_SPEC "\
+-%{shared|pie:crtendS.o%s;:crtend.o%s} \
++%(endfile_pie_gen) \
+ %{mnewlib:ecrtn.o%s;:crtn.o%s}"
+ 
+ #define LINK_START_LINUX_SPEC ""
+--- gcc/gcc.c.zorry
++++ gcc/gcc.c
+@@ -701,12 +701,34 @@
+ #endif
+ #endif
+ 
+-#ifndef LINK_PIE_SPEC
+ #ifdef HAVE_LD_PIE
+ #define LINK_PIE_SPEC "%{pie:-pie} "
++#define LD_PIE_CRTFILE_GEN_SPEC "%(crtfile_pie_gen)"
++#define ASM_PIE_SPEC "%{pie:-K PIC}" 
+ #else
+ #define LINK_PIE_SPEC "%{pie:} "
++#define LD_PIE_CRTFILE_GEN_SPEC "%(crtfile_gen)"
++#define ASM_PIE_SPEC ""
+ #endif
++
++#ifndef CRTFILE_GEN_SPEC
++#define CRTFILE_GEN_SPEC "%{!shared: %{pg|p|profile:gcrt1.o%s;:crt1.o%s}}"
++#endif
++
++#ifndef CRTFILE_PIE_GEN_SPEC
++#define CRTFILE_PIE_GEN_SPEC "%{!shared: %{pg|p|profile:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s} }"
++#endif
++
++#ifndef STARTFILE_PIE_T_GEN_SPEC
++#define STARTFILE_PIE_T_GEN_SPEC "%{shared|pie:crtbeginS.o%s;static:crtbeginT.o%s;:crtbegin.o%s}"
++#endif
++
++#ifndef STARTFILE_PIE_GEN_SPEC
++#define STARTFILE_PIE_GEN_SPEC "%{shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
++#endif
++
++#ifndef ENDFILE_PIE_GEN_SPEC
++#define ENDFILE_PIE_GEN_SPEC "%{shared|pie:crtendS.o%s;:crtend.o%s}"
+ #endif
+ 
+ /* -u* was put back because both BSD and SysV seem to support it.  */
+@@ -772,6 +794,13 @@
+ static const char *sysroot_spec = SYSROOT_SPEC;
+ static const char *sysroot_suffix_spec = SYSROOT_SUFFIX_SPEC;
+ static const char *sysroot_hdrs_suffix_spec = SYSROOT_HEADERS_SUFFIX_SPEC;
++static const char *asm_pie_spec = ASM_PIE_SPEC;
++static const char *ld_pie_crtfile_gen_spec = LD_PIE_CRTFILE_GEN_SPEC;
++static const char *crtfile_gen_spec = CRTFILE_GEN_SPEC;
++static const char *crtfile_pie_gen_spec = CRTFILE_PIE_GEN_SPEC;
++static const char *startfile_pie_t_gen_spec = STARTFILE_PIE_T_GEN_SPEC;
++static const char *startfile_pie_gen_spec = STARTFILE_PIE_GEN_SPEC;
++static const char *endfile_pie_gen_spec = ENDFILE_PIE_GEN_SPEC;
+ 
+ /* Standard options to cpp, cc1, and as, to reduce duplication in specs.
+    There should be no need to override these in target dependent files,
+@@ -1605,6 +1634,13 @@
+   INIT_STATIC_SPEC ("sysroot_spec",             &sysroot_spec),
+   INIT_STATIC_SPEC ("sysroot_suffix_spec",	&sysroot_suffix_spec),
+   INIT_STATIC_SPEC ("sysroot_hdrs_suffix_spec",	&sysroot_hdrs_suffix_spec),
++  INIT_STATIC_SPEC ("asm_pie",			&asm_pie_spec),
++  INIT_STATIC_SPEC ("ld_pie_crtfile_gen",	&ld_pie_crtfile_gen_spec),
++  INIT_STATIC_SPEC ("crtfile_gen",		&crtfile_gen_spec),
++  INIT_STATIC_SPEC ("crtfile_pie_gen",		&crtfile_pie_gen_spec),
++  INIT_STATIC_SPEC ("startfile_pie_t_gen",	&startfile_pie_t_gen_spec),
++  INIT_STATIC_SPEC ("startfile_pie_gen",	&startfile_pie_gen_spec),
++  INIT_STATIC_SPEC ("endfile_pie_gen",		&endfile_pie_gen_spec),
+ };
+ 
+ #ifdef EXTRA_SPECS		/* additional specs needed */

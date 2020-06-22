@@ -1,0 +1,54 @@
+[4.8] wrong cache size params for -march=native on Intel CPUs
+
+https://bugs.gentoo.org/487300
+http://gcc.gnu.org/PR57657
+
+
+commit 25ccd3cce09c4a61ce181e53bcce28be4d44c17e
+Author: uros <uros@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Mon Jul 8 10:54:31 2013 +0000
+
+    	Backport from mainline
+    	2013-07-07  Uros Bizjak  <ubizjak@gmail.com>
+    
+    	* config/i386/driver-i386.c (host_detect_local_cpu): Do not check
+    	signature_TM2_ebx, it interferes with signature_INTEL_ebx.
+    
+    	Backport from mainline
+    	2013-07-06  Uros Bizjak  <ubizjak@gmail.com>
+    
+    	* config/i386/sse.md (sse_movlhps): Change alternative 3
+    	of operand 2 to "m".
+    
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_8-branch@200782 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog                 | 14 ++++++++++++++
+ gcc/config/i386/driver-i386.c |  3 +--
+ gcc/config/i386/sse.md        |  2 +-
+ 3 files changed, 16 insertions(+), 3 deletions(-)
+
+--- a/gcc/config/i386/driver-i386.c
++++ b/gcc/config/i386/driver-i386.c
+@@ -520,8 +520,7 @@ const char *host_detect_local_cpu (int argc, const char **argv)
+       if (vendor == signature_AMD_ebx
+ 	  || vendor == signature_CENTAUR_ebx
+ 	  || vendor == signature_CYRIX_ebx
+-	  || vendor == signature_NSC_ebx
+-	  || vendor == signature_TM2_ebx)
++	  || vendor == signature_NSC_ebx)
+ 	cache = detect_caches_amd (ext_level);
+       else if (vendor == signature_INTEL_ebx)
+ 	{
+--- a/gcc/config/i386/sse.md
++++ b/gcc/config/i386/sse.md
+@@ -3603,7 +3603,7 @@
+ 	(vec_select:V4SF
+ 	  (vec_concat:V8SF
+ 	    (match_operand:V4SF 1 "nonimmediate_operand" " 0,x,0,x,0")
+-	    (match_operand:V4SF 2 "nonimmediate_operand" " x,x,m,x,x"))
++	    (match_operand:V4SF 2 "nonimmediate_operand" " x,x,m,m,x"))
+ 	  (parallel [(const_int 0)
+ 		     (const_int 1)
+ 		     (const_int 4)

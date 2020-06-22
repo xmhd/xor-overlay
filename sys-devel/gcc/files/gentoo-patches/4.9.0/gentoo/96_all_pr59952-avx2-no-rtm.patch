@@ -1,0 +1,29 @@
+https://gcc.gnu.org/PR59952
+
+
+commit 53a22ec99f29d60ec33a30628e05106b11612833
+Author: uros <uros@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Thu May 8 19:23:45 2014 +0000
+
+    	PR target/59952
+    	* config/i386/i386.c (PTA_HASWELL): Remove PTA_RTM.
+    
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_9-branch@210236 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog          | 5 +++++
+ gcc/config/i386/i386.c | 2 +-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+--- a/gcc/config/i386/i386.c
++++ b/gcc/config/i386/i386.c
+@@ -3128,7 +3128,7 @@ ix86_option_override_internal (bool main_args_p,
+   (PTA_SANDYBRIDGE | PTA_FSGSBASE | PTA_RDRND | PTA_F16C)
+ #define PTA_HASWELL \
+   (PTA_IVYBRIDGE | PTA_AVX2 | PTA_BMI | PTA_BMI2 | PTA_LZCNT \
+-   | PTA_FMA | PTA_MOVBE | PTA_RTM | PTA_HLE)
++   | PTA_FMA | PTA_MOVBE | PTA_HLE)
+ #define PTA_BROADWELL \
+   (PTA_HASWELL | PTA_ADX | PTA_PRFCHW | PTA_RDSEED)
+ #define PTA_BONNELL \

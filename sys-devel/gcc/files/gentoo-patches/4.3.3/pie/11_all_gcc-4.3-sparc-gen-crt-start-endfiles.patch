@@ -1,0 +1,46 @@
+2008-11-26	Magnus Granberg		<zorry@ume.nu>
+		Peter S. Mazinger	<ps.m@gmx.net>
+
+	* gcc/config/sparc/linux64.h:	Move CRT, START and ENDFILE to gcc/gcc.c
+	* gcc/config/sparc/linux.h:	Likewise.
+
+--- gcc/config/sparc/linux64.h
++++ gcc/config/sparc/linux64.h
+@@ -83,7 +74,7 @@
+ #undef  ENDFILE_SPEC
+ 
+ #define ENDFILE_SPEC \
+-  "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s\
++  "%(endfile_pie_gen) crtn.o%s\
+    %{ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
+ 
+ /* The GNU C++ standard library requires that these macros be defined.  */
+@@ -281,7 +272,7 @@
+ %{T} \
+ %{Ym,*} \
+ %{Wa,*:%*} \
+--s %{fpic|fPIC|fpie|fPIE:-K PIC} \
++-s %{fpic|fPIC|fpie|fPIE:-K PIC} %(asm_pie) \
+ %{mlittle-endian:-EL} \
+ %(asm_cpu) %(asm_arch) %(asm_relax)"
+ 
+--- gcc/config/sparc/linux.h
++++ gcc/config/sparc/linux.h
+@@ -64,7 +56,7 @@
+ 
+ #undef  ENDFILE_SPEC
+ #define ENDFILE_SPEC \
+-  "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s\
++  "%(endfile_pie_gen) crtn.o%s\
+    %{ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
+ 
+ /* This is for -profile to use -lc_p instead of -lc.  */
+@@ -146,7 +138,7 @@
+ #undef ASM_SPEC
+ #define ASM_SPEC \
+   "%{V} %{v:%{!V:-V}} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Wa,*:%*} -s \
+-   %{fpic|fPIC|fpie|fPIE:-K PIC} %(asm_cpu) %(asm_relax)"
++   %{fpic|fPIC|fpie|fPIE:-K PIC} %(asm_pie) %(asm_cpu) %(asm_relax)"
+ 
+ /* Same as sparc.h */
+ #undef DBX_REGISTER_NUMBER

@@ -1,0 +1,118 @@
+https://gcc.gnu.org/ml/gcc-patches/2009-06/msg01234.html
+
+From 4345dfaa7260253cb0d3b10b4b466f586e9d28dc Mon Sep 17 00:00:00 2001
+From: Ian Lance Taylor <iant@google.com>
+Date: Tue, 16 Jun 2009 16:55:41 +0000
+Subject: [PATCH] Make exact_log2 and floor_log2 static inline
+
+The functions exact_log2 and floor_log2 are defined in toplev.h and
+toplev.c as GNU89 extern inline functions.  This does not work right
+with C++ or with C99.  For C99 we could use the gnu_inline attribute,
+but there is really no advantage to doing so.  This patch changes
+floor_log2 and exact_log2 to be static inline.  The definitions in
+toplev.c are only provided if the static inline functions are not
+defined, which is to say when compiling with a non-gcc compiler or
+with gcc pre 3.4.  This simplifies the code overall.
+
+Bootstrapped and tested on x86_64-unknown-linux-gnu.  Committed.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@148540 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog |  9 +++++++++
+ gcc/toplev.c  | 18 +++++-------------
+ gcc/toplev.h  | 12 ++++++++----
+ 3 files changed, 22 insertions(+), 17 deletions(-)
+
+diff --git a/gcc/toplev.c b/gcc/toplev.c
+index 267df59..4836238 100644
+--- a/gcc/toplev.c
++++ b/gcc/toplev.c
+@@ -532,6 +532,12 @@ read_integral_parameter (const char *p, const char *pname, const int  defval)
+   return atoi (p);
+ }
+ 
++#if GCC_VERSION < 3004
++
++/* The functions floor_log2 and exact_log2 are defined as inline
++   functions in toplev.h if GCC_VERSION >= 3004.  The definitions here
++   are used for older versions of gcc.  */
++
+ /* Given X, an unsigned number, return the largest int Y such that 2**Y <= X.
+    If X is 0, return -1.  */
+ 
+@@ -549,9 +555,6 @@ floor_log2 (unsigned HOST_WIDE_INT x)
+   if (x == 0)
+     return -1;
+ 
+-#ifdef CLZ_HWI
+-  t = HOST_BITS_PER_WIDE_INT - 1 - (int) CLZ_HWI (x);
+-#else
+   if (HOST_BITS_PER_WIDE_INT > 64)
+     if (x >= (unsigned HOST_WIDE_INT) 1 << (t + 64))
+       t += 64;
+@@ -568,7 +571,6 @@ floor_log2 (unsigned HOST_WIDE_INT x)
+     t += 2;
+   if (x >= ((unsigned HOST_WIDE_INT) 1) << (t + 1))
+     t += 1;
+-#endif
+ 
+   return t;
+ }
+@@ -581,12 +583,10 @@ exact_log2 (unsigned HOST_WIDE_INT x)
+ {
+   if (x != (x & -x))
+     return -1;
+-#ifdef CTZ_HWI
+-  return x ? CTZ_HWI (x) : -1;
+-#else
+   return floor_log2 (x);
+-#endif
+ }
++
++#endif /* GCC_VERSION < 3004 */
+ 
+ /* Handler for fatal signals, such as SIGSEGV.  These are transformed
+    into ICE messages, which is much more user friendly.  In case the
+diff --git a/gcc/toplev.h b/gcc/toplev.h
+index e62aa727..cca6867 100644
+--- a/gcc/toplev.h
++++ b/gcc/toplev.h
+@@ -152,14 +152,17 @@ extern void decode_d_option		(const char *);
+ /* Return true iff flags are set as if -ffast-math.  */
+ extern bool fast_math_flags_set_p	(void);
+ 
++/* Inline versions of the above for speed.  */
++#if GCC_VERSION < 3004
++
+ /* Return log2, or -1 if not exact.  */
+ extern int exact_log2                  (unsigned HOST_WIDE_INT);
+ 
+ /* Return floor of log2, with -1 for zero.  */
+ extern int floor_log2                  (unsigned HOST_WIDE_INT);
+ 
+-/* Inline versions of the above for speed.  */
+-#if GCC_VERSION >= 3004
++#else /* GCC_VERSION >= 3004 */
++
+ # if HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONG
+ #  define CLZ_HWI __builtin_clzl
+ #  define CTZ_HWI __builtin_ctzl
+@@ -171,13 +174,13 @@ extern int floor_log2                  (unsigned HOST_WIDE_INT);
+ #  define CTZ_HWI __builtin_ctz
+ # endif
+ 
+-extern inline int
++static inline int
+ floor_log2 (unsigned HOST_WIDE_INT x)
+ {
+   return x ? HOST_BITS_PER_WIDE_INT - 1 - (int) CLZ_HWI (x) : -1;
+ }
+ 
+-extern inline int
++static inline int
+ exact_log2 (unsigned HOST_WIDE_INT x)
+ {
+   return x == (x & -x) && x ? (int) CTZ_HWI (x) : -1;
+-- 
+2.6.2
+

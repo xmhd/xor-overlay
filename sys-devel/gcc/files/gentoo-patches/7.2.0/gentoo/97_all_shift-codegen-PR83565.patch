@@ -1,0 +1,121 @@
+Fixes openssl miscompilation at least on ia64.
+https://gcc.gnu.org/PR83565
+
+From 86ae8eb8e5ae4b6a5d485fdef4adf818847d0112 Mon Sep 17 00:00:00 2001
+From: ebotcazou <ebotcazou@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 12 Jan 2018 10:20:42 +0000
+Subject: [PATCH] 	PR rtl-optimization/83565 	* rtlanal.c
+ (nonzero_bits1): On WORD_REGISTER_OPERATIONS machines, do 	not extend the
+ result to a larger mode for rotate operations. 
+ (num_sign_bit_copies1): Likewise.
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-7-branch@256573 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/rtlanal.c                                    | 27 ++++++++++----------
+ gcc/testsuite/gcc.c-torture/execute/20180112-1.c | 32 ++++++++++++++++++++++++
+ 2 files changed, 57 insertions(+), 13 deletions(-)
+ create mode 100644 gcc/testsuite/gcc.c-torture/execute/20180112-1.c
+
+diff --git a/gcc/rtlanal.c b/gcc/rtlanal.c
+index acb4230aac8..b93d19537bb 100644
+--- a/gcc/rtlanal.c
++++ b/gcc/rtlanal.c
+@@ -4312,7 +4312,7 @@ nonzero_bits1 (const_rtx x, machine_mode mode, const_rtx known_x,
+ {
+   unsigned HOST_WIDE_INT nonzero = GET_MODE_MASK (mode);
+   unsigned HOST_WIDE_INT inner_nz;
+-  enum rtx_code code;
++  enum rtx_code code = GET_CODE (x);
+   machine_mode inner_mode;
+   unsigned int mode_width = GET_MODE_PRECISION (mode);
+ 
+@@ -4335,18 +4335,18 @@ nonzero_bits1 (const_rtx x, machine_mode mode, const_rtx known_x,
+     return nonzero;
+ 
+   /* If MODE is wider than X, but both are a single word for both the host
+-     and target machines, we can compute this from which bits of the
+-     object might be nonzero in its own mode, taking into account the fact
+-     that on many CISC machines, accessing an object in a wider mode
+-     causes the high-order bits to become undefined.  So they are
+-     not known to be zero.  */
+-
+-  if (!WORD_REGISTER_OPERATIONS
+-      && GET_MODE (x) != VOIDmode
++     and target machines, we can compute this from which bits of the object
++     might be nonzero in its own mode, taking into account the fact that, on
++     CISC machines, accessing an object in a wider mode generally causes the
++     high-order bits to become undefined, so they are not known to be zero.
++     We extend this reasoning to RISC machines for rotate operations since the
++     semantics of the operations in the larger mode is not well defined.  */
++  if (GET_MODE (x) != VOIDmode
+       && GET_MODE (x) != mode
+       && GET_MODE_PRECISION (GET_MODE (x)) <= BITS_PER_WORD
+       && GET_MODE_PRECISION (GET_MODE (x)) <= HOST_BITS_PER_WIDE_INT
+-      && GET_MODE_PRECISION (mode) > GET_MODE_PRECISION (GET_MODE (x)))
++      && GET_MODE_PRECISION (mode) > GET_MODE_PRECISION (GET_MODE (x))
++      && (!WORD_REGISTER_OPERATIONS || code == ROTATE))
+     {
+       nonzero &= cached_nonzero_bits (x, GET_MODE (x),
+ 				      known_x, known_mode, known_ret);
+@@ -4356,7 +4356,6 @@ nonzero_bits1 (const_rtx x, machine_mode mode, const_rtx known_x,
+ 
+   /* Please keep nonzero_bits_binary_arith_p above in sync with
+      the code in the switch below.  */
+-  code = GET_CODE (x);
+   switch (code)
+     {
+     case REG:
+@@ -4873,8 +4872,10 @@ num_sign_bit_copies1 (const_rtx x, machine_mode mode, const_rtx known_x,
+     {
+       /* If this machine does not do all register operations on the entire
+ 	 register and MODE is wider than the mode of X, we can say nothing
+-	 at all about the high-order bits.  */
+-      if (!WORD_REGISTER_OPERATIONS)
++	 at all about the high-order bits.  We extend this reasoning to every
++	 machine for rotate operations since the semantics of the operations
++	 in the larger mode is not well defined.  */
++      if (!WORD_REGISTER_OPERATIONS || code == ROTATE || code == ROTATERT)
+ 	return 1;
+ 
+       /* Likewise on machines that do, if the mode of the object is smaller
+diff --git a/gcc/testsuite/gcc.c-torture/execute/20180112-1.c b/gcc/testsuite/gcc.c-torture/execute/20180112-1.c
+new file mode 100644
+index 00000000000..6752661ecb6
+--- /dev/null
++++ b/gcc/testsuite/gcc.c-torture/execute/20180112-1.c
+@@ -0,0 +1,32 @@
++/* PR rtl-optimization/83565 */
++/* Testcase by Sergei Trofimovich <slyfox@inbox.ru> */
++
++extern void abort (void);
++
++typedef unsigned int u32;
++
++u32 bug (u32 * result) __attribute__((noinline));
++u32 bug (u32 * result)
++{
++  volatile u32 ss = 0xFFFFffff;
++  volatile u32 d  = 0xEEEEeeee;
++  u32 tt = d & 0x00800000;
++  u32 r  = tt << 8;
++
++  r = (r >> 31) | (r <<  1);
++
++  u32 u = r^ss;
++  u32 off = u >> 1;
++
++  *result = tt;
++  return off;
++}
++
++int main(void)
++{
++  u32 l;
++  u32 off = bug(&l);
++  if (off != 0x7fffffff)
++    abort ();
++  return 0;
++}
+-- 
+2.15.1
+

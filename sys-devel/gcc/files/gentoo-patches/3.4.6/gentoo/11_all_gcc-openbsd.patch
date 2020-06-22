@@ -1,0 +1,283 @@
+http://bugs.gentoo.org/117103
+
+--- gcc-3.4.4/gcc/config/i386/openbsdelf.h
++++ gcc-3.4.4/gcc/config/i386/openbsdelf.h
+@@ -0,0 +1,135 @@
++
++/* Configuration for an OpenBSD i386 target.
++   
++   Copyright (C) 1999 Free Software Foundation, Inc.
++
++This file is part of GNU CC.
++
++GNU CC is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 2, or (at your option)
++any later version.
++
++GNU CC is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with GNU CC; see the file COPYING.  If not, write to
++the Free Software Foundation, 59 Temple Place - Suite 330,
++Boston, MA 02111-1307, USA.  */
++
++/* This gets defined in tm.h->linux.h->svr4.h, and keeps us from using
++   libraries compiled with the native cc, so undef it. */
++#undef NO_DOLLAR_IN_LABEL
++
++/* Override the default comment-starter of "/".  */
++#undef ASM_COMMENT_START
++#define ASM_COMMENT_START "#"
++
++
++/* This goes away when the math-emulator is fixed */
++#undef TARGET_DEFAULT
++#define TARGET_DEFAULT \
++  (MASK_80387 | MASK_IEEE_FP | MASK_FLOAT_RETURNS | MASK_NO_FANCY_MATH_387)
++
++/* Run-time target specifications */
++
++#define TARGET_OS_CPP_BUILTINS()		\
++  do						\
++    {						\
++    	OPENBSD_OS_CPP_BUILTINS_ELF();		\
++    }						\
++  while (0)
++
++/* As an elf system, we need crtbegin/crtend stuff.  */
++#undef STARTFILE_SPEC
++#define STARTFILE_SPEC "\
++	%{!shared: %{pg:gcrt0%O%s} %{!pg:%{p:gcrt0%O%s} %{!p:crt0%O%s}} \
++	crtbegin%O%s} %{shared:crtbeginS%O%s}"
++#undef ENDFILE_SPEC
++#define ENDFILE_SPEC "%{!shared:crtend%O%s} %{shared:crtendS%O%s}"
++
++/* Layout of source language data types.  */
++
++/* This must agree with <machine/ansi.h> */
++#undef SIZE_TYPE
++#define SIZE_TYPE "unsigned int"
++
++#undef PTRDIFF_TYPE
++#define PTRDIFF_TYPE "int"
++
++#undef WCHAR_TYPE
++#define WCHAR_TYPE "int"
++
++#undef WCHAR_TYPE_SIZE
++#define WCHAR_TYPE_SIZE BITS_PER_WORD
++
++/* Assembler format: overall framework.  */
++
++#undef ASM_APP_ON
++#define ASM_APP_ON "#APP\n"
++
++#undef ASM_APP_OFF
++#define ASM_APP_OFF "#NO_APP\n"
++
++#undef SET_ASM_OP
++#define SET_ASM_OP	"\t.set\t"
++
++/* The following macros were originally stolen from i386v4.h.
++   These have to be defined to get PIC code correct.  */
++
++/* Assembler format: dispatch tables.  */
++
++/* Assembler format: sections.  */
++
++/* Stack & calling: aggregate returns.  */
++
++/* Don't default to pcc-struct-return, because gcc is the only compiler, and
++   we want to retain compatibility with older gcc versions.  */
++#define DEFAULT_PCC_STRUCT_RETURN 0
++
++/* Assembler format: alignment output.  */
++
++#ifdef HAVE_GAS_MAX_SKIP_P2ALIGN
++#define ASM_OUTPUT_MAX_SKIP_ALIGN(FILE,LOG,MAX_SKIP) \
++  if ((LOG) != 0) {\
++    if ((MAX_SKIP) == 0) fprintf ((FILE), "\t.p2align %d\n", (LOG)); \
++    else fprintf ((FILE), "\t.p2align %d,,%d\n", (LOG), (MAX_SKIP)); \
++  }
++#endif
++
++/* Stack & calling: profiling.  */
++
++/* OpenBSD's profiler recovers all information from the stack pointer.
++   The icky part is not here, but in machine/profile.h.  */
++#undef FUNCTION_PROFILER
++#define FUNCTION_PROFILER(FILE, LABELNO)  \
++  fputs (flag_pic ? "\tcall __mcount@PLT\n": "\tcall __mcount\n", FILE);
++
++/* Assembler format: exception region output.  */
++
++/* our configuration still doesn't handle dwarf2 correctly */
++#define DWARF2_UNWIND_INFO 0
++
++/* Assembler format: alignment output.  */
++
++/* Note that we pick up ASM_OUTPUT_MAX_SKIP_ALIGN from i386/gas.h */
++
++/* Note that we pick up ASM_OUTPUT_MI_THUNK from unix.h.  */
++
++#undef LINK_SPEC
++#define LINK_SPEC \
++  "%{!shared:%{!nostdlib:%{!r*:%{!e*:-e __start}}}} \
++   %{shared:-shared} %{R*} \
++   %{static:-Bstatic} \
++   %{!static:-Bdynamic} \
++   %{assert*} \
++   %{!dynamic-linker:-dynamic-linker /usr/libexec/ld.so}"
++
++#define OBSD_HAS_CORRECT_SPECS
++
++/* pick up defines for mprotect (used in TRANSFER_FROM_TRANPOLINE) */
++#include <sys/types.h>
++#include <sys/mman.h>
+--- gcc-3.4.4/gcc/config/openbsd.h
++++ gcc-3.4.4/gcc/config/openbsd.h
+@@ -52,15 +52,14 @@
+ 
+ #ifdef OPENBSD_NATIVE
+ 
+-#undef GCC_INCLUDE_DIR
+-#define GCC_INCLUDE_DIR "/usr/include"
+-
+ /* The compiler is configured with ONLY the gcc/g++ standard headers.  */
+ #undef INCLUDE_DEFAULTS
+ #define INCLUDE_DEFAULTS			\
+   {						\
+     { GPLUSPLUS_INCLUDE_DIR, "G++", 1, 1 },	\
+-    { GCC_INCLUDE_DIR, "GCC", 0, 0 },		\
++    { GPLUSPLUS_TOOL_INCLUDE_DIR, "G++", 1, 1 }, \
++    { GPLUSPLUS_BACKWARD_INCLUDE_DIR, "G++", 1, 1 }, \
++    { STANDARD_INCLUDE_DIR, STANDARD_INCLUDE_COMPONENT, 0, 0 }, \
+     { 0, 0, 0, 0 }				\
+   }
+ 
+@@ -72,9 +71,39 @@
+ 
+ 
+ /* Controlling the compilation driver.  */
++/* TARGET_OS_CPP_BUILTINS() common to all OpenBSD targets.  */
++#define OPENBSD_OS_CPP_BUILTINS_COMMON()	\
++  do						\
++    {						\
++      builtin_define ("__OpenBSD__");		\
++      builtin_define ("__unix__");		\
++      builtin_define ("__ANSI_COMPAT");		\
++      builtin_assert ("system=unix");		\
++      builtin_assert ("system=bsd");		\
++      builtin_assert ("system=OpenBSD");	\
++    }						\
++  while (0)
++
++/* TARGET_OS_CPP_BUILTINS() common to all OpenBSD ELF targets.  */
++#define OPENBSD_OS_CPP_BUILTINS_ELF()		\
++  do						\
++    {						\
++      OPENBSD_OS_CPP_BUILTINS_COMMON();		\
++      builtin_define ("__ELF__");		\
++    }						\
++  while (0)
++
++/* TARGET_OS_CPP_BUILTINS() common to all LP64 OpenBSD targets.  */
++#define OPENBSD_OS_CPP_BUILTINS_LP64()		\
++  do						\
++    {						\
++      builtin_define ("_LP64");			\
++      builtin_define ("__LP64__");		\
++    }						\
++  while (0)
+ 
+ /* CPP_SPEC appropriate for OpenBSD. We deal with -posix and -pthread.
+-   XXX the way threads are handling currently is not very satisfying,
++   XXX the way threads are handled currently is not very satisfying,
+    since all code must be compiled with -pthread to work. 
+    This two-stage defines makes it easy to pick that for targets that
+    have subspecs.  */
+@@ -84,10 +113,9 @@
+ #define OBSD_CPP_SPEC "%{posix:-D_POSIX_SOURCE} %{pthread:-D_POSIX_THREADS}"
+ #endif
+ 
+-/* LIB_SPEC appropriate for OpenBSD.  Select the appropriate libc, 
+-   depending on profiling and threads.  Basically, 
+-   -lc(_r)?(_p)?, select _r for threads, and _p for p or pg.  */
+-#define OBSD_LIB_SPEC "%{!shared:-lc%{pthread:_r}%{p:_p}%{!p:%{pg:_p}}}"
++/* LIB_SPEC appropriate for OpenBSD.  Include -lpthread if -pthread is
++   specified on the command line. */
++#define OBSD_LIB_SPEC "%{!shared:%{pthread:-lpthread%{p:_p}%{!p:%{pg:_p}}}} %{!shared:-lc%{p:_p}%{!p:%{pg:_p}}}"
+ 
+ #ifndef OBSD_HAS_CORRECT_SPECS
+ 
+--- gcc-3.4.4/gcc/config/sparc/openbsd.h
++++ gcc-3.4.4/gcc/config/sparc/openbsd.h
+@@ -22,10 +22,7 @@
+ #define TARGET_OS_CPP_BUILTINS()		\
+   do						\
+     {						\
+-	builtin_define ("__unix__");		\
+-	builtin_define ("__OpenBSD__");		\
+-	builtin_assert ("system=unix");		\
+-	builtin_assert ("system=OpenBSD");	\
++      OPENBSD_OS_CPP_BUILTINS_ELF();		\
+     }						\
+   while (0)
+ 
+@@ -44,6 +41,23 @@
+ #undef WCHAR_TYPE_SIZE
+ #define WCHAR_TYPE_SIZE 32
+ 
++#undef LINK_SPEC
++#define LINK_SPEC \
++  "%{!shared:%{!nostdlib:%{!r*:%{!e*:-e __start}}}} \
++   %{shared:-shared} %{R*} \
++   %{static:-Bstatic} \
++   %{!static:-Bdynamic} \
++   %{assert*} \
++   %{!dynamic-linker:-dynamic-linker /usr/libexec/ld.so}"
++
++/* As an elf system, we need crtbegin/crtend stuff.  */
++#undef STARTFILE_SPEC
++#define STARTFILE_SPEC "\
++	%{!shared: %{pg:gcrt0%O%s} %{!pg:%{p:gcrt0%O%s} %{!p:crt0%O%s}} \
++	crtbegin%O%s} %{shared:crtbeginS%O%s}"
++#undef ENDFILE_SPEC
++#define ENDFILE_SPEC "%{!shared:crtend%O%s} %{shared:crtendS%O%s}"
++
+ /* Specific options for DBX Output.  */
+ 
+ /* This is BSD, so it wants DBX format.  */
+--- gcc-3.4.4/gcc/config.gcc
++++ gcc-3.4.4/gcc/config.gcc
+@@ -971,11 +971,11 @@
+ 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h netbsd.h netbsd-elf.h i386/x86-64.h i386/netbsd64.h"
+ 	;;
+ i[34567]86-*-openbsd*)
+-	tm_file="i386/i386.h i386/unix.h i386/bsd.h i386/gas.h i386/gstabs.h openbsd-oldgas.h openbsd.h i386/openbsd.h"
+-	# needed to unconfuse gdb
+-	tmake_file="t-libc-ok t-openbsd i386/t-openbsd"
+-	# we need collect2 until our bug is fixed...
+-	use_collect2=yes
++	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h i386/i386elf.h"
++	tm_file="${tm_file} openbsd.h i386/openbsdelf.h"
++	gas=yes
++	gnu_ld=yes
++	stabs=yes
+ 	;;
+ i[34567]86-*-coff*)
+ 	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/i386-coff.h"
+@@ -2013,7 +2013,8 @@
+ 	;;
+ sparc-*-openbsd*)
+ 	tm_defines=OBSD_OLD_GAS
+-	tm_file="sparc/sparc.h openbsd.h sparc/openbsd.h"
++	tm_file="sparc/sparc.h elfos.h svr4.h sparc/sysv4.h ${tm_file}"
++	tm_file="${tm_file} exec-stack.h"
+ 	# needed to unconfuse gdb
+ 	tmake_file="t-libc-ok t-openbsd sparc/t-openbsd"
+ 	# we need collect2 until our bug is fixed...

@@ -1,0 +1,35 @@
+sched2 miscompiles syscall sequence with -g / Random panic in load_balance() with kernel 3.16-rc
+https://bugs.gentoo.org/519172
+https://gcc.gnu.org/PR61801
+http://lkml.iu.edu/hypermail/linux/kernel/1407.3/00650.html
+
+commit 556537c4ad0df4cbebb74197bb2bdea75cf5dd35
+Author: rguenth <rguenth@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date:   Thu Jul 17 07:48:49 2014 +0000
+
+    2014-07-17  Richard Biener  <rguenther@suse.de>
+    
+    	PR rtl-optimization/61801
+    	* sched-deps.c (sched_analyze_2): For ASM_OPERANDS and
+    	ASM_INPUT don't set reg_pending_barrier if it appears in a
+    	debug-insn.
+    
+    
+    git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_9-branch@212739 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ChangeLog    | 7 +++++++
+ gcc/sched-deps.c | 3 ++-
+ 2 files changed, 9 insertions(+), 1 deletion(-)
+
+--- a/gcc/sched-deps.c
++++ b/gcc/sched-deps.c
+@@ -2750,7 +2750,8 @@ sched_analyze_2 (struct deps_desc *deps, rtx x, rtx insn)
+ 	   Consider for instance a volatile asm that changes the fpu rounding
+ 	   mode.  An insn should not be moved across this even if it only uses
+ 	   pseudo-regs because it might give an incorrectly rounded result.  */
+-	if (code != ASM_OPERANDS || MEM_VOLATILE_P (x))
++	if ((code != ASM_OPERANDS || MEM_VOLATILE_P (x))
++	    && !DEBUG_INSN_P (insn))
+ 	  reg_pending_barrier = TRUE_BARRIER;
+ 
+ 	/* For all ASM_OPERANDS, we must traverse the vector of input operands.

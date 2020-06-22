@@ -1,0 +1,53 @@
+http://pkgs.fedoraproject.org/cgit/gcc.git/plain/gcc49-color-auto.patch
+
+2013-09-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* common.opt (-fdiagnostics-color=): Default to auto.
+	* toplev.c (process_options): Always default to
+	-fdiagnostics-color=auto if no -f{,no-}diagnostics-color*.
+	* doc/invoke.texi (-fdiagnostics-color*): Adjust documentation
+	of the default.
+
+
+--- a/gcc/common.opt
++++ b/gcc/common.opt
+@@ -1045,7 +1045,7 @@ Common Alias(fdiagnostics-color=,always,never)
+ ;
+ 
+ fdiagnostics-color=
+-Common Joined RejectNegative Var(flag_diagnostics_show_color) Enum(diagnostic_color_rule) Init(DIAGNOSTICS_COLOR_NO)
++Common Joined RejectNegative Var(flag_diagnostics_show_color) Enum(diagnostic_color_rule) Init(DIAGNOSTICS_COLOR_AUTO)
+ -fdiagnostics-color=[never|always|auto]	Colorize diagnostics
+ 
+ ; Required for these enum values.
+--- a/gcc/doc/gcc.info
++++ b/gcc/doc/gcc.info
+@@ -3106,10 +3106,9 @@ ends may not honor these options.
+ '-fdiagnostics-color[=WHEN]'
+ '-fno-diagnostics-color'
+      Use color in diagnostics.  WHEN is 'never', 'always', or 'auto'.
+-     The default is 'never' if 'GCC_COLORS' environment variable isn't
+-     present in the environment, and 'auto' otherwise.  'auto' means to
+-     use color only when the standard error is a terminal.  The forms
+-     '-fdiagnostics-color' and '-fno-diagnostics-color' are aliases for
++     The default is 'auto.  'auto' means to use color only when the
++     standard error is a terminal.  The forms '-fdiagnostics-color'
++     and '-fno-diagnostics-color' are aliases for
+      '-fdiagnostics-color=always' and '-fdiagnostics-color=never',
+      respectively.
+ 
+--- a/gcc/toplev.c
++++ b/gcc/toplev.c
+@@ -1229,10 +1229,8 @@ process_options (void)
+ 
+   maximum_field_alignment = initial_max_fld_align * BITS_PER_UNIT;
+ 
+-  /* Default to -fdiagnostics-color=auto if GCC_COLORS is in the environment,
+-     otherwise default to -fdiagnostics-color=never.  */
+-  if (!global_options_set.x_flag_diagnostics_show_color
+-      && getenv ("GCC_COLORS"))
++  /* Default to -fdiagnostics-color=auto.  */
++  if (!global_options_set.x_flag_diagnostics_show_color)
+     pp_show_color (global_dc->printer)
+       = colorize_init (DIAGNOSTICS_COLOR_AUTO);
+ 

@@ -1,0 +1,67 @@
+Bootstrap comparison fails when using -march=atom
+
+http://bugs.gentoo.org/317755
+http://gcc.gnu.org/PR43921
+http://gcc.gnu.org/ml/gcc-patches/2010-04/msg01755.html
+http://gcc.gnu.org/viewcvs?view=revision&revision=158973
+
+Fixed upstream for 4.5.1.
+
+2010-05-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+        Backport from mainline
+        2010-04-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+        PR target/43921
+        * config/i386/i386.c (get_some_local_dynamic_name): Replace
+        INSN_P with NONDEBUG_INSN_P.
+        (distance_non_agu_define): Likewise.
+        (distance_agu_use): Likewise.
+
+--- a/gcc/config/i386/i386.c
++++ b/gcc/config/i386/i386.c
+@@ -11383,7 +11383,7 @@ get_some_local_dynamic_name (void)
+     return cfun->machine->some_ld_name;
+ 
+   for (insn = get_insns (); insn ; insn = NEXT_INSN (insn))
+-    if (INSN_P (insn)
++    if (NONDEBUG_INSN_P (insn)
+ 	&& for_each_rtx (&PATTERN (insn), get_some_local_dynamic_name_1, 0))
+       return cfun->machine->some_ld_name;
+ 
+@@ -13629,7 +13629,7 @@ distance_non_agu_define (unsigned int regno1, unsigned int regno2,
+       rtx prev = PREV_INSN (insn);
+       while (prev && distance < LEA_SEARCH_THRESHOLD)
+ 	{
+-	  if (INSN_P (prev))
++	  if (NONDEBUG_INSN_P (prev))
+ 	    {
+ 	      distance++;
+               for (def_rec = DF_INSN_DEFS (prev); *def_rec; def_rec++)
+@@ -13669,7 +13669,7 @@ distance_non_agu_define (unsigned int regno1, unsigned int regno2,
+ 		 && prev != insn
+ 		 && distance < LEA_SEARCH_THRESHOLD)
+ 	    {
+-	      if (INSN_P (prev))
++	      if (NONDEBUG_INSN_P (prev))
+ 		{
+ 		  distance++;
+ 		  for (def_rec = DF_INSN_DEFS (prev); *def_rec; def_rec++)
+@@ -13715,7 +13715,7 @@ distance_agu_use (unsigned int regno0, rtx insn)
+       rtx next = NEXT_INSN (insn);
+       while (next && distance < LEA_SEARCH_THRESHOLD)
+ 	{
+-	  if (INSN_P (next))
++	  if (NONDEBUG_INSN_P (next))
+ 	    {
+ 	      distance++;
+ 
+@@ -13764,7 +13764,7 @@ distance_agu_use (unsigned int regno0, rtx insn)
+ 		 && next != insn
+ 		 && distance < LEA_SEARCH_THRESHOLD)
+ 	    {
+-	      if (INSN_P (next))
++	      if (NONDEBUG_INSN_P (next))
+ 		{
+ 		  distance++;
+ 

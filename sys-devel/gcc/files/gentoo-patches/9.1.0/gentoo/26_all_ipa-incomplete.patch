@@ -1,0 +1,52 @@
+On Gentoo the crash was observed on games-emulation/pcsx2
+https://gcc.gnu.org/PR90303
+
+From b740088ad2f795465023e16671d385df7eb1dae7 Mon Sep 17 00:00:00 2001
+From: jakub <jakub@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 3 May 2019 07:32:06 +0000
+Subject: [PATCH] 	PR tree-optimization/90303 	* ipa-devirt.c
+ (obj_type_ref_class, get_odr_type): Don't use 	TYPE_CANONICAL for
+ TYPE_STRUCTURAL_EQUALITY_P types in !in_lto_p mode.
+
+	* g++.target/i386/pr90303.C: New test.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@270835 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/ipa-devirt.c                        | 4 ++--
+ gcc/testsuite/g++.target/i386/pr90303.C | 8 ++++++++
+
+--- a/gcc/ipa-devirt.c
++++ b/gcc/ipa-devirt.c
+@@ -2020,7 +2020,7 @@ obj_type_ref_class (const_tree ref)
+   ref = TREE_VALUE (TYPE_ARG_TYPES (ref));
+   gcc_checking_assert (TREE_CODE (ref) == POINTER_TYPE);
+   tree ret = TREE_TYPE (ref);
+-  if (!in_lto_p)
++  if (!in_lto_p && !TYPE_STRUCTURAL_EQUALITY_P (ret))
+     ret = TYPE_CANONICAL (ret);
+   else
+     ret = get_odr_type (ret)->type;
+@@ -2042,7 +2042,7 @@ get_odr_type (tree type, bool insert)
+   int base_id = -1;
+ 
+   type = TYPE_MAIN_VARIANT (type);
+-  if (!in_lto_p)
++  if (!in_lto_p && !TYPE_STRUCTURAL_EQUALITY_P (type))
+     type = TYPE_CANONICAL (type);
+ 
+   gcc_checking_assert (can_be_name_hashed_p (type)
+--- /dev/null
++++ b/gcc/testsuite/g++.target/i386/pr90303.C
+@@ -0,0 +1,8 @@
++// PR tree-optimization/90303
++// { dg-do compile { target ia32 } }
++// { dg-additional-options "-O2" }
++
++struct A { virtual void foo (); };
++template <class> class B : A {};
++typedef void (__attribute__((fastcall)) F) ();
++B<F> e;
+-- 
+2.21.0
+

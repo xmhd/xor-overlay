@@ -1,0 +1,45 @@
+3		29 May 2020
+	+ 38_all_libcpp-ar.patch
+	+ 39_all_whitespace-pa.patch
+
+2		02 Apr 2020
+	U 21_all_gcc5_isl-dl.patch
+	+ 36_all_libsanitizer-p1.patch
+	+ 37_all_libsanitizer-p2.patch
+
+1.0		10 Dec 2018
+	+ 01_all_gcc-spec-env.patch
+	+ 02_all_default-ssp.patch
+	+ 03_all_default-fortify-source.patch
+	+ 04_all_default-warn-format-security.patch
+	+ 05_all_default-warn-trampolines.patch
+	+ 06_all_msgfmt-libstdc++-link.patch
+	+ 07_all_boehm-gc-execinfo.patch
+	+ 08_all_alpha-mieee-default.patch
+	+ 09_all_alpha-asm-mcpu.patch
+	+ 10_all_arm_armv4t-default.patch
+	+ 11_all_ia64_note.GNU-stack.patch
+	+ 12_all_libjava-classpath-locale-sort.patch
+	+ 13_all_sh_pr24836_all-archs.patch
+	+ 14_all_superh_default-multilib.patch
+	+ 15_all_libiberty-asprintf.patch
+	+ 16_all_libiberty-pic.patch
+	+ 17_all_netbsd-Bsymbolic.patch
+	+ 18_all_libitm-no-fortify-source.patch
+	+ 19_all_gcc-poison-system-directories.patch
+	+ 20_all_gcc-5-pr546752.patch
+	+ 21_all_gcc5_isl-dl.patch
+	+ 22_all_gcc-5-pr65958.patch
+	+ 23_all_pr55930-dependency-tracking.patch
+	+ 24_all_compatibility_fix_with_perl_5.26.patch
+	+ 25_all_libsanitizer-avoidustat.h-glibc-2.28-part-1.patch
+	+ 26_all_libsanitizer-avoidustat.h-glibc-2.28-part-2.patch
+	+ 27_all_respect-build-cxxflags.patch
+	+ 28_all_remove-lieee.patch
+	+ 29_all_libgfortran-Werror.patch
+	+ 30_all_libgomp-Werror.patch
+	+ 31_all_libitm-Werror.patch
+	+ 32_all_libatomic-Werror.patch
+	+ 33_all_libbacktrace-Werror.patch
+	+ 34_all_libsanitizer-libbacktrace-Werror.patch
+	+ 35_all_libstdcxx-no-vtv.patch

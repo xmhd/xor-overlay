@@ -1,0 +1,360 @@
+--- gcc/gcc/config/linux.h.piedef~	2005-03-01 17:18:15 +0100
++++ gcc/gcc/config/linux.h	2005-03-01 17:21:52 +0100
+@@ -38,8 +38,12 @@
+    provides part of the support for getting C++ file-scope static
+    object constructed before entering `main'.  */
+    
++#undef	HARDENED_STARTFILE_SPEC
+ #undef	STARTFILE_SPEC
+-#if defined HAVE_LD_PIE
++#ifdef HAVE_LD_PIE
++#define HARDENED_STARTFILE_SPEC \
++  "%{!shared: %{pg|p|profile:gcrt1.o%s;static|nopie:crt1.o%s;:Scrt1.o%s}} \
++   crti.o%s %{static:crtbeginT.o%s;nopie:crtbegin.o%s;:crtbeginS.o%s}"
+ #define STARTFILE_SPEC \
+   "%{!shared: %{pg|p|profile:gcrt1.o%s;pie:Scrt1.o%s;:crt1.o%s}} \
+    crti.o%s %{static:crtbeginT.o%s;shared|pie:crtbeginS.o%s;:crtbegin.o%s}"
+@@ -55,8 +59,11 @@
+    object constructed before entering `main', followed by a normal
+    GNU/Linux "finalizer" file, `crtn.o'.  */
+ 
++#undef	HARDENED_ENDFILE_SPEC
+ #undef	ENDFILE_SPEC
+ #ifdef HAVE_LD_PIE
++#define HARDENED_ENDFILE_SPEC \
++  "%{static|nopie:crtend.o%s;:crtendS.o%s} crtn.o%s"
+ #define ENDFILE_SPEC \
+   "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
+ #else
+--- gcc/gcc/gcc.c.piedef~	2005-03-01 17:18:15 +0100
++++ gcc/gcc/gcc.c	2005-03-01 17:19:59 +0100
+@@ -86,6 +86,15 @@
+ #include "gcc.h"
+ #include "flags.h"
+ 
++#include "pie-ssp-setup.h"
++#include "pie-ssp-modus.h"
++#include "pie-ssp-chain.h"
++
++#if !( defined(EFAULT_PIE) || defined(EFAULT_PIE_SSP) )
++#undef HARDENED_STARTFILE_SPEC
++#undef HARDENED_ENDFILE_SPEC
++#endif
++
+ #ifdef HAVE_SYS_RESOURCE_H
+ #include <sys/resource.h>
+ #endif
+@@ -734,8 +747,16 @@
+ static const char *mfwrap_spec = MFWRAP_SPEC;
+ static const char *mflib_spec = MFLIB_SPEC;
+ static const char *libgcc_spec = LIBGCC_SPEC;
++#ifdef HARDENED_ENDFILE_SPEC
++static const char *endfile_spec = HARDENED_ENDFILE_SPEC;
++#else
+ static const char *endfile_spec = ENDFILE_SPEC;
++#endif
++#ifdef HARDENED_STARTFILE_SPEC
++static const char *startfile_spec = HARDENED_STARTFILE_SPEC;
++#else
+ static const char *startfile_spec = STARTFILE_SPEC;
++#endif
+ static const char *switches_need_spaces = SWITCHES_NEED_SPACES;
+ static const char *linker_name_spec = LINKER_NAME;
+ static const char *link_command_spec = LINK_COMMAND_SPEC;
+--- gcc/gcc/pie-ssp-chain.h.piedef~	2005-03-01 17:19:59 +0100
++++ gcc/gcc/pie-ssp-chain.h	2005-03-01 17:19:59 +0100
+@@ -0,0 +1,77 @@
++#ifndef LINUX_PIE_SSP_CHAIN_H
++#define LINUX_PIE_SSP_CHAIN_H
++
++/*
++ * cc1: 
++ ****************************************************************************
++ * C compiler generating code - for nonintel arches fpic/fPIC is not the same
++ * Thu Feb  5 22:32:02 CET 2004 -fpie is causing TEXT relocations in binaries
++ *
++ * -fPIE/-fpie may not be used, it produces unusable objects for shared libs
++ * if it becomes usable, then -fPIE should be used instead of -fpie (arch dep)
++ *
++ * we take care now not using -fPIE on shared libs, by checking for -fPIC/fpic
++ ****************************************************************************
++ */
++
++#define CC1_PIE "%{!fPIC:%{!fpic:-fPIE}}"
++
++#define CC1_SSP "-fstack-protector"
++#define CC1_SSP_ALL "%{!fno-stack-protector-all:-fstack-protector-all}"
++#define CC1_SSP_DUMMY "%{fstack-protector:} %{fno-stack-protector:} %{fstack-protector-all:} %{fno-stack-protector-all:}"
++
++#if ! ( defined ( __hppa__ ) || defined ( USE_HTB ) )
++#define HARDENED_SSP_SPEC_SUFFIX SSP_CHAIN_EXCLUDE( STD_SSP_TRIGGER( CC1_SSP " " SSP_LIBC_EXCLUDE(CC1_SSP_ALL) ) )
++#else
++#define HARDENED_SSP_SPEC_SUFFIX CC1_SSP_DUMMY
++#endif
++
++#define HARDENED_CC1_SPEC_SUFFIX STD_CHAIN_EXCLUDE( CC1_CHAIN_EXCLUDE( STD_PIE_TRIGGER(CC1_PIE) ) " " HARDENED_SSP_SPEC_SUFFIX )
++
++/*
++ * startfile:
++ * we have 4 types of archs:
++ * default: x86[_64]/mips/parisc
++ * not using profile: alpha/rs6000/sparc[64]
++ * not using crtbeginT.o for static: arm/ia64
++ * having some addon: rs6000(mnewlib)
++ */
++
++/*
++ * endfile:
++ * we have 3 types of archs:
++ * default: x86[_64]/mips/parisc
++ * fastmath addon: alpha/ia64/sparc[64]
++ * having some other addon: rs6000(mnewlib)
++ */
++
++/* special cases: rs6000 uses STARTFILE_LINUX_SPEC/ENDFILE_LINUX_SPEC */
++
++/* the above variety explains why the startfile/endfile sections are moved directly to gcc */
++
++/* 
++ * link:
++ *****************************************************************************
++ * building of position independent executables is enabled by binutils:ld -pie
++ * use the x86 Redhat branch update provided support for LINK_PIE_SPEC section
++ *****************************************************************************
++ */
++
++#define LINKSEC_PIE_LNK "-pie"
++
++#define LINKSEC_RELRO_LNK "-z relro"
++
++#define LINKSEC_NOW_LNK "-z now"
++
++/* disable default */
++#ifdef LINK_PIE_SPEC
++#undef LINK_PIE_SPEC
++#endif
++
++#ifdef HAVE_LD_PIE
++#define LINK_PIE_SPEC STD_PIE_TRIGGER( LNK_CHAIN_EXCLUDE( PIE_CHAIN_EXCLUDE(LINKSEC_PIE_LNK) ) ) " " OPP_PIE_TRIGGER() " " STD_RELRO_TRIGGER(LINKSEC_RELRO_LNK) " " OPP_RELRO_TRIGGER() " " STD_NOW_TRIGGER(LINKSEC_NOW_LNK) " " OPP_NOW_TRIGGER()
++#else
++#error we need ld w/ -pie support
++#endif
++
++#endif /* LINUX_PIE_SSP_CHAIN_H */
+--- gcc/gcc/pie-ssp-modus.h.piedef~	2005-03-01 17:19:59 +0100
++++ gcc/gcc/pie-ssp-modus.h	2005-03-01 17:19:59 +0100
+@@ -0,0 +1,127 @@
++#ifndef LINUX_PIE_SSP_MODUS_H
++#define LINUX_PIE_SSP_MODUS_H
++
++/* 
++ * The enabler and inverse is used for the proper inclusion of the
++ * startfile and endfile chaining of the crt1, crtbegin and crtend
++ * to use caution not issuing zero or double occurrences of object
++ * in the respective sections of the currently utilized definition
++ */
++
++/*
++ ****************************************************************
++ * set up the trigger logic for stack smashing protector with CC1
++ ****************************************************************
++ */
++
++#if defined ( EFAULT_SSP ) || defined ( EFAULT_PIE_SSP )
++
++#define STD_SSP_TRIGGER(flag)			\
++		NSPEC("fno-stack-protector",	\
++		flag				\
++		)
++
++#else	/* defined ( EFAULT_SSP ) || defined ( EFAULT_PIE_SSP ) */
++
++#define STD_SSP_TRIGGER(flag)			\
++		PSPEC("fstack-protector",	\
++		flag				\
++		)
++
++#endif	/* defined ( EFAULT_SSP ) || defined ( EFAULT_PIE_SSP ) */
++
++/*
++ ****************************************************************
++ * define the trigger logic for setting up position independence
++ ****************************************************************
++ */
++
++#if defined ( EFAULT_PIE ) || defined ( EFAULT_PIE_SSP )
++
++#define STD_PIE_TRIGGER(flag)			\
++		NSPEC("nopie",			\
++		flag				\
++		)
++
++#define INV_PIE_TRIGGER(flag)			\
++		PSPEC("nopie",			\
++		flag				\
++		)
++
++#define OPP_PIE_TRIGGER(flag)			\
++		PSPEC("pie",			\
++		flag				\
++		)
++
++#else	/* defined ( DEFAULT_PIE ) || defined ( EFAULT_PIE_SSP) */
++
++#define STD_PIE_TRIGGER(flag)			\
++		PSPEC("pie",			\
++		flag				\
++		)
++
++#define INV_PIE_TRIGGER(flag)			\
++		NSPEC("pie",			\
++		flag				\
++		)
++
++#define OPP_PIE_TRIGGER(flag)			\
++		PSPEC("nopie",			\
++		flag				\
++		)
++
++#endif	/* defined ( EFAULT_PIE ) || defined ( EFAULT_PIE_SSP ) */
++
++#if defined ( EFAULT_RELRO )
++
++#define STD_RELRO_TRIGGER(flag)			\
++		NSPEC("norelro",		\
++		flag				\
++		)
++
++#define OPP_RELRO_TRIGGER(flag)			\
++		PSPEC("relro",			\
++		flag				\
++		)
++
++#else /* defined ( EFAULT_RELRO ) */
++
++#define STD_RELRO_TRIGGER(flag)			\
++		PSPEC("relro",			\
++		flag				\
++		)
++
++#define OPP_RELRO_TRIGGER(flag)			\
++		PSPEC("norelro",		\
++		flag				\
++		)
++
++#endif /* defined ( EFAULT_RELRO ) */
++
++#if defined ( EFAULT_BIND_NOW )
++
++#define STD_NOW_TRIGGER(flag)			\
++		NSPEC("nonow",			\
++		flag				\
++		)
++
++#define OPP_NOW_TRIGGER(flag)			\
++		PSPEC("now",			\
++		flag				\
++		)
++
++#else /* EFAULT_BIND_NOW */
++
++#define STD_NOW_TRIGGER(flag)			\
++		PSPEC("now",			\
++		flag				\
++		)
++
++#define OPP_NOW_TRIGGER(flag)			\
++		PSPEC("nonow",			\
++		flag				\
++		)
++
++#endif /* EFAULT_BIND_NOW */
++
++#endif /* LINUX_PIE_SSP_MODUS_H */
+--- gcc/gcc/pie-ssp-setup.h.piedef~	2005-03-01 17:19:59 +0100
++++ gcc/gcc/pie-ssp-setup.h	2005-03-01 17:19:59 +0100
+@@ -0,0 +1,84 @@
++#ifndef LINUX_PIE_SSP_SETUP_H
++#define LINUX_PIE_SSP_SETUP_H
++
++/* ********************************************************************************** */
++/* definition of macros and functions needed for constructing the specs file sections */
++/* ********************************************************************************** */
++
++#define PSPEC(a,b) "%{"a": "b"} "
++
++#define NSPEC(a,b) "%{!"a": "b"} "
++
++/*
++ * standard exclusion
++ * disables -fPIE
++ * disables SSP
++ * applies to cc1
++ */
++#define STD_CHAIN_EXCLUDE(flag)			\
++	NSPEC("D__KERNEL__",			\
++	flag					\
++	)
++
++/*
++ * link section exclusion
++ * disables -fPIE
++ * ibcs not added (yet)
++ * applies to cc1 and link_command
++ */
++#define PIE_LNK_CHAIN_EXCLUDE(flag)		\
++	NSPEC("static",				\
++	flag					\
++	)
++
++/* pic exclusion, applies to cc1 */
++#define PIC_CHAIN_EXCLUDE(flag)			\
++	NSPEC("fno-PIC",			\
++	NSPEC("fno-pic",			\
++	flag					\
++	))
++
++/*
++ * pie exclusion
++ * disables -fPIE and -pie
++ * applies to cc1 and link_command
++ */
++#define PIE_CHAIN_EXCLUDE(flag)			\
++	NSPEC("shared",				\
++	NSPEC("nostdlib",			\
++	NSPEC("nostartfiles",			\
++	NSPEC("fno-PIE",			\
++	NSPEC("fno-pie",			\
++	flag					\
++	)))))
++
++/*
++ * pie exclusion
++ * disables -pie
++ * applies to link_command
++ */
++#define LNK_GEN_CHAIN_EXCLUDE(flag)		\
++	NSPEC("A",				\
++	flag					\
++	)
++
++#define CC1_CHAIN_EXCLUDE(flag) PIE_LNK_CHAIN_EXCLUDE( PIC_CHAIN_EXCLUDE( PIE_CHAIN_EXCLUDE(flag) ) )
++#define LNK_CHAIN_EXCLUDE(flag) PIE_LNK_CHAIN_EXCLUDE( LNK_GEN_CHAIN_EXCLUDE(flag) )
++
++/*
++ * ssp exclusion
++ * disables SSP
++ * applies to cc1
++ */
++#define SSP_CHAIN_EXCLUDE(flag)			\
++	NSPEC("nostdlib",			\
++	flag					\
++	)
++
++#define SSP_LIBC_EXCLUDE(flag)			\
++	NSPEC("D_LIBC",				\
++	NSPEC("D_LIBC_REENTRANT",		\
++	flag					\
++	))
++
++#endif /* LINUX_PIE_SSP_SETUP_H */

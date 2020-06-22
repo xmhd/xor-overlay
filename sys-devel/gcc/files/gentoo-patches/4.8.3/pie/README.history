@@ -1,0 +1,335 @@
+0.6.1		3 Dec 2014
+		U 03_all_gcc48_Makefile.in.patch
+0.6.0		7 jun 2014
+		U 33_all_gcc48_config_rs6000.patch
+0.5.9		4 Jan 2014
+		U 01_all_gcc48_configure.patch
+		U 03_all_gcc48_Makefile.in.patch
+		U 05_all_gcc48_gcc.c.patch
+		- 24_all_gcc44_invoke.texi.patch
+		+ 24_all_gcc48_invoke.texi.patch
+		U README
+0.5.8		11 Nov 2013
+		U 33_all_gcc48_config_rs6000.patch
+0.5.7		10 Jul 2013
+		U 35_all_gcc48_config_esp.h.patch
+		- 15_all_gcc44_decl-tls-model.patch
+0.5.6		03 Jun 2013
+		U 35_all_gcc48_config_arm.patch
+		U 37_all_gcc48_config_ia64.patch
+0.5.5		31 Mar 2013
+		- 01_all_gcc47_configure.patch
+		+ 01_all_gcc48_configure.patch
+		- 02_all_gcc47_config.in.patch
+		+ 02_all_gcc48_config.in.patch
+		- 03_all_gcc47_Makefile.in.patch
+		+ 03_all_gcc48_Makefile.in.patch
+		- 05_all_gcc47_gcc.c.patch
+		+ 05_all_gcc48_gcc.c.patch
+		- 33_all_gcc46_config_rs6000_linux64.h.patch
+		+ 33_all_gcc48_config_rs6000.patch
+		- 34_all_gcc47_config_all_gnu_user.patch
+		+ 34_all_gcc48_config_i386.patch
+		+ 35_all_gcc48_config_arm.patch
+		+ 36_all_gcc48_config_mips.patch
+		+ 37_all_gcc48_config_ia64.patch
+		- 35_all_gcc47_config_esp.h.patch
+		- 35_all_gcc48_config_esp.h.patch
+		U README
+0.5.4		02 Oct 2012
+		U 01_all_gcc47_configure.patch
+		+  01_all_gcc47_configure.ac.patch
+0.5.3		06 Apr 2012
+		U 01_all_gcc47_configure.patch
+		+ 02_all_gcc47_config.in.patch
+		- 02_all_gcc45_config.in.patch
+		+ 06_all_gcc46_esp.h.patch
+		- 06_all_gcc45_esp.h.patch
+0.5.2		24 Jan 2012
+		+ 16_all_gcc47_nopie_option.patch
+0.5.1		17 Jan 2012
+		+ 01_all_gcc47_configure.patch
+		- 10_all_gcc45_configure.patch
+		+ 03_all_gcc47_Makefile.in.patch
+		- 12_all_gcc46_Makefile.in.patch
+		+ 02_all_gcc45_config.in.patch
+		- 11_all_gcc45_config.in.patch
+		+ 05_all_gcc46_gcc.c.patch
+		- 20_all_gcc46_gcc.c.patch
+		+ 06_all_gcc45_esp.h.patch
+		- 30_all_gcc45_esp.h.patch
+		+ 10_all_gcc46_default-ssp.patch
+		- 22_all_gcc46-default-ssp.patch
+		+ 15_all_gcc44_decl-tls-model.patch
+		- 21_all_gcc44_decl-tls-model.patch
+		+ 20_all_gcc46_config_crtbeginp.patch
+		- 35_all_gcc46_config_crtbegints.patch
+		+ 24_all_gcc44_invoke.texi.patch
+		+ 60_all_gcc44_invoke.texi.patch
+0.5.0		07 Dec 2011
+		+ 35_all_gcc46_config_crtbeginp.patch
+		- 35_all_gcc46_config_crtbegints.patch
+		U 10_all_gcc45_configure.patch
+		U 12_all_gcc46_Makefile.in.patch
+		+ 11_all_gcc45_config.in.patch
+		- 11_all_gcc44_config.in.patch
+		+ 30_all_gcc45_esp.h.patch
+		- 30_all_gcc44_esp.h.patch
+0.4.9		09 Nov 2011
+		U 12_all_gcc46_Makefile.in.patch
+0.4.8		26 Mar 2011
+		U 22_all_gcc46-default-ssp.patch
+0.4.7		05 Mar 2011
+		U 20_all_gcc46_gcc.c.patch
+		+ 22_all_gcc46-default-ssp.patch
+		- 30_all_gcc46_esp.h.patch
+		+ 30_all_gcc44_esp.h.patch
+		U 33_all_gcc46_config_rs6000_linux64.h.patch
+		U 35_all_gcc46_config_crtbegints.patch
+0.4.6		07 Jan 2011
+		+ 12_all_gcc46_Makefile.in.patch
+		- 12_all_gcc44_Makefile.in.patch
+		+ 20_all_gcc46_gcc.c.patch
+		- 20_all_gcc44_gcc.c.patch
+		+ 30_all_gcc46_esp.h.patch
+		- 30_all_gcc44_esp.h.patch
+		+ 33_all_gcc46_config_rs6000_linux64.h.patch
+		- 33_all_gcc45_config_rs6000_linux64.h.patch
+		+ 35_all_gcc46_config_crtbegints.patch
+		- 35_all_gcc44_config_crtbegints.patch
+		- 40_all_gcc44_obj_lang-specs.h.patch
+		- 40_all_gcc44_objp_lang-specs.h.patch
+		- 40_all_gcc44_cp_lang-specs.h.patch
+0.4.5		18 Jun 2010
+		U 35_all_gcc44_config_crtbegints.patch
+0.4.4		26 May 2010
+		U 30_all_gcc44_esp.h.patch
+0.4.3		26 May 2010
+		U 20_all_gcc44_gcc.c.patch
+		U 30_all_gcc44_esp.h.patch
+0.4.2		24 May 2010
+		U 10_all_gcc44_configure.patch
+		U 12_all_gcc44_Makefile.in.patch
+		U 11_all_gcc44_config.in.patch
+		U 30_all_gcc44_esp.h.patch
+0.4.1		29 Apr 2010
+		U 10_all_gcc45_configure.patch
+		U 12_all_gcc45_Makefile.in.patch
+		U 11_all_gcc44_config.in.patch
+		U 30_all_gcc44_esp.h.patch
+
+0.4.0		19 Apr 2010
+		U 10_all_gcc45_configure.patch
+		U 12_all_gcc45_Makefile.in.patch
+		U 11_all_gcc44_config.in.patch
+		U 20_all_gcc45_gcc.c.patch
+		- 30_all_gcc44_espf.h.patch
+		+ 30_all_gcc44_esp.h.patch
+
+0.3.9	14 Apr 2010
+		U 10_all_gcc45_configure.patch
+		- 50_all_gcc44_no_ssp_tls_uclibc.patch
+		U 33_all_gcc45_config_rs6000_linux64.h.patch
+
+0.3.8	10 Apr 2010
+		10_all_gcc44_configure.patch
+		11_all_gcc44_config.in.patch
+		20_all_gcc44_gcc.c.patch
+		30_all_gcc44_espf.h.patch
+
+0.3.7	10 Feb 2010
+		20_all_gcc44_gcc.c.patch
+		30_all_gcc44_espf.h.patch
+		10_all_gcc44_configure.patch
+
+0.3.6		23 Dec 2009
+		- 10_all_gcc44_configure.patch
+		+ 10_all_gcc44_configure.patch
+		- 30_all_gcc44_espf.h.patch
+		+ 30_all_gcc44_espf.h.patch
+		- README.Changelog
+		+ README.Changelog
+		- README.history
+		+ README.history
+		- README
+		+ README
+
+0.3.5		24 Sep 2009
+		- 30_all_gcc44_espf.h.patch
+		+ 30_all_gcc44_espf.h.patch
+		- 35_all_gcc44_config_crtbegints.patch
+		+ 35_all_gcc44_config_crtbegints.patch
+		+ 33_all_gcc44_config_rs6000_linux64.h.patch
+		- README.Changelog
+		+ README.Changelog
+		- README.history
+		+ README.history
+		+ README.Gentoo.patches
+
+0.3.4		11 Sep 2009
+		- 10_all_gcc44_configure.patch
+		+ 10_all_gcc44_configure.patch
+		- 11_all_gcc44_config.in.patch
+		+ 11_all_gcc44_config.in.patch
+		- 12_all_gcc44_Makefile.in.patch
+		+ 12_all_gcc44_Makefile.in.patch
+		- 20_all_gcc44_gcc.c.patch
+		+ 20_all_gcc44_gcc.c.patch
+		- 23_all_gcc44_opts.c.patch
+		- 30_all_gcc44_espf.h.patch
+		+ 30_all_gcc44_espf.h.patch
+		+ 35_all_gcc44_config_crtbegints.patch
+		+ 60_all_gcc44_invoke.texi.patch
+		- README.Changelog
+		+ README.Changelog
+		- README.history
+		+ README.history
+		- README
+		+ README
+		
+0.3.3		14 Aug 2009
+		- 23_all_gcc44_opts.c.patch
+		+ 23_all_gcc44_opts.c.patch
+
+0.3.2		09 Aug 2009
+		+ 50_all_gcc44_no_ssp_tls_uclibc.patch
+		+ README.Changelog
+		+ README.history
+		- 23_all_gcc44_opts.c.patch
+		+ 23_all_gcc44_opts.c.patch
+		- 30_all_gcc44-espf.h.patch
+		+ 30_all_gcc44-espf.h.patch
+
+0.3.1		23 Jul 2009
+		- 10_all_gcc44_configure.patch
+		+ 10_all_gcc44_configure.patch
+
+0.3.0		23 Jul 2009
+		- 10_all_gcc44_configure.patch
+		+ 10_all_gcc44_configure.patch
+		- 11_all_gcc44_config.in.patch
+		+ 11_all_gcc44_config.in.patch
+		- 12_all_gcc44_Makefile.in.patch
+		+ 12_all_gcc44_Makefile.in.patch
+		- 20_all_gcc44_gcc.c.patch
+		+ 20_all_gcc44_gcc.c.patch
+		+ 40_all_gcc44_obj_lang-specs.h.patch
+		+ 40_all_gcc44_objp_lang-specs.h.patch
+		+ 40_all_gcc44_cp_lang-specs.h.patch
+		- 50_all_gcc44_gentoo_v20090614.1.patch
+		- 30_all_gcc44-espf.h.patch
+		+ 30_all_gcc44-espf.h.patch
+
+0.2.9		14 Jun 2009
+		- 12_all_gcc44_Makefile.in.patch
+		+ 12_all_gcc44_Makefile.in.patch
+		- 30_all_gcc44-espf.h.patch
+		+ 30_all_gcc44-espf.h.patch
+		- 50_all_gcc44_gentoo_v20090612.2.patch
+		+ 50_all_gcc44_gentoo_v20090614.1.patch
+
+0.2.8		12 Jun 2009
+		- 10_all_gcc44_configure.patch
+		+ 10_all_gcc44_configure.patch
+		- 11_all_gcc44_config.in.patch
+		+ 11_all_gcc44_config.in.patch
+		- 12_all_gcc44_Makefile.in.patch
+		+ 12_all_gcc44_Makefile.in.patch
+		- 22_all_gcc44-toplev.c.patch
+		- 25_all_gcc44-espf.h.patch
+		+ 30_all_gcc44-espf.h.patch
+		+ 50_all_gcc44_gentoo_v20090612.2.patch
+
+0.2.7		29 May 2009
+		- 11_all_gcc44_config.in.patch
+		+ 11_all_gcc44_config.in.patch
+		- 12_all_gcc44_Makefile.in.patch
+		+ 12_all_gcc44_Makefile.in.patch
+		- 20_all_gcc44_gcc.c.patch
+		+ 20_all_gcc44_gcc.c.patch
+		+ 23_all_gcc44_opts.c.patch
+		- 25_all_gcc44-espf.h.patch
+		+ 25_all_gcc44-espf.h.patch
+		- 30_all_gcc44-config-defaul-linux.patch
+
+0.2.6		28 May 2009
+		+ 22_all_gcc44-toplev.c.patch
+		- 25_all_gcc44-espf.h.patch
+		+ 25_all_gcc44-espf.h.patch
+		- 30_all_gcc44-config-defaul-linux.patch
+		+ 30_all_gcc44-config-defaul-linux.patch
+
+0.2.5		27 May 2009
+		- 10_all_gcc44_configure.patch
+		+ 10_all_gcc44_configure.patch
+		- 12_all_gcc44_Makefile.in.patch
+		+ 12_all_gcc44_Makefile.in.patch
+		- 20_all_gcc44_gcc.c.patch
+		+ 20_all_gcc44_gcc.c.patch
+		- 25_all_gcc44-espf.h.patch
+		+ 25_all_gcc44-espf.h.patch
+		- 30_all_gcc44-config-defaul-linux.patch
+		+ 30_all_gcc44-config-defaul-linux.patch
+		- 40_all_gcc44-gentoo.patch
+
+0.2.4		08 May 2009
+		- 12_all_gcc44_Makefile.in.patch
+		+ 12_all_gcc44_Makefile.in.patch
+
+0.2.3		08 May 2009
+		- 20_all_gcc44_gcc.c.patch
+		+ 20_all_gcc44_gcc.c.patch
+		- 40_all_gcc44-gentoo.patch
+		+ 40_all_gcc44-gentoo.patch
+
+0.2.2		04 May 2009
+		+ 10_all_gcc44_configure.patch
+		+ 11_all_gcc44_config.in.patch
+		+ 12_all_gcc44_Makefile.in.patch
+		+ 20_all_gcc44_gcc.c.patch
+		+ 21_all_gcc44_decl-tls-model.patch
+		+ 25_all_gcc44-espf.h.patch
+		+ 30_all_gcc44-config-defaul-linux.patch
+		+ 40_all_gcc44-gentoo.patch
+		- 01_all_gcc44-configure.patch
+		- 10_all_gcc44-gcc_configure.patch
+		- 11_all_gcc44-gcc_config.in.patch
+		- 12_all_gcc44-gcc_config.gcc.patch
+		- 13_all_gcc44-gcc_Makefile.in.patch
+		- 15_all_gcc44-libgcc_config.host.patch
+		- 16_all_gcc44-libgcc_configure.patch
+		- 17_all_gcc44-libgcc_Makefile.in.patch
+		- 21_all_gcc44-gcc_espf.h.patch
+		- 22_all_gcc44-gcc_gcc.c.patch
+		- 23_all_gcc44-gcc_varasm.c.patch
+		- 30_all_gcc44-add-crt-start-endfiles-linux.patch
+
+0.2.1		28 Apr 2009
+		+ 01_all_gcc44-configure.patch
+		+ 10_all_gcc44-gcc_configure.patch
+		+ 11_all_gcc44-gcc_config.in.patch
+		+ 12_all_gcc44-gcc_config.gcc.patch
+		+ 13_all_gcc44-gcc_Makefile.in.patch
+		+ 15_all_gcc44-libgcc_config.host.patch
+		+ 16_all_gcc44-libgcc_configure.patch
+		+ 17_all_gcc44-libgcc_Makefile.in.patch
+		+ 21_all_gcc44-gcc_espf.h.patch
+		+ 22_all_gcc44-gcc_gcc.c.patch
+		+ 23_all_gcc44-gcc_varasm.c.patch
+		+ 30_all_gcc44-add-crt-start-endfiles-linux.patch
+		- 00_all_gcc4.4-cvs-incompat.patch
+		- 05_all_gcc4.4-compile-no-ssp.patch
+		- 10_all_gcc4.4-hardened-minispecs-support.patch
+		- 11_all_gcc4.4-decl-tls-model.patch
+		- 12_all_gcc4.4-fortify-minispecs-support.patch
+		- 20-all_gcc4.4-default-crt-start-endfile.patch
+		- 30-all_gcc4.4-crtbeginTS-fno-PIE.patch
+
+0.1.0		16 Apr 2009
+		+ 00_all_gcc4.4-cvs-incompat.patch
+		+ 05_all_gcc4.4-compile-no-ssp.patch
+		+ 10_all_gcc4.4-hardened-minispecs-support.patch
+		+ 11_all_gcc4.4-decl-tls-model.patch
+		+ 12_all_gcc4.4-fortify-minispecs-support.patch
+		+ 20-all_gcc4.4-default-crt-start-endfile.patch
+		+ 30-all_gcc4.4-crtbeginTS-fno-PIE.patch
