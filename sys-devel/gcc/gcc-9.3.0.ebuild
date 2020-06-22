@@ -6,6 +6,14 @@ EAPI=6
 
 inherit multilib-build eutils pax-utils toolchain-enable git-r3
 
+DESCRIPTION="The GNU Compiler Collection"
+HOMEPAGE="https://gcc.gnu.org/"
+
+LICENSE="GPL-3+ LGPL-3+ || ( GPL-3+ libgcc libstdc++ gcc-runtime-library-exception-3.1 ) FDL-1.3+"
+KEYWORDS="*"
+
+SLOT="${PV}"
+
 RESTRICT="strip"
 FEATURES=${FEATURES/multilib-strict/}
 
@@ -33,17 +41,16 @@ for _check in no release yes all ${CHECKS_ALL} ${CHECKS_VALGRIND}; do
 	IUSE="${IUSE} checking_${_check} stage1_checking_${_check}"
 done
 
-
-SLOT="${PV}"
-
 # Version of archive before patches.
 GCC_ARCHIVE_VER="9.3.0"
-
 # GCC release archive
 GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
 SRC_URI="ftp://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}"
 
 GENTOO_PATCHES_DIR="${FILESDIR}/gentoo-patches/${GCC_ARCHIVE_VER}/gentoo"
+
+# We disable a few of these as we set our own 'extra options' for hardening.
+# e.g. SSP, PIE, link_now, stack_clash_protection and so on.
 GENTOO_PATCHES=(
         #01_all_default-fortify-source.patch
         #02_all_default-warn-format-security.patch
@@ -76,23 +83,6 @@ GENTOO_PATCHES=(
         29_all_libcpp-ar.patch
 )
 
-# Math libraries:
-GMP_VER="6.1.2"
-GMP_EXTRAVER=""
-SRC_URI="$SRC_URI mirror://gnu/gmp/gmp-${GMP_VER}${GMP_EXTRAVER}.tar.xz"
-
-MPFR_VER="4.0.2"
-MPFR_PATCH_VER="1"
-SRC_URI="$SRC_URI http://www.mpfr.org/mpfr-${MPFR_VER}/mpfr-${MPFR_VER}.tar.xz"
-MPFR_PATCH_FILE="${MPFR_PATCH_VER:+${FILESDIR}/mpfr/mpfr-${MPFR_VER}_to_${MPFR_VER}-p${MPFR_PATCH_VER}.patch}"
-
-MPC_VER="1.1.0"
-SRC_URI="$SRC_URI http://ftp.gnu.org/gnu/mpc/mpc-${MPC_VER}.tar.gz"
-
-# Graphite support:
-ISL_VER="0.21"
-SRC_URI="$SRC_URI graphite? ( http://isl.gforge.inria.fr/isl-${ISL_VER}.tar.xz )"
-
 # Ada Support:
 GNAT32="gnat-gpl-2014-x86-linux-bin.tar.gz"
 GNAT64="gnat-gpl-2017-x86_64-linux-bin.tar.gz"
@@ -104,27 +94,39 @@ SRC_URI="$SRC_URI ada? ( amd64? ( mirror://funtoo/gcc/${GNAT64} ) x86? ( mirror:
 #DLANG_COMMIT_DATE="2018-08-26"
 #DLANG_CHECKOUT_DIR="${WORKDIR}/gdc"
 
-DESCRIPTION="The GNU Compiler Collection"
-HOMEPAGE="https://gcc.gnu.org/"
-
-LICENSE="GPL-3+ LGPL-3+ || ( GPL-3+ libgcc libstdc++ gcc-runtime-library-exception-3.1 ) FDL-1.3+"
-KEYWORDS="*"
+BDEPEND="
+    sys-devel/binutils
+    >=sys-devel/bison-1.875
+    >=sys-devel/flex-2.5.4
+    elibc_glibc? ( >=sys-libs/glibc-2.8 )
+    elibc_musl? ( sys-libs/musl )
+    nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
+	test? (
+	        >=dev-util/dejagnu-1.4.4
+	        >=sys-devel/autogen-5.5.4
+    )
+"
 
 RDEPEND="
-	sys-libs/zlib[${MULTILIB_USEDEP}]
-	nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
-	virtual/libiconv[${MULTILIB_USEDEP}]
 	objc-gc? ( >=dev-libs/boehm-gc-7.6[${MULTILIB_USEDEP}] )
-	!sys-devel/gcc:5.3
+	nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
+	>=dev-libs/gmp-4.3.2:0=
+	graphite? ( >=dev-libs/isl-0.14:0= )
+	virtual/libiconv[${MULTILIB_USEDEP}]
+	>=dev-libs/mpfr-2.4.2:0=
+	>=dev-libs/mpc-0.8.1:0=
+	sys-libs/zlib[${MULTILIB_USEDEP}]
 "
-DEPEND="${RDEPEND}
-	>=sys-devel/bison-1.875
-	>=sys-devel/flex-2.5.4
-	>=${CATEGORY}/binutils-2.18
-	elibc_glibc? ( >=sys-libs/glibc-2.8 )
-	test? ( dev-util/dejagnu sys-devel/autogen )"
 
-PDEPEND=">=sys-devel/gcc-config-1.5 >=sys-devel/libtool-2.4.3"
+DEPEND="
+    ${RDEPEND}
+"
+
+PDEPEND="
+    >=sys-devel/gcc-config-1.5
+    >=sys-devel/libtool-2.4.3
+"
+
 if [[ ${CATEGORY} != cross-* ]] ; then
 	PDEPEND="${PDEPEND} elibc_glibc? ( >=sys-libs/glibc-2.8 )"
 fi
@@ -211,13 +213,6 @@ pkg_setup() {
 src_unpack() {
 	unpack $GCC_A
 	mv "gcc-${GCC_ARCHIVE_VER}" "${S}"
-	( unpack mpc-${MPC_VER}.tar.gz && mv ${WORKDIR}/mpc-${MPC_VER} ${S}/mpc ) || die "mpc setup fail"
-	( unpack mpfr-${MPFR_VER}.tar.xz && mv ${WORKDIR}/mpfr-${MPFR_VER} ${S}/mpfr ) || die "mpfr setup fail"
-	( unpack gmp-${GMP_VER}${GMP_EXTRAVER}.tar.xz && mv ${WORKDIR}/gmp-${GMP_VER} ${S}/gmp ) || die "gmp setup fail"
-
-	if use graphite; then
-		( unpack isl-${ISL_VER}.tar.xz && mv ${WORKDIR}/isl-${ISL_VER} ${S}/isl ) || die "isl setup fail"
-	fi
 
 	# GNAT ada support
 	if use ada ; then
