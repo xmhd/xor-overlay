@@ -300,10 +300,18 @@ src_prepare() {
 
 _gcc_prepare_harden() {
 	local gcc_hard_flags=""
-	[ ${GCC_MAJOR} -eq 6 ] && _gcc_prepare_harden_7
-	[ ${GCC_MAJOR} -eq 7 ] && _gcc_prepare_harden_7
-	[ ${GCC_MAJOR} -eq 8 ] && _gcc_prepare_harden_8
-	[ ${GCC_MAJOR} -eq 9 ] && _gcc_prepare_harden_9
+
+	# Modify gentoo patch to use our more specific hardening flags.
+	cat "${GENTOO_PATCHES_DIR}/$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_extra-options.patch )" \
+		| sed \
+			-e '/+#ifdef EXTRA_OPTIONS/ {
+				N
+					/.*\n+#define DEFAULT_FLAG_SCP/ { s/EXTRA_OPTIONS/ENABLE_DEFAULT_SCP/ };
+					/.*\n+#define LINK_NOW_SPEC/ { s/EXTRA_OPTIONS/ENABLE_DEFAULT_LINK_NOW/ };
+				};' \
+		> "${T}/hardening-options.patch"
+	eapply "${T}/hardening-options.patch"
+	use stack_clash_protection && gcc_hard_flags+=" -DENABLE_DEFAULT_SCP"
 
 	# Enable FORTIFY_SOURCE by default
 	eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
@@ -322,51 +330,6 @@ _gcc_prepare_harden() {
 		-i "${S}"/gcc/Makefile.in
 
 	sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die
-}
-
-_gcc_prepare_harden_6() {
-	_gcc_prepare_harden_6_7
-}
-
-_gcc_prepare_harden_7() {
-	_gcc_prepare_harden_6_7
-}
-
-_gcc_prepare_harden_6_7() {
-	cat "${GENTOO_PATCHES_DIR}/$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_extra-options.patch )" \
-		| sed \
-			-e '/#ifdef ENABLE_DEFAULT_SSP/,/# endif/ { s/EXTRA_OPTIONS/ENABLE_DEFAULT_SSP_ALL/ }' \
-			-e '/#define STACK_CHECK_SPEC/,/#define LINK_NOW_SPEC/ { s/EXTRA_OPTIONS/ENABLE_DEFAULT_LINK_NOW/ }' \
-			-e '/CPP_SPEC/,/CC1_SPEC/ { s/EXTRA_OPTIONS/ENABLE_DEFAULT_STACK_CHECK/ }' \
-			-e 's/#ifndef EXTRA_OPTIONS/#ifndef SANE_FSTRICT_OVERFLOW/g' \
-		> "${T}/hardening-options.patch"
-		eapply "${T}/hardening-options.patch"
-		gcc_hard_flags+=" -DSANE_FSTRICT_OVERFLOW"
-}
-
-_gcc_prepare_harden_8() {
-	# Modify gentoo patch to use our more specific hardening flags.
-	cat "${GENTOO_PATCHES_DIR}/$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_extra-options.patch )" \
-		| sed \
-			-e 's/EXTRA_OPTIONS/ENABLE_DEFAULT_LINK_NOW/g' \
-			-e 's/ENABLE_ESP/ENABLE_DEFAULT_SCP/g' \
-		> "${T}/hardening-options.patch"
-	eapply "${T}/hardening-options.patch"
-	use stack_clash_protection && gcc_hard_flags+=" -DENABLE_DEFAULT_SCP"
-}
-
-_gcc_prepare_harden_9() {
-	# Modify gentoo patch to use our more specific hardening flags.
-	cat "${GENTOO_PATCHES_DIR}/$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_extra-options.patch )" \
-		| sed \
-			-e '/+#ifdef EXTRA_OPTIONS/ {
-				N
-					/.*\n+#define DEFAULT_FLAG_SCP/ { s/EXTRA_OPTIONS/ENABLE_DEFAULT_SCP/ };
-					/.*\n+#define LINK_NOW_SPEC/ { s/EXTRA_OPTIONS/ENABLE_DEFAULT_LINK_NOW/ };
-				};' \
-		> "${T}/hardening-options.patch"
-	eapply "${T}/hardening-options.patch"
-	use stack_clash_protection && gcc_hard_flags+=" -DENABLE_DEFAULT_SCP"
 }
 
 _gcc_prepare_cross() {
