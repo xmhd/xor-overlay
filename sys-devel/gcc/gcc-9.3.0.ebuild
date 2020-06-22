@@ -22,7 +22,7 @@ GCC_MAJOR="${PV%%.*}"
 IUSE="ada +cxx d go +fortran objc objc++ objc-gc " # Languages
 IUSE="$IUSE test" # Run tests
 IUSE="$IUSE doc nls system-gettext system-zlib vanilla hardened +multilib" # docs/i18n/system flags
-IUSE="$IUSE openmp altivec graphite pch generic_host" # Optimizations/features flags
+IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap bootstrap-lean bootstrap-profiled bootstrap-lto bootstrap-O3" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +pie -vtv +link_now ssp_all" # Extra hardening flags
@@ -186,9 +186,9 @@ pkg_setup() {
 	STDCXX_INCDIR=${LIBPATH}/include/g++-v${GCC_BRANCH_VER}
 
 	# Add bootstrap configs to BUILD_CONFIG based on use flags
-	if use bootstrap-lto && use bootstrap-lean; then
+	if use lto && use bootstrap-lean; then
 		BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto-lean"
-	elif use bootstrap-lto ; then
+	elif use lto ; then
 		BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
 	fi
 	use bootstrap-O3 && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-O3"
@@ -211,7 +211,6 @@ pkg_setup() {
 		GCC_TARGET="all"
 	fi
 	export GCC_TARGET
-
 
 	use doc || export MAKEINFO="/dev/null"
 }
@@ -279,7 +278,7 @@ src_prepare() {
 			done
 		fi
 
-		#use bootstrap-lto && eapply "${FILESDIR}/Fix-bootstrap-miscompare-with-LTO-bootstrap-PR85571.patch"
+		#use lto && eapply "${FILESDIR}/Fix-bootstrap-miscompare-with-LTO-bootstrap-PR85571.patch"
 
 		# Harden things up:
 		_gcc_prepare_harden
