@@ -294,9 +294,6 @@ src_prepare() {
 	# Ada gnat compiler bootstrap preparation
 	use ada && _gcc_prepare_gnat
 
-	# Prepare GDC for d-lang support
-	use d && _gcc_prepare_gdc
-
 	# Must be called in src_prepare by EAPI6
 	eapply_user
 }
@@ -417,19 +414,6 @@ _gcc_prepare_gnat() {
 
 	# Setup additional paths as needed before we start.
 	use ada && export PATH="${GNATBOOT}/bin:${PATH}"
-}
-
-_gcc_prepare_gdc() {
-	return 0
-	# Now included in mainline, below not needed
-	pushd "${DLANG_CHECKOUT_DIR}" > /dev/null || die "Could not change to GDC directory."
-
-		# Apply patches to the patches to account for gentoo patches modifications to configure changing line numbers
-		local _gdc_gentoo_compat_patch="${FILESDIR}/lang/d/${PF}-gdc-gentoo-compatibility.patch"
-		[ -f "${_gdc_gentoo_compat_patch}" ] && eapply "$_gdc_gentoo_compat_patch"
-
-		./setup-gcc.sh ../gcc-${PV} || die "Could not setup GDC."
-	popd > /dev/null
 }
 
 gcc_conf_lang_opts() {
