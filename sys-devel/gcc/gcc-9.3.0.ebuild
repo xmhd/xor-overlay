@@ -43,11 +43,7 @@ GCC_ARCHIVE_VER="9.3.0"
 GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
 SRC_URI="ftp://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}"
 
-# Gentoo patcheset
-GENTOO_PATCHES_VER="1.0"
-GENTOO_GCC_PATCHES_VER="${GCC_ARCHIVE_VER}"
-#GENTOO_GCC_PATCHES_VER="9.2.0"
-GENTOO_PATCHES_DIR="${FILESDIR}/gentoo-patches/gcc-${GENTOO_GCC_PATCHES_VER}-patches-${GENTOO_PATCHES_VER}"
+GENTOO_PATCHES_DIR="${FILESDIR}/gentoo-patches/${GCC_ARCHIVE_VER}"
 GENTOO_PATCHES=(
         #01_all_default-fortify-source.patch
         #02_all_default-warn-format-security.patch
