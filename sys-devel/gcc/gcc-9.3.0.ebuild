@@ -21,7 +21,7 @@ GCC_MAJOR="${PV%%.*}"
 
 IUSE="ada +cxx d go +fortran objc objc++ objc-gc " # Languages
 IUSE="$IUSE test" # Run tests
-IUSE="$IUSE doc nls system-gettext system-zlib vanilla hardened +multilib" # docs/i18n/system flags
+IUSE="$IUSE doc nls system-zlib vanilla hardened +multilib" # docs/i18n/system flags
 IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap bootstrap-lean bootstrap-profiled bootstrap-O3" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
@@ -505,7 +505,12 @@ src_configure() {
 	fi
 
 	confgcc+=" --with-python-dir=${DATAPATH/$PREFIX/}/python"
-	use nls && confgcc+=" --enable-nls $(usex system-gettext "--without" "--with")-included-gettext" || confgcc+=" --disable-nls"
+
+	if use nls ; then
+		confgcc+=( --enable-nls --without-included-gettext )
+	else
+		confgcc+=( --disable-nls )
+	fi
 
 	use generic_host || confgcc+="${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}}"
 	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure \
