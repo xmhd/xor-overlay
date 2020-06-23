@@ -25,6 +25,7 @@ setup-allowed-flags() {
 	ALLOWED_FLAGS=(
 		-pipe -O '-O[12sg]' '-mcpu=*' '-march=*' '-mtune=*'
 		'-fstack-protector*' '-fsanitize*' '-fstack-check*' -fno-stack-check
+		-fstack-clash-protection
 		-fbounds-check -fbounds-checking -fno-strict-overflow
 		-fno-PIE -fno-pie -nopie -no-pie -fno-unit-at-a-time
 		-g '-g[0-9]' -ggdb '-ggdb[0-9]' '-gdwarf-*' gstabs -gstabs+ -gz
@@ -64,7 +65,6 @@ setup-allowed-flags() {
                 '-mfunction-return=*'
                 '-mindirect-branch=*'
                 -mindirect-branch-register
-                -fstack-clash-protection
 
 		# gcc 4.5
 		-mno-fma4 -mno-movbe -mno-xop -mno-lwp
