@@ -33,6 +33,11 @@ setup-allowed-flags() {
 		'-fdiagnostics*' '-fplugin*'
 		'-W*' -w
 
+                # Spectre mitigations etc
+                '-mfunction-return=*'
+                '-mindirect-branch=*'
+                -mindirect-branch-register
+
 		# CPPFLAGS and LDFLAGS
 		'-[DUILR]*' '-Wl,*'
 
@@ -60,11 +65,6 @@ setup-allowed-flags() {
 		-mfix-r4000 -mno-fix-r4000 -mfix-r4400 -mno-fix-r4400
 		-mfix-rm7000 -mno-fix-rm7000 -mfix-r10000 -mno-fix-r10000
 		-mr10k-cache-barrier -mthumb -marm
-
-		# Spectre mitigations etc
-                '-mfunction-return=*'
-                '-mindirect-branch=*'
-                -mindirect-branch-register
 
 		# gcc 4.5
 		-mno-fma4 -mno-movbe -mno-xop -mno-lwp
