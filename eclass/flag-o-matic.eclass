@@ -37,6 +37,7 @@ setup-allowed-flags() {
                 '-mfunction-return=*'
                 '-mindirect-branch=*'
                 -mindirect-branch-register
+		-mretpoline
 
 		# CPPFLAGS and LDFLAGS
 		'-[DUILR]*' '-Wl,*'
