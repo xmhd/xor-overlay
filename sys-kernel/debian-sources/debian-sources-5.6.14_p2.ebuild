@@ -12,16 +12,16 @@ inherit check-reqs eutils mount-boot toolchain-funcs
 SLOT=$PF
 CKV=${PV}
 KV_FULL=${PN}-${PVR}
-DEB_PV_BASE="5.4.19"
-DEB_EXTRAVERSION="-1"
-EXTRAVERSION="_p1"
+DEB_PV_BASE="5.6.14"
+DEB_EXTRAVERSION="-2~bpo10+1"
+EXTRAVERSION="_p2"
 
 # install modules to /lib/modules/${DEB_PV_BASE}${EXTRAVERSION}-$MODULE_EXT
 MODULE_EXT=${EXTRAVERSION}
 [ "$PR" != "r0" ] && MODULE_EXT=$MODULE_EXT-$PR
 MODULE_EXT=$MODULE_EXT-${PN}
 
-DEB_PV="$DEB_PV_BASE${DEB_EXTRAVERSION}"
+DEB_PV="${DEB_PV_BASE}${DEB_EXTRAVERSION}"
 KERNEL_ARCHIVE="linux_${DEB_PV_BASE}.orig.tar.xz"
 PATCH_ARCHIVE="linux_${DEB_PV}.debian.tar.xz"
 DEB_UPSTREAM="http://http.debian.net/debian/pool/main/l/linux"
