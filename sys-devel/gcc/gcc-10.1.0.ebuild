@@ -25,7 +25,7 @@ IUSE="$IUSE doc nls vanilla hardened +multilib" # docs/i18n/system flags
 IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap bootstrap-lean bootstrap-profiled bootstrap-O3" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
-IUSE="$IUSE +pie -vtv +link_now ssp_all" # Extra hardening flags
+IUSE="$IUSE +fortify +link_now +pie ssp_all vtv" # Extra hardening flags
 [ ${GCC_MAJOR} -ge 8 ] && IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 
@@ -58,35 +58,35 @@ GENTOO_PATCHES=(
         04_all_nossp-on-nostdlib.patch
         05_all_alpha-mieee-default.patch
         06_all_ia64_note.GNU-stack.patch
-	07_all_i386_libgcc_note.GNU-stack.patch
-	08_all_libiberty-asprintf.patch
-	09_all_libiberty-pic.patch
-	10_all_nopie-all-flags.patch
-	11_all_sh-drop-sysroot-suffix.patch
-	12_all_ia64-TEXTREL.patch
-	13_all_disable-systemtap-switch.patch
-	14_all_m68k-textrel-on-libgcc.patch
-	15_all_respect-build-cxxflags.patch
-	16_all_libgfortran-Werror.patch
-	17_all_libgomp-Werror.patch
-	18_all_libitm-Werror.patch
-	19_all_libatomic-Werror.patch
-	20_all_libbacktrace-Werror.patch
-	21_all_libsanitizer-Werror.patch
-	22_all_libstdcxx-no-vtv.patch
-	23_all_disable-riscv32-ABIs.patch
-	24_all_default_ssp-buffer-size.patch
-	25_all_hppa-faster-synth_mult.patch
-	26_all_libcpp-ar.patch
-#	27_all_EXTRA_OPTIONS-z-now.patch
-#	28_all_EXTRA_OPTIONS-fstack-clash-protection.patch
-	29_all_fix-float-hang-PR95118.patch
-	30_all_lto-intl-workaround-PR95194.patch
-	31_all_ctor-range-PR95241.patch
-	32_all_plugin-objdump.patch
-	33_all_avx512-scalar-PR95528.patch
-	34_all_cet-cross-x86.patch
-	35_all_ICE-array-subscript-PR95508.patch
+        07_all_i386_libgcc_note.GNU-stack.patch
+        08_all_libiberty-asprintf.patch
+        09_all_libiberty-pic.patch
+        10_all_nopie-all-flags.patch
+        11_all_sh-drop-sysroot-suffix.patch
+        12_all_ia64-TEXTREL.patch
+        13_all_disable-systemtap-switch.patch
+        14_all_m68k-textrel-on-libgcc.patch
+        15_all_respect-build-cxxflags.patch
+        16_all_libgfortran-Werror.patch
+        17_all_libgomp-Werror.patch
+        18_all_libitm-Werror.patch
+        19_all_libatomic-Werror.patch
+        20_all_libbacktrace-Werror.patch
+        21_all_libsanitizer-Werror.patch
+        22_all_libstdcxx-no-vtv.patch
+        23_all_disable-riscv32-ABIs.patch
+        24_all_default_ssp-buffer-size.patch
+        25_all_hppa-faster-synth_mult.patch
+        26_all_libcpp-ar.patch
+#   	27_all_EXTRA_OPTIONS-z-now.patch
+#   	28_all_EXTRA_OPTIONS-fstack-clash-protection.patch
+        29_all_fix-float-hang-PR95118.patch
+        30_all_lto-intl-workaround-PR95194.patch
+        31_all_ctor-range-PR95241.patch
+        32_all_plugin-objdump.patch
+        33_all_avx512-scalar-PR95528.patch
+        34_all_cet-cross-x86.patch
+        35_all_ICE-array-subscript-PR95508.patch
 )
 
 # Ada Support:
@@ -99,12 +99,6 @@ SRC_URI="
                 x86? ( mirror://funtoo/gcc/${GNAT32} )
         )
 "
-
-# D support
-#DLANG_REPO_URI="https://github.com/D-Programming-GDC/GDC.git"
-#DLANG_BRANCH="gdc-${GCC_MAJOR}-stable"
-#DLANG_COMMIT_DATE="2018-08-26"
-#DLANG_CHECKOUT_DIR="${WORKDIR}/gdc"
 
 BDEPEND="
     sys-devel/binutils
@@ -312,10 +306,11 @@ _gcc_prepare_harden() {
 				};' \
 		> "${T}/hardening-options.patch"
 	eapply "${T}/hardening-options.patch"
+
 	use stack_clash_protection && gcc_hard_flags+=" -DENABLE_DEFAULT_SCP"
 
 	# Enable FORTIFY_SOURCE by default
-	eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
+	use fortify && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
 	
 	# Selectively enable features from hardening patches
 	use ssp_all && gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL"
