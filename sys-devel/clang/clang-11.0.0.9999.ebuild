@@ -4,8 +4,7 @@
 EAPI=7
 
 PYTHON_COMPAT=( python{2_7,3_{6,7,8}} )
-inherit cmake-utils llvm llvm.org multilib-minimal multiprocessing \
-	pax-utils python-single-r1 toolchain-funcs
+inherit cmake-utils llvm llvm.org multilib-minimal multiprocessing pax-utils python-single-r1 toolchain-funcs
 
 DESCRIPTION="C language family frontend for LLVM"
 HOMEPAGE="https://llvm.org/"
@@ -58,9 +57,6 @@ PDEPEND="
 	default-compiler-rt? ( =sys-libs/compiler-rt-${PV%_*}* )
 	default-libcxx? ( >=sys-libs/libcxx-${PV} )"
 
-# least intrusive of all
-CMAKE_BUILD_TYPE=RelWithDebInfo
-
 # Multilib notes:
 # 1. ABI_* flags control ABIs libclang* is built for only.
 # 2. clang is always capable of compiling code for all ABIs for enabled
@@ -77,12 +73,14 @@ pkg_setup() {
 	python-single-r1_pkg_setup
 }
 
-src_unpack() {
-	# create extra parent dir for CLANG_RESOURCE_DIR
+src_prepare() {
+	# create extra parent dir for relative CLANG_RESOURCE_DIR access
 	mkdir -p x/y || die
-	cd x/y || die
-	llvm.org_src_unpack
-	mv clang-tools-extra clang/tools/extra || die
+	BUILD_DIR=${WORKDIR}/x/y/clang
+
+	llvm.org_src_prepare
+
+	mv ../clang-tools-extra tools/extra || die
 }
 
 check_distribution_components() {
@@ -250,7 +248,7 @@ multilib_src_configure() {
 	)
 	use test && mycmakeargs+=(
 		-DLLVM_MAIN_SRC_DIR="${WORKDIR}/x/y/llvm"
-		-DLLVM_LIT_ARGS="-vv;-j;${LIT_JOBS:-$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")}"
+		-DLLVM_LIT_ARGS="$(get_lit_flags)"
 	)
 
 	if multilib_is_native_abi; then
