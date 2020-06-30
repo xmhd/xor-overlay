@@ -156,7 +156,7 @@ src_prepare() {
     # apply debian patches
 	cd "${S}"
 	for debpatch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
-		epatch -p1 "${WORKDIR}/debian/patches/${debpatch}"
+		eapply -p1 "${WORKDIR}/debian/patches/${debpatch}"
 	done
 	# end of debian-specific stuff...
 
@@ -173,22 +173,22 @@ src_prepare() {
 	cp -aR "${WORKDIR}"/debian "${S}"/debian
 
 	## XFS LIBCRC kernel config fixes, FL-823
-	epatch "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-xfs-libcrc32c-fix.patch
+	eapply "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-xfs-libcrc32c-fix.patch
 
 	## FL-4424: enable legacy support for MCELOG.
-	epatch "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-mcelog.patch
+	eapply "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-mcelog.patch
 
 	## do not configure debian devs certs.
-	epatch "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-nocerts.patch
+	eapply "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-nocerts.patch
 
 	## FL-3381. enable IKCONFIG
-	epatch "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-ikconfig.patch
+	eapply "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-ikconfig.patch
 
 	## increase bluetooth polling patch
-	epatch "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-fix-bluetooth-polling.patch
+	eapply "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-fix-bluetooth-polling.patch
 
 	# Restore export_kernel_fpu_functions for zfs
-	epatch "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
+	eapply "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
 
 	local arch featureset subarch
 	featureset="standard"
