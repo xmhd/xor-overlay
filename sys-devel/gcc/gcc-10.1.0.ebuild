@@ -26,7 +26,7 @@ IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/featur
 IUSE="$IUSE +bootstrap bootstrap-lean bootstrap-profiled bootstrap-O3" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +fortify +link_now +pie ssp_all vtv" # Extra hardening flags
-[ ${GCC_MAJOR} -ge 8 ] && IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
+USE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 
 
@@ -163,8 +163,10 @@ pkg_setup() {
 	unset CXXFLAGS
 	unset CPPFLAGS
 	unset LDFLAGS
+
 	unset GCC_SPECS # we don't want to use the installed compiler's specs to build gcc!
 	unset LANGUAGES #265283
+
 	export PREFIX=/usr
 	CTARGET=${CTARGET:-${CHOST}}
 	[[ ${CATEGORY} == cross-* ]] && CTARGET=${CATEGORY/cross-}
@@ -281,7 +283,29 @@ src_prepare() {
 		#use lto && eapply "${FILESDIR}/Fix-bootstrap-miscompare-with-LTO-bootstrap-PR85571.patch"
 
 		# Harden things up:
-		_gcc_prepare_harden
+        local gcc_hard_flags=""
+
+        # Enable LINK_NOW by default
+        use link_now && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_EXTRA_OPTIONS-z-now.patch )"
+
+        # Enable SCP by default
+        use stack_clash_protection && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_EXTRA_OPTIONS-fstack-clash-protection.patch )"
+
+        # Enable FORTIFY_SOURCE by default
+        use fortify && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
+
+        # Selectively enable features from hardening patches
+        use ssp_all && gcc_hard_flags+=" -DDEFAULT_FLAG_SSP=2"
+
+        sed -e '/^ALL_CFLAGS/iHARD_CFLAGS = ' \
+                -e 's|^ALL_CFLAGS = |ALL_CFLAGS = $(HARD_CFLAGS) |' \
+                -i "${S}"/gcc/Makefile.in
+
+        sed -e '/^ALL_CXXFLAGS/iHARD_CFLAGS = ' \
+                -e 's|^ALL_CXXFLAGS = |ALL_CXXFLAGS = $(HARD_CFLAGS) |' \
+                -i "${S}"/gcc/Makefile.in
+
+        sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die
 	fi
 
 	is_crosscompile && _gcc_prepare_cross
@@ -291,41 +315,6 @@ src_prepare() {
 
 	# Must be called in src_prepare by EAPI6
 	eapply_user
-}
-
-_gcc_prepare_harden() {
-	local gcc_hard_flags=""
-
-	# Modify gentoo patch to use our more specific hardening flags.
-	cat "${GENTOO_PATCHES_DIR}/$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_extra-options.patch )" \
-		| sed \
-			-e '/+#ifdef EXTRA_OPTIONS/ {
-				N
-					/.*\n+#define DEFAULT_FLAG_SCP/ { s/EXTRA_OPTIONS/ENABLE_DEFAULT_SCP/ };
-					/.*\n+#define LINK_NOW_SPEC/ { s/EXTRA_OPTIONS/ENABLE_DEFAULT_LINK_NOW/ };
-				};' \
-		> "${T}/hardening-options.patch"
-	eapply "${T}/hardening-options.patch"
-
-	use stack_clash_protection && gcc_hard_flags+=" -DENABLE_DEFAULT_SCP"
-
-	# Enable FORTIFY_SOURCE by default
-	use fortify && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
-	
-	# Selectively enable features from hardening patches
-	use ssp_all && gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL"
-	use link_now && gcc_hard_flags+=" -DENABLE_DEFAULT_LINK_NOW"
-
-
-	sed -e '/^ALL_CFLAGS/iHARD_CFLAGS = ' \
-		-e 's|^ALL_CFLAGS = |ALL_CFLAGS = $(HARD_CFLAGS) |' \
-		-i "${S}"/gcc/Makefile.in
-
-	sed -e '/^ALL_CXXFLAGS/iHARD_CFLAGS = ' \
-		-e 's|^ALL_CXXFLAGS = |ALL_CXXFLAGS = $(HARD_CFLAGS) |' \
-		-i "${S}"/gcc/Makefile.in
-
-	sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die
 }
 
 _gcc_prepare_cross() {
