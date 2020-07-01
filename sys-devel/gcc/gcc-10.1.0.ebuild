@@ -241,7 +241,18 @@ eapply_gentoo() {
 
 src_prepare() {
 
-	( use vanilla && use hardened ) && die "vanilla and hardened USE flags are incompatible - Disable one of them."
+    # Export GCC branding
+    # TODO: implement alpha, beta and git brandings possibly?
+    if ! use hardened && ! use vanilla; then
+        export GCC_BRANDING="Funtoo Linux {$PV}"
+    elif use hardened; then
+        export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
+    fi
+
+    # Initial check
+    if use vanilla && use hardened; then
+        die "vanilla and hardened USE flags are incompatible - Disable one of them."
+    fi
 
 	# For some reason, when upgrading gcc, the gcc Makefile will install stuff
 	# like crtbegin.o into a subdirectory based on the name of the currently-installed
@@ -249,7 +260,15 @@ src_prepare() {
 
 	sed -i -e "s/^version :=.*/version := ${GCC_CONFIG_VER}/" ${S}/libgcc/Makefile.in || die
 
+    # Only modify sources if USE="-vanilla"
 	if ! use vanilla; then
+
+		if [ -n "$GENTOO_PATCHES_VER" ]; then
+			einfo "Applying Gentoo patches ..."
+			for my_patch in ${GENTOO_PATCHES[*]} ; do
+				eapply_gentoo "${my_patch}"
+			done
+		fi
 
 		# Prevent libffi from being installed
 		sed -i -e 's/\(install.*:\) install-.*recursive/\1/' "${S}"/libffi/Makefile.in || die
@@ -264,7 +283,13 @@ src_prepare() {
 
 		eapply "${FILESDIR}/gcc-4.6.4-fix-libgcc-s-path-with-vsrl.patch" || die "patch fail"
 
-		if use dev_extra_warnings ; then
+		#use lto && eapply "${FILESDIR}/Fix-bootstrap-miscompare-with-LTO-bootstrap-PR85571.patch"
+
+        # === HARDENING ===
+        # TODO: write a blurb
+        local gcc_hard_flags=""
+
+        if use dev_extra_warnings ; then
 			eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-warn-format-security.patch )"
 			eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-warn-trampolines.patch )"
 			if use test ; then
@@ -273,30 +298,24 @@ src_prepare() {
 			einfo "Additional warnings enabled by default, this may break some tests and compilations with -Werror."
 		fi
 
-		if [ -n "$GENTOO_PATCHES_VER" ]; then
-			einfo "Applying Gentoo patches ..."
-			for my_patch in ${GENTOO_PATCHES[*]} ; do
-				eapply_gentoo "${my_patch}"
-			done
-		fi
-
-		#use lto && eapply "${FILESDIR}/Fix-bootstrap-miscompare-with-LTO-bootstrap-PR85571.patch"
-
-		# Harden things up:
-        local gcc_hard_flags=""
-
-        # Enable LINK_NOW by default
-        use link_now && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_EXTRA_OPTIONS-z-now.patch )"
-
-        # Enable SCP by default
-        use stack_clash_protection && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_EXTRA_OPTIONS-fstack-clash-protection.patch )"
+        # -fstack-protector is initially set =-1 in GCC.
+        # =0 TODO
+        # =1 TODO
+        # =2 -all
+        # =3 -strong
+        # This ebuild defaults to -strong, and if USE=hardened then set it to -strong
+        if use ssp && use hardened; then
+            gcc_hard_flags+=" -DDEFAULT_FLAG_SSP=2"
+        fi
 
         # Enable FORTIFY_SOURCE by default
-        use fortify && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
+	    use fortify && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
+	    # Enable LINK_NOW by default
+	    use link_now && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_EXTRA_OPTIONS-z-now.patch )"
+	    # Enable Stack Clash Protection by default
+	    use stack_clash_protection && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_EXTRA_OPTIONS-fstack-clash-protection.patch )"
 
-        # Selectively enable features from hardening patches
-        use ssp_all && gcc_hard_flags+=" -DDEFAULT_FLAG_SSP=2"
-
+	    # GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
         sed -e '/^ALL_CFLAGS/iHARD_CFLAGS = ' \
                 -e 's|^ALL_CFLAGS = |ALL_CFLAGS = $(HARD_CFLAGS) |' \
                 -i "${S}"/gcc/Makefile.in
@@ -308,10 +327,31 @@ src_prepare() {
         sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die
 	fi
 
-	is_crosscompile && _gcc_prepare_cross
+    # === PREPARE ADA TOOLCHAIN ===
+    if use ada; then
 
-	# Ada gnat compiler bootstrap preparation
-	use ada && _gcc_prepare_gnat
+        export GNATBOOT="${S}/gnatboot"
+
+        if [ -f  gcc/ada/libgnat/s-parame.adb ] ; then
+            einfo "Patching ada stack handling..."
+            grep -q -e '-- Default_Sec_Stack_Size --' gcc/ada/libgnat/s-parame.adb && eapply "${FILESDIR}/Ada-Integer-overflow-in-SS_Allocate.patch"
+        fi
+
+        if use amd64; then
+            einfo "Preparing gnat64 for ada:"
+            make -C ${WORKDIR}/${GNAT64%%.*} ins-all prefix=${S}/gnatboot > /dev/null || die "ada preparation failed"
+            find ${S}/gnatboot -name ld -exec mv -v {} {}.old \;
+        elif use x86; then
+            einfo "Preparing gnat32 for ada:"
+            make -C ${WORKDIR}/${GNAT32%%.*} ins-all prefix=${S}/gnatboot > /dev/null || die "ada preparation failed"
+            find ${S}/gnatboot -name ld -exec mv -v {} {}.old \;
+        else
+            die "GNAT ada setup failed, only x86 and amd64 currently supported by this ebuild. Patches welcome!"
+        fi
+
+        # Setup additional paths as needed before we start.
+        use ada && export PATH="${GNATBOOT}/bin:${PATH}"
+    fi
 
 	# Must be called in src_prepare by EAPI6
 	eapply_user
