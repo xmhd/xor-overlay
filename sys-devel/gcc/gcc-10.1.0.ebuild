@@ -26,7 +26,7 @@ IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/featur
 IUSE="$IUSE +bootstrap bootstrap-lean bootstrap-profiled bootstrap-O3" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +fortify +link_now +pie ssp_all vtv" # Extra hardening flags
-USE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
+IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 
 
@@ -164,8 +164,10 @@ pkg_setup() {
 	unset CPPFLAGS
 	unset LDFLAGS
 
-	unset GCC_SPECS # we don't want to use the installed compiler's specs to build gcc!
-	unset LANGUAGES #265283
+    # we don't want to use the installed compiler's specs to build gcc!
+	unset GCC_SPECS
+	# Gentoo Linux bz #265283
+	unset LANGUAGES
 
 	export PREFIX=/usr
 	CTARGET=${CTARGET:-${CHOST}}
@@ -188,9 +190,9 @@ pkg_setup() {
 	STDCXX_INCDIR=${LIBPATH}/include/g++-v${GCC_BRANCH_VER}
 
 	# Add bootstrap configs to BUILD_CONFIG based on use flags
-	if use lto && use bootstrap-lean; then
+	if use bootstrap-lto && use bootstrap-lean; then
 		BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto-lean"
-	elif use lto ; then
+	elif use bootstrap-lto ; then
 		BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
 	fi
 	use bootstrap-O3 && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-O3"
@@ -378,30 +380,6 @@ _gcc_prepare_cross() {
 	if [[ ${CTARGET} == avr* ]]; then
 		sed -e 's%native_system_header_dir=/usr/include%native_system_header_dir=/include%' -i "${WORKDIR}/${P}/gcc/config.gcc"
 	fi
-}
-
-_gcc_prepare_gnat() {
-	export GNATBOOT="${S}/gnatboot"
-
-	if [ -f  gcc/ada/libgnat/s-parame.adb ] ; then
-		einfo "Patching ada stack handling..."
-		grep -q -e '-- Default_Sec_Stack_Size --' gcc/ada/libgnat/s-parame.adb && eapply "${FILESDIR}/Ada-Integer-overflow-in-SS_Allocate.patch"
-	fi
-
-	if use amd64; then
-		einfo "Preparing gnat64 for ada:"
-		make -C ${WORKDIR}/${GNAT64%%.*} ins-all prefix=${S}/gnatboot > /dev/null || die "ada preparation failed"
-		find ${S}/gnatboot -name ld -exec mv -v {} {}.old \;
-	elif use x86; then
-		einfo "Preparing gnat32 for ada:"
-		make -C ${WORKDIR}/${GNAT32%%.*} ins-all prefix=${S}/gnatboot > /dev/null || die "ada preparation failed"
-		find ${S}/gnatboot -name ld -exec mv -v {} {}.old \;
-	else
-		die "GNAT ada setup failed, only x86 and amd64 currently supported by this ebuild. Patches welcome!"
-	fi
-
-	# Setup additional paths as needed before we start.
-	use ada && export PATH="${GNATBOOT}/bin:${PATH}"
 }
 
 gcc_conf_lang_opts() {
