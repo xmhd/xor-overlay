@@ -172,18 +172,6 @@ src_prepare() {
 	cd "${S}"
 	cp -aR "${WORKDIR}"/debian "${S}"/debian
 
-	## XFS LIBCRC kernel config fixes, FL-823
-	eapply "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-xfs-libcrc32c-fix.patch
-
-	## FL-4424: enable legacy support for MCELOG.
-	eapply "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-mcelog.patch
-
-	## do not configure debian devs certs.
-	eapply "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-nocerts.patch
-
-	## FL-3381. enable IKCONFIG
-	eapply "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-ikconfig.patch
-
 	## increase bluetooth polling patch
 	eapply "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-fix-bluetooth-polling.patch
 
@@ -207,6 +195,26 @@ src_prepare() {
 	cp "${FILESDIR}"/config-extract . || die
 	chmod +x config-extract || die
 	./config-extract ${arch} ${featureset} ${subarch} || die
+
+    ### TWEAK KERNEL CONFIG ###
+
+    ## FL-3381 Enable IKCONFIG so that /proc/config.gz can be used for various checks
+    ## TODO: Maybe not a good idea for USE=hardened, look into this.
+    tweak_config .config CONFIG_IKCONFIG y
+    tweak_config .config CONFIG_IKCONFIG_PROC y
+
+    ## FL-4424 Enable legacy support for MCELOG
+    ## TODO: See if this is still required? if not, can it be shit canned?
+    tweak_config .config CONFIG_X86_MCELOG_LEGACY y
+
+    ## FL-823 Build XFS into kernel
+    ## TODO: can most likely be shit canned as no longer using genkernel, + Dracut includes all kernel moduels in initrd.
+    tweak_config .config CONFIG_XFS_FS y
+    tweak_config .config CONFIG_LIBCRC32C y
+
+    ## Do not configure Debian devs certificates
+    tweak_config .config CONFIG_SYSTEM_TRUSTED_KEYS
+
 	set_no_config .config CONFIG_DEBUG
     if use custom-cflags; then
             MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
