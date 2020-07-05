@@ -319,6 +319,9 @@ src_prepare() {
 	yes "" | make oldconfig >/dev/null 2>&1 || die
 	cp .config "${T}"/.config || die
 	make -s mrproper || die "make mrproper failed"
+
+	# Apply any user patches
+	eapply_user
 }
 
 src_configure() {
