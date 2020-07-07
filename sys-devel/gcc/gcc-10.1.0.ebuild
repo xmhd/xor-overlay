@@ -87,6 +87,7 @@ GENTOO_PATCHES=(
         33_all_avx512-scalar-PR95528.patch
         34_all_cet-cross-x86.patch
         35_all_ICE-array-subscript-PR95508.patch
+        36_all_fno-delayed-branch.patch
 )
 
 # Ada Support:
@@ -265,6 +266,7 @@ src_prepare() {
     # Only modify sources if USE="-vanilla"
 	if ! use vanilla; then
 
+        # Gentoo Linux patches
 		if [ -n "$GENTOO_PATCHES_VER" ]; then
 			einfo "Applying Gentoo patches ..."
 			for my_patch in ${GENTOO_PATCHES[*]} ; do
@@ -481,6 +483,7 @@ gcc_conf_cross_options() {
 
 src_configure() {
 
+    # gcc_conf is our array of opts to pass to ./configure
 	local confgcc
 	if is_crosscompile || tc-is-cross-compiler; then
 		confgcc+=" --target=${CTARGET}"
@@ -548,9 +551,7 @@ src_configure() {
 		$(use_with graphite isl) \
 		--with-bugurl=http://bugs.funtoo.org \
 		--with-pkgversion="$branding" \
-		$(gcc_checking_opts stage1) $(gcc_checking_opts) \
-		$(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc \
-		|| die "configure fail"
+		$(gcc_checking_opts stage1) $(gcc_checking_opts) $(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $(confgcc) || die "configure fail"
 
 	is_crosscompile && gcc_conf_cross_post
 }
