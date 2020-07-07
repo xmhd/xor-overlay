@@ -29,18 +29,6 @@ IUSE="$IUSE +fortify +link_now +pie ssp_all vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 
-
-# Handle internal self checking options
-CHECKS_RELEASE="assert runtime"
-CHECKS_YES="${CHECKS_RELEASE} misc tree gc rtlflag"
-CHECKS_EXTRA="$( [ ${GCC_MAJOR} -ge 8 ] && printf -- "extra" )"
-CHECKS_VALGRIND="valgrind"
-CHECKS_ALL="${CHECKS_YES} df fold gcac rtl ${CHECKS_EXTRA}"
-
-for _check in no release yes all ${CHECKS_ALL} ${CHECKS_VALGRIND}; do
-	IUSE="${IUSE} checking_${_check} stage1_checking_${_check}"
-done
-
 # Version of archive before patches.
 GCC_ARCHIVE_VER="10.1.0"
 # GCC release archive
@@ -309,7 +297,7 @@ src_prepare() {
         # =3 -strong
         # This ebuild defaults to -strong, and if USE=hardened then set it to -strong
         if use ssp && use hardened; then
-            gcc_hard_flags+=" -DDEFAULT_FLAG_SSP=2"
+            gcc_hard_flags+=" -DDEFAULT_FLAG_SSP=2 "
         fi
 
         # Enable FORTIFY_SOURCE by default
@@ -525,6 +513,24 @@ src_configure() {
 		confgcc+=( --enable-nls --without-included-gettext )
 	else
 		confgcc+=( --disable-nls )
+	fi
+
+    # Default to --enable-checking=release, except when USE=debug, in which case --enable-checking=all.
+    #
+    # These checks perform internal consistency checks within gcc, but adds error checking of the requested complexity.
+    #
+    # checking=release performs checks on assert + compiler runtime, which are fairly cheap.
+    # checking=all performs all available tests except 'valgrind'.
+    #
+    # See https://gcc.gnu.org/install/configure.html for further information on the checks available within gcc.
+    #
+    # NOTE: '--enable-stage1-checking' == ''--enable-checking' unless explicitly specified.
+    # NOTE2: '--enable-checking=release' is default $upstream unless disabled via '--enable-checking=no'.
+    # NOTE3: $upstream doesn't test '--disable-checking', preferring '--enable-checking=no'. SEE: Gentoo Linux #317217
+	if ! use debug; then
+	    confgcc+=( --enable-checking=release )
+	else
+	    confgcc+=( --enable-checking=all )
 	fi
 
 	use generic_host || confgcc+="${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}}"
@@ -832,52 +838,4 @@ pkg_postinst() {
 	PATH="${BINPATH}:${PATH}"
 	export PATH
 	compiler_auto_enable ${PV} ${CTARGET}
-}
-
-
-
-# GCC internal self checking options
-# Usage: gcc_checking_opts [stage1]
-gcc_checking_opts() {
-	local stage1="${1}${1:+_}"
-
-	local opts check checks
-	# Setting checking_no overrides all other checks
-	if use ${stage1}checking_no ; then
-		opts="no"
-	else
-		# Priority is all > yes > release
-		if use ${stage1}checking_all ; then
-			checks="${CHECKS_ALL}"
-		elif use ${stage1}checking_yes ; then
-			checks="${CHECKS_YES}"
-		elif use ${stage1}checking_release ; then
-			checks="${CHECKS_RELEASE}"
-		fi
-
-		# Check if explict use flags are set for any valid checks
-		for check in ${CHECKS_ALL} ${CHECKS_VALGRIND} ; do
-			# Check if the flag is enabled and add to list if not there; force extra to set the same for both scopes.
-			if use ${stage1}checking_${check} || ( [ -n "${CHECKS_EXTRA}" ] && [ "${check}" = "extra" ] && ( use stage1_checking_extra || use checking_extra ) ) ; then
-				has check "${checks}" || checks="${checks} ${check}"
-			fi
-		done
-
-		# If no checking has been defined, set defaults
-		if [ -z "${checks}" ] ; then
-			if [ -n "${stage1}" ] ; then
-				checks="${CHECKS_YES}"
-			else
-				checks="${CHECKS_RELEASE}"
-			fi
-		fi
-
-		# build our opts string
-		for check in ${checks} ; do
-			opts="${opts}${opts:+,}${check}"
-		done
-	fi
-
-
-	printf -- "--enable-${stage1:+${stage1%_}-}checking=${opts}"
 }
