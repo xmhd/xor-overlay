@@ -557,7 +557,7 @@ src_configure() {
 		$(use_with graphite isl) \
 		--with-bugurl=http://bugs.funtoo.org \
 		--with-pkgversion="$branding" \
-		$(gcc_checking_opts stage1) $(gcc_checking_opts) $(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $(confgcc) || die "configure fail"
+		$(gcc_checking_opts stage1) $(gcc_checking_opts) $(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc || die "configure fail"
 
 	is_crosscompile && gcc_conf_cross_post
 }
