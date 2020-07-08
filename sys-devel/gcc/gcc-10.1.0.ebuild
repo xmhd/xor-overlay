@@ -514,6 +514,8 @@ src_configure() {
 	else
 		confgcc+=( --disable-nls )
 	fi
+    ! use debug && confgcc+=" --enable-checking=release"
+    use debug && confgcc+=" --enable-checking=all"
 
     # Default to --enable-checking=release, except when USE=debug, in which case --enable-checking=all.
     #
@@ -527,11 +529,8 @@ src_configure() {
     # NOTE: '--enable-stage1-checking' == ''--enable-checking' unless explicitly specified.
     # NOTE2: '--enable-checking=release' is default $upstream unless disabled via '--enable-checking=no'.
     # NOTE3: $upstream doesn't test '--disable-checking', preferring '--enable-checking=no'. SEE: Gentoo Linux #317217
-	if ! use debug; then
-	    confgcc+=( --enable-checking=release )
-	else
-	    confgcc+=( --enable-checking=all )
-	fi
+    ! use debug && confgcc+=" --enable-checking=release"
+    use debug && confgcc+=" --enable-checking=all"
 
 	use generic_host || confgcc+="${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}}"
 	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure \
