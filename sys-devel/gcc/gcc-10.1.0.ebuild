@@ -25,7 +25,7 @@ IUSE="$IUSE doc nls vanilla hardened +multilib" # docs/i18n/system flags
 IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap bootstrap-lean bootstrap-lto bootstrap-profiled bootstrap-O3" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
-IUSE="$IUSE +fortify +link_now +pie ssp_all vtv" # Extra hardening flags
+IUSE="$IUSE +fortify +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 
@@ -556,7 +556,7 @@ src_configure() {
 		$(use_with graphite isl) \
 		--with-bugurl=http://bugs.funtoo.org \
 		--with-pkgversion="$branding" \
-		$(gcc_checking_opts stage1) $(gcc_checking_opts) $(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc || die "configure fail"
+		$(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc || die "configure fail"
 
 	is_crosscompile && gcc_conf_cross_post
 }
