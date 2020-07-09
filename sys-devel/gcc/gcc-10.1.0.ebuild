@@ -28,7 +28,7 @@ IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +fortify +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
-IUSE="$IUSE zstd"
+IUSE="$IUSE valgrind zstd" # TODO: sort these flags
 
 # Version of archive before patches.
 GCC_ARCHIVE_VER="10.1.0"
@@ -101,6 +101,7 @@ BDEPEND="
 	        >=dev-util/dejagnu-1.4.4
 	        >=sys-devel/autogen-5.5.4
     )
+    valgrind? ( dev-util/valgrind )
 "
 
 RDEPEND="
@@ -525,6 +526,13 @@ src_configure() {
         confgcc+=( --with-zstd )
     else
         confgcc+=( --without-zstd )
+    fi
+
+    # todo
+    if use valgrind; then
+        confgcc+=( --enable-valgrind --enable-valgrind-annotations )
+    else
+        confgcc+=( --disable-valgrind --disable-valgrind-annotations )
     fi
 
     # Default to '--enable-checking=release', except when USE=debug, in which case '--enable-checking=all'.
