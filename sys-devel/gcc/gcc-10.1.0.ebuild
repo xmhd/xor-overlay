@@ -28,6 +28,7 @@ IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +fortify +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
+IUSE="$IUSE zstd"
 
 # Version of archive before patches.
 GCC_ARCHIVE_VER="10.1.0"
@@ -111,6 +112,7 @@ RDEPEND="
 	>=dev-libs/mpfr-2.4.2:0=
 	>=dev-libs/mpc-0.8.1:0=
 	sys-libs/zlib[${MULTILIB_USEDEP}]
+	zstd? ( app-arch/zstd )
 "
 
 DEPEND="
@@ -517,8 +519,13 @@ src_configure() {
 	else
 		confgcc+=( --disable-nls )
 	fi
-    ! use debug && confgcc+=" --enable-checking=release"
-    use debug && confgcc+=" --enable-checking=all"
+
+    # gcc has support for compressing lto bytecode using zstd
+    if use zstd; then
+        confgcc+=( --with-zstd )
+    else
+        confgcc+=( --without-zstd )
+    fi
 
     # Default to '--enable-checking=release', except when USE=debug, in which case '--enable-checking=all'.
     #
