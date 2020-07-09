@@ -499,11 +499,26 @@ src_configure() {
 
 	[[ -n ${CBUILD} ]] && confgcc+=" --build=${CBUILD}"
 
-	confgcc+=" $(use_enable sanitize libsanitizer)"
-	confgcc+=" $(use_enable pie default-pie)"
-	confgcc+=" $(use_enable ssp default-ssp)"
 	! use pch && confgcc+=" --disable-libstdcxx-pch"
 	use graphite && confgcc+=" --disable-isl-version-check"
+
+    if use pie; then
+        confgcc+=( --enable-default-pie )
+    else
+        confgcc+=( --disable-default-pie )
+    fi
+
+    if use ssp; then
+        confgcc+=( --enable-default-ssp )
+    else
+        confgcc+=( --disable-default-ssp )
+    fi
+
+	if use sanitize; then
+	    confgcc+=( --enable-libsanitizer )
+	else
+	    confgcc+=( --disable-libsanitizer )
+	fi
 
 	if use vtv; then
 		confgcc+=" --enable-vtable-verify --enable-libvtv"
