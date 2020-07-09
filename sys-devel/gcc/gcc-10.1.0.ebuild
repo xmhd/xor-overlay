@@ -528,11 +528,25 @@ src_configure() {
         confgcc+=( --without-zstd )
     fi
 
-    # todo
+    # valgrind toolsuite provides various debugging and profiling tools
     if use valgrind; then
         confgcc+=( --enable-valgrind --enable-valgrind-annotations )
     else
         confgcc+=( --disable-valgrind --disable-valgrind-annotations )
+    fi
+
+    # lto todo
+    if use lto; then
+        confgcc+=( --enable-lto )
+    else
+        confgcc+=( --disable-lto )
+    fi
+
+    # graphite todo
+    if use graphite; then
+        confgcc+=( --with-isl )
+    else
+        confgcc+=( --without-isl )
     fi
 
     # Default to '--enable-checking=release', except when USE=debug, in which case '--enable-checking=all'.
@@ -569,9 +583,7 @@ src_configure() {
 		--disable-werror \
 		--enable-libmudflap \
 		--enable-secureplt \
-		--enable-lto \
 		--with-system-zlib \
-		$(use_with graphite isl) \
 		--with-bugurl=http://bugs.funtoo.org \
 		--with-pkgversion="$branding" \
 		$(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc || die "configure fail"
