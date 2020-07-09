@@ -549,6 +549,14 @@ src_configure() {
         confgcc+=( --without-isl )
     fi
 
+    # multilib
+    if use multilib; then
+        confgcc+=( --enable-multilib )
+    else
+        confgcc+=( --disable-multilib )
+    fi
+
+
     # Default to '--enable-checking=release', except when USE=debug, in which case '--enable-checking=all'.
     #
     # These checks perform internal consistency checks within gcc, but adds error checking of the requested complexity.
@@ -568,7 +576,6 @@ src_configure() {
 	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure \
 		${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} \
 		$(use_enable libssp) \
-		$(use_enable multilib) \
 		--enable-version-specific-runtime-libs \
 		--prefix=${PREFIX} \
 		--bindir=${BINPATH} \
