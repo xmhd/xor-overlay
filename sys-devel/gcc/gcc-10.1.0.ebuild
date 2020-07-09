@@ -473,6 +473,16 @@ src_configure() {
 
     # gcc_conf is our array of opts to pass to ./configure
 	local confgcc
+
+	# === BRANDING ===
+	# Export GCC branding
+    # TODO: implement alpha, beta and git brandings possibly?
+    if ! use hardened && ! use vanilla; then
+        export GCC_BRANDING="Funtoo Linux {$PV}"
+    elif use hardened; then
+        export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
+    fi
+
 	if is_crosscompile || tc-is-cross-compiler; then
 		confgcc+=" --target=${CTARGET}"
 	fi
@@ -499,13 +509,6 @@ src_configure() {
 	fi
 
 	use libssp || export gcc_cv_libc_provides_ssp=yes
-
-	local branding="Funtoo"
-	if use hardened; then
-		branding="$branding Hardened ${PVR}"
-	else
-		branding="$branding ${PVR}"
-	fi
 
 	confgcc+=" --with-python-dir=${DATAPATH/$PREFIX/}/python"
 
