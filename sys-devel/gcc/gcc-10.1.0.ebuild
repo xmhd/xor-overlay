@@ -517,12 +517,12 @@ src_configure() {
     ! use debug && confgcc+=" --enable-checking=release"
     use debug && confgcc+=" --enable-checking=all"
 
-    # Default to --enable-checking=release, except when USE=debug, in which case --enable-checking=all.
+    # Default to '--enable-checking=release', except when USE=debug, in which case '--enable-checking=all'.
     #
     # These checks perform internal consistency checks within gcc, but adds error checking of the requested complexity.
     #
-    # checking=release performs checks on assert + compiler runtime, which are fairly cheap.
-    # checking=all performs all available tests except 'valgrind'.
+    # checking=release performs checks on assert + compiler runtime, and is fairly cheap.
+    # checking=all performs all available tests except 'valgrind', and is fairly expensive.
     #
     # See https://gcc.gnu.org/install/configure.html for further information on the checks available within gcc.
     #
