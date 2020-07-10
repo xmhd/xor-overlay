@@ -479,12 +479,16 @@ src_configure() {
 
 	# === BRANDING ===
 	# Export GCC branding
-    # TODO: implement alpha, beta and git brandings possibly?
+    # TODO: implement alpha, beta and git brandings possibly? specific bug tracker/JIRA for specific versions?
     if ! use hardened && ! use vanilla; then
         export GCC_BRANDING="Funtoo Linux {$PV}"
+		confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
     elif use hardened; then
         export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
+        confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
     fi
+
+
 
 	if is_crosscompile || tc-is-cross-compiler; then
 		confgcc+=" --target=${CTARGET}"
@@ -499,15 +503,14 @@ src_configure() {
 
 	[[ -n ${CBUILD} ]] && confgcc+=" --build=${CBUILD}"
 
-	! use pch && confgcc+=" --disable-libstdcxx-pch"
-	use graphite && confgcc+=" --disable-isl-version-check"
-
+    # Default building of PIE executables.
     if use pie; then
         confgcc+=( --enable-default-pie )
     else
         confgcc+=( --disable-default-pie )
     fi
 
+    # Default building of SSP executables.
     if use ssp; then
         confgcc+=( --enable-default-ssp )
     else
@@ -525,10 +528,6 @@ src_configure() {
     else
 		confgcc+=" --disable-vtable-verify --disable-libvtv"
 	fi
-
-	use libssp || export gcc_cv_libc_provides_ssp=yes
-
-	confgcc+=" --with-python-dir=${DATAPATH/$PREFIX/}/python"
 
 	if use nls ; then
 		confgcc+=( --enable-nls --without-included-gettext )
@@ -559,7 +558,7 @@ src_configure() {
 
     # graphite todo
     if use graphite; then
-        confgcc+=( --with-isl )
+        confgcc+=( --with-isl --disable-isl-version-check )
     else
         confgcc+=( --without-isl )
     fi
@@ -571,6 +570,13 @@ src_configure() {
         confgcc+=( --disable-multilib )
     fi
 
+    if ! use generic_host; then
+        confgcc+="${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}}"
+    fi
+
+    if ! use pch; then
+        confgcc+=( --disable-libstdcxx-pch )
+    fi
 
     # Default to '--enable-checking=release', except when USE=debug, in which case '--enable-checking=all'.
     #
@@ -587,11 +593,12 @@ src_configure() {
     ! use debug && confgcc+=" --enable-checking=release"
     use debug && confgcc+=" --enable-checking=all"
 
-	use generic_host || confgcc+="${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}}"
+    # can this be shit canned? is solaris only, and i have better things to do with my time than support that
+    use libssp || export gcc_cv_libc_provides_ssp=yes
+
 	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure \
-		${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} \
-		$(use_enable libssp) \
-		--enable-version-specific-runtime-libs \
+		### BASE CONFIGURATION
+		--host=$CHOST \
 		--prefix=${PREFIX} \
 		--bindir=${BINPATH} \
 		--includedir=${LIBPATH}/include \
@@ -599,15 +606,23 @@ src_configure() {
 		--mandir=${DATAPATH}/man \
 		--infodir=${DATAPATH}/info \
 		--with-gxx-include-dir=${STDCXX_INCDIR} \
-		--enable-clocale=gnu \
-		--host=$CHOST \
+		--with-python-dir=${DATAPATH/$PREFIX/}/python \
+		### GENERAL OPTS
 		--enable-obsolete \
 		--disable-werror \
-		--enable-libmudflap \
 		--enable-secureplt \
 		--with-system-zlib \
-		--with-bugurl=http://bugs.funtoo.org \
-		--with-pkgversion="$branding" \
+
+
+		# CTARGET SPECIFIC / CROSS SETUP?
+		--enable-clocale=gnu \
+
+
+		# below seems to be darwin only?
+		--disable-libunwind-exceptions \
+		--enable-version-specific-runtime-libs \
+		${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} \
+		$(use_enable libssp) \
 		$(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc || die "configure fail"
 
 	is_crosscompile && gcc_conf_cross_post
