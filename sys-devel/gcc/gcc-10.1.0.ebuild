@@ -595,6 +595,10 @@ src_configure() {
 
     # can this be shit canned? is solaris only, and i have better things to do with my time than support that
     use libssp || export gcc_cv_libc_provides_ssp=yes
+    if use libssp; then
+        confgcc+=( --enable-libssp )
+
+    fi
 
 	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure \
 		### BASE CONFIGURATION
@@ -608,24 +612,23 @@ src_configure() {
 		--with-gxx-include-dir=${STDCXX_INCDIR} \
 		--with-python-dir=${DATAPATH/$PREFIX/}/python \
 		### GENERAL OPTS
+		# Enable configuration for obsolete systems - if not enabled ./configure will fail on obsolete systems.
 		--enable-obsolete \
+		# todo
 		--disable-werror \
+		# PowerPC only?
 		--enable-secureplt \
+		# Depend on installed zlib as bundled does not work with multilib.
 		--with-system-zlib \
-
-
 		# CTARGET SPECIFIC / CROSS SETUP?
 		--enable-clocale=gnu \
-
-
 		# below seems to be darwin only?
 		--disable-libunwind-exceptions \
 		--enable-version-specific-runtime-libs \
 		${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} \
-		$(use_enable libssp) \
 		$(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc || die "configure fail"
 
-	is_crosscompile && gcc_conf_cross_post
+	    is_crosscompile && gcc_conf_cross_post
 }
 
 gcc_conf_cross_post() {
