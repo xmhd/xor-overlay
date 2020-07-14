@@ -104,6 +104,7 @@ BDEPEND="
     valgrind? ( dev-util/valgrind )
 "
 
+# math-libs require SLOT=0.
 RDEPEND="
 	objc-gc? ( >=dev-libs/boehm-gc-7.6[${MULTILIB_USEDEP}] )
 	nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
@@ -282,6 +283,9 @@ src_prepare() {
 		# So, we apply a small patch to get this working:
 
 		eapply "${FILESDIR}/gcc-4.6.4-fix-libgcc-s-path-with-vsrl.patch" || die "patch fail"
+
+		# Prevent new texinfo from breaking old versions (see Gentoo Linux bug #198182, #464008)
+		eapply "${FILESDIR}/gcc-configure-texinfo.patch" || die "patch fail"
 
 		#use lto && eapply "${FILESDIR}/Fix-bootstrap-miscompare-with-LTO-bootstrap-PR85571.patch"
 
@@ -539,6 +543,10 @@ src_configure() {
     # NOTE3: $upstream doesn't test '--disable-checking', preferring '--enable-checking=no'. SEE: Gentoo Linux #317217
     ! use debug && confgcc+=( --enable-checking=release )
     use debug && confgcc+=( --enable-checking=all )
+
+	# Disable gcc info regeneration -- it ships with generated info pages
+	# already.  Our custom version/urls/etc... trigger it.  see: Gentoo Linux bug #464008
+	export gcc_cv_prog_makeinfo_modern=no
 
     # === LANGUAGE CONFIGURATION ===
 
@@ -831,12 +839,23 @@ cross_toolchain_env_setup() {
 }
 				
 src_install() {
-	S=$WORKDIR/objdir; cd $S
+
+	cd "${WORKDIR}/objdir"
 
 # PRE-MAKE INSTALL SECTION:
 
 	# Don't allow symlinks in private gcc include dir as this can break the build
 	( set +f ; find gcc/include*/ -type l -delete 2>/dev/null )
+
+	# Copy over the info pages.  We disabled their generation earlier, but the
+	# build system only expects to install out of the build dir, not the source.  Gentoo Linux bug #464008
+	mkdir -p gcc/doc
+	local x=
+	for x in "${S}"/gcc/doc/*.info* ; do
+		if [[ -f ${x} ]] ; then
+			cp "${x}" gcc/doc/ || die
+		fi
+	done
 
 	# Remove generated headers, as they can cause things to break
 	# (ncurses, openssl, etc).
