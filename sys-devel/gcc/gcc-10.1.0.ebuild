@@ -23,7 +23,7 @@ IUSE="ada +cxx d go +fortran objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib" # docs/i18n/system flags
 IUSE="$IUSE openmp altivec graphite lto pch custom-cflags" # Optimizations/features flags
-IUSE="$IUSE +bootstrap bootstrap-lean bootstrap-lto bootstrap-profiled bootstrap-O3" # Bootstrap flags
+IUSE="$IUSE +bootstrap bootstrap-lean bootstrap-lto pgo bootstrap-O3" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +fortify +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
@@ -199,7 +199,7 @@ pkg_setup() {
 	if [ -n "${GCC_TARGET}" ] ; then
 		:
 	elif ! is_crosscompile && use bootstrap ; then
-		if use bootstrap-profiled ; then
+		if use pgo ; then
 			GCC_TARGET="profiledbootstrap"
 		else
 			GCC_TARGET="bootstrap"
