@@ -2,7 +2,7 @@
 
 # See README.txt for usage notes.
 
-EAPI=6
+EAPI=7
 
 inherit multilib-build eutils pax-utils toolchain-enable git-r3
 
@@ -22,7 +22,7 @@ GCC_MAJOR="${PV%%.*}"
 IUSE="ada +cxx d go +fortran objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib" # docs/i18n/system flags
-IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/features flags
+IUSE="$IUSE openmp altivec graphite lto pch custom-cflags" # Optimizations/features flags
 IUSE="$IUSE +bootstrap bootstrap-lean bootstrap-lto bootstrap-profiled bootstrap-O3" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +fortify +link_now +pie vtv" # Extra hardening flags
@@ -138,19 +138,24 @@ is_crosscompile() {
 }
 
 pkg_setup() {
-	# Capture -march -mcpu and -mtune options to pass to build later.
-	MARCH="${MARCH:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-march="?([-_[:alnum:]]+).*/\1/p')}"
-	MCPU="${MCPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mcpu="?([-_[:alnum:]]+).*/\1/p')}"
-	MTUNE="${MTUNE:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mtune="?([-_[:alnum:]]+).*/\1/p')}"
-	MFPU="${MFPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mfpu="?([-_[:alnum:]]+).*/\1/p')}"
-	einfo "Got CFLAGS: ${CFLAGS}"
-	einfo "Got GCC_BUILD_CFLAGS: ${GCC_BUILD_CFLAGS}"
-	einfo "MARCH: ${MARCH}"
-	einfo "MCPU ${MCPU}"
-	einfo "MTUNE: ${MTUNE}"
-	einfo "MFPU: ${MFPU}"
 
-	# Don't pass cflags/ldflags through.
+    # We only want to pass ARCH, CPU, TUNE & FPU onwards if USE=custom-cflags
+    if use custom-cflags; then
+	    # Capture -march, -mcpu, -mtune and -mfpu options to pass to build later.
+        MARCH="${MARCH:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-march="?([-_[:alnum:]]+).*/\1/p')}"
+        MCPU="${MCPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mcpu="?([-_[:alnum:]]+).*/\1/p')}"
+        MTUNE="${MTUNE:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mtune="?([-_[:alnum:]]+).*/\1/p')}"
+        MFPU="${MFPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mfpu="?([-_[:alnum:]]+).*/\1/p')}"
+        # Echo captured options.
+        einfo "Got CFLAGS: ${CFLAGS}"
+        einfo "Got GCC_BUILD_CFLAGS: ${GCC_BUILD_CFLAGS}"
+        einfo "MARCH: ${MARCH}"
+        einfo "MCPU ${MCPU}"
+        einfo "MTUNE: ${MTUNE}"
+        einfo "MFPU: ${MFPU}"
+    fi
+
+	# Don't pass CFLAGS/LDFLAGS through.
 	unset CFLAGS
 	unset CXXFLAGS
 	unset CPPFLAGS
@@ -375,33 +380,6 @@ _gcc_prepare_cross() {
 	fi
 }
 
-gcc_conf_lang_opts() {
-	# Determine language support:
-	local conf_gcc_lang=""
-	local GCC_LANG="c,c++"
-	if use objc; then
-		GCC_LANG+=",objc"
-		use objc-gc && conf_gcc_lang+=" --enable-objc-gc"
-		use objc++ && GCC_LANG+=",obj-c++"
-	fi
-
-	use fortran && GCC_LANG+=",fortran" || conf_gcc_lang+=" --disable-libquadmath"
-
-	use go && GCC_LANG+=",go"
-
-	use ada && GCC_LANG+=",ada" && conf_gcc_lang+=" CC=${GNATBOOT}/bin/gcc CXX=${GNATBOOT}/bin/g++ AR=${GNATBOOT}/bin/gcc-ar AS=as LD=ld NM=${GNATBOOT}/bin/gcc-nm RANLIB=${GNATBOOT}/bin/gcc-ranlib"
-
-	use d && GCC_LANG+=",d"
-
-    if use lto; then
-        GCC_LANG+=",lto"
-    fi
-
-	conf_gcc_lang+=" --enable-languages=${GCC_LANG} --disable-libgcj"
-
-	printf -- "${conf_gcc_lang}"
-}
-
 # ARM
 gcc_conf_arm_opts() {
 	# Skip the rest if not an arm target
@@ -478,17 +456,139 @@ src_configure() {
 	local confgcc
 
 	# === BRANDING ===
+
 	# Export GCC branding
     # TODO: implement alpha, beta and git brandings possibly? specific bug tracker/JIRA for specific versions?
     if ! use hardened && ! use vanilla; then
-        export GCC_BRANDING="Funtoo Linux {$PV}"
+        export GCC_BRANDING="Funtoo Linux ${PV}"
 		confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
-    elif use hardened; then
+    elif use hardened && ! use vanilla; then
         export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
         confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
     fi
 
+    # === CHOST / CTARGET / CBUILD CONFIGURATION ===
 
+    # Set the HOST! --- NOTE: Straight from the GCC install doc:
+    # "GCC has code to correctly determine the correct value for target
+    # for nearly all native systems. Therefore, we highly recommend you
+    # not provide a configure target when configuring a native compiler."
+    confgcc+=( --host=${CHOST} )
+
+    # === GENERAL CONFIGURATION ===
+
+    # General configuration options
+
+    # @prefix
+    #   TODO
+    # @bindir
+    # @includedir
+    # @datadir
+    # @mandir
+    # @infodir
+    #   The directories where binaries, man pages etc will be installed.
+    confgcc+=(
+		--prefix="${PREFIX}"
+		--bindir="${BINPATH}"
+		--includedir="${INCLUDEPATH}"
+		--datadir="${DATAPATH}"
+		--mandir="${DATAPATH}/man"
+		--infodir="${DATAPATH}/info"
+		--with-gxx-include-dir="${STDCXX_INCDIR}"
+        # Stick the python scripts in their own slotted directory (bug #279252)
+        #
+        #  --with-python-dir=DIR
+        #  Specifies where to install the Python modules used for aot-compile. DIR
+        #  should not include the prefix used in installation. For example, if the
+        #  Python modules are to be installed in /usr/lib/python2.5/site-packages,
+        #  then --with-python-dir=/lib/python2.5/site-packages should be passed.
+        #
+        # This should translate into "/share/gcc-data/${CTARGET}/${GCC_CONFIG_VER}/python
+		--with-python-dir="${DATAPATH/$PREFIX/}/python"
+	)
+
+    # TODO?
+	confgcc+=(
+		--enable-obsolete
+		--enable-secureplt
+		--disable-werror
+		# Use system zlib as gcc bundled zlib doesn't play nicely with multilib.
+		--with-system-zlib
+	)
+
+	confgcc+=(
+	    # CTARGET SPECIFIC / CROSS SETUP?
+		--enable-clocale=gnu
+		# below seems to be darwin only?
+		--enable-version-specific-runtime-libs
+		# investigate
+		--disable-libunwind-exceptions
+	)
+
+	# Default to '--enable-checking=release', except when USE=debug, in which case '--enable-checking=all'.
+    #
+    # These checks perform internal consistency checks within gcc, but adds error checking of the requested complexity.
+    #
+    # checking=release performs checks on assert + compiler runtime, and is fairly cheap.
+    # checking=all performs all available tests except 'valgrind', and is fairly expensive.
+    #
+    # See https://gcc.gnu.org/install/configure.html for further information on the checks available within gcc.
+    #
+    # NOTE: '--enable-stage1-checking' == ''--enable-checking' unless explicitly specified.
+    # NOTE2: '--enable-checking=release' is default $upstream unless disabled via '--enable-checking=no'.
+    # NOTE3: $upstream doesn't test '--disable-checking', preferring '--enable-checking=no'. SEE: Gentoo Linux #317217
+    ! use debug && confgcc+=( --enable-checking=release )
+    use debug && confgcc+=( --enable-checking=all )
+
+    # === LANGUAGE CONFIGURATION ===
+
+    # GCC_LANG is our array of languages to configure for build.
+    # NOTE: C is always defined by default.
+    local GCC_LANG="c"
+
+    # ADA...
+    if use ada; then
+        GCC_LANG+=",ada"
+    fi
+
+    # C++...
+    if use cxx; then
+        GCC_LANG+=",c++"
+    fi
+
+    # D...
+    if use d; then
+        GCC_LANG+=",d"
+    fi
+
+    # Fortran...
+    if use fortran; then
+        GCC_LANG+=",fortran"
+    fi
+
+    # GO...
+    if use go; then
+        GCC_LANG+=",go"
+    fi
+
+    # LTO...
+    if use lto; then
+        GCC_LANG+=",lto"
+    fi
+
+    # Objective-C...
+    if use objc || use objcxx; then
+        GCC_LANG+=",objc"
+        if use objc-gc; then
+            GCC_CONF+=( --enable-objc-gc )
+        fi
+        if use objcxx; then
+            GCC_LANG+=",obj-c++"
+        fi
+    fi
+
+    # Pass the languages to confgcc, which will be passed to ./configure later.
+    confgcc+=( --enable-languages=${GCC_LANG} )
 
 	if is_crosscompile || tc-is-cross-compiler; then
 		confgcc+=" --target=${CTARGET}"
@@ -524,9 +624,9 @@ src_configure() {
 	fi
 
 	if use vtv; then
-		confgcc+=" --enable-vtable-verify --enable-libvtv"
+		confgcc+=( --enable-vtable-verify --enable-libvtv )
     else
-		confgcc+=" --disable-vtable-verify --disable-libvtv"
+		confgcc+=( --disable-vtable-verify --disable-libvtv )
 	fi
 
 	if use nls ; then
@@ -570,7 +670,7 @@ src_configure() {
         confgcc+=( --disable-multilib )
     fi
 
-    if ! use generic_host; then
+    if use custom-cflags; then
         confgcc+="${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}}"
     fi
 
@@ -578,57 +678,15 @@ src_configure() {
         confgcc+=( --disable-libstdcxx-pch )
     fi
 
-    # Default to '--enable-checking=release', except when USE=debug, in which case '--enable-checking=all'.
-    #
-    # These checks perform internal consistency checks within gcc, but adds error checking of the requested complexity.
-    #
-    # checking=release performs checks on assert + compiler runtime, and is fairly cheap.
-    # checking=all performs all available tests except 'valgrind', and is fairly expensive.
-    #
-    # See https://gcc.gnu.org/install/configure.html for further information on the checks available within gcc.
-    #
-    # NOTE: '--enable-stage1-checking' == ''--enable-checking' unless explicitly specified.
-    # NOTE2: '--enable-checking=release' is default $upstream unless disabled via '--enable-checking=no'.
-    # NOTE3: $upstream doesn't test '--disable-checking', preferring '--enable-checking=no'. SEE: Gentoo Linux #317217
-    ! use debug && confgcc+=" --enable-checking=release"
-    use debug && confgcc+=" --enable-checking=all"
-
     # can this be shit canned? is solaris only, and i have better things to do with my time than support that
     use libssp || export gcc_cv_libc_provides_ssp=yes
     if use libssp; then
         confgcc+=( --enable-libssp )
-
     fi
 
-	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure \
-		### BASE CONFIGURATION
-		--host=$CHOST \
-		--prefix=${PREFIX} \
-		--bindir=${BINPATH} \
-		--includedir=${LIBPATH}/include \
-		--datadir=${DATAPATH} \
-		--mandir=${DATAPATH}/man \
-		--infodir=${DATAPATH}/info \
-		--with-gxx-include-dir=${STDCXX_INCDIR} \
-		--with-python-dir=${DATAPATH/$PREFIX/}/python \
-		### GENERAL OPTS
-		# Enable configuration for obsolete systems - if not enabled ./configure will fail on obsolete systems.
-		--enable-obsolete \
-		# todo
-		--disable-werror \
-		# PowerPC only?
-		--enable-secureplt \
-		# Depend on installed zlib as bundled does not work with multilib.
-		--with-system-zlib \
-		# CTARGET SPECIFIC / CROSS SETUP?
-		--enable-clocale=gnu \
-		# below seems to be darwin only?
-		--disable-libunwind-exceptions \
-		--enable-version-specific-runtime-libs \
-		${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} \
-		$(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc || die "configure fail"
+	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure ${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} $(gcc_conf_arm_opts) $confgcc || die "configure fail"
 
-	    is_crosscompile && gcc_conf_cross_post
+	is_crosscompile && gcc_conf_cross_post
 }
 
 gcc_conf_cross_post() {
