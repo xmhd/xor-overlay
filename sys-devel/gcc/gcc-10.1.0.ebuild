@@ -241,14 +241,6 @@ eapply_gentoo() {
 
 src_prepare() {
 
-    # Export GCC branding
-    # TODO: implement alpha, beta and git brandings possibly?
-    if ! use hardened && ! use vanilla; then
-        export GCC_BRANDING="Funtoo Linux {$PV}"
-    elif use hardened; then
-        export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
-    fi
-
     # Initial check
     if use vanilla && use hardened; then
         die "vanilla and hardened USE flags are incompatible - Disable one of them."
