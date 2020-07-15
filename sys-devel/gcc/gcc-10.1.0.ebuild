@@ -683,7 +683,10 @@ src_configure() {
         confgcc+=( --enable-libssp )
     fi
 
-	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure ${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} $(gcc_conf_arm_opts) $confgcc || die "configure fail"
+    P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure \
+        ${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} \
+        $(gcc_conf_arm_opts) $confgcc \
+        || die "configure fail"
 
 	is_crosscompile && gcc_conf_cross_post
 }
