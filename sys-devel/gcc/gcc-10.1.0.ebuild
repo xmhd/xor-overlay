@@ -450,6 +450,33 @@ gcc_conf_cross_options() {
 	printf -- "${conf_gcc_cross}"
 }
 
+gcc_conf_lang_opts() {
+	# Determine language support:
+	local conf_gcc_lang=""
+	local GCC_LANG="c,c++"
+	if use objc; then
+		GCC_LANG+=",objc"
+		use objc-gc && conf_gcc_lang+=" --enable-objc-gc"
+		use objc++ && GCC_LANG+=",obj-c++"
+	fi
+
+	use fortran && GCC_LANG+=",fortran" || conf_gcc_lang+=" --disable-libquadmath"
+
+	use go && GCC_LANG+=",go"
+
+	use ada && GCC_LANG+=",ada" && conf_gcc_lang+=" CC=${GNATBOOT}/bin/gcc CXX=${GNATBOOT}/bin/g++ AR=${GNATBOOT}/bin/gcc-ar AS=as LD=ld NM=${GNATBOOT}/bin/gcc-nm RANLIB=${GNATBOOT}/bin/gcc-ranlib"
+
+	use d && GCC_LANG+=",d"
+
+    if use lto; then
+        GCC_LANG+=",lto"
+    fi
+
+	conf_gcc_lang+=" --enable-languages=${GCC_LANG} --disable-libgcj"
+
+	printf -- "${conf_gcc_lang}"
+}
+
 src_configure() {
 
     # gcc_conf is our array of opts to pass to ./configure
@@ -537,53 +564,7 @@ src_configure() {
 
     # === LANGUAGE CONFIGURATION ===
 
-    # GCC_LANG is our array of languages to configure for build.
-    # NOTE: C is always defined by default.
-    local GCC_LANG="c"
-
-    # ADA...
-    if use ada; then
-        GCC_LANG+=",ada"
-    fi
-
-    # C++...
-    if use cxx; then
-        GCC_LANG+=",c++"
-    fi
-
-    # D...
-    if use d; then
-        GCC_LANG+=",d"
-    fi
-
-    # Fortran...
-    if use fortran; then
-        GCC_LANG+=",fortran"
-    fi
-
-    # GO...
-    if use go; then
-        GCC_LANG+=",go"
-    fi
-
-    # LTO...
-    if use lto; then
-        GCC_LANG+=",lto"
-    fi
-
-    # Objective-C...
-    if use objc || use objcxx; then
-        GCC_LANG+=",objc"
-        if use objc-gc; then
-            GCC_CONF+=( --enable-objc-gc )
-        fi
-        if use objcxx; then
-            GCC_LANG+=",obj-c++"
-        fi
-    fi
-
-    # Pass the languages to confgcc, which will be passed to ./configure later.
-    confgcc+=( --enable-languages=${GCC_LANG} )
+    # TODO
 
 	if is_crosscompile || tc-is-cross-compiler; then
 		confgcc+=" --target=${CTARGET}"
@@ -679,7 +660,7 @@ src_configure() {
         confgcc+=( --enable-libssp )
     fi
 
-	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure ${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} $(gcc_conf_arm_opts) $confgcc || die "configure fail"
+	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure ${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} $(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc || die "configure fail"
 
 	is_crosscompile && gcc_conf_cross_post
 }
