@@ -140,6 +140,14 @@ is_crosscompile() {
 
 pkg_setup() {
 
+	# Export GCC branding
+    # TODO: implement alpha, beta and git brandings possibly? specific bug tracker/JIRA for specific versions?
+    if ! use hardened && ! use vanilla; then
+        export GCC_BRANDING="Funtoo Linux ${PV}"
+    elif use hardened && ! use vanilla; then
+        export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
+    fi
+
     # We only want to pass ARCH, CPU, TUNE & FPU onwards if USE=custom-cflags
     if use custom-cflags; then
 	    # Capture -march, -mcpu, -mtune and -mfpu options to pass to build later.
@@ -451,18 +459,6 @@ src_configure() {
     # gcc_conf is our array of opts to pass to ./configure
 	local confgcc
 
-	# === BRANDING ===
-
-	# Export GCC branding
-    # TODO: implement alpha, beta and git brandings possibly? specific bug tracker/JIRA for specific versions?
-    if ! use hardened && ! use vanilla; then
-        export GCC_BRANDING="Funtoo Linux ${PV}"
-		confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
-    elif use hardened && ! use vanilla; then
-        export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
-        confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
-    fi
-
     # === CHOST / CTARGET / CBUILD CONFIGURATION ===
 
     # Set the HOST! --- NOTE: Straight from the GCC install doc:
@@ -474,6 +470,9 @@ src_configure() {
     # === GENERAL CONFIGURATION ===
 
     # General configuration options
+
+    # Set the bug tracker + pkg version for the current branding.
+    confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
 
     # @prefix
     #   TODO
