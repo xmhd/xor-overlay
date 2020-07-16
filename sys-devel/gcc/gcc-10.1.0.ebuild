@@ -23,7 +23,7 @@ IUSE="ada +cxx d go +fortran objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib" # docs/i18n/system flags
 IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/features flags
-IUSE="$IUSE +bootstrap bootstrap-lean bootstrap-lto pgo bootstrap-O3" # Bootstrap flags
+IUSE="$IUSE +bootstrap bootstrap-lean pgo bootstrap-O3" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +fortify +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
@@ -182,9 +182,9 @@ pkg_setup() {
 	STDCXX_INCDIR=${LIBPATH}/include/g++-v${GCC_BRANCH_VER}
 
 	# Add bootstrap configs to BUILD_CONFIG based on use flags
-	if use bootstrap-lto && use bootstrap-lean; then
+	if use lto && use bootstrap-lean; then
 		BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto-lean"
-	elif use bootstrap-lto ; then
+	elif use lto ; then
 		BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
 	fi
 	use bootstrap-O3 && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-O3"
