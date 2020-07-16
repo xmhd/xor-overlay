@@ -182,9 +182,9 @@ pkg_setup() {
 	STDCXX_INCDIR=${LIBPATH}/include/g++-v${GCC_BRANCH_VER}
 
 	# Add bootstrap configs to BUILD_CONFIG based on use flags
-	if use lto && ! use debug; then
+	if use lto && use bootstrap && ! use debug; then
 	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto-lean"
-	elif use lto && use debug; then
+	elif use lto && use bootstrap && use debug; then
 	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
 	fi
 
@@ -192,21 +192,20 @@ pkg_setup() {
 
 	export BUILD_CONFIG
 
-	if [ -n "${GCC_TARGET}" ] ; then
-		:
-	elif ! is_crosscompile && use bootstrap ; then
-		if use pgo ; then
-			GCC_TARGET="profiledbootstrap"
-		else
-			GCC_TARGET="bootstrap"
-		fi
-		# Handle lean bootstrap target suffix (see Makefile.tpl)
-		if use bootstrap-lean ; then
-			GCC_TARGET="${GCC_TARGET}-lean"
-		fi
+	if ! is_crosscompile && use bootstrap; then
+	    if use pgo && ! use debug; then
+	        GCC_TARGET="profiledbootstrap-lean"
+	    elif use pgo && use debug; then
+	        GCC_TARGET="profiledbootstrap"
+	    elif use debug; then
+	        GCC_TARGET="bootstrap"
+	    else
+	        GCC_TARGET="bootstrap-lean"
+	    fi
 	else
-		GCC_TARGET="all"
+	    GCC_TARGET="all"
 	fi
+	
 	export GCC_TARGET
 
 	use doc || export MAKEINFO="/dev/null"
