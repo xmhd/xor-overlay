@@ -265,10 +265,6 @@ src_prepare() {
 			done
 		fi
 
-		# Prevent libffi from being installed
-		sed -i -e 's/\(install.*:\) install-.*recursive/\1/' "${S}"/libffi/Makefile.in || die
-		sed -i -e 's/\(install-data-am:\).*/\1/' "${S}"/libffi/include/Makefile.in || die
-
 		# We use --enable-version-specific-libs with ./configure. This
 		# option is designed to place all our libraries into a sub-directory
 		# rather than /usr/lib*.  However, this option, even through 4.8.0,
