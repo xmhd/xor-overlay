@@ -505,16 +505,16 @@ src_configure() {
 
     # Default building of PIE executables.
     if use pie; then
-        confgcc+=( --enable-default-pie )
+        confgcc+=" --enable-default-pie "
     else
-        confgcc+=( --disable-default-pie )
+        confgcc+=" --disable-default-pie "
     fi
 
     # Default building of SSP executables.
     if use ssp; then
-        confgcc+=( --enable-default-ssp )
+        confgcc+=" --enable-default-ssp "
     else
-        confgcc+=( --disable-default-ssp )
+        confgcc+=" --disable-default-ssp "
     fi
 
 	if use sanitize; then
