@@ -19,7 +19,7 @@ FEATURES=${FEATURES/multilib-strict/}
 
 GCC_MAJOR="${PV%%.*}"
 
-IUSE="ada +cxx d go +fortran objc objc++ objc-gc " # Languages
+IUSE="ada +cxx d go +fortran objc objcxx objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib" # docs/i18n/system flags
 IUSE="$IUSE openmp altivec graphite lto pch custom-cflags" # Optimizations/features flags
