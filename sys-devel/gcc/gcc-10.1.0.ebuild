@@ -601,7 +601,6 @@ src_configure() {
     fi
 
 	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure \
-		### BASE CONFIGURATION
 		--host=$CHOST \
 		--prefix=${PREFIX} \
 		--bindir=${BINPATH} \
@@ -611,18 +610,11 @@ src_configure() {
 		--infodir=${DATAPATH}/info \
 		--with-gxx-include-dir=${STDCXX_INCDIR} \
 		--with-python-dir=${DATAPATH/$PREFIX/}/python \
-		### GENERAL OPTS
-		# Enable configuration for obsolete systems - if not enabled ./configure will fail on obsolete systems.
 		--enable-obsolete \
-		# todo
 		--disable-werror \
-		# PowerPC only?
 		--enable-secureplt \
-		# Depend on installed zlib as bundled does not work with multilib.
 		--with-system-zlib \
-		# CTARGET SPECIFIC / CROSS SETUP?
 		--enable-clocale=gnu \
-		# below seems to be darwin only?
 		--disable-libunwind-exceptions \
 		--enable-version-specific-runtime-libs \
 		${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} \
@@ -632,7 +624,7 @@ src_configure() {
 }
 
 gcc_conf_cross_post() {
-	if use arm ; then		
+	if use arm ; then
 		sed -i "s/none-/${CHOST%%-*}-/g" ${WORKDIR}/objdir/Makefile || die
 	fi
 
