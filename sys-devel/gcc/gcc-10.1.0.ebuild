@@ -235,7 +235,7 @@ eapply_gentoo() {
 
 src_prepare() {
 
-	# Export GCC branding
+    # Export GCC branding
     # TODO: implement alpha, beta and git brandings possibly?
     if ! use hardened && ! use vanilla; then
         export GCC_BRANDING="Funtoo Linux {$PV}"
@@ -471,10 +471,16 @@ src_configure() {
     # gcc_conf is our array of opts to pass to ./configure
 	local confgcc
 
-	# General configuration options
-
-    # Set the bug tracker + pkg version for the current branding.
-    confgcc+=" --with-bugurl=http://bugs.funtoo.org --with-pkgversion=$GCC_BRANDING"
+	# === BRANDING ===
+	# Export GCC branding
+    # TODO: implement alpha, beta and git brandings possibly? specific bug tracker/JIRA for specific versions?
+    if ! use hardened && ! use vanilla; then
+        export GCC_BRANDING="Funtoo Linux {$PV}"
+		confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
+    elif use hardened; then
+        export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
+        confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
+    fi
 
 
 
