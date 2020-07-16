@@ -278,8 +278,6 @@ src_prepare() {
 
 		eapply "${FILESDIR}/gcc-4.6.4-fix-libgcc-s-path-with-vsrl.patch" || die "patch fail"
 
-		#use lto && eapply "${FILESDIR}/Fix-bootstrap-miscompare-with-LTO-bootstrap-PR85571.patch"
-
         # === HARDENING ===
         # TODO: write a blurb
         local gcc_hard_flags=""
