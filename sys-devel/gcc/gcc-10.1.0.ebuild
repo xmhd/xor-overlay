@@ -331,9 +331,67 @@ src_prepare() {
 
         sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die
 	fi
-	
+
 	# === CROSS COMPILER ===
 	is_crosscompile && _gcc_prepare_cross
+
+	# === MULTILIB ===
+
+    # Historically most Linux distributions used the following setup:
+    #    lib32 - 32bit binaries (x86)
+    #    lib64 - 64bit binaries (x86_64)
+    #    lib   - "native" binaries (a symlink to lib64)
+    # Eventually, they (including mainline gcc) began migrating to the following
+    #    lib   - 32bit binaries (x86)
+    #    lib64 - 64bit binaries (x86_64)
+    #
+    # TODO: Migrate to latter form? brainstorm at future date.
+    #
+    # Unfortunately, due to the former, newer gcc versions will dynamically detect which setup to use.
+    # So to keep the autodetect magic from getting things wrong, we forcefully set the multilib directories.
+	if use multilib; then
+        # TODO
+	    local config
+	    # TODO
+        local libdirs="../lib64 ../lib32"
+
+	    # this only makes sense for some Linux targets
+        case ${CTARGET} in
+            x86_64*-linux*)
+                config="i386" ;;
+            powerpc64*-linux*)
+                config="rs6000" ;;
+            sparc64*-linux*)
+                config="sparc" ;;
+            s390x*-linux*)
+                config="s390" ;;
+            *)
+                return 0 ;;
+        esac
+        config+="/t-linux64"
+
+        # Array to store our sed commands.
+        local sed_args=()
+
+        # TODO
+        sed_args+=( -e 's:$[(]call if_multiarch[^)]*[)]::g' )
+
+        # TODO
+        if [[ ${SYMLINK_LIB} == "yes" ]] ; then
+            einfo "updating multilib directories to be: ${libdirs}"
+            if tc_version_is_at_least 4.6.4 || tc_version_is_at_least 4.7 ; then
+                sed_args+=( -e '/^MULTILIB_OSDIRNAMES.*lib32/s:[$][(]if.*):../lib32:' )
+            else
+                sed_args+=( -e "/^MULTILIB_OSDIRNAMES/s:=.*:= ${libdirs}:" )
+            fi
+        else
+            einfo "using upstream multilib; disabling lib32 autodetection"
+            sed_args+=( -r -e 's:[$][(]if.*,(.*)[)]:\1:' )
+        fi
+
+        # TODO
+        sed -i "${sed_args[@]}" "${S}"/gcc/config/${config} || die
+	fi
 
     # === PREPARE ADA TOOLCHAIN ===
     if use ada; then
