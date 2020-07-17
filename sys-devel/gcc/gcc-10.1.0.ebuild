@@ -331,6 +331,9 @@ src_prepare() {
 
         sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die
 	fi
+	
+	# === CROSS COMPILER ===
+	is_crosscompile && _gcc_prepare_cross
 
     # === PREPARE ADA TOOLCHAIN ===
     if use ada; then
