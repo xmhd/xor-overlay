@@ -181,17 +181,32 @@ pkg_setup() {
 	LIBPATH=${PREFIX}/lib/gcc/${CTARGET}/${GCC_CONFIG_VER}
 	STDCXX_INCDIR=${LIBPATH}/include/g++-v${GCC_BRANCH_VER}
 
-	# Add bootstrap configs to BUILD_CONFIG based on use flags
+    # The following blocks of code will configure BUILD_CONFIG and GCC_TARGET.
+    #
+    # This ebuild will perform 'lean' bootstraps by default, and 'regular' bootstraps when USE=debug.
+    #
+    # 'Lean' and 'regular' bootstraps have the same build sequence, except the object files from stage one & stage two
+    # of the three stage bootstrap process are deleted as soon as they are no longer required.
+    #
+    # Further additions are made to BUILD_CONFIG and GCC_TARGET for profiled or lto bootstraps.
+    #
+    # TODO: not entirely happy with this - there are additional BUILD_CONFIG options that can and should be added,
+    # e.g. bootstrap-debug, bootstrap-cet.
+    #
+    # TODO: change GCC_TARGET to BUILD_CONFIG? this seems to match gcc configuration & install guide.
 	if use lto && use bootstrap && ! use debug; then
 	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto-lean"
 	elif use lto && use bootstrap && use debug; then
 	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
 	fi
 
+    # TODO: if CFLAGS/CXXFLAGS grabbed & stored above contain O3, perform a O3 optimised bootstrap.
 	use bootstrap-O3 && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-O3"
 
+    # BUILD_CONFIG finished - export.
 	export BUILD_CONFIG
 
+    # Now for GCC_TARGET... only perform a three stage and any additional bootstraps if != cross_compiler.
 	if ! is_crosscompile && use bootstrap; then
 	    if use pgo && ! use debug; then
 	        GCC_TARGET="profiledbootstrap-lean"
@@ -205,7 +220,8 @@ pkg_setup() {
 	else
 	    GCC_TARGET="all"
 	fi
-	
+
+    # GCC_TARGET finished - export.
 	export GCC_TARGET
 
 	use doc || export MAKEINFO="/dev/null"
