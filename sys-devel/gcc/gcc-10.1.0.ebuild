@@ -21,7 +21,7 @@ GCC_MAJOR="${PV%%.*}"
 
 IUSE="ada +cxx d go +fortran objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
-IUSE="$IUSE doc nls vanilla hardened +multilib" # docs/i18n/system flags
+IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo bootstrap-O3" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
@@ -630,6 +630,13 @@ src_configure() {
         confgcc+=( --enable-multilib )
     else
         confgcc+=( --disable-multilib )
+    fi
+
+    # multiarch
+    if use multiarch; then
+        confgcc+=" --enable-multiarch "
+    else
+        confgcc+=" --disable-multiarch "
     fi
 
     if ! use generic_host; then
