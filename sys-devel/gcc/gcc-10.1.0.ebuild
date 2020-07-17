@@ -164,7 +164,7 @@ pkg_setup() {
 
     # we don't want to use the installed compiler's specs to build gcc!
 	unset GCC_SPECS
-	# Gentoo Linux bz #265283
+	# Gentoo Linux bug #265283
 	unset LANGUAGES
 
 	export PREFIX=/usr
@@ -341,7 +341,7 @@ src_prepare() {
 	# === CROSS COMPILER ===
 	is_crosscompile && _gcc_prepare_cross
 
-	# === MULTILIB ===
+	# === OSDIRNAMES ===
 
     # Historically most Linux distributions used the following setup:
     #    lib32 - 32bit binaries (x86)
@@ -355,13 +355,15 @@ src_prepare() {
     #
     # Unfortunately, due to the former, newer gcc versions will dynamically detect which setup to use.
     # So to keep the autodetect magic from getting things wrong, we forcefully set the multilib directories.
+    #
+    # TODO: musl uses lib and lib only. Implement?
 	if use multilib; then
         # TODO
 	    local config
 	    # TODO
         local libdirs="../lib64 ../lib32"
 
-	    # this only makes sense for some Linux targets
+	    # this only makes sense for some Linux targets as not all support multilib.
         case ${CTARGET} in
             x86_64*-linux*)
                 config="i386" ;;
