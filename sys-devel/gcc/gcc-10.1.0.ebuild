@@ -327,14 +327,10 @@ src_prepare() {
 	    use stack_clash_protection && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_EXTRA_OPTIONS-fstack-clash-protection.patch )"
 
 	    # GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
-        sed -e '/^ALL_CFLAGS/iHARD_CFLAGS = ' \
-                -e 's|^ALL_CFLAGS = |ALL_CFLAGS = $(HARD_CFLAGS) |' \
-                -i "${S}"/gcc/Makefile.in
+        sed -e '/^ALL_CFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CFLAGS = |ALL_CFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in
+        sed -e '/^ALL_CXXFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CXXFLAGS = |ALL_CXXFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in
 
-        sed -e '/^ALL_CXXFLAGS/iHARD_CFLAGS = ' \
-                -e 's|^ALL_CXXFLAGS = |ALL_CXXFLAGS = $(HARD_CFLAGS) |' \
-                -i "${S}"/gcc/Makefile.in
-
+        # write HARD_CFLAGS back to the gcc Makefile.
         sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die
 	fi
 
@@ -677,6 +673,42 @@ src_configure() {
 
     fi
 
+    # TODO
+ 	# __cxa_atexit is "essential for fully standards-compliant handling of
+	# destructors", but apparently requires glibc.
+	case ${CTARGET} in
+        *-uclibc*)
+            if tc_has_feature nptl ; then
+                confgcc+=(
+                    --disable-__cxa_atexit
+                    $(use_enable nptl tls)
+                )
+            fi
+            tc_version_is_between 3.3 3.4 && confgcc+=( --enable-sjlj-exceptions )
+            if tc_version_is_between 3.4 4.3 ; then
+                confgcc+=( --enable-clocale=uclibc )
+            fi
+            ;;
+        *-elf|*-eabi)
+            confgcc+=( --with-newlib )
+            ;;
+        *-musl*)
+            confgcc+=( --enable-__cxa_atexit )
+            ;;
+        *-gnu*)
+            confgcc+=(
+                --enable-__cxa_atexit
+                --enable-clocale=gnu
+            )
+            ;;
+        *-freebsd*)
+            confgcc+=( --enable-__cxa_atexit )
+            ;;
+        *-solaris*)
+            confgcc+=( --enable-__cxa_atexit )
+            ;;
+	esac
+
 	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure \
 		--host=$CHOST \
 		--prefix=${PREFIX} \
@@ -736,13 +768,32 @@ create_gcc_env_entry() {
 		gcc_envd_file="$gcc_envd_file-$1"
 		gcc_specs_file="${LIBPATH}/$1.specs"
 	fi
+
+	# set abi stuff here
+	# We want to list the default ABI's LIBPATH first so libtool
+	# searches that directory first.  This is a temporary
+	# workaround for libtool being stupid and using .la's from
+	# conflicting ABIs by using the first one in the search path
+    local ldpaths mosdirs mdir mosdir abi ldpath
+    for abi in $(get_all_abis TARGET) ; do
+        mdir=$($(XGCC) $(get_abi_CFLAGS ${abi}) --print-multi-directory)
+        ldpath=${LIBPATH}
+        [[ ${mdir} != "." ]] && ldpath+="/${mdir}"
+        ldpaths="${ldpath}${ldpaths:+:${ldpaths}}"
+
+        mosdir=$($(XGCC) $(get_abi_CFLAGS ${abi}) -print-multi-os-directory)
+        mosdirs="${mosdir}${mosdirs:+:${mosdirs}}"
+    done
+
 	cat <<-EOF > ${gcc_envd_file}
 	GCC_PATH="${BINPATH}"
 	LDPATH="${LIBPATH}:${LIBPATH}/32"
 	MANPATH="${DATAPATH}/man"
 	INFOPATH="${DATAPATH}/info"
 	STDCXX_INCDIR="${STDCXX_INCDIR##*/}"
+	CTARGET="${CTARGET}"
 	GCC_SPECS="${gcc_specs_file}"
+	MULTIOSDIRS="${mosdirs}"
 	EOF
 
 	if is_crosscompile; then
