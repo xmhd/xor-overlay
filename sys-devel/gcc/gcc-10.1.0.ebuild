@@ -138,17 +138,23 @@ is_crosscompile() {
 }
 
 pkg_setup() {
-	# Capture -march -mcpu and -mtune options to pass to build later.
-	MARCH="${MARCH:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-march="?([-_[:alnum:]]+).*/\1/p')}"
-	MCPU="${MCPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mcpu="?([-_[:alnum:]]+).*/\1/p')}"
-	MTUNE="${MTUNE:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mtune="?([-_[:alnum:]]+).*/\1/p')}"
-	MFPU="${MFPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mfpu="?([-_[:alnum:]]+).*/\1/p')}"
-	einfo "Got CFLAGS: ${CFLAGS}"
-	einfo "Got GCC_BUILD_CFLAGS: ${GCC_BUILD_CFLAGS}"
-	einfo "MARCH: ${MARCH}"
-	einfo "MCPU ${MCPU}"
-	einfo "MTUNE: ${MTUNE}"
-	einfo "MFPU: ${MFPU}"
+
+    # we only want to capture these if we plan on using them...
+    if ! use generic_host; then
+        # Capture -march -mcpu and -mtune options to pass to build later.
+        MARCH="${MARCH:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-march="?([-_[:alnum:]]+).*/\1/p')}"
+        MCPU="${MCPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mcpu="?([-_[:alnum:]]+).*/\1/p')}"
+        MTUNE="${MTUNE:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mtune="?([-_[:alnum:]]+).*/\1/p')}"
+        MFPU="${MFPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mfpu="?([-_[:alnum:]]+).*/\1/p')}"
+
+        # Print captured flags.
+        einfo "Got CFLAGS: ${CFLAGS}"
+        einfo "Got GCC_BUILD_CFLAGS: ${GCC_BUILD_CFLAGS}"
+        einfo "MARCH: ${MARCH}"
+        einfo "MCPU ${MCPU}"
+        einfo "MTUNE: ${MTUNE}"
+        einfo "MFPU: ${MFPU}"
+	fi
 
 	# Don't pass cflags/ldflags through.
 	unset CFLAGS
