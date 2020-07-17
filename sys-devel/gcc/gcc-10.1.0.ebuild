@@ -377,17 +377,8 @@ src_prepare() {
         sed_args+=( -e 's:$[(]call if_multiarch[^)]*[)]::g' )
 
         # TODO
-        if [[ ${SYMLINK_LIB} == "yes" ]] ; then
-            einfo "updating multilib directories to be: ${libdirs}"
-            if tc_version_is_at_least 4.6.4 || tc_version_is_at_least 4.7 ; then
-                sed_args+=( -e '/^MULTILIB_OSDIRNAMES.*lib32/s:[$][(]if.*):../lib32:' )
-            else
-                sed_args+=( -e "/^MULTILIB_OSDIRNAMES/s:=.*:= ${libdirs}:" )
-            fi
-        else
-            einfo "using upstream multilib; disabling lib32 autodetection"
-            sed_args+=( -r -e 's:[$][(]if.*,(.*)[)]:\1:' )
-        fi
+        einfo "updating multilib directories to be: ${libdirs}"
+        sed_args+=( -e "/^MULTILIB_OSDIRNAMES/s:=.*:= ${libdirs}:" )
 
         # TODO
         sed -i "${sed_args[@]}" "${S}"/gcc/config/${config} || die
