@@ -673,7 +673,8 @@ src_configure() {
 
     fi
 
-    # TODO
+    # === LIBC CONFIGURATION ===
+    #
  	# __cxa_atexit is "essential for fully standards-compliant handling of
 	# destructors", but apparently requires glibc.
 	case ${CTARGET} in
