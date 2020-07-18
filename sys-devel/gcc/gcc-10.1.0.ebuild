@@ -893,7 +893,7 @@ cross_toolchain_env_setup() {
 }
 				
 src_install() {
-	S=$WORKDIR/objdir; cd $S
+	cd ${WORKDIR}/objdir
 
 # PRE-MAKE INSTALL SECTION:
 
