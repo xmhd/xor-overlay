@@ -2,7 +2,7 @@
 
 # See README.txt for usage notes.
 
-EAPI=6
+EAPI=7
 
 inherit multilib-build eutils pax-utils toolchain-enable git-r3
 
@@ -838,11 +838,11 @@ linkify_compiler_binaries() {
 tasteful_stripping() {
 	# Now do the fun stripping stuff
 	[[ ! is_crosscompile ]] && \
-		env RESTRICT="" CHOST=${CHOST} prepstrip "${D}${BINPATH}" ; \
-		env RESTRICT="" CHOST=${CTARGET} prepstrip "${D}${LIBPATH}"
+		env RESTRICT="" CHOST=${CHOST} dostrip "${D}${BINPATH}" ; \
+		env RESTRICT="" CHOST=${CTARGET} dostrip "${D}${LIBPATH}"
 	# gcc used to install helper binaries in lib/ but then moved to libexec/
 	[[ -d ${D}${PREFIX}/libexec/gcc ]] && \
-		env RESTRICT="" CHOST=${CHOST} prepstrip "${D}${PREFIX}/libexec/gcc/${CTARGET}/${GCC_CONFIG_VER}"
+		env RESTRICT="" CHOST=${CHOST} dostrip "${D}${PREFIX}/libexec/gcc/${CTARGET}/${GCC_CONFIG_VER}"
 }
 
 doc_cleanups() {
@@ -857,7 +857,7 @@ doc_cleanups() {
 	if is_crosscompile || ! use doc || has noinfo ${FEATURES} ; then
 		rm -r "${D}/${DATAPATH}"/info
 	else
-		prepinfo "${DATAPATH}"
+		doinfo "${DATAPATH}"
 	fi
 
 	# Strip man files too if 'noman' feature is set.
