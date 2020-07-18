@@ -468,6 +468,51 @@ gcc_conf_lang_opts() {
 	printf -- "${conf_gcc_lang}"
 }
 
+# ARM
+gcc_conf_arm_opts() {
+	# Skip the rest if not an arm target
+	[[ ${CTARGET} == arm* ]] || return
+
+	local conf_gcc_arm=""
+	local arm_arch=${CTARGET%%-*}
+	local a
+	# Remove trailing endian variations first: eb el be bl b l
+	for a in e{b,l} {b,l}e b l ; do
+		if [[ ${arm_arch} == *${a} ]] ; then
+			arm_arch=${arm_arch%${a}}
+			break
+		fi
+	done
+
+	# Convert armv7{a,r,m} to armv7-{a,r,m}
+	[[ ${arm_arch} == armv7? ]] && arm_arch=${arm_arch/7/7-}
+
+	# See if this is a valid --with-arch flag
+	if (srcdir=${S}/gcc target=${CTARGET} with_arch=${arm_arch};
+		. "${srcdir}"/config.gcc) &>/dev/null
+	then
+		conf_gcc_arm+=" --with-arch=${arm_arch}"
+	fi
+
+	# Enable hardvfp
+	local float="hard"
+	local default_fpu=""
+
+	case "${CTARGET}" in
+		*[-_]softfloat[-_]*) float="soft" ;;
+		*[-_]softfp[-_]*) float="softfp" ;;
+		armv[56]*) default_fpu="vfpv2" ;;
+		armv7ve*) default_fpu="vfpv4-d16" ;;
+		armv7*) default_fpu="vfpv3-d16" ;;
+		amrv8*) default_fpu="fp-armv8" ;;
+	esac
+	
+	conf_gcc_arm+=" --with-float=$float"
+	[ -z "${MFPU}" ] && [ -n "${default_fpu}" ] && conf_gcc_arm+=" --with-fpu=${default_fpu}"
+
+	printf -- "${conf_gcc_arm}"
+}
+
 gcc_conf_cross_options() {
 	local conf_gcc_cross
 	conf_gcc_cross+=" --disable-libgomp --disable-bootstrap --enable-poison-system-directories"
@@ -626,58 +671,6 @@ src_configure() {
     if use libssp; then
         confgcc+=( --enable-libssp )
 
-    fi
-
-    # === ARCH SPECIFIC CONFIGURATION ===
-    # === ARM / ARM64 ===
-
-    if ${CTARGET} == arm*; then
-
-        local conf_gcc_arm=""
-        local arm_arch=${CTARGET%%-*}
-        local a
-
-        # Remove trailing endian variations first: eb el be bl b l
-        for a in e{b,l} {b,l}e b l ; do
-            if [[ ${arm_arch} == *${a} ]] ; then
-                arm_arch=${arm_arch%${a}}
-                break
-            fi
-        done
-
-        # Convert armv7{a,r,m} to armv7-{a,r,m}
-        [[ ${arm_arch} == armv7? ]] && arm_arch=${arm_arch/7/7-}
-
-        # See if this is a valid --with-arch flag
-        if (srcdir=${S}/gcc target=${CTARGET} with_arch=${arm_arch};
-            . "${srcdir}"/config.gcc) &>/dev/null
-        then
-            conf_gcc_arm+=" --with-arch=${arm_arch}"
-        fi
-
-        # Enable hardvfp
-        local float="hard"
-        local default_fpu=""
-
-        case "${CTARGET}" in
-            *[-_]softfloat[-_]*)
-                float="soft" ;;
-            *[-_]softfp[-_]*)
-                float="softfp" ;;
-            armv[56]*)
-                default_fpu="vfpv2" ;;
-            armv7ve*)
-                default_fpu="vfpv4-d16" ;;
-            armv7*)
-                default_fpu="vfpv3-d16" ;;
-            amrv8*)
-                default_fpu="fp-armv8" ;;
-        esac
-
-        conf_gcc_arm+=" --with-float=$float"
-        [ -z "${MFPU}" ] && [ -n "${default_fpu}" ] && conf_gcc_arm+=" --with-fpu=${default_fpu}"
-
-        printf -- "${conf_gcc_arm}"
     fi
 
     # === LIBC CONFIGURATION ===
