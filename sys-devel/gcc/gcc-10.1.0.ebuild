@@ -268,9 +268,6 @@ src_unpack() {
 			die "GNAT ada setup failed, only x86 and amd64 currently supported by this ebuild. Patches welcome!"
 		fi
 	fi
-
-	cd $S
-	mkdir ${WORKDIR}/objdir
 }
 
 eapply_gentoo() {
@@ -732,6 +729,12 @@ src_configure() {
             ;;
 	esac
 
+	# Create build directory...
+	mkdir -p "${WORKDIR}"/build || die "create build directory failed"
+
+	# ... and cd to the newly created build directory.
+	cd "${WORKDIR}"/build || die "cd to build directory failed"
+
 	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure \
 		--host=$CHOST \
 		--prefix=${PREFIX} \
@@ -757,19 +760,29 @@ src_configure() {
 
 gcc_conf_cross_post() {
 	if use arm ; then
-		sed -i "s/none-/${CHOST%%-*}-/g" ${WORKDIR}/objdir/Makefile || die
+		sed -i "s/none-/${CHOST%%-*}-/g" ${WORKDIR}/build/Makefile || die
 	fi
 
 }
 
 src_compile() {
-	cd $WORKDIR/objdir
+
+    # Unset ABI
 	unset ABI
-	emake P= LIBPATH="${LIBPATH}" ${GCC_TARGET} || die "compile fail"
+
+	# Run make against GCC_TARGET, setting some variables as required.
+	emake -C "${WORKDIR}"/build \
+	        LIBPATH="${LIBPATH}" \
+            ${GCC_TARGET} || die "compile fail"
+
+    # Optionally build some docs
+	if use cxx && use doc; then
+		emake -C "${WORKDIR}"/build/"${CTARGET}"/libstdc++-v3/doc doc-man-doxygen
+	fi
 }
 
 src_test() {
-	cd "${WORKDIR}/objdir"
+	cd "${WORKDIR}/build"
 	unset ABI
 	local tests_failed=0
 	if is_crosscompile || tc-is-cross-compiler; then
@@ -868,7 +881,7 @@ tasteful_stripping() {
 }
 
 doc_cleanups() {
-	local cxx_mandir=$(find "${WORKDIR}/objdir/${CTARGET}/libstdc++-v3" -name man)
+	local cxx_mandir=$(find "${WORKDIR}/build/${CTARGET}/libstdc++-v3" -name man)
 	if [[ -d ${cxx_mandir} ]] ; then
 		# clean bogus manpages #113902
 		find "${cxx_mandir}" -name '*_build_*' -exec rm {} \;
@@ -916,7 +929,7 @@ cross_toolchain_env_setup() {
 }
 				
 src_install() {
-	cd ${WORKDIR}/objdir
+	cd ${WORKDIR}/build
 
 # PRE-MAKE INSTALL SECTION:
 
@@ -941,7 +954,7 @@ src_install() {
 	else
 		# Basic sanity check
 		local EXEEXT
-		eval $(grep ^EXEEXT= "${WORKDIR}"/objdir/gcc/config.log)
+		eval $(grep ^EXEEXT= "${WORKDIR}"/build/gcc/config.log)
 		[[ -r ${D}${BINPATH}/gcc${EXEEXT} ]] || die "gcc not found in ${D}"
 
 		# Install compat wrappers
