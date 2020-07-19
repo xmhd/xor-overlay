@@ -183,12 +183,10 @@ pkg_setup() {
 	fi
 
     # Allow -O2, -O3 or -Os optimisation levels to be passed to the gcc build.
-    # Default to -O2 if nothing set.
-    # -O0 and -O1 breaks stuff, so don't do it.
+    # Check for -O3 or -os, and default to -O2 if nothing set.
     # Additionally perform a -O3 optimised bootstrap if -O3 is detected and USE=bootstrap.
-	if is-flagq -O2; then
-	    GCC_BUILD_CFLAGS="${GCC_BUILD_CFLAGS:--O2 -pipe}"
-	elif is-flagq -O3; then
+    # -O0 and -O1 breaks stuff, so don't do it.
+	if is-flagq -O3; then
 	    GCC_BUILD_CFLAGS="${GCC_BUILD_CFLAGS:--O3 -pipe}"
 	    if use bootstrap; then
 	        BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-O3"
