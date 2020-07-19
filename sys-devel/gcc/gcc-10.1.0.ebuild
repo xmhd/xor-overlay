@@ -735,7 +735,7 @@ src_configure() {
 	# ... and cd to the newly created build directory.
 	cd "${WORKDIR}"/build || die "cd to build directory failed"
 
-	P= cd ${WORKDIR}/objdir && ../gcc-${PV}/configure \
+	P= cd ${WORKDIR}/build && ../gcc-${PV}/configure \
 		--host=$CHOST \
 		--prefix=${PREFIX} \
 		--bindir=${BINPATH} \
