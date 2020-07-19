@@ -137,18 +137,31 @@ is_crosscompile() {
 	[[ ${CHOST} != ${CTARGET} ]]
 }
 
+is_native_compile() {
+	[[ ${CHOST} == ${CTARGET} ]]
+}
+
 pkg_setup() {
 
     ### INFO ###
 
     # Set up procedure is as follows:
-    # 1) Capture CFLAGS, MARCH, MCPU, MTUNE and MFPU, all of which (minus CFLAGS) will optionally be passed to build.
-    # 2) Determine which type of bootstrap process (if any) is to be performed.
-    # 3) Unset all flags from here on - don't pass anything beyond this point, other than optionally MARCH, MCPU, MTUNE and MFPU.
-    # 4) Unset GCC_SPECS and LANGUAGES.
-    # 5) export setup variables.
-    # 6) export STAGE1_CFLAGS (used for building stage one compiler )and BOOT_CFLAGS (used for building stages two and three).
-    # 7) export GCC_BUILD_CFLAGS and BUILD_CONFIG.
+    #
+    # 1) Unset GCC_SPECS and LANGUAGES.
+    # 2) Set GCC_BRANCH_VER and GCC_CONFIG_VER.
+    # 3) Capture / Filter / Downgrade FLAGS and ARCH where applicable.
+    # 4) Set globals for TARGET_ABI, TARGET_DEFAULT_ABI and TARGET_MULTILIB_ABIS.
+    # 5) Set and export STAGE1_CFLAGS and BOOT_CFLAGS.
+    # 6) Configure BUILD_CONFIG and export.
+    # 7) Configure GCC_TARGET and export.
+
+    # we don't want to use the installed compiler's specs to build gcc!
+	unset GCC_SPECS
+	# Gentoo Linux bug #265283
+	unset LANGUAGES
+
+	GCC_BRANCH_VER=${SLOT}
+	GCC_CONFIG_VER=${PV}
 
     # Capture -march, -mcpu, -mtune and -mfpu options to do some initial configuration and optionally pass to build later.
     MARCH="${MARCH:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-march="?([-_[:alnum:]]+).*/\1/p')}"
@@ -163,7 +176,56 @@ pkg_setup() {
     einfo "MTUNE: ${MTUNE}"
     einfo "MFPU: ${MFPU}"
 
-    # The following blocks of code will configure BUILD_CONFIG and GCC_TARGET.
+    # DOWNGRADE ARCH FLAGS?
+
+    # FILTER FLAGS?
+
+	# Don't pass cflags/ldflags through. -- remove once filter flags implemented.
+	unset CFLAGS
+	unset CXXFLAGS
+	unset CPPFLAGS
+	unset LDFLAGS
+
+    # Export default CTARGET.
+    # If CATEGORY == cross-*, export new CTARGET.
+	[[ ${CATEGORY} == cross-* ]] && CTARGET=${CATEGORY/cross-}
+	export CTARGET=${CTARGET:-${CHOST}}
+    if [[ ${CTARGET} = ${CHOST} ]] ; then
+        if [[ ${CATEGORY} == cross-* ]] ; then
+            export CTARGET=${CATEGORY#cross-}
+        fi
+    fi
+
+    # Todo
+    : ${TARGET_ABI:=${ABI}}
+    : ${TARGET_MULTILIB_ABIS:=${MULTILIB_ABIS}}
+    : ${TARGET_DEFAULT_ABI:=${DEFAULT_ABI}}
+
+    # Set PATH for PREFIX, LIB, INCLUDE, BIN, DATA and STDCXX_INC.
+    export PREFIX=/usr
+	LIBPATH=${PREFIX}/lib/gcc/${CTARGET}/${GCC_CONFIG_VER}
+	INCLUDEPATH=${LIBPATH}/include}
+
+	if is_crosscompile; then
+	    # cross
+		BINPATH=${PREFIX}/${CHOST}/${CTARGET}/gcc-bin/${GCC_CONFIG_VER}
+		HOSTLIBPATH=${PREFIX}/${CHOST}/${CTARGET}/lib/${GCC_CONFIG_VER}
+	else
+	    # native
+		BINPATH=${PREFIX}/${CTARGET}/gcc-bin/${GCC_CONFIG_VER}
+	fi
+
+	DATAPATH=${PREFIX}/share/gcc-data/${CTARGET}/${GCC_CONFIG_VER}
+	STDCXX_INCDIR=${LIBPATH}/include/g++-v${GCC_BRANCH_VER}
+
+    # Flags to be used for build.
+    # TODO: replace with STAGE1_CFLAGS and BOOT_CFLAGS as per gcc manual.
+	export CFLAGS="${GCC_BUILD_CFLAGS:--O2 -pipe}"
+	export FFLAGS="$CFLAGS"
+	export FCFLAGS="$CFLAGS"
+	export CXXFLAGS="$CFLAGS"
+
+	# The following blocks of code will configure BUILD_CONFIG and GCC_TARGET.
     #
     # This ebuild will perform 'lean' bootstraps by default, and 'regular' bootstraps when USE=debug.
     #
@@ -175,61 +237,12 @@ pkg_setup() {
     # TODO: not entirely happy with this - there are additional BUILD_CONFIG options that can and should be added,
     # e.g. bootstrap-debug, bootstrap-cet.
     #
-    # TODO: change GCC_TARGET to BUILD_CONFIG? this seems to match gcc configuration & install guide.
     # TODO: not sure if this works with cross compile? investigate?
 	if use lto && use bootstrap && ! use debug; then
 	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto-lean"
 	elif use lto && use bootstrap && use debug; then
 	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
 	fi
-
-    # Allow -O2, -O3 or -Os optimisation levels to be passed to the gcc build.
-    # Check for -O3 or -os, and default to -O2 if nothing set.
-    # Additionally perform a -O3 optimised bootstrap if -O3 is detected and USE=bootstrap.
-    # -O0 and -O1 breaks stuff, so don't do it.
-	if is-flagq -O3; then
-	    GCC_BUILD_CFLAGS="${GCC_BUILD_CFLAGS:--O3 -pipe}"
-	    if use bootstrap; then
-	        BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-O3"
-	    fi
-	elif is-flagq -Os; then
-	    GCC_BUILD_CFLAGS="${GCC_BUILD_CFLAGS:--Os -pipe}"
-	else
-	    GCC_BUILD_CFLAGS="${GCC_BUILD_CFLAGS:--O2 -pipe}"
-	fi
-
-	# while we allow various optimisation levels to be used for gcc, we do not want any other flags passed through.
-	unset CFLAGS
-	unset CXXFLAGS
-	unset CPPFLAGS
-	unset LDFLAGS
-
-    # we don't want to use the installed compiler's specs to build gcc!
-	unset GCC_SPECS
-	# Gentoo Linux bug #265283
-	unset LANGUAGES
-
-	export PREFIX=/usr
-	CTARGET=${CTARGET:-${CHOST}}
-	[[ ${CATEGORY} == cross-* ]] && CTARGET=${CATEGORY/cross-}
-	GCC_BRANCH_VER=${SLOT}
-	GCC_CONFIG_VER=${PV}
-	DATAPATH=${PREFIX}/share/gcc-data/${CTARGET}/${GCC_CONFIG_VER}
-	if is_crosscompile; then
-		BINPATH=${PREFIX}/${CHOST}/${CTARGET}/gcc-bin/${GCC_CONFIG_VER}
-	else
-		BINPATH=${PREFIX}/${CTARGET}/gcc-bin/${GCC_CONFIG_VER}
-	fi
-
-	export CFLAGS="${GCC_BUILD_CFLAGS}"
-	export FFLAGS="$CFLAGS"
-	export FCFLAGS="$CFLAGS"
-	export CXXFLAGS="$CFLAGS"
-
-	einfo "GCC_BUILD_CFLAGS: ${GCC_BUILD_CFLAGS}"
-
-	LIBPATH=${PREFIX}/lib/gcc/${CTARGET}/${GCC_CONFIG_VER}
-	STDCXX_INCDIR=${LIBPATH}/include/g++-v${GCC_BRANCH_VER}
 
     # BUILD_CONFIG finished - export.
 	export BUILD_CONFIG
