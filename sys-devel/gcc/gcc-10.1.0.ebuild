@@ -4,7 +4,7 @@
 
 EAPI=7
 
-inherit multilib-build eutils pax-utils toolchain-enable git-r3
+inherit flag-o-matic multilib-build eutils pax-utils toolchain-enable git-r3
 
 DESCRIPTION="The GNU Compiler Collection"
 HOMEPAGE="https://gcc.gnu.org/"
