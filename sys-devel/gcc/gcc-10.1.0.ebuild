@@ -773,11 +773,14 @@ src_compile() {
 
 	# Run make against GCC_TARGET, setting some variables as required.
 	emake -C "${WORKDIR}"/build \
+            LDFLAGS="${LDFLAGS}" \
+            STAGE1_CFLAGS="${STAGE1_CFLAGS}" \
+            BOOT_CFLAGS="${BOOT_CFLAGS}" \
 	        LIBPATH="${LIBPATH}" \
-            ${GCC_TARGET} || die "compile fail"
+            ${GCC_TARGET} || die "emake failed with ${GCC_TARGET}"
 
     # Optionally build some docs
-	if use cxx && use doc; then
+	if ! is_crosscompile && use cxx && use doc; then
 		emake -C "${WORKDIR}"/build/"${CTARGET}"/libstdc++-v3/doc doc-man-doxygen
 	fi
 }
