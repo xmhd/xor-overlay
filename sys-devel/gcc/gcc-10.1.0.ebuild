@@ -139,24 +139,67 @@ is_crosscompile() {
 
 pkg_setup() {
 
-    # we only want to capture these if we plan on using them...
-    if ! use generic_host; then
-        # Capture -march -mcpu and -mtune options to pass to build later.
-        MARCH="${MARCH:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-march="?([-_[:alnum:]]+).*/\1/p')}"
-        MCPU="${MCPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mcpu="?([-_[:alnum:]]+).*/\1/p')}"
-        MTUNE="${MTUNE:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mtune="?([-_[:alnum:]]+).*/\1/p')}"
-        MFPU="${MFPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mfpu="?([-_[:alnum:]]+).*/\1/p')}"
+    ### INFO ###
 
-        # Print captured flags.
-        einfo "Got CFLAGS: ${CFLAGS}"
-        einfo "Got GCC_BUILD_CFLAGS: ${GCC_BUILD_CFLAGS}"
-        einfo "MARCH: ${MARCH}"
-        einfo "MCPU ${MCPU}"
-        einfo "MTUNE: ${MTUNE}"
-        einfo "MFPU: ${MFPU}"
+    # Set up procedure is as follows:
+    # 1) Capture CFLAGS, MARCH, MCPU, MTUNE and MFPU, all of which (minus CFLAGS) will optionally be passed to build.
+    # 2) Determine which type of bootstrap process (if any) is to be performed.
+    # 3) Unset all flags from here on - don't pass anything beyond this point, other than optionally MARCH, MCPU, MTUNE and MFPU.
+    # 4) Unset GCC_SPECS and LANGUAGES.
+    # 5) export setup variables.
+    # 6) export GCC_BUILD_CFLAGS and BUILD_CONFIG.
+
+    # Capture -march, -mcpu, -mtune and -mfpu options to do some initial configuration and optionally pass to build later.
+    MARCH="${MARCH:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-march="?([-_[:alnum:]]+).*/\1/p')}"
+    MCPU="${MCPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mcpu="?([-_[:alnum:]]+).*/\1/p')}"
+    MTUNE="${MTUNE:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mtune="?([-_[:alnum:]]+).*/\1/p')}"
+    MFPU="${MFPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mfpu="?([-_[:alnum:]]+).*/\1/p')}"
+
+    # Print captured flags.
+    einfo "Got CFLAGS: ${CFLAGS}"
+    einfo "MARCH: ${MARCH}"
+    einfo "MCPU ${MCPU}"
+    einfo "MTUNE: ${MTUNE}"
+    einfo "MFPU: ${MFPU}"
+
+    # The following blocks of code will configure BUILD_CONFIG and GCC_TARGET.
+    #
+    # This ebuild will perform 'lean' bootstraps by default, and 'regular' bootstraps when USE=debug.
+    #
+    # 'Lean' and 'regular' bootstraps have the same build sequence, except the object files from stage one & stage two
+    # of the three stage bootstrap process are deleted as soon as they are no longer required.
+    #
+    # Further additions are made to BUILD_CONFIG and GCC_TARGET for profiled or lto bootstraps.
+    #
+    # TODO: not entirely happy with this - there are additional BUILD_CONFIG options that can and should be added,
+    # e.g. bootstrap-debug, bootstrap-cet.
+    #
+    # TODO: change GCC_TARGET to BUILD_CONFIG? this seems to match gcc configuration & install guide.
+    # TODO: not sure if this works with cross compile? investigate?
+	if use lto && use bootstrap && ! use debug; then
+	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto-lean"
+	elif use lto && use bootstrap && use debug; then
+	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
 	fi
 
-	# Don't pass cflags/ldflags through.
+    # Allow -O2, -O3 or -Os optimisation levels to be passed to the gcc build.
+    # Default to -O2 if nothing set.
+    # -O0 and -O1 breaks stuff, so don't do it.
+    # Additionally perform a -O3 optimised bootstrap if -O3 is detected and USE=bootstrap.
+	if is-flagq -O2; then
+	    GCC_BUILD_CFLAGS="${GCC_BUILD_CFLAGS:--O2 -pipe}"
+	elif is-flagq -O3; then
+	    GCC_BUILD_CFLAGS="${GCC_BUILD_CFLAGS:--O3 -pipe}"
+	    if use bootstrap; then
+	        BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-O3"
+	    fi
+	elif is-flagq -Os; then
+	    GCC_BUILD_CFLAGS="${GCC_BUILD_CFLAGS:--Os -pipe}"
+	else
+	    GCC_BUILD_CFLAGS="${GCC_BUILD_CFLAGS:--O2 -pipe}"
+	fi
+
+	# while we allow various optimisation levels to be used for gcc, we do not want any other flags passed through.
 	unset CFLAGS
 	unset CXXFLAGS
 	unset CPPFLAGS
@@ -179,35 +222,15 @@ pkg_setup() {
 		BINPATH=${PREFIX}/${CTARGET}/gcc-bin/${GCC_CONFIG_VER}
 	fi
 
-	export CFLAGS="${GCC_BUILD_CFLAGS:--O2 -pipe}"
+	export CFLAGS="${GCC_BUILD_CFLAGS}"
 	export FFLAGS="$CFLAGS"
 	export FCFLAGS="$CFLAGS"
 	export CXXFLAGS="$CFLAGS"
 
+	einfo "GCC_BUILD_CFLAGS: ${GCC_BUILD_CFLAGS}"
+
 	LIBPATH=${PREFIX}/lib/gcc/${CTARGET}/${GCC_CONFIG_VER}
 	STDCXX_INCDIR=${LIBPATH}/include/g++-v${GCC_BRANCH_VER}
-
-    # The following blocks of code will configure BUILD_CONFIG and GCC_TARGET.
-    #
-    # This ebuild will perform 'lean' bootstraps by default, and 'regular' bootstraps when USE=debug.
-    #
-    # 'Lean' and 'regular' bootstraps have the same build sequence, except the object files from stage one & stage two
-    # of the three stage bootstrap process are deleted as soon as they are no longer required.
-    #
-    # Further additions are made to BUILD_CONFIG and GCC_TARGET for profiled or lto bootstraps.
-    #
-    # TODO: not entirely happy with this - there are additional BUILD_CONFIG options that can and should be added,
-    # e.g. bootstrap-debug, bootstrap-cet.
-    #
-    # TODO: change GCC_TARGET to BUILD_CONFIG? this seems to match gcc configuration & install guide.
-	if use lto && use bootstrap && ! use debug; then
-	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto-lean"
-	elif use lto && use bootstrap && use debug; then
-	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
-	fi
-
-    # TODO: if CFLAGS/CXXFLAGS grabbed & stored above contain O3, perform a O3 optimised bootstrap.
-	use bootstrap-O3 && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-O3"
 
     # BUILD_CONFIG finished - export.
 	export BUILD_CONFIG
