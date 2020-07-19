@@ -147,7 +147,8 @@ pkg_setup() {
     # 3) Unset all flags from here on - don't pass anything beyond this point, other than optionally MARCH, MCPU, MTUNE and MFPU.
     # 4) Unset GCC_SPECS and LANGUAGES.
     # 5) export setup variables.
-    # 6) export GCC_BUILD_CFLAGS and BUILD_CONFIG.
+    # 6) export STAGE1_CFLAGS (used for building stage one compiler )and BOOT_CFLAGS (used for building stages two and three).
+    # 7) export GCC_BUILD_CFLAGS and BUILD_CONFIG.
 
     # Capture -march, -mcpu, -mtune and -mfpu options to do some initial configuration and optionally pass to build later.
     MARCH="${MARCH:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-march="?([-_[:alnum:]]+).*/\1/p')}"
