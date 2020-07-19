@@ -218,12 +218,12 @@ pkg_setup() {
 	DATAPATH=${PREFIX}/share/gcc-data/${CTARGET}/${GCC_CONFIG_VER}
 	STDCXX_INCDIR=${LIBPATH}/include/g++-v${GCC_BRANCH_VER}
 
-    # Flags to be used for build.
-    # TODO: replace with STAGE1_CFLAGS and BOOT_CFLAGS as per gcc manual.
-	export CFLAGS="${GCC_BUILD_CFLAGS:--O2 -pipe}"
-	export FFLAGS="$CFLAGS"
-	export FCFLAGS="$CFLAGS"
-	export CXXFLAGS="$CFLAGS"
+	# Flags to be used to build stage one compiler.
+	STAGE1_CFLAGS="${STAGE1_CFLAGS:--O2 -pipe}"
+
+	# Flags to be used for stages two and three.
+	# TODO: allow custom optimisation levels -O3 and -Os
+	BOOT_CFLAGS="${BOOT_CFLAGS:--O2 -pipe}"
 
 	# The following blocks of code will configure BUILD_CONFIG and GCC_TARGET.
     #
@@ -238,10 +238,8 @@ pkg_setup() {
     # e.g. bootstrap-debug, bootstrap-cet.
     #
     # TODO: not sure if this works with cross compile? investigate?
-	if use lto && use bootstrap && ! use debug; then
+	if use lto && use bootstrap; then
 	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto-lean"
-	elif use lto && use bootstrap && use debug; then
-	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
 	fi
 
     # BUILD_CONFIG finished - export.
@@ -249,12 +247,8 @@ pkg_setup() {
 
     # Now for GCC_TARGET... only perform a three stage and any additional bootstraps if != cross_compiler.
 	if ! is_crosscompile && use bootstrap; then
-	    if use pgo && ! use debug; then
+	    if use pgo; then
 	        GCC_TARGET="profiledbootstrap-lean"
-	    elif use pgo && use debug; then
-	        GCC_TARGET="profiledbootstrap"
-	    elif use debug; then
-	        GCC_TARGET="bootstrap"
 	    else
 	        GCC_TARGET="bootstrap-lean"
 	    fi
