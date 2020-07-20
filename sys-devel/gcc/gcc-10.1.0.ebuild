@@ -196,7 +196,7 @@ pkg_setup() {
         fi
     fi
 
-    # Todo
+    # Set ABI's
     : ${TARGET_ABI:=${ABI}}
     : ${TARGET_MULTILIB_ABIS:=${MULTILIB_ABIS}}
     : ${TARGET_DEFAULT_ABI:=${DEFAULT_ABI}}
@@ -218,12 +218,16 @@ pkg_setup() {
 	DATAPATH=${PREFIX}/share/gcc-data/${CTARGET}/${GCC_CONFIG_VER}
 	STDCXX_INCDIR=${LIBPATH}/include/g++-v${GCC_BRANCH_VER}
 
+    # Set STAGE1_CFLAGS and BOOT_CFLAGS below...
+    # NOTE: -O0 and -O1 break things, so just don't do it :-)
+
 	# Flags to be used to build stage one compiler.
 	STAGE1_CFLAGS="${STAGE1_CFLAGS:--O2 -pipe}"
 
 	# Flags to be used for stages two and three.
 	# TODO: allow custom optimisation levels -O3 and -Os
 	BOOT_CFLAGS="${BOOT_CFLAGS:--O2 -pipe}"
+	BOOT_CFLAGS=${BOOT_CFLAGS:-"$(get_abi_CFLAGS ${TARGET_DEFAULT_ABI}) ${CFLAGS}"}
 
 	# The following blocks of code will configure BUILD_CONFIG and GCC_TARGET.
     #
@@ -245,8 +249,11 @@ pkg_setup() {
     # BUILD_CONFIG finished - export.
 	export BUILD_CONFIG
 
-    # Now for GCC_TARGET... only perform a three stage and any additional bootstraps if != cross_compiler.
-	if ! is_crosscompile && use bootstrap; then
+    # Now for GCC_TARGET...
+
+    # only perform a three stage and any additional bootstraps if native...
+    # three stage bootstrapping doesnt quite work when you cant run the resulting binaries natively!
+	if ! is_crosscompile && ! tc-is-cross-compiler && use bootstrap; then
 	    if use pgo; then
 	        GCC_TARGET="profiledbootstrap-lean"
 	    else
@@ -259,6 +266,32 @@ pkg_setup() {
     # GCC_TARGET finished - export.
 	export GCC_TARGET
 
+	# Setup TARGET_LIBC...
+	case ${CTARGET} in
+		*-linux)
+		    TARGET_LIBC=no-idea;;
+		*-dietlibc)
+		    TARGET_LIBC=dietlibc;;
+		*-elf|*-eabi)
+		    TARGET_LIBC=newlib;;
+		*-freebsd*)
+		    TARGET_LIBC=freebsd-lib;;
+		*-gnu*)
+		    TARGET_LIBC=glibc;;
+		*-klibc)
+		    TARGET_LIBC=klibc;;
+		*-musl*)
+		    TARGET_LIBC=musl;;
+		*-uclibc*)
+		    TARGET_LIBC=uclibc;;
+		avr*)
+		    TARGET_LIBC=avr-libc;;
+	esac
+
+	# TARGET_LIBC finished - export.
+	export TARGET_LIBC
+
+    # Todo
 	use doc || export MAKEINFO="/dev/null"
 }
 
@@ -360,9 +393,6 @@ src_prepare() {
         sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die
 	fi
 
-	# === CROSS COMPILER ===
-	is_crosscompile && _gcc_prepare_cross
-
 	# === OSDIRNAMES ===
 
     # Historically most Linux distributions used the following setup:
@@ -444,29 +474,6 @@ src_prepare() {
 	eapply_user
 }
 
-_gcc_prepare_cross() {
-	case ${CTARGET} in
-		*-linux) TARGET_LIBC=no-idea;;
-		*-dietlibc) TARGET_LIBC=dietlibc;;
-		*-elf|*-eabi) TARGET_LIBC=newlib;;
-		*-freebsd*) TARGET_LIBC=freebsd-lib;;
-		*-gnu*) TARGET_LIBC=glibc;;
-		*-klibc) TARGET_LIBC=klibc;;
-		*-musl*) TARGET_LIBC=musl;;
-		*-uclibc*) TARGET_LIBC=uclibc;;
-		avr*) TARGET_LIBC=avr-libc;;
-	esac
-	export TARGET_LIBC
-
-	# if we don't tell it where to go, libcc1 stuff ends up in ${ROOT}/usr/lib (or rather dies colliding)
-	sed -e 's%cc1libdir = .*%cc1libdir = '"${ROOT}${PREFIX}"'/$(host_noncanonical)/$(target_noncanonical)/lib/$(gcc_version)%' \
-		-e 's%plugindir = .*%plugindir = '"${ROOT}${PREFIX}"'/lib/gcc/$(target_noncanonical)/$(gcc_version)/plugin%' \
-		-i "${WORKDIR}/${P}/libcc1"/Makefile.{am,in}
-	if [[ ${CTARGET} == avr* ]]; then
-		sed -e 's%native_system_header_dir=/usr/include%native_system_header_dir=/include%' -i "${WORKDIR}/${P}/gcc/config.gcc"
-	fi
-}
-
 gcc_conf_lang_opts() {
 	# Determine language support:
 	local conf_gcc_lang=""
@@ -539,37 +546,13 @@ gcc_conf_arm_opts() {
 	printf -- "${conf_gcc_arm}"
 }
 
-gcc_conf_cross_options() {
-	local conf_gcc_cross
-	conf_gcc_cross+=" --disable-libgomp --disable-bootstrap --enable-poison-system-directories"
-
-	if [[ ${CTARGET} == avr* ]]; then
-		conf_gcc_cross+=" --disable-__cxa_atexit"
-	else
-		conf_gcc_cross+=" --enable-__cxa_atexit"
-	fi
-
-	# Handle bootstrapping cross-compiler and libc in lock-step
-	if ! has_version ${CATEGORY}/${TARGET_LIBC}; then
-		# we are building with libc that is not installed:
-		conf_gcc_cross+=" --disable-shared --disable-libatomic --disable-threads --without-headers --disable-libstdcxx"
-	elif has_version "${CATEGORY}/${TARGET_LIBC}[headers-only]"; then
-		# libc installed, but has USE="crosscompile_opts_headers-only" to only install headers:
-		conf_gcc_cross+=" --disable-shared --disable-libatomic --with-sysroot=${PREFIX}/${CTARGET} --disable-libstdcxx"
-	else
-		# libc is installed:
-		conf_gcc_cross+=" --with-sysroot=${PREFIX}/${CTARGET} --enable-libstdcxx-time"
-	fi
-
-	printf -- "${conf_gcc_cross}"
-}
-
 src_configure() {
 
     # gcc_conf is our array of opts to pass to ./configure
 	local confgcc
 
 	# === BRANDING ===
+
 	# Export GCC branding
     # TODO: implement alpha, beta and git brandings possibly? specific bug tracker/JIRA for specific versions?
     if ! use hardened && ! use vanilla; then
@@ -580,102 +563,30 @@ src_configure() {
         confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
     fi
 
+    # === END BRANDING ===
 
+    # === GENERAL / INITIAL CONFIGURATION ===
 
-	if is_crosscompile || tc-is-cross-compiler; then
-		confgcc+=" --target=${CTARGET}"
-	fi
-	if is_crosscompile; then
-		confgcc+="$(gcc_conf_cross_options)"
-	else
-		confgcc+=" --enable-threads=posix --enable-__cxa_atexit --enable-libstdcxx-time"
-		confgcc+=" $(use_enable openmp libgomp)"
-		confgcc+=" $(use_enable bootstrap) --enable-shared"
-	fi
+    # Set up paths
+    #--libdir=${LIBPATH}/lib <<< todo: investigate
+    confgcc+=(
+    	--prefix=${PREFIX}
+		--bindir=${BINPATH}
+		--includedir=${LIBPATH}/include
+		--datadir=${DATAPATH}
+		--mandir=${DATAPATH}/man
+		--infodir=${DATAPATH}/info
+		--with-gxx-include-dir=${STDCXX_INCDIR}
+		--with-python-dir=${DATAPATH/$PREFIX/}/python
+    )
 
-	[[ -n ${CBUILD} ]] && confgcc+=" --build=${CBUILD}"
-
-    # Default building of PIE executables.
-    if use pie; then
-        confgcc+=" --enable-default-pie "
-    else
-        confgcc+=" --disable-default-pie "
-    fi
-
-    # Default building of SSP executables.
-    if use ssp; then
-        confgcc+=" --enable-default-ssp "
-    else
-        confgcc+=" --disable-default-ssp "
-    fi
-
-	if use sanitize; then
-	    confgcc+=( --enable-libsanitizer )
-	else
-	    confgcc+=( --disable-libsanitizer )
-	fi
-
-	if use vtv; then
-		confgcc+=" --enable-vtable-verify --enable-libvtv"
-    else
-		confgcc+=" --disable-vtable-verify --disable-libvtv"
-	fi
-
-	if use nls ; then
-		confgcc+=( --enable-nls --without-included-gettext )
-	else
-		confgcc+=( --disable-nls )
-	fi
-
-    # gcc has support for compressing lto bytecode using zstd
-    if use zstd; then
-        confgcc+=( --with-zstd )
-    else
-        confgcc+=( --without-zstd )
-    fi
-
-    # valgrind toolsuite provides various debugging and profiling tools
-    if use valgrind; then
-        confgcc+=( --enable-valgrind --enable-valgrind-annotations )
-    else
-        confgcc+=( --disable-valgrind --disable-valgrind-annotations )
-    fi
-
-    # lto todo
-    if use lto; then
-        confgcc+=( --enable-lto )
-    else
-        confgcc+=( --disable-lto )
-    fi
-
-    # graphite todo
-    if use graphite; then
-        confgcc+=( --with-isl --disable-isl-version-check )
-    else
-        confgcc+=( --without-isl )
-    fi
-
-    # multilib
-    if use multilib; then
-        confgcc+=( --enable-multilib )
-    else
-        confgcc+=( --disable-multilib )
-    fi
-
-    # multiarch
-    if use multiarch; then
-        confgcc+=" --enable-multiarch "
-    else
-        confgcc+=" --disable-multiarch "
-    fi
-
-    if ! use generic_host; then
-        confgcc+="${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}}"
-    fi
-
-    if ! use pch; then
-        confgcc+=( --disable-libstdcxx-pch )
-    fi
+    # Set some more things...
+    confgcc+=(
+		--enable-obsolete
+		--disable-werror
+		--enable-secureplt
+		--with-system-zlib
+    )
 
     # Default to '--enable-checking=release', except when USE=debug, in which case '--enable-checking=all'.
     #
@@ -692,6 +603,248 @@ src_configure() {
     ! use debug && confgcc+=" --enable-checking=release"
     use debug && confgcc+=" --enable-checking=all"
 
+    # === END GENERAL CONFIGURATION ===
+
+	# === CHOST / CBUILD / CTARGET ===
+
+    # Set the CHOST.
+	local confgcc=(
+	    --host=${CHOST}
+	)
+
+    # Set the CTARGET if we are cross compiling.
+	if is_crosscompile || tc-is-cross-compiler; then
+		# Straight from the GCC install doc:
+		# "GCC has code to correctly determine the correct value for target for nearly all native systems.
+		# Therefore, we highly recommend you not provide a configure target when configuring a native compiler."
+		confgcc+=(
+		    --target=${CTARGET}
+		)
+	fi
+
+	# TODO: set CBUILD etc for if_is_canadian_cross and is_cross_build
+
+	# Pass CBUILD if one exists
+	# Note: can be incorporated to the above.
+	if [[ -n ${CBUILD} ]]; then
+	    confgcc+=" --build=${CBUILD}"
+	fi
+
+	# === END CHOST / CBUILD / CTARGET CONFIGURATION ===
+
+	# === CROSS COMPILER ===
+
+	if is_crosscompile; then
+		# Enable build warnings by default with cross-compilers when system paths are included (e.g. via -I flags).
+		confgcc+=" --enable-poison-system-directories "
+
+        # three stage bootstrapping doesnt quite work when you cant run the resulting binaries natively!
+        confgcc+=" --disable-bootstrap "
+
+        # Force disable for is_crosscompile as the configure script can be dumb - Gentoo Linux bug #359855
+        confgcc+=" --disable-libgomp "
+
+        # Configure anything required by a particular TARGET_LIBC...
+
+        # Todo
+        if [[ ${CTARGET} == dietlibc* ]]; then
+            confgcc+=" --disable-libstdcxx-time "
+        fi
+
+        # Todo
+        if [[ ${CTARGET} == uclibc* ]]; then
+		    # Enable shared library support only on targets that support it: Gentoo Linux bug #291870
+			if ! echo '#include <features.h>' | \
+			   $(tc-getCPP ${CTARGET}) -E -dD - 2>/dev/null | \
+			   grep -q __HAVE_SHARED__
+			then
+				confgcc+=" --disable-shared "
+			fi
+        fi
+
+        # Todo
+        if [[ ${CTARGET} == avr* ]]; then
+            confgcc+=" --disable-__cxa_atexit"
+        else
+            confgcc+=" --enable-__cxa_atexit"
+        fi
+
+        # Todo
+        if [[ ${CTARGET} == x86_64-*-mingw* ||  ${CTARGET} == *-w64-mingw* ]]; then
+            confgcc+=" --disable-threads --enable-shared "
+        fi
+
+        # Handle bootstrapping cross-compiler and libc in lock-step
+        if ! has_version ${CATEGORY}/${TARGET_LIBC}; then
+            # we are building with libc that is not installed:
+            confgcc+=" --disable-shared --disable-libatomic --disable-threads --without-headers --disable-libstdcxx"
+        elif has_version "${CATEGORY}/${TARGET_LIBC}[headers-only]"; then
+            # libc installed, but has USE="crosscompile_opts_headers-only" to only install headers:
+            confgcc+=" --disable-shared --disable-libatomic --with-sysroot=${PREFIX}/${CTARGET} --disable-libstdcxx"
+        else
+            # libc is installed:
+            confgcc+=" --with-sysroot=${PREFIX}/${CTARGET} --enable-libstdcxx-time"
+        fi
+
+    else
+        # native compiler
+        # todo place this above when implemented is_native_compile
+		confgcc+=" --enable-threads=posix --enable-__cxa_atexit --enable-libstdcxx-time"
+		confgcc+=" $(use_enable openmp libgomp)"
+		confgcc+=" $(use_enable bootstrap) --enable-shared"
+    fi
+
+    # === END CROSS COMPILER ===
+
+    # === LIBC CONFIGURATION ===
+
+    #
+ 	# __cxa_atexit is "essential for fully standards-compliant handling of destructors", but apparently requires glibc.
+ 	#
+ 	# TODO: this can likely be shit canned.
+ 	# seems all is already set in above is_native_compile configuration.
+ 	# I don't really care for supporting building this package natively on solaris, freebsd or uclibc.
+ 	# TODO: think and return.
+	case ${CTARGET} in
+        *-uclibc*)
+            if use nptl; then
+                confgcc+=(
+                    --disable-__cxa_atexit
+                    $(use_enable nptl tls)
+                )
+            fi
+            ;;
+        *-elf|*-eabi)
+            confgcc+=" --with-newlib "
+            ;;
+        *-musl*)
+            confgcc+=" --enable-__cxa_atexit "
+            ;;
+        *-gnu*)
+            confgcc+="
+                --enable-__cxa_atexit
+                --enable-clocale=gnu
+            "
+            ;;
+        *-freebsd*)
+            confgcc+=" --enable-__cxa_atexit "
+            ;;
+        *-solaris*)
+            confgcc+=" --enable-__cxa_atexit "
+            ;;
+	esac
+
+    # === END LIBC CONFIGURATION ===
+
+    # === ARCH CONFIGURATION ===
+
+    # multilib
+    if use multilib; then
+        confgcc+=( --enable-multilib )
+    else
+        confgcc+=( --disable-multilib )
+    fi
+
+    # TODO: more multilib config here
+
+    # multiarch
+    if use multiarch; then
+        confgcc+=" --enable-multiarch "
+    else
+        confgcc+=" --disable-multiarch "
+    fi
+
+    # TODO:
+    if ! use generic_host; then
+        confgcc+="${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}}"
+    fi
+
+    # TODO: ARM SPECIFIC STUFF GOES HERE HERE
+    # TODO: switch statement case $(tc-arch) in ... set --with-abi etc... possibly the above?
+
+	# If the target can do biarch (-m32/-m64), enable it.
+	# Overhead should be small, and should simplify building of 64bit kernels in a 32bit userland by not needing kgcc64.
+	# Gentoo Linux bug #349405
+	case $(tc-arch) in
+	    ppc|ppc64)
+	        confgcc+=" --enable-targets=all "
+	    ;;
+	    sparc)
+	        confgcc+=" --enable-targets=all "
+	        ;;
+	    amd64|x86)
+	        confgcc+=" --enable-targets=all "
+	        ;;
+	esac
+
+	# === END ARCH CONFIGURATION ===
+
+    # === FEATURE / LIBRARY CONFIGURATION ===
+
+    # Default building of PIE executables.
+    if use pie; then
+        confgcc+=" --enable-default-pie "
+    else
+        confgcc+=" --disable-default-pie "
+    fi
+
+    # Default building of SSP executables.
+    if use ssp; then
+        confgcc+=" --enable-default-ssp "
+    else
+        confgcc+=" --disable-default-ssp "
+    fi
+
+    # graphite todo
+    if use graphite; then
+        confgcc+=( --with-isl --disable-isl-version-check )
+    else
+        confgcc+=( --without-isl )
+    fi
+
+    # lto todo
+    if use lto; then
+        confgcc+=( --enable-lto )
+    else
+        confgcc+=( --disable-lto )
+    fi
+
+    if use nls ; then
+		confgcc+=( --enable-nls --without-included-gettext )
+	else
+		confgcc+=( --disable-nls )
+	fi
+
+    if ! use pch; then
+        confgcc+=( --disable-libstdcxx-pch )
+    fi
+
+	if use sanitize; then
+	    confgcc+=( --enable-libsanitizer )
+	else
+	    confgcc+=( --disable-libsanitizer )
+	fi
+
+    # valgrind toolsuite provides various debugging and profiling tools
+    if use valgrind; then
+        confgcc+=( --enable-valgrind --enable-valgrind-annotations )
+    else
+        confgcc+=( --disable-valgrind --disable-valgrind-annotations )
+    fi
+
+    if use vtv; then
+		confgcc+=" --enable-vtable-verify --enable-libvtv"
+    else
+		confgcc+=" --disable-vtable-verify --disable-libvtv"
+	fi
+
+    # gcc has support for compressing lto bytecode using zstd
+    if use zstd; then
+        confgcc+=( --with-zstd )
+    else
+        confgcc+=( --without-zstd )
+    fi
+
     # can this be shit canned? is solaris only, and i have better things to do with my time than support that
     use libssp || export gcc_cv_libc_provides_ssp=yes
     if use libssp; then
@@ -699,42 +852,7 @@ src_configure() {
 
     fi
 
-    # === LIBC CONFIGURATION ===
-    #
- 	# __cxa_atexit is "essential for fully standards-compliant handling of
-	# destructors", but apparently requires glibc.
-	case ${CTARGET} in
-        *-uclibc*)
-            if tc_has_feature nptl ; then
-                confgcc+=(
-                    --disable-__cxa_atexit
-                    $(use_enable nptl tls)
-                )
-            fi
-            tc_version_is_between 3.3 3.4 && confgcc+=( --enable-sjlj-exceptions )
-            if tc_version_is_between 3.4 4.3 ; then
-                confgcc+=( --enable-clocale=uclibc )
-            fi
-            ;;
-        *-elf|*-eabi)
-            confgcc+=( --with-newlib )
-            ;;
-        *-musl*)
-            confgcc+=( --enable-__cxa_atexit )
-            ;;
-        *-gnu*)
-            confgcc+=(
-                --enable-__cxa_atexit
-                --enable-clocale=gnu
-            )
-            ;;
-        *-freebsd*)
-            confgcc+=( --enable-__cxa_atexit )
-            ;;
-        *-solaris*)
-            confgcc+=( --enable-__cxa_atexit )
-            ;;
-	esac
+    # === END FEATURE / LIBRARY CONFIGURATION ===
 
 	# Create build directory...
 	mkdir -p "${WORKDIR}"/build || die "create build directory failed"
@@ -744,19 +862,6 @@ src_configure() {
 
     # finally run ./configure!
 	../gcc-${PV}/configure \
-		--host=$CHOST \
-		--prefix=${PREFIX} \
-		--bindir=${BINPATH} \
-		--includedir=${LIBPATH}/include \
-		--datadir=${DATAPATH} \
-		--mandir=${DATAPATH}/man \
-		--infodir=${DATAPATH}/info \
-		--with-gxx-include-dir=${STDCXX_INCDIR} \
-		--with-python-dir=${DATAPATH/$PREFIX/}/python \
-		--enable-obsolete \
-		--disable-werror \
-		--enable-secureplt \
-		--with-system-zlib \
 		--enable-clocale=gnu \
 		--disable-libunwind-exceptions \
 		--enable-version-specific-runtime-libs \
@@ -775,8 +880,7 @@ gcc_conf_cross_post() {
 
 src_compile() {
 
-    # Unset ABI
-	unset ABI
+    einfo "Building ${PN} (${GCC_MAKE_TARGET})..."
 
 	# Run make against GCC_TARGET, setting some variables as required.
 	emake -C "${WORKDIR}"/build \
