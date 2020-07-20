@@ -12,9 +12,9 @@ inherit check-reqs eutils mount-boot toolchain-funcs
 SLOT=$PF
 CKV=${PV}
 KV_FULL=${PN}-${PVR}
-DEB_PV_BASE="5.7.6"
-DEB_EXTRAVERSION="-1"
-EXTRAVERSION="_p1"
+DEB_PV_BASE="5.6.14"
+DEB_EXTRAVERSION="-2~bpo10+1"
+EXTRAVERSION="_p2"
 
 # install modules to /lib/modules/${DEB_PV_BASE}${EXTRAVERSION}-$MODULE_EXT
 MODULE_EXT=${EXTRAVERSION}
