@@ -337,6 +337,27 @@ src_prepare() {
 
 	sed -i -e "s/^version :=.*/version := ${GCC_CONFIG_VER}/" ${S}/libgcc/Makefile.in || die
 
+	# make sure the pkg config files install into multilib dirs.
+	# since we configure with just one --libdir, we can't use that (as gcc itself takes care of building multilibs).
+	# Gentoo Linux bug #435728
+	find "${S}" -name Makefile.in -exec sed -i '/^pkgconfigdir/s:=.*:=$(toolexeclibdir)/pkgconfig:' {} +
+
+	# Fixup libtool to correctly generate .la files with portage
+	elibtoolize --portage --shallow --no-uclibc
+
+	# update configure files
+	local f
+	einfo "Fixing misc issues in configure files"
+	for f in $(grep -l 'autoconf version 2.13' $(find "${S}" -name configure)) ; do
+		ebegin "  Updating ${f/${S}\/} [LANG]"
+		patch "${f}" "${FILESDIR}"/gcc-configure-LANG.patch >& "${T}"/configure-patch.log \
+			|| eerror "Please file a bug about this"
+		eend $?
+	done
+	sed -i 's|A-Za-z0-9|[:alnum:]|g' "${S}"/gcc/*.awk #215828
+
+	#gnuconfig_update
+
     # Only modify sources if USE="-vanilla"
 	if ! use vanilla; then
 
@@ -348,14 +369,8 @@ src_prepare() {
 			done
 		fi
 
-		# We use --enable-version-specific-libs with ./configure. This
-		# option is designed to place all our libraries into a sub-directory
-		# rather than /usr/lib*.  However, this option, even through 4.8.0,
-		# does not work 100% correctly without a small fix for
-		# libgcc_s.so. See: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=32415.
-		# So, we apply a small patch to get this working:
-
-		eapply "${FILESDIR}/gcc-4.6.4-fix-libgcc-s-path-with-vsrl.patch" || die "patch fail"
+        # Todo
+		eapply "${FILESDIR}/gcc-configure-texinfo.patch" || die "patch fail"
 
         # === HARDENING ===
         # TODO: write a blurb
@@ -485,33 +500,6 @@ src_prepare() {
 	eapply_user
 }
 
-gcc_conf_lang_opts() {
-	# Determine language support:
-	local conf_gcc_lang=""
-	local GCC_LANG="c,c++"
-	if use objc; then
-		GCC_LANG+=",objc"
-		use objc-gc && conf_gcc_lang+=" --enable-objc-gc"
-		use objc++ && GCC_LANG+=",obj-c++"
-	fi
-
-	use fortran && GCC_LANG+=",fortran" || conf_gcc_lang+=" --disable-libquadmath"
-
-	use go && GCC_LANG+=",go"
-
-	use ada && GCC_LANG+=",ada" && conf_gcc_lang+=" CC=${GNATBOOT}/bin/gcc CXX=${GNATBOOT}/bin/g++ AR=${GNATBOOT}/bin/gcc-ar AS=as LD=ld NM=${GNATBOOT}/bin/gcc-nm RANLIB=${GNATBOOT}/bin/gcc-ranlib"
-
-	use d && GCC_LANG+=",d"
-
-    if use lto; then
-        GCC_LANG+=",lto"
-    fi
-
-	conf_gcc_lang+=" --enable-languages=${GCC_LANG} --disable-libgcj"
-
-	printf -- "${conf_gcc_lang}"
-}
-
 # ARM
 gcc_conf_arm_opts() {
 	# Skip the rest if not an arm target
@@ -618,6 +606,10 @@ src_configure() {
     elif use checking_all; then
         confgcc+=( --enable-checking=all )
     fi
+
+    # Disable gcc info regeneration
+    # Gentoo Linux bug #464008
+	export gcc_cv_prog_makeinfo_modern=no
 
     # === END GENERAL CONFIGURATION ===
 
@@ -800,8 +792,107 @@ src_configure() {
         confgcc+=( ${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}} )
     fi
 
-    # TODO: ARM SPECIFIC STUFF GOES HERE HERE
-    # TODO: switch statement case $(tc-arch) in ... set --with-abi etc... possibly the above?
+	case $(tc-is-softfloat) in
+	yes)    confgcc+=( --with-float=soft ) ;;
+	softfp) confgcc+=( --with-float=softfp ) ;;
+	*)
+		# If they've explicitly opt-ed in, do hardfloat,
+		# otherwise let the gcc default kick in.
+		case ${CTARGET//_/-} in
+		*-hardfloat-*|*eabihf) confgcc+=( --with-float=hard ) ;;
+		esac
+	esac
+
+	local with_abi_map=()
+	case $(tc-arch) in
+        arm)	#264534 #414395
+            local a arm_arch=${CTARGET%%-*}
+            # Remove trailing endian variations first: eb el be bl b l
+            for a in e{b,l} {b,l}e b l ; do
+                if [[ ${arm_arch} == *${a} ]] ; then
+                    arm_arch=${arm_arch%${a}}
+                    break
+                fi
+            done
+
+            # Convert armv7{a,r,m} to armv7-{a,r,m}
+            [[ ${arm_arch} == armv7? ]] && arm_arch=${arm_arch/7/7-}
+
+            # See if this is a valid --with-arch flag
+            if (srcdir=${S}/gcc target=${CTARGET} with_arch=${arm_arch};
+                . "${srcdir}"/config.gcc) &>/dev/null
+            then
+                confgcc+=( --with-arch=${arm_arch} )
+            fi
+
+            # Make default mode thumb for microcontroller classes
+            # Gentoo Linux bug #418209
+            [[ ${arm_arch} == *-m ]] && confgcc+=( --with-mode=thumb )
+
+            # Follow the new arm hardfp distro standard by default
+            local float="hard"
+            local default_fpu=""
+
+            case ${CTARGET} in
+                *[-_]softfloat[-_]*)
+                    float="soft" ;;
+                *[-_]softfp[-_]*)
+                    float="softfp" ;;
+                armv[56]*)
+                    default_fpu="vfpv2" ;;
+                armv7ve*)
+                    default_fpu="vfpv4-d16" ;;
+                armv7*)
+                    default_fpu="vfpv3-d16" ;;
+                amrv8*)
+                    default_fpu="fp-armv8" ;;
+            esac
+
+            # Pass args to configure
+            confgcc+=( --with-float=$float )
+
+            if [ -z "${MFPU}" ] && [ -n "${default_fpu}" ]; then
+                confgcc+=( --with-fpu=${default_fpu} )
+            fi
+
+            ;;
+        mips)
+            # Add --with-abi flags to set default ABI
+            confgcc+=( --with-abi=$(gcc-abi-map ${TARGET_DEFAULT_ABI}) )
+            ;;
+        amd64)
+            # drop the older/ABI checks once this get's merged into some version of gcc upstream
+            if tc_version_is_at_least 4.8 && has x32 $(get_all_abis TARGET) ; then
+                confgcc+=( --with-abi=$(gcc-abi-map ${TARGET_DEFAULT_ABI}) )
+            fi
+            ;;
+        x86)
+            # Default arch for x86 is normally i386, lets give it a bump since glibc will do so based on CTARGET anyways
+            confgcc+=( --with-arch=${CTARGET%%-*} )
+            ;;
+        hppa)
+            # Enable sjlj exceptions for backward compatibility on hppa
+            [[ ${GCCMAJOR} == "3" ]] && confgcc+=( --enable-sjlj-exceptions )
+            ;;
+        ppc)
+            # Set up defaults based on current CFLAGS
+            is-flagq -mfloat-gprs=double && confgcc+=( --enable-e500-double )
+            [[ ${CTARGET//_/-} == *-e500v2-* ]] && confgcc+=( --enable-e500-double )
+            ;;
+        ppc64)
+            # On ppc64 big endian target gcc assumes elfv1 by default,
+            # and elfv2 on little endian
+            # but musl does not support elfv1 at all on any endian ppc64
+            # see https://git.musl-libc.org/cgit/musl/tree/INSTALL
+            # https://bugs.gentoo.org/704784
+            # https://gcc.gnu.org/PR93157
+            [[ ${CTARGET} == powerpc64-*-musl ]] && confgcc+=( --with-abi=elfv2 )
+            ;;
+        riscv)
+            # Add --with-abi flags to set default ABI
+            confgcc+=( --with-abi=$(gcc-abi-map ${TARGET_DEFAULT_ABI}) )
+            ;;
+	esac
 
 	# If the target can do biarch (-m32/-m64), enable it.
 	# Overhead should be small, and should simplify building of 64bit kernels in a 32bit userland by not needing kgcc64.
@@ -914,9 +1005,25 @@ src_configure() {
 	cd "${WORKDIR}"/build || die "cd to build directory failed"
 
     # finally run ./configure!
-	../gcc-${PV}/configure $(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc || die "configure fail"
+	../gcc-${PV}/configure "${confgcc[@]}" || die "failed to run configure"
 
 	is_crosscompile && gcc_conf_cross_post
+}
+
+gcc-abi-map() {
+	# Convert the ABI name we use in Gentoo to what gcc uses
+	local map=()
+	case ${CTARGET} in
+	mips*)   map=("o32 32" "n32 n32" "n64 64") ;;
+	riscv*)  map=("lp64d lp64d" "lp64 lp64") ;;
+	x86_64*) map=("amd64 m64" "x86 m32" "x32 mx32") ;;
+	esac
+
+	local m
+	for m in "${map[@]}" ; do
+		l=( ${m} )
+		[[ $1 == ${l[0]} ]] && echo ${l[1]} && break
+	done
 }
 
 gcc_conf_cross_post() {
@@ -1184,7 +1291,7 @@ src_install() {
 	# prune empty dirs left behind
 	find "${ED}" -depth -type d -delete
 	# Remove python files in the lib path
-	find "${D}/${LIBPATH}" -name "*.py" -type f -exec rm "{}" \;
+	find "${ED}/${LIBPATH}" -name "*.py" -type f -exec rm "{}" \;
 
 	gcc_movelibs
 
@@ -1195,7 +1302,7 @@ src_install() {
 		# Basic sanity check
 		local EXEEXT
 		eval $(grep ^EXEEXT= "${WORKDIR}"/build/gcc/config.log)
-		[[ -r ${D}/${BINPATH}/gcc${EXEEXT} ]] || die "gcc not found in ${D}"
+		[[ -r ${ED}/${BINPATH}/gcc${EXEEXT} ]] || die "gcc not found in ${ED}"
 	fi
 
 	# Setup env.d entry
