@@ -730,10 +730,26 @@ src_configure() {
     if use multilib; then
         confgcc+=( --enable-multilib )
     else
+    	# Fun times: if we are building for a target that has multiple
+		# possible ABI formats, and the user has told us to pick one
+		# that isn't the default, then not specifying it via the list
+		# below will break that on us.
         confgcc+=( --disable-multilib )
     fi
 
-    # TODO: more multilib config here
+	# translate our notion of multilibs into gcc's
+	local abi list
+	for abi in $(get_all_abis TARGET) ; do
+		local l=$(gcc-abi-map ${abi})
+		[[ -n ${l} ]] && list+=",${l}"
+	done
+	if [[ -n ${list} ]] ; then
+		case ${CTARGET} in
+            x86_64*)
+                tc_version_is_at_least 4.8 && confgcc+=( --with-multilib-list=${list:1} )
+                ;;
+		esac
+	fi
 
     # multiarch
     if use multiarch; then
