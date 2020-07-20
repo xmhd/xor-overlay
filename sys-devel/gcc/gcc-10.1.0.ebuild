@@ -14,7 +14,7 @@ KEYWORDS="*"
 
 SLOT="${PV}"
 
-RESTRICT="strip"
+RESTRICT+=" strip" # cross-compilers need controlled stripping
 FEATURES=${FEATURES/multilib-strict/}
 
 GCC_MAJOR="${PV%%.*}"
@@ -1031,6 +1031,17 @@ src_test() {
 	# To make asan tests work disable sandbox for all of test suite.
 	# 'backtrace' tests also does not like 'libsandbox.so' presence.
 	SANDBOX_ON=0 LD_PRELOAD= emake -k check
+}
+
+# Grab a variable from the build system (taken from linux-info.eclass)
+get_make_var() {
+	local var=$1 makefile=${2:-${WORKDIR}/build/Makefile}
+	echo -e "e:\\n\\t@echo \$(${var})\\ninclude ${makefile}" | \
+		r=${makefile%/*} emake --no-print-directory -s -f - 2>/dev/null
+}
+
+XGCC() {
+    get_make_var GCC_FOR_TARGET ;
 }
 
 create_gcc_env_entry() {
