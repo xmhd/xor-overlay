@@ -4,7 +4,7 @@
 
 EAPI=7
 
-inherit flag-o-matic multilib-build eutils libtool pax-utils toolchain-enable git-r3
+inherit eutils flag-o-matic libtool multilib-build pax-utils toolchain-enable
 
 DESCRIPTION="The GNU Compiler Collection"
 HOMEPAGE="https://gcc.gnu.org/"
@@ -29,7 +29,7 @@ IUSE="$IUSE +fortify +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 IUSE="$IUSE systemtap valgrind zstd" # TODO: sort these flags
-IUSE="$IUSE checking_release checking_all"
+IUSE="$IUSE checking_release checking_all" # gcc internal checking
 
 # Version of archive before patches.
 GCC_ARCHIVE_VER="10.1.0"
