@@ -1066,6 +1066,99 @@ doc_cleanups() {
 	fi
 }
 
+# Move around the libs to the right location.  For some reason,
+# when installing gcc, it dumps internal libraries into /usr/lib
+# instead of the private gcc lib path
+gcc_movelibs() {
+	# older versions of gcc did not support --print-multi-os-directory
+	tc_version_is_at_least 3.2 || return 0
+
+	# For non-target libs which are for CHOST and not CTARGET, we want to
+	# move them to the compiler-specific CHOST internal dir.  This is stuff
+	# that you want to link against when building tools rather than building
+	# code to run on the target.
+	if tc_version_is_at_least 5 && is_crosscompile ; then
+		dodir "${HOSTLIBPATH#${EPREFIX}}"
+		mv "${ED}"/usr/$(get_libdir)/libcc1* "${D}${HOSTLIBPATH}" || die
+	fi
+
+	# For all the libs that are built for CTARGET, move them into the
+	# compiler-specific CTARGET internal dir.
+	local x multiarg removedirs=""
+	for multiarg in $($(XGCC) -print-multi-lib) ; do
+		multiarg=${multiarg#*;}
+		multiarg=${multiarg//@/ -}
+
+		local OS_MULTIDIR=$($(XGCC) ${multiarg} --print-multi-os-directory)
+		local MULTIDIR=$($(XGCC) ${multiarg} --print-multi-directory)
+		local TODIR="${D}${LIBPATH}"/${MULTIDIR}
+		local FROMDIR=
+
+		[[ -d ${TODIR} ]] || mkdir -p ${TODIR}
+
+		for FROMDIR in \
+			"${LIBPATH}"/${OS_MULTIDIR} \
+			"${LIBPATH}"/../${MULTIDIR} \
+			"${PREFIX}"/lib/${OS_MULTIDIR} \
+			"${PREFIX}"/${CTARGET}/lib/${OS_MULTIDIR}
+		do
+			removedirs="${removedirs} ${FROMDIR}"
+			FROMDIR=${D}${FROMDIR}
+			if [[ ${FROMDIR} != "${TODIR}" && -d ${FROMDIR} ]] ; then
+				local files=$(find "${FROMDIR}" -maxdepth 1 ! -type d 2>/dev/null)
+				if [[ -n ${files} ]] ; then
+					mv ${files} "${TODIR}" || die
+				fi
+			fi
+		done
+		fix_libtool_libdir_paths "${LIBPATH}/${MULTIDIR}"
+
+		# SLOT up libgcj.pc if it's available (and let gcc-config worry about links)
+		FROMDIR="${PREFIX}/lib/${OS_MULTIDIR}"
+		for x in "${D}${FROMDIR}"/pkgconfig/libgcj*.pc ; do
+			[[ -f ${x} ]] || continue
+			sed -i "/^libdir=/s:=.*:=${LIBPATH}/${MULTIDIR}:" "${x}" || die
+			mv "${x}" "${D}${FROMDIR}"/pkgconfig/libgcj-${GCC_PV}.pc || die
+		done
+	done
+
+	# We remove directories separately to avoid this case:
+	#	mv SRC/lib/../lib/*.o DEST
+	#	rmdir SRC/lib/../lib/
+	#	mv SRC/lib/../lib32/*.o DEST  # Bork
+	for FROMDIR in ${removedirs} ; do
+		rmdir "${D}"${FROMDIR} >& /dev/null
+	done
+	find -depth "${ED}" -type d -exec rmdir {} + >& /dev/null
+}
+
+# make sure the libtool archives have libdir set to where they actually
+# -are-, and not where they -used- to be.  also, any dependencies we have
+# on our own .la files need to be updated.
+fix_libtool_libdir_paths() {
+	local libpath="$1"
+
+	pushd "${D}" >/dev/null
+
+	pushd "./${libpath}" >/dev/null
+	local dir="${PWD#${D%/}}"
+	local allarchives=$(echo *.la)
+	allarchives="\(${allarchives// /\\|}\)"
+	popd >/dev/null
+
+	# The libdir might not have any .la files. #548782
+	find "./${dir}" -maxdepth 1 -name '*.la' \
+		-exec sed -i -e "/^libdir=/s:=.*:='${dir}':" {} + || die
+	# Would be nice to combine these, but -maxdepth can not be specified
+	# on sub-expressions.
+	find "./${PREFIX}"/lib* -maxdepth 3 -name '*.la' \
+		-exec sed -i -e "/^dependency_libs=/s:/[^ ]*/${allarchives}:${libpath}/\1:g" {} + || die
+	find "./${dir}/" -maxdepth 1 -name '*.la' \
+		-exec sed -i -e "/^dependency_libs=/s:/[^ ]*/${allarchives}:${libpath}/\1:g" {} + || die
+
+	popd >/dev/null
+}
+
 cross_toolchain_env_setup() {
 
 	# old xcompile bashrc stuff here
@@ -1118,7 +1211,7 @@ src_install() {
 		# Basic sanity check
 		local EXEEXT
 		eval $(grep ^EXEEXT= "${WORKDIR}"/build/gcc/config.log)
-		[[ -r ${D}${BINPATH}/gcc${EXEEXT} ]] || die "gcc not found in ${D}"
+		[[ -r ${D}/${BINPATH}/gcc${EXEEXT} ]] || die "gcc not found in ${D}"
 
 		# Install compat wrappers
 		exeinto "${DATAPATH}"
