@@ -496,6 +496,14 @@ src_prepare() {
         use ada && export PATH="${GNATBOOT}/bin:${PATH}"
     fi
 
+    if [[ -x contrib/gcc_update ]] ; then
+        einfo "Touching generated files"
+        ./contrib/gcc_update --touch | \
+            while read f ; do
+                einfo "  ${f%%...}"
+            done
+	fi
+
 	# Must be called in src_prepare by EAPI6
 	eapply_user
 }
@@ -560,6 +568,8 @@ src_configure() {
         confgcc+=( --enable-checking=release )
     elif use checking_all; then
         confgcc+=( --enable-checking=all )
+    else
+        confgcc+=( --enable-checking=no )
     fi
 
     # Disable gcc info regeneration
@@ -762,17 +772,6 @@ src_configure() {
     if ! use generic_host; then
         confgcc+=( ${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}} )
     fi
-
-	case $(tc-is-softfloat) in
-	yes)    confgcc+=( --with-float=soft ) ;;
-	softfp) confgcc+=( --with-float=softfp ) ;;
-	*)
-		# If they've explicitly opt-ed in, do hardfloat,
-		# otherwise let the gcc default kick in.
-		case ${CTARGET//_/-} in
-		*-hardfloat-*|*eabihf) confgcc+=( --with-float=hard ) ;;
-		esac
-	esac
 
 	local with_abi_map=()
 	case $(tc-arch) in
@@ -1004,6 +1003,11 @@ gcc_conf_cross_post() {
 
 src_compile() {
 
+    touch "${S}"/gcc/c-gperf.h
+
+    # Do not make manpages if we do not have perl ...
+	[[ ! -x /usr/bin/perl ]] && find "${WORKDIR}"/build -name '*.[17]' -exec touch {} +
+
     einfo "Building ${PN} (${GCC_MAKE_TARGET})..."
 
 	# Run make against GCC_TARGET, setting some variables as required.
@@ -1021,16 +1025,12 @@ src_compile() {
 }
 
 src_test() {
-	cd "${WORKDIR}/build"
-	unset ABI
-	local tests_failed=0
-	if is_crosscompile || tc-is-cross-compiler; then
-		ewarn "Running tests on simulator for cross-compiler not yet supported by this ebuild."
-	else
-		( ulimit -s 65536 && ${MAKE:-make} ${MAKEOPTS} LIBPATH="${ED%/}/${LIBPATH}" -k check RUNTESTFLAGS="-v -v -v" 2>&1 | tee ${T}/make-check-log ) || tests_failed=1
-		"../${S##*/}/contrib/test_summary" 2>&1 | tee "${T}/gcc-test-summary.out"
-		[ ${tests_failed} -eq 0 ] || die "make -k check failed"
-	fi
+	cd "${WORKDIR}"/build
+
+	# 'asan' wants to be preloaded first, so does 'sandbox'.
+	# To make asan tests work disable sandbox for all of test suite.
+	# 'backtrace' tests also does not like 'libsandbox.so' presence.
+	SANDBOX_ON=0 LD_PRELOAD= emake -k check
 }
 
 create_gcc_env_entry() {
@@ -1090,28 +1090,16 @@ create_revdep_rebuild_entry() {
 	EOF
 }
 
-tasteful_stripping() {
-	# Now do the fun stripping stuff
-	[[ ! is_crosscompile ]] && \
-		env RESTRICT="" CHOST=${CHOST} dostrip "${D}${BINPATH}" ; \
-		env RESTRICT="" CHOST=${CTARGET} dostrip "${D}${LIBPATH}"
-	# gcc used to install helper binaries in lib/ but then moved to libexec/
-	[[ -d ${D}${PREFIX}/libexec/gcc ]] && \
-		env RESTRICT="" CHOST=${CHOST} dostrip "${D}${PREFIX}/libexec/gcc/${CTARGET}/${GCC_CONFIG_VER}"
-}
-
 # Move around the libs to the right location.  For some reason,
 # when installing gcc, it dumps internal libraries into /usr/lib
 # instead of the private gcc lib path
 gcc_movelibs() {
-	# older versions of gcc did not support --print-multi-os-directory
-	tc_version_is_at_least 3.2 || return 0
 
 	# For non-target libs which are for CHOST and not CTARGET, we want to
 	# move them to the compiler-specific CHOST internal dir.  This is stuff
 	# that you want to link against when building tools rather than building
 	# code to run on the target.
-	if tc_version_is_at_least 5 && is_crosscompile ; then
+	if is_crosscompile ; then
 		dodir "${HOSTLIBPATH#${EPREFIX}}"
 		mv "${ED}"/usr/$(get_libdir)/libcc1* "${D}${HOSTLIBPATH}" || die
 	fi
@@ -1246,10 +1234,8 @@ src_install() {
 
 # MAKE INSTALL SECTION:
 
-	emake -j1 DESTDIR="${D}" install || die
 	# Do the 'make install' from the build directory
-	# ??
-	#S="${WORKDIR}"/build emake -j1 DESTDIR="${D}" install || die
+	S="${WORKDIR}"/build emake -j1 DESTDIR="${D}" install || die
 
 # CLEANUPS:
 
@@ -1257,10 +1243,6 @@ src_install() {
 	find "${ED}" -name install-tools -prune -type d -exec rm -rf "{}" \;
 	# This one comes with binutils
 	find "${ED}" -name libiberty.a -delete
-	# prune empty dirs left behind
-	find "${ED}" -depth -type d -delete
-	# Remove python files in the lib path
-	find "${ED}/${LIBPATH}" -name "*.py" -type f -exec rm "{}" \;
 
 	gcc_movelibs
 
@@ -1278,8 +1260,6 @@ src_install() {
 	dodir /etc/env.d/gcc
 	create_gcc_env_entry
 	create_revdep_rebuild_entry
-
-	#tasteful_stripping
 
     # === LINK COMPILER BINARIES ===
 	dodir /usr/bin
@@ -1325,6 +1305,8 @@ src_install() {
 		fi
 	fi
 
+    # === STRIPPING ? ===
+
 	# As gcc installs object files built against bost ${CHOST} and ${CTARGET}
 	# ideally we will need to strip them using different tools:
 	# Using ${CHOST} tools:
@@ -1336,6 +1318,8 @@ src_install() {
 	# As dostrip does not specify host to override ${CHOST} tools just skip
 	# non-native binary stripping.
 	is_crosscompile && tc_supports_dostrip && dostrip -x "${LIBPATH}"
+
+	# === END STRIPPING ===
 
 	cd "${S}"
 	if is_crosscompile; then
@@ -1379,6 +1363,7 @@ src_install() {
 	# dynamic & static case (libgfortran.spec). #573302
 	# libgfortranbegin.la: Same as above, and it's an internal lib.
 	# libmpx.la: gcc itself handles linkage correctly (libmpx.spec).
+	# libmpxwrappers.la: See above.
 	# libmpxwrappers.la: See above.
 	# libitm.la: gcc itself handles linkage correctly (libitm.spec).
 	# libvtv.la: gcc itself handles linkage correctly.
