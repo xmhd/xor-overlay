@@ -4,7 +4,7 @@
 
 EAPI=7
 
-inherit flag-o-matic multilib-build eutils pax-utils toolchain-enable git-r3
+inherit flag-o-matic multilib-build eutils libtool pax-utils toolchain-enable git-r3
 
 DESCRIPTION="The GNU Compiler Collection"
 HOMEPAGE="https://gcc.gnu.org/"
@@ -817,9 +817,7 @@ src_configure() {
             ;;
         amd64)
             # drop the older/ABI checks once this get's merged into some version of gcc upstream
-            if tc_version_is_at_least 4.8 && has x32 $(get_all_abis TARGET) ; then
-                confgcc+=( --with-abi=$(gcc-abi-map ${TARGET_DEFAULT_ABI}) )
-            fi
+            confgcc+=( --with-abi=$(gcc-abi-map ${TARGET_DEFAULT_ABI}) )
             ;;
         x86)
             # Default arch for x86 is normally i386, lets give it a bump since glibc will do so based on CTARGET anyways
