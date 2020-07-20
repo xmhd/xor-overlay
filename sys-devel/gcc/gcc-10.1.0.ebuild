@@ -627,7 +627,7 @@ src_configure() {
 	# Pass CBUILD if one exists
 	# Note: can be incorporated to the above.
 	if [[ -n ${CBUILD} ]]; then
-	    confgcc+=" --build=${CBUILD}"
+	    confgcc+=" --build=${CBUILD} "
 	fi
 
 	# === END CHOST / CBUILD / CTARGET CONFIGURATION ===
@@ -689,9 +689,9 @@ src_configure() {
     else
         # native compiler
         # todo place this above when implemented is_native_compile
-		confgcc+=" --enable-threads=posix --enable-__cxa_atexit --enable-libstdcxx-time"
-		confgcc+=" $(use_enable openmp libgomp)"
-		confgcc+=" $(use_enable bootstrap) --enable-shared"
+		confgcc+=" --enable-threads=posix --enable-__cxa_atexit --enable-libstdcxx-time "
+		confgcc+=" $(use_enable openmp libgomp) "
+		confgcc+=" $(use_enable bootstrap) --enable-shared "
     fi
 
     # === END CROSS COMPILER ===
@@ -740,9 +740,9 @@ src_configure() {
 
     # multilib
     if use multilib; then
-        confgcc+=( --enable-multilib )
+        confgcc+=" --enable-multilib "
     else
-        confgcc+=( --disable-multilib )
+        confgcc+=" --disable-multilib "
     fi
 
     # TODO: more multilib config here
@@ -781,6 +781,26 @@ src_configure() {
 
     # === FEATURE / LIBRARY CONFIGURATION ===
 
+    # graphite todo
+    if use graphite; then
+        confgcc+=" --with-isl --disable-isl-version-check "
+    else
+        confgcc+=" --without-isl "
+    fi
+
+    # lto todo
+    if use lto; then
+        confgcc+=" --enable-lto "
+    else
+        confgcc+=" --disable-lto "
+    fi
+
+    if use nls ; then
+		confgcc+=" --enable-nls --without-included-gettext "
+	else
+		confgcc+=" --disable-nls "
+	fi
+
     # Default building of PIE executables.
     if use pie; then
         confgcc+=" --enable-default-pie "
@@ -788,48 +808,28 @@ src_configure() {
         confgcc+=" --disable-default-pie "
     fi
 
-    # Default building of SSP executables.
+    if ! use pch; then
+        confgcc+=" --disable-libstdcxx-pch "
+    fi
+
+	if use sanitize; then
+	    confgcc+=" --enable-libsanitizer "
+	else
+	    confgcc+=" --disable-libsanitizer "
+	fi
+
+	# Default building of SSP executables.
     if use ssp; then
         confgcc+=" --enable-default-ssp "
     else
         confgcc+=" --disable-default-ssp "
     fi
 
-    # graphite todo
-    if use graphite; then
-        confgcc+=( --with-isl --disable-isl-version-check )
-    else
-        confgcc+=( --without-isl )
-    fi
-
-    # lto todo
-    if use lto; then
-        confgcc+=( --enable-lto )
-    else
-        confgcc+=( --disable-lto )
-    fi
-
-    if use nls ; then
-		confgcc+=( --enable-nls --without-included-gettext )
-	else
-		confgcc+=( --disable-nls )
-	fi
-
-    if ! use pch; then
-        confgcc+=( --disable-libstdcxx-pch )
-    fi
-
-	if use sanitize; then
-	    confgcc+=( --enable-libsanitizer )
-	else
-	    confgcc+=( --disable-libsanitizer )
-	fi
-
     # valgrind toolsuite provides various debugging and profiling tools
     if use valgrind; then
-        confgcc+=( --enable-valgrind --enable-valgrind-annotations )
+        confgcc+=" --enable-valgrind --enable-valgrind-annotations "
     else
-        confgcc+=( --disable-valgrind --disable-valgrind-annotations )
+        confgcc+=" --disable-valgrind --disable-valgrind-annotations "
     fi
 
     if use vtv; then
@@ -840,15 +840,15 @@ src_configure() {
 
     # gcc has support for compressing lto bytecode using zstd
     if use zstd; then
-        confgcc+=( --with-zstd )
+        confgcc+=" --with-zstd "
     else
-        confgcc+=( --without-zstd )
+        confgcc+=" --without-zstd "
     fi
 
     # can this be shit canned? is solaris only, and i have better things to do with my time than support that
     use libssp || export gcc_cv_libc_provides_ssp=yes
     if use libssp; then
-        confgcc+=( --enable-libssp )
+        confgcc+=" --enable-libssp "
 
     fi
 
