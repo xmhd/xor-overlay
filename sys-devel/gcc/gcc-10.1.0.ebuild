@@ -28,7 +28,7 @@ IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +fortify +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
-IUSE="$IUSE valgrind zstd" # TODO: sort these flags
+IUSE="$IUSE systemtap valgrind zstd" # TODO: sort these flags
 
 # Version of archive before patches.
 GCC_ARCHIVE_VER="10.1.0"
@@ -112,6 +112,7 @@ RDEPEND="
 	virtual/libiconv[${MULTILIB_USEDEP}]
 	>=dev-libs/mpfr-2.4.2:0=
 	>=dev-libs/mpc-0.8.1:0=
+	systemtap? ( dev-util/systemtap )
 	sys-libs/zlib[${MULTILIB_USEDEP}]
 	zstd? ( app-arch/zstd )
 "
@@ -823,6 +824,12 @@ src_configure() {
         confgcc+=" --enable-default-ssp "
     else
         confgcc+=" --disable-default-ssp "
+    fi
+    
+    if use systemtap; then
+        confgcc+=" --enable-systemtap "
+    else
+        confgcc+=" --disable-systemtap "
     fi
 
     # valgrind toolsuite provides various debugging and profiling tools
