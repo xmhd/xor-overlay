@@ -431,16 +431,16 @@ pkg_postinst() {
 	# TODO: Change to SANDBOX_WRITE=".." for Dracut writes
 	export SANDBOX_ON=0
 
-	if use binary && [[ -h "${ROOT}"usr/src/linux ]]; then
+	if use binary && [[ -h "${ROOT}"/usr/src/linux ]]; then
 		rm "${ROOT}"usr/src/linux
 	fi
 
-	if use binary && [[ ! -e "${ROOT}"usr/src/linux ]]; then
+	if use binary && [[ ! -e "${ROOT}"/usr/src/linux ]]; then
 	    ewarn "WARNING... WARNING... WARNING"
 	    ewarn ""
 	    ewarn "/usr/src/linux symlink automatically set to ${PN}-${PV}"
 	    ewarn ""
-		ln -sf linux-${PN}-${PV} "${ROOT}"usr/src/linux
+		ln -sf "${ROOT}"/usr/src/linux-${PN}-${PV} "${ROOT}"/usr/src/linux
 	fi
 
 	if [ -e ${ROOT}lib/modules ]; then
@@ -464,7 +464,7 @@ pkg_postinst() {
         --omit "biosdevname bootchart busybox caps convertfs dash debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh network-manager qemu qemu-net rpmversion securityfs ssh-client stratis syslog url-lib" \
         $(usex btrfs "-a btrfs" "-o btrfs") \
         $(usex dmraid "-a dmraid" "-o dmraid") \
-        $(usex hardened "-o resume" "-a resume")
+        $(usex hardened "-o resume" "-a resume") \
         $(usex iscsi "-a iscsi" "-o iscsi") \
         $(usex lvm "-a lvm" "-o lvm") \
         $(usex lvm "--lvmconf" "--nolvmconf") \
