@@ -40,7 +40,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs clang custom-cflags dmraid ec2 firmware hardened iscsi libressl luks lvm mdadm microcode multipath nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs clang custom-cflags dmraid dtrace ec2 firmware hardened iscsi libressl luks lvm mdadm microcode multipath nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -85,6 +85,35 @@ REQUIRED_USE="
 	wireguard? ( binary )
 	zfs? ( binary )
 "
+
+# temporary ;(
+DTRACE_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/dtrace-patches/"
+DTRACE_PATCHES=(
+    0001-ctf-generate-CTF-information-for-the-kernel.patch
+    0002-kallsyms-introduce-new-proc-kallmodsyms-including-bu.patch
+    0003-waitfd-new-syscall-implementing-waitpid-over-fds.patch
+    0004-dtrace-core-and-x86.patch
+    0005-dtrace-modular-components-and-x86-support.patch
+    0006-dtrace-systrace-provider-core-components.patch
+    0007-dtrace-systrace-provider.patch
+    0008-dtrace-sdt-provider-core-components.patch
+    0009-dtrace-sdt-provider-for-x86.patch
+    0010-dtrace-profile-provider-and-test-probe-core-componen.patch
+    0011-dtrace-profile-and-tick-providers-built-on-cyclics.patch
+    0012-dtrace-USDT-and-pid-provider-core-and-x86-components.patch
+    0013-dtrace-USDT-and-pid-providers.patch
+    0014-dtrace-function-boundary-tracing-FBT-core-and-x86-co.patch
+    0015-dtrace-fbt-provider-modular-components.patch
+    0016-dtrace-arm-arm64-port.patch
+    0017-dtrace-add-SDT-probes.patch
+    0018-dtrace-add-rcu_irq_exit-and-rcu_nmi_exit_common-to-F.patch
+    0019-dtrace-add-sample-script-for-building-DTrace-on-Fedo.patch
+    0020-locking-publicize-mutex_owner-and-mutex_owned-again.patch
+)
+
+eapply_dtrace() {
+	eapply "${DTRACE_PATCHES_DIR}/${1}"
+}
 
 get_patch_list() {
 	[[ -z "${1}" ]] && die "No patch series file specified"
@@ -177,6 +206,15 @@ src_prepare() {
 
 	# Restore export_kernel_fpu_functions for zfs
 	eapply "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
+
+
+    if use dtrace; then
+        # Dtrace patches
+        einfo "Applying DTrace patches ..."
+        for my_patch in ${DTRACE_PATCHES[*]} ; do
+            eapply_dtrace "${my_patch}"
+        done
+    fi
 
 	local arch featureset subarch
 	featureset="standard"
