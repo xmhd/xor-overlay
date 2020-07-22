@@ -27,6 +27,7 @@ IUSE="+closure-compile component-build cups cpu_flags_arm_neon +hangouts headles
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 REQUIRED_USE="
 	component-build? ( !suid )
+	vaapi? ( !ozone )
 	wayland? ( ozone )
 "
 
