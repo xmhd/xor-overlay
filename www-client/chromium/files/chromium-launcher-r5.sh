@@ -35,18 +35,23 @@ fi
 
 # Select session type
 if @@OZONE_AUTO_SESSION@@; then
-    if [[ -z ${XDG_SESSION_TYPE+x} ]]; then
-        if [[ -z ${WAYLAND_DISPLAY+x} ]]; then
-            CHROMIUM_FLAGS="--ozone-platform=x11 ${CHROMIUM_FLAGS}"
-        else
-            CHROMIUM_FLAGS="--ozone-platform=wayland ${CHROMIUM_FLAGS}"
-        fi
-    else
-        CHROMIUM_FLAGS="--ozone-platform=${XDG_SESSION_TYPE} ${CHROMIUM_FLAGS}"
-    fi
+	platform=
+	if [[ ${XDG_SESSION_TYPE} == x11 ]]; then
+		platform=x11
+	elif [[ ${XDG_SESSION_TYPE} == wayland ]]; then
+		platform=wayland
+	else
+		if [[ -n ${WAYLAND_DISPLAY} ]]; then
+			platform=wayland
+		else
+			platform=x11
+		fi
+	fi
+	CHROMIUM_FLAGS="--ozone-platform=${platform} ${CHROMIUM_FLAGS}"
 fi
 
 # Set the .desktop file name
 export CHROME_DESKTOP="chromium-browser-chromium.desktop"
 
 exec -a "chromium-browser" "$PROGDIR/chrome" --extra-plugin-dir=/usr/lib/nsbrowser/plugins ${CHROMIUM_FLAGS} "$@"
+
