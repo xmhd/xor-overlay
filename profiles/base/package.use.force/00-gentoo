@@ -1,6 +1,10 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
+# Sergei Trofimovich <slyfox@gentoo.org> (2020-06-24)
+# Don't let people lose 'cc' or 'f77' by accident.
+sys-devel/gcc-config cc-wrappers
+
 # Sergei Trofimovich <slyfox@gentoo.org> (2020-05-24)
 # Many base packages still rely on unqualified tools.
 # To contain the breakage flags are masked. Once most packages
@@ -148,3 +152,4 @@ dev-lang/python wide-unicode
 # Forcing w.r.t. bug 265336. When unicode use-flag is
 # turned off, ABI is broken without a .so bump.
 dev-libs/libpcre unicode
+

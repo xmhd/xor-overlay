@@ -25,8 +25,3 @@ x11-terms/gnome-terminal gnome-shell
 x11-themes/arc-theme gnome-shell
 x11-themes/zukitwo gnome-shell
 net-wireless/bluez user-session
-
-# Jason Zaman <perfinion@gentoo.org> (2019-12-01)
-# SELinux userspace 3.0 dropped python2.7 support
-app-admin/matter python_targets_python2_7
-kde-frameworks/frameworkintegration appstream

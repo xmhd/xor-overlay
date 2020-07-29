@@ -1,11 +1,21 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-# Marek Szuba <marecki@gentoo.org> (2020-06-15)
-# Mask flashrom drivers which only work on few architectures:
+# Sam James <sam@gentoo.org> (2020-07-03)
+# Rust is only available on some arches
+# Bug #728558
+media-video/ffmpeg rav1e
+
+# Robin H. Johnson <robbat2@gentoo.org> (2020-07-02)
+# Mask io-uring & zbc pending keywording
+sys-block/fio io-uring zbc
+
+# Marek Szuba <marecki@gentoo.org> (2020-06-17)
+# Mask flashrom drivers and tools which only work on few architectures:
+#  - ich_descriptors_tools (USE=tools) is only compiled on amd64 and x86,
 #  - internal is presently only supported on amd64/x86 and mipsel,
-#  - the others only work on x86 due to lack of PCI-port I/O support
-sys-apps/flashrom atahpt atapromise internal nic3com nicnatsemi nicrealtek rayer-spi satamv
+#  - the others only work on x86 due to lack of PCI-port I/O support.
+sys-apps/flashrom atahpt atapromise internal nic3com nicnatsemi nicrealtek rayer-spi satamv tools
 
 # Thomas Deutschmann <whissi@gentoo.org> (2020-04-30)
 # Dependency is only keyworded on amd64 and x86
@@ -65,7 +75,7 @@ dev-java/openjdk:11 javafx
 >=dev-lang/spidermonkey-60 jit
 
 # Andreas Sturmlechner <asturm@gentoo.org> (2019-05-09)
-# media-libs/libplacebo is not keyworded anywhere except amd64 yet
+# media-libs/libplacebo is not keyworded anywhere except amd64/ppc64/x86 yet
 media-video/vlc libplacebo
 
 # Denis Lisov <dennis.lissov@gmail.com> (2019-05-09)
@@ -125,10 +135,6 @@ app-admin/rsyslog mdblookup
 # spacetime is only supported on amd64 at the moment.
 # https://caml.inria.fr/pub/docs/manual-ocaml/spacetime.html
 dev-lang/ocaml spacetime
-
-# Alexis Ballier <aballier@gentoo.org> (2017-01-31)
-# nvenc requires nvidia drivers, apply same mask logic
-media-video/ffmpeg nvenc
 
 # Thomas Deutschmann <whissi@gentoo.org> (2017-01-30)
 # media-libs/raspberrypi-userland not keyworded
@@ -290,3 +296,4 @@ media-video/mplayer cpudetection
 # Ian Whyman <thev00d00@gentoo.org> (2016-05-22)
 # Mask raspberry-pi except on arm.
 dev-libs/libcec raspberry-pi
+
