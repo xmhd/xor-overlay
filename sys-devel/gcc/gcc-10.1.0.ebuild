@@ -1010,6 +1010,8 @@ src_compile() {
 
     einfo "Building ${PN} (${GCC_MAKE_TARGET})..."
 
+    pushd "${WORKDIR}"/build >/dev/null
+
 	# Run make against GCC_TARGET, setting some variables as required.
 	emake -C "${WORKDIR}"/build \
             LDFLAGS="${LDFLAGS}" \
@@ -1264,7 +1266,7 @@ src_install() {
 		# Basic sanity check
 		local EXEEXT
 		eval $(grep ^EXEEXT= "${WORKDIR}"/build/gcc/config.log)
-		[[ -r ${ED}/${BINPATH}/gcc${EXEEXT} ]] || die "gcc not found in ${ED}"
+		[[ -r ${D}/${BINPATH}/gcc${EXEEXT} ]] || die "gcc not found in ${ED}"
 	fi
 
 	# Setup env.d entry
@@ -1273,27 +1275,29 @@ src_install() {
 	create_revdep_rebuild_entry
 
     # === LINK COMPILER BINARIES ===
-	dodir /usr/bin
+	dodir ${PREFIX}/bin
 	cd "${D}"${BINPATH}
 	# Ugh: we really need to auto-detect this list.
-	#      It's constantly out of date.
-	for x in cpp gcc g++ c++ gcov g77 gcj gcjh gfortran gccgo gnat* ; do
-		# For some reason, g77 gets made instead of ${CTARGET}-g77...
-		# this should take care of that
-		if [[ -f ${x} ]] ; then
-			# In case they're hardlinks, clear out the target first
-			# otherwise the mv below will complain.
-			rm -f ${CTARGET}-${x}
-			mv ${x} ${CTARGET}-${x}
-		fi
+	#	   It's constantly out of date.
+
+	local binary_languages="cpp gcc g++ c++ gcov"
+	local gnat_bins="gnat gnatbind gnatchop gnatclean gnatfind gnatkr gnatlink gnatls gnatmake gnatname gnatprep gnatxref"
+
+	use go && binary_languages="${binary_languages} gccgo"
+	use fortran && binary_languages="${binary_languages} gfortran"
+	use ada && binary_languages="${binary_languages} ${gnat_bins}"
+	use d && binary_languages="${binary_languages} gdc"
+
+	for x in ${binary_languages} ; do
+		[[ -f ${x} ]] && mv ${x} ${CTARGET}-${x}
 
 		if [[ -f ${CTARGET}-${x} ]] ; then
-			if ! is_crosscompile ; then
+			if ! is_crosscompile; then
 				ln -sf ${CTARGET}-${x} ${x}
-				dosym ${BINPATH}/${CTARGET}-${x} /usr/bin/${x}-${GCC_CONFIG_VER}
+				dosym ${BINPATH}/${CTARGET}-${x} ${PREFIX}/bin/${x}-${GCC_CONFIG_VER}
 			fi
-			# Create versioned symlinks
-			dosym ${BINPATH}/${CTARGET}-${x} /usr/bin/${CTARGET}-${x}-${GCC_CONFIG_VER}
+			# Create version-ed symlinks
+			dosym ${BINPATH}/${CTARGET}-${x} ${PREFIX}/bin/${CTARGET}-${x}-${GCC_CONFIG_VER}
 		fi
 
 		if [[ -f ${CTARGET}-${x}-${GCC_CONFIG_VER} ]] ; then
@@ -1301,6 +1305,7 @@ src_install() {
 			ln -sf ${CTARGET}-${x} ${CTARGET}-${x}-${GCC_CONFIG_VER}
 		fi
 	done
+}
 
 	# === FINISH LINKING COMPILER BINARIES ===
 
