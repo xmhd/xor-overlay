@@ -792,6 +792,9 @@ src_configure() {
 
 	# === END ARCH CONFIGURATION ===
 
+	# Pass any local EXTRA_ECONF from /etc/portage/env to ./configure.
+    confgcc+=( "$@" ${EXTRA_ECONF} )
+
 	# Create build directory...
 	mkdir -p "${WORKDIR}"/build || die "create build directory failed"
 
