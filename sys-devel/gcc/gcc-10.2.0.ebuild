@@ -592,7 +592,7 @@ src_configure() {
     #--libdir=${LIBPATH}/lib <<< todo: investigate
     confgcc+=(
         --prefix=${PREFIX}
-        --bindir=${BINDIR}
+        --bindir=${BINPATH}
         --includedir=${LIBPATH}/include
         --datadir=${DATAPATH}
         --mandir=${DATAPATH}/man
