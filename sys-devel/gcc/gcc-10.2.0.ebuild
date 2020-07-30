@@ -470,33 +470,6 @@ _gcc_prepare_cross() {
 	fi
 }
 
-gcc_conf_lang_opts() {
-	# Determine language support:
-	local conf_gcc_lang=""
-	local GCC_LANG="c,c++"
-	if use objc; then
-		GCC_LANG+=",objc"
-		use objc-gc && conf_gcc_lang+=" --enable-objc-gc"
-		use objc++ && GCC_LANG+=",obj-c++"
-	fi
-
-	use fortran && GCC_LANG+=",fortran" || conf_gcc_lang+=" --disable-libquadmath"
-
-	use go && GCC_LANG+=",go"
-
-	use ada && GCC_LANG+=",ada" && conf_gcc_lang+=" CC=${GNATBOOT}/bin/gcc CXX=${GNATBOOT}/bin/g++ AR=${GNATBOOT}/bin/gcc-ar AS=as LD=ld NM=${GNATBOOT}/bin/gcc-nm RANLIB=${GNATBOOT}/bin/gcc-ranlib"
-
-	use d && GCC_LANG+=",d"
-
-    if use lto; then
-        GCC_LANG+=",lto"
-    fi
-
-	conf_gcc_lang+=" --enable-languages=${GCC_LANG} --disable-libgcj"
-
-	printf -- "${conf_gcc_lang}"
-}
-
 # ARM
 gcc_conf_arm_opts() {
 	# Skip the rest if not an arm target
@@ -799,6 +772,25 @@ src_configure() {
             confgcc+=( --enable-__cxa_atexit )
             ;;
 	esac
+
+	# === ARCH CONFIGURATION ===
+
+	# If the target can do biarch (-m32/-m64), enable it.
+	# Overhead should be small, and should simplify building of 64bit kernels in a 32bit userland by not needing kgcc64.
+	# Gentoo Linux bug #349405
+	case $(tc-arch) in
+	    ppc|ppc64)
+	        confgcc+=( --enable-targets=all )
+	    ;;
+	    sparc)
+	        confgcc+=( --enable-targets=all )
+	        ;;
+	    amd64|x86)
+	        confgcc+=( --enable-targets=all )
+	        ;;
+	esac
+
+	# === END ARCH CONFIGURATION ===
 
 	# Create build directory...
 	mkdir -p "${WORKDIR}"/build || die "create build directory failed"
