@@ -807,7 +807,7 @@ src_configure() {
     # finally run ./configure!
 	../gcc-${PV}/configure \
 		--host=$CHOST \
-	    $(gcc_conf_arm_opts) "${confgcc[@]}" || die "configure fail"
+	    $(gcc_conf_arm_opts) "${confgcc[@]}" || die "failed to run configure"
 
 	    is_crosscompile && gcc_conf_cross_post
 }
