@@ -470,51 +470,6 @@ _gcc_prepare_cross() {
 	fi
 }
 
-# ARM
-gcc_conf_arm_opts() {
-	# Skip the rest if not an arm target
-	[[ ${CTARGET} == arm* ]] || return
-
-	local conf_gcc_arm=""
-	local arm_arch=${CTARGET%%-*}
-	local a
-	# Remove trailing endian variations first: eb el be bl b l
-	for a in e{b,l} {b,l}e b l ; do
-		if [[ ${arm_arch} == *${a} ]] ; then
-			arm_arch=${arm_arch%${a}}
-			break
-		fi
-	done
-
-	# Convert armv7{a,r,m} to armv7-{a,r,m}
-	[[ ${arm_arch} == armv7? ]] && arm_arch=${arm_arch/7/7-}
-
-	# See if this is a valid --with-arch flag
-	if (srcdir=${S}/gcc target=${CTARGET} with_arch=${arm_arch};
-		. "${srcdir}"/config.gcc) &>/dev/null
-	then
-		conf_gcc_arm+=" --with-arch=${arm_arch}"
-	fi
-
-	# Enable hardvfp
-	local float="hard"
-	local default_fpu=""
-
-	case "${CTARGET}" in
-		*[-_]softfloat[-_]*) float="soft" ;;
-		*[-_]softfp[-_]*) float="softfp" ;;
-		armv[56]*) default_fpu="vfpv2" ;;
-		armv7ve*) default_fpu="vfpv4-d16" ;;
-		armv7*) default_fpu="vfpv3-d16" ;;
-		amrv8*) default_fpu="fp-armv8" ;;
-	esac
-
-	conf_gcc_arm+=" --with-float=$float"
-	[ -z "${MFPU}" ] && [ -n "${default_fpu}" ] && conf_gcc_arm+=" --with-fpu=${default_fpu}"
-
-	printf -- "${conf_gcc_arm}"
-}
-
 gcc_conf_cross_options() {
 	local conf_gcc_cross
 	conf_gcc_cross+=" --disable-libgomp --disable-bootstrap --enable-poison-system-directories"
@@ -775,6 +730,101 @@ src_configure() {
 
 	# === ARCH CONFIGURATION ===
 
+	local with_abi_map=()
+	case $(tc-arch) in
+        arm)	#264534 #414395
+            local a arm_arch=${CTARGET%%-*}
+            # Remove trailing endian variations first: eb el be bl b l
+            for a in e{b,l} {b,l}e b l ; do
+                if [[ ${arm_arch} == *${a} ]] ; then
+                    arm_arch=${arm_arch%${a}}
+                    break
+                fi
+            done
+
+            # Convert armv7{a,r,m} to armv7-{a,r,m}
+            [[ ${arm_arch} == armv7? ]] && arm_arch=${arm_arch/7/7-}
+
+            # See if this is a valid --with-arch flag
+            if (srcdir=${S}/gcc target=${CTARGET} with_arch=${arm_arch};
+                . "${srcdir}"/config.gcc) &>/dev/null
+            then
+                confgcc+=( --with-arch=${arm_arch} )
+            fi
+
+            # Make default mode thumb for microcontroller classes
+            # Gentoo Linux bug #418209
+            [[ ${arm_arch} == *-m ]] && confgcc+=( --with-mode=thumb )
+
+            # Follow the new arm hardfp distro standard by default
+            local float="hard"
+            local default_fpu=""
+
+            case ${CTARGET} in
+                *[-_]softfloat[-_]*)
+                    float="soft"
+                    ;;
+                *[-_]softfp[-_]*)
+                    float="softfp"
+                    ;;
+                armv[56]*)
+                    default_fpu="vfpv2"
+                    ;;
+                armv7ve*)
+                    default_fpu="vfpv4-d16"
+                    ;;
+                armv7*)
+                    default_fpu="vfpv3-d16"
+                    ;;
+                amrv8*)
+                    default_fpu="fp-armv8"
+                    ;;
+            esac
+
+            # Pass args to configure
+            confgcc+=( --with-float=$float )
+
+            if [ -z "${MFPU}" ] && [ -n "${default_fpu}" ]; then
+                confgcc+=( --with-fpu=${default_fpu} )
+            fi
+
+            ;;
+        mips)
+            # Add --with-abi flags to set default ABI
+            confgcc+=( --with-abi=$(gcc-abi-map ${TARGET_DEFAULT_ABI}) )
+            ;;
+        amd64)
+            # drop the older/ABI checks once this get's merged into some version of gcc upstream
+            confgcc+=( --with-abi=$(gcc-abi-map ${TARGET_DEFAULT_ABI}) )
+            ;;
+        x86)
+            # Default arch for x86 is normally i386, lets give it a bump since glibc will do so based on CTARGET anyways
+            confgcc+=( --with-arch=${CTARGET%%-*} )
+            ;;
+        hppa)
+            # Enable sjlj exceptions for backward compatibility on hppa
+            [[ ${GCCMAJOR} == "3" ]] && confgcc+=( --enable-sjlj-exceptions )
+            ;;
+        ppc)
+            # Set up defaults based on current CFLAGS
+            is-flagq -mfloat-gprs=double && confgcc+=( --enable-e500-double )
+            [[ ${CTARGET//_/-} == *-e500v2-* ]] && confgcc+=( --enable-e500-double )
+            ;;
+        ppc64)
+            # On ppc64 big endian target gcc assumes elfv1 by default,
+            # and elfv2 on little endian
+            # but musl does not support elfv1 at all on any endian ppc64
+            # see https://git.musl-libc.org/cgit/musl/tree/INSTALL
+            # https://bugs.gentoo.org/704784
+            # https://gcc.gnu.org/PR93157
+            [[ ${CTARGET} == powerpc64-*-musl ]] && confgcc+=( --with-abi=elfv2 )
+            ;;
+        riscv)
+            # Add --with-abi flags to set default ABI
+            confgcc+=( --with-abi=$(gcc-abi-map ${TARGET_DEFAULT_ABI}) )
+            ;;
+	esac
+
 	# If the target can do biarch (-m32/-m64), enable it.
 	# Overhead should be small, and should simplify building of 64bit kernels in a 32bit userland by not needing kgcc64.
 	# Gentoo Linux bug #349405
@@ -807,7 +857,7 @@ src_configure() {
     # finally run ./configure!
 	../gcc-${PV}/configure \
 		--host=$CHOST \
-	    $(gcc_conf_arm_opts) "${confgcc[@]}" || die "failed to run configure"
+	    "${confgcc[@]}" || die "failed to run configure"
 
 	    is_crosscompile && gcc_conf_cross_post
 }
