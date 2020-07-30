@@ -166,6 +166,66 @@ XGCC() {
     get_make_var GCC_FOR_TARGET ;
 }
 
+# Grab a variable from the build system (taken from linux-info.eclass)
+get_make_var() {
+        local var=$1 makefile=${2:-${WORKDIR}/build/Makefile}
+        echo -e "e:\\n\\t@echo \$(${var})\\ninclude ${makefile}" | \
+                r=${makefile%/*} emake --no-print-directory -s -f - 2>/dev/null
+}
+
+# This is a historical wart.  The original Gentoo/amd64 port used:
+#    lib32 - 32bit binaries (x86)
+#    lib64 - 64bit binaries (x86_64)
+#    lib   - "native" binaries (a symlink to lib64)
+# Most other distros use the logic (including mainline gcc):
+#    lib   - 32bit binaries (x86)
+#    lib64 - 64bit binaries (x86_64)
+# Over time, Gentoo is migrating to the latter form.
+#
+# Unfortunately, due to distros picking the lib32 behavior, newer gcc
+# versions will dynamically detect whether to use lib or lib32 for its
+# 32bit multilib.  So, to keep the automagic from getting things wrong
+# while people are transitioning from the old style to the new style,
+# we always set the MULTILIB_OSDIRNAMES var for relevant targets.
+setup_multilib_osdirnames() {
+        is_multilib || return 0
+
+        local config
+        local libdirs="../lib64 ../lib32"
+
+        # this only makes sense for some Linux targets
+        case ${CTARGET} in
+        x86_64*-linux*)    config="i386" ;;
+        powerpc64*-linux*) config="rs6000" ;;
+        sparc64*-linux*)   config="sparc" ;;
+        s390x*-linux*)     config="s390" ;;
+        *)                     return 0 ;;
+        esac
+        config+="/t-linux64"
+
+        local sed_args=()
+        if tc_version_is_at_least 4.6 ; then
+                sed_args+=( -e 's:$[(]call if_multiarch[^)]*[)]::g' )
+        fi
+        if [[ ${SYMLINK_LIB} == "yes" ]] ; then
+                einfo "updating multilib directories to be: ${libdirs}"
+                if tc_version_is_at_least 4.6.4 || tc_version_is_at_least 4.7 ; then
+                        sed_args+=( -e '/^MULTILIB_OSDIRNAMES.*lib32/s:[$][(]if.*):../lib32:' )
+                else
+                        sed_args+=( -e "/^MULTILIB_OSDIRNAMES/s:=.*:= ${libdirs}:" )
+                fi
+        else
+                einfo "using upstream multilib; disabling lib32 autodetection"
+                sed_args+=( -r -e 's:[$][(]if.*,(.*)[)]:\1:' )
+        fi
+        sed -i "${sed_args[@]}" "${S}"/gcc/config/${config} || die
+}
+
+# General purpose version check.  Without a second arg matches up to minor version (x.x.x)
+tc_version_is_at_least() {
+        ver_test "${2:-${GCC_ARCHIVE_VER}}" -ge "$1"
+}
+
 pkg_setup() {
 
     ### INFO ###
@@ -248,7 +308,7 @@ pkg_setup() {
 
 	# Flags to be used for stages two and three.
 	# TODO: allow custom optimisation levels -O3 and -Os
-	BOOT_CFLAGS="${BOOT_CFLAGS:--O2 -pipe}"
+	BOOT_CFLAGS="${BOOT_CFLAGS:--O2 -pipe $(get_abi_CFLAGS ${TARGET_DEFAULT_ABI})}"
 
 	# The following blocks of code will configure BUILD_CONFIG and GCC_TARGET.
     #
@@ -327,6 +387,10 @@ src_prepare() {
 
 	sed -i -e "s/^version :=.*/version := ${GCC_CONFIG_VER}/" ${S}/libgcc/Makefile.in || die
 
+	# === OSDIRNAMES ===
+
+    setup_multilib_osdirnames
+
     # Only modify sources if USE="-vanilla"
 	if ! use vanilla; then
 
@@ -391,57 +455,6 @@ src_prepare() {
 
 	# === CROSS COMPILER ===
 	is_crosscompile && _gcc_prepare_cross
-
-	# === OSDIRNAMES ===
-
-    # Historically most Linux distributions used the following setup:
-    #    lib32 - 32bit binaries (x86)
-    #    lib64 - 64bit binaries (x86_64)
-    #    lib   - "native" binaries (a symlink to lib64)
-    # Eventually, they (including mainline gcc) began migrating to the following
-    #    lib   - 32bit binaries (x86)
-    #    lib64 - 64bit binaries (x86_64)
-    #
-    # TODO: Migrate to latter form? brainstorm at future date.
-    #
-    # Unfortunately, due to the former, newer gcc versions will dynamically detect which setup to use.
-    # So to keep the autodetect magic from getting things wrong, we forcefully set the multilib directories.
-    #
-    # TODO: musl uses lib and lib only. Implement?
-	if use multilib; then
-        # TODO
-	    local config
-	    # TODO
-        local libdirs="../lib64 ../lib32"
-
-	    # this only makes sense for some Linux targets as not all support multilib.
-        case ${CTARGET} in
-            x86_64*-linux*)
-                config="i386" ;;
-            powerpc64*-linux*)
-                config="rs6000" ;;
-            sparc64*-linux*)
-                config="sparc" ;;
-            s390x*-linux*)
-                config="s390" ;;
-            *)
-                return 0 ;;
-        esac
-        config+="/t-linux64"
-
-        # Array to store our sed commands.
-        local sed_args=()
-
-        # TODO
-        sed_args+=( -e 's:$[(]call if_multiarch[^)]*[)]::g' )
-
-        # TODO
-        einfo "updating multilib directories to be: ${libdirs}"
-        sed_args+=( -e "/^MULTILIB_OSDIRNAMES/s:=.*:= ${libdirs}:" )
-
-        # TODO
-        sed -i "${sed_args[@]}" "${S}"/gcc/config/${config} || die
-	fi
 
     # === PREPARE ADA TOOLCHAIN ===
     if use ada; then
@@ -688,38 +701,6 @@ src_configure() {
         confgcc+=( --without-isl )
     fi
 
-    # multilib
-    if use multilib; then
-        confgcc+=( --enable-multilib )
-    else
-        confgcc+=( --disable-multilib )
-    fi
-
-	# translate our notion of multilibs into gcc's
-	local abi list
-	for abi in $(get_all_abis TARGET) ; do
-		local l=$(gcc-abi-map ${abi})
-		[[ -n ${l} ]] && list+=",${l}"
-	done
-	if [[ -n ${list} ]] ; then
-		case ${CTARGET} in
-		x86_64*)
-			confgcc+=( --with-multilib-list=${list:1} )
-			;;
-		esac
-	fi
-
-    # multiarch
-    if use multiarch; then
-        confgcc+=( --enable-multiarch )
-    else
-        confgcc+=( --disable-multiarch )
-    fi
-
-    if ! use generic_host; then
-        confgcc+="${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}}"
-    fi
-
     if ! use pch; then
         confgcc+=( --disable-libstdcxx-pch )
     fi
@@ -769,6 +750,42 @@ src_configure() {
 	esac
 
 	# === ARCH CONFIGURATION ===
+
+    # multilib
+    if use multilib; then
+        confgcc+=( --enable-multilib )
+    else
+    	# Fun times: if we are building for a target that has multiple
+		# possible ABI formats, and the user has told us to pick one
+		# that isn't the default, then not specifying it via the list
+		# below will break that on us.
+        confgcc+=( --disable-multilib )
+    fi
+
+    # translate our notion of multilibs into gcc's
+	local abi list
+	for abi in $(get_all_abis TARGET) ; do
+		local l=$(gcc-abi-map ${abi})
+		[[ -n ${l} ]] && list+=",${l}"
+	done
+	if [[ -n ${list} ]] ; then
+		case ${CTARGET} in
+		x86_64*)
+			confgcc+=( --with-multilib-list=${list:1} )
+			;;
+		esac
+	fi
+
+    # multiarch
+    if use multiarch; then
+        confgcc+=( --enable-multiarch )
+    else
+        confgcc+=( --disable-multiarch )
+    fi
+
+    if ! use generic_host; then
+        confgcc+="${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}}"
+    fi
 
 	local with_abi_map=()
 	case $(tc-arch) in
@@ -871,7 +888,7 @@ src_configure() {
 	case $(tc-arch) in
 	    ppc|ppc64)
 	        confgcc+=( --enable-targets=all )
-	    ;;
+	        ;;
 	    sparc)
 	        confgcc+=( --enable-targets=all )
 	        ;;
