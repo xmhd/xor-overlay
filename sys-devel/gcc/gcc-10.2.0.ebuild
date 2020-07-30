@@ -226,6 +226,12 @@ tc_version_is_at_least() {
         ver_test "${2:-${GCC_ARCHIVE_VER}}" -ge "$1"
 }
 
+
+is_multilib() {
+	tc_version_is_at_least 3 || return 1
+	use_if_iuse multilib
+}
+
 pkg_setup() {
 
     ### INFO ###
