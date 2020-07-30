@@ -42,7 +42,7 @@ gcc/testsuite/ChangeLog:
 @@ -7043,6 +7043,19 @@ fold_non_dependent_expr (tree t,
    return maybe_constant_value (t, object, manifestly_const_eval);
  }
-
+ 
 +/* Like fold_non_dependent_expr, but if EXPR couldn't be folded to a constant,
 +   return the original expression.  */
 +
@@ -56,9 +56,9 @@ gcc/testsuite/ChangeLog:
 +
 +  return expr;
 +}
-
+ 
  /* Like maybe_constant_init but first fully instantiate the argument.  */
-
+ 
 --- a/gcc/cp/cp-tree.h
 +++ b/gcc/cp/cp-tree.h
 @@ -7955,6 +7955,8 @@ extern tree maybe_constant_init			(tree, tree = NULL_TREE, bool = false);
@@ -75,10 +75,10 @@ gcc/testsuite/ChangeLog:
 @@ -3553,7 +3553,7 @@ cp_build_array_ref (location_t loc, tree array, tree idx,
  	 pointer arithmetic.)  */
        idx = cp_perform_integral_promotions (idx, complain);
-
+ 
 -      idx = maybe_constant_value (idx);
 +      idx = maybe_fold_non_dependent_expr (idx, complain);
-
+ 
        /* An array that is indexed by a non-constant
  	 cannot be stored in a register; we must be able to do
 --- /dev/null
@@ -101,5 +101,6 @@ gcc/testsuite/ChangeLog:
 +  int e[6];
 +  A<unsigned> f;
 +};
---
+-- 
 2.27.0
+

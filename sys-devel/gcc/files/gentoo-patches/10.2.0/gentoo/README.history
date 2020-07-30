@@ -1,20 +1,8 @@
-4 		Abandoned
-	+ 37_all_sparc_pie_TEXTREL.patch
-	+ 38_all_ICE-ipa-fnsummary-PR96130.patch
+2		TODO
+	+ 33_all_lto-O0-mix-ICE-ipa-PR96291.patch
+	+ 34_all_fundecl-ICE-PR95820.patch
 
-3		04 July 2020
-	+ 33_all_avx512-scalar-PR95528.patch
-	+ 34_all_cet-cross-x86.patch
-	+ 35_all_ICE-array-subscript-PR95508.patch
-	+ 36_all_fno-delayed-branch.patch
-
-2		11 June 2020
-	+ 29_all_fix-float-hang-PR95118.patch
-	+ 30_all_lto-intl-workaround-PR95194.patch
-	+ 31_all_ctor-range-PR95241.patch
-	+ 32_all_plugin-objdump.patch
-
-1		05 May 2020
+1 		23 July 2020
 	+ 01_all_default-fortify-source.patch
 	+ 02_all_default-warn-format-security.patch
 	+ 03_all_default-warn-trampolines.patch
@@ -43,3 +31,7 @@
 	+ 26_all_libcpp-ar.patch
 	+ 27_all_EXTRA_OPTIONS-z-now.patch
 	+ 28_all_EXTRA_OPTIONS-fstack-clash-protection.patch
+	+ 29_all_lto-intl-workaround-PR95194.patch
+	+ 30_all_plugin-objdump.patch
+	+ 31_all_fno-delayed-branch.patch
+	+ 32_all_sparc_pie_TEXTREL.patch

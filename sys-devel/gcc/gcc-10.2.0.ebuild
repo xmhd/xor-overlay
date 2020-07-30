@@ -31,7 +31,7 @@ IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 IUSE="$IUSE valgrind zstd" # TODO: sort these flags
 
 # Version of archive before patches.
-GCC_ARCHIVE_VER="10.1.0"
+GCC_ARCHIVE_VER="10.2.0"
 # GCC release archive
 GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
 SRC_URI="ftp://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}"
@@ -69,14 +69,12 @@ GENTOO_PATCHES=(
         26_all_libcpp-ar.patch
 #   	27_all_EXTRA_OPTIONS-z-now.patch
 #   	28_all_EXTRA_OPTIONS-fstack-clash-protection.patch
-        29_all_fix-float-hang-PR95118.patch
-        30_all_lto-intl-workaround-PR95194.patch
-        31_all_ctor-range-PR95241.patch
-        32_all_plugin-objdump.patch
-        33_all_avx512-scalar-PR95528.patch
-        34_all_cet-cross-x86.patch
-        35_all_ICE-array-subscript-PR95508.patch
-        36_all_fno-delayed-branch.patch
+        29_all_lto-intl-workaround-PR95194.patch
+        30_all_plugin-objdump.patch
+        31_all_fno-delayed-branch.patch
+        32_all_sparc_pie_TEXTREL.patch
+        33_all_lto-O0-mix-ICE-ipa-PR96291.patch
+        34_all_fundecl-ICE-PR95820.patch
 )
 
 # Ada Support:

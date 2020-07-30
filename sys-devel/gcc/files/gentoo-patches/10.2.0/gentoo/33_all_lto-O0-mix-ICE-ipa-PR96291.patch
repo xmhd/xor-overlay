@@ -1,0 +1,46 @@
+https://bugs.gentoo.org/733482
+https://gcc.gnu.org/PR96291
+
+From 03810b1b2dec00575b2bcb579eb3d7c34bd176bc Mon Sep 17 00:00:00 2001
+From: Sergei Trofimovich <siarheit@google.com>
+Date: Sat, 25 Jul 2020 19:26:50 +0100
+Subject: [PATCH] ipa/96291: don't crash on unoptimized lto functions
+
+In PR ipa/96291 the test contained an SCC with one
+unoptimized function. This tricked ipa-cp into NULL dereference.
+
+has_undead_caller_from_outside_scc_p() did not take into account
+that unoptimized funtions don't have IPA summary analysis. and
+dereferenced NULL pointer causing an ICE.
+
+	PR ipa/96291
+	* ipa-cp.c (has_undead_caller_from_outside_scc_p): Consider
+	unoptimized callers as undead.
+---
+ gcc/ipa-cp.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+--- a/gcc/ipa-cp.c
++++ b/gcc/ipa-cp.c
+@@ -5666,9 +5666,15 @@ has_undead_caller_from_outside_scc_p (struct cgraph_node *node,
+ 	&& cs->caller->call_for_symbol_thunks_and_aliases
+ 	  (has_undead_caller_from_outside_scc_p, NULL, true))
+       return true;
+-    else if (!ipa_edge_within_scc (cs)
+-	     && !IPA_NODE_REF (cs->caller)->node_dead)
+-      return true;
++    else if (!ipa_edge_within_scc (cs))
++      {
++	/* Unoptimized callers don't have IPA information.
++	   Conservatively assume callers are undead.  */
++	if (!IPA_NODE_REF (cs->caller))
++	  return true;
++	if (!IPA_NODE_REF (cs->caller)->node_dead)
++	  return true;
++      }
+   return false;
+ }
+ 
+-- 
+2.27.0
+

@@ -1,0 +1,49 @@
+https://gcc.gnu.org/PR96190
+https://bugs.gentoo.org/619706
+
+From 6acaa3c1c1e6202af9871aa304ed772939d51311 Mon Sep 17 00:00:00 2001
+From: Sergei Trofimovich <siarheit@google.com>
+Date: Tue, 14 Jul 2020 07:48:42 +0100
+Subject: [PATCH] sparc/sparc64: use PIE_SPEC to select crtendS.o [PR96190]
+
+In --enable-default-pie mode compiler should switch from
+using crtend.o to crtendS.o. On sparc it is especially visible
+because crtend.o contains PIC-unfriendly code.
+
+gcc:
+
+2020-07-14  Sergei Trofimovich  <siarheit@google.com>
+
+	PR driver/96190
+	* config/sparc/linux.h: Use PIE_SPEC to select crtendS.o.
+	* config/sparc/linux64.h: ditto
+---
+ gcc/config/sparc/linux.h   | 2 +-
+ gcc/config/sparc/linux64.h | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+--- a/gcc/config/sparc/linux.h
++++ b/gcc/config/sparc/linux.h
+@@ -35,7 +35,7 @@ along with GCC; see the file COPYING3.  If not see
+ 
+ #undef  ENDFILE_SPEC
+ #define ENDFILE_SPEC \
+-  "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s\
++  "%{shared|" PIE_SPEC ":crtendS.o%s;:crtend.o%s} crtn.o%s\
+    %{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
+ 
+ /* -mcpu=native handling only makes sense with compiler running on
+--- a/gcc/config/sparc/linux64.h
++++ b/gcc/config/sparc/linux64.h
+@@ -52,7 +52,7 @@ along with GCC; see the file COPYING3.  If not see
+ 
+ #undef	ENDFILE_SPEC
+ #define ENDFILE_SPEC \
+-  "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s\
++  "%{shared|" PIE_SPEC ":crtendS.o%s;:crtend.o%s} crtn.o%s\
+    %{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
+ 
+ /* The default code model.  */
+-- 
+2.27.0
+

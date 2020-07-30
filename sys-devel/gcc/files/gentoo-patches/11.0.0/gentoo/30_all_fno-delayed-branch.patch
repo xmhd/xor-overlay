@@ -11,7 +11,7 @@ Use blunt hammer and disable delayed slots until we have better fix.
 
 Reported-by: Jeroen Roovers
 Bug: https://gcc.gnu.org/PR96015
-Bug: https://bugs.gentoo.org/729570.
+Bug: https://bugs.gentoo.org/729570
 Signed-off-by: Sergei Trofimovich <siarheit@google.com>
 ---
  gcc/opts.c | 9 ++++++++-

@@ -1,0 +1,129 @@
+Install libgcj.spec into multilib directory, not just main $(libdir).
+
+https://bugs.gentoo.org/504812
+--- a/libjava/Makefile.am
++++ b/libjava/Makefile.am
+@@ -44,7 +44,7 @@ libexecsubdir = $(libexecdir)/gcc/$(target_noncanonical)/$(gcc_version)
+ ##
+ 
+ toolexeclib_LTLIBRARIES = libgcj.la libgij.la libgcj-tools.la
+-toolexecmainlib_DATA = libgcj.spec
++toolexeclib_DATA = libgcj.spec
+ 
+ ##
+ ## These files form a closed dependency group at the lower
+--- a/libjava/Makefile.in
++++ b/libjava/Makefile.in
+@@ -178,7 +178,7 @@ am__installdirs = "$(DESTDIR)$(dbexecdir)" \
+ 	"$(DESTDIR)$(toolexeclibdir)" "$(DESTDIR)$(bindir)" \
+ 	"$(DESTDIR)$(libexecsubdir)" "$(DESTDIR)$(bindir)" \
+ 	"$(DESTDIR)$(dbexecdir)" "$(DESTDIR)$(jardir)" \
+-	"$(DESTDIR)$(toolexecmainlibdir)"
++	"$(DESTDIR)$(toolexeclibdir)"
+ LTLIBRARIES = $(dbexec_LTLIBRARIES) $(noinst_LTLIBRARIES) \
+ 	$(toolexeclib_LTLIBRARIES)
+ install_libgcj_bc_la_LIBADD =
+@@ -540,7 +540,7 @@ am__can_run_installinfo = \
+     n|no|NO) false;; \
+     *) (install-info --version) >/dev/null 2>&1;; \
+   esac
+-DATA = $(dbexec_DATA) $(jar_DATA) $(toolexecmainlib_DATA)
++DATA = $(dbexec_DATA) $(jar_DATA) $(toolexeclib_DATA)
+ RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
+   distclean-recursive maintainer-clean-recursive
+ AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
+@@ -828,7 +828,7 @@ libsubdir = $(libdir)/gcc/$(target_noncanonical)/$(gcc_version)
+ libexecsubdir = $(libexecdir)/gcc/$(target_noncanonical)/$(gcc_version)
+ toolexeclib_LTLIBRARIES = libgcj.la libgij.la libgcj-tools.la \
+ 	$(am__append_2) $(am__append_3) $(am__append_4)
+-toolexecmainlib_DATA = libgcj.spec
++toolexeclib_DATA = libgcj.spec
+ LOWER_PACKAGE_FILES_LO = \
+ 	$(propertyo_files) \
+ 	gnu-CORBA.lo \
+@@ -10249,27 +10249,27 @@ uninstall-jarDATA:
+ 	@list='$(jar_DATA)'; test -n "$(jardir)" || list=; \
+ 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+ 	dir='$(DESTDIR)$(jardir)'; $(am__uninstall_files_from_dir)
+-install-toolexecmainlibDATA: $(toolexecmainlib_DATA)
++install-toolexeclibDATA: $(toolexeclib_DATA)
+ 	@$(NORMAL_INSTALL)
+-	@list='$(toolexecmainlib_DATA)'; test -n "$(toolexecmainlibdir)" || list=; \
++	@list='$(toolexeclib_DATA)'; test -n "$(toolexeclibdir)" || list=; \
+ 	if test -n "$$list"; then \
+-	  echo " $(MKDIR_P) '$(DESTDIR)$(toolexecmainlibdir)'"; \
+-	  $(MKDIR_P) "$(DESTDIR)$(toolexecmainlibdir)" || exit 1; \
++	  echo " $(MKDIR_P) '$(DESTDIR)$(toolexeclibdir)'"; \
++	  $(MKDIR_P) "$(DESTDIR)$(toolexeclibdir)" || exit 1; \
+ 	fi; \
+ 	for p in $$list; do \
+ 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+ 	  echo "$$d$$p"; \
+ 	done | $(am__base_list) | \
+ 	while read files; do \
+-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(toolexecmainlibdir)'"; \
+-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(toolexecmainlibdir)" || exit $$?; \
++	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(toolexeclibdir)'"; \
++	  $(INSTALL_DATA) $$files "$(DESTDIR)$(toolexeclibdir)" || exit $$?; \
+ 	done
+ 
+-uninstall-toolexecmainlibDATA:
++uninstall-toolexeclibDATA:
+ 	@$(NORMAL_UNINSTALL)
+-	@list='$(toolexecmainlib_DATA)'; test -n "$(toolexecmainlibdir)" || list=; \
++	@list='$(toolexeclib_DATA)'; test -n "$(toolexeclibdir)" || list=; \
+ 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+-	dir='$(DESTDIR)$(toolexecmainlibdir)'; $(am__uninstall_files_from_dir)
++	dir='$(DESTDIR)$(toolexeclibdir)'; $(am__uninstall_files_from_dir)
+ 
+ # This directory's subdirectories are mostly independent; you can cd
+ # into them and run `make' without going through this Makefile.
+@@ -10411,7 +10411,7 @@ all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(SCRIPTS) all-multi \
+ 		$(DATA)
+ installdirs: installdirs-recursive
+ installdirs-am:
+-	for dir in "$(DESTDIR)$(dbexecdir)" "$(DESTDIR)$(toolexeclibdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecsubdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(dbexecdir)" "$(DESTDIR)$(jardir)" "$(DESTDIR)$(toolexecmainlibdir)"; do \
++	for dir in "$(DESTDIR)$(dbexecdir)" "$(DESTDIR)$(toolexeclibdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecsubdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(dbexecdir)" "$(DESTDIR)$(jardir)" "$(DESTDIR)$(toolexeclibdir)"; do \
+ 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
+ 	done
+ install: install-recursive
+@@ -10546,7 +10546,7 @@ install-dvi-am:
+ install-exec-am: install-binPROGRAMS install-binSCRIPTS \
+ 	install-dbexecDATA install-dbexecLTLIBRARIES \
+ 	install-libexecsubPROGRAMS install-multi \
+-	install-toolexeclibLTLIBRARIES install-toolexecmainlibDATA
++	install-toolexeclibDATA install-toolexeclibLTLIBRARIES
+ 	@$(NORMAL_INSTALL)
+ 	$(MAKE) $(AM_MAKEFLAGS) install-exec-hook
+ install-html: install-html-recursive
+@@ -10592,7 +10592,7 @@ ps-am:
+ uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
+ 	uninstall-dbexecDATA uninstall-dbexecLTLIBRARIES \
+ 	uninstall-jarDATA uninstall-libexecsubPROGRAMS \
+-	uninstall-toolexeclibLTLIBRARIES uninstall-toolexecmainlibDATA
++	uninstall-toolexeclibDATA uninstall-toolexeclibLTLIBRARIES
+ 
+ .MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) all-multi \
+ 	clean-multi ctags-recursive distclean-multi install-am \
+@@ -10615,8 +10615,8 @@ uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
+ 	install-html-am install-info install-info-am install-jarDATA \
+ 	install-libexecsubPROGRAMS install-man install-multi \
+ 	install-pdf install-pdf-am install-ps install-ps-am \
+-	install-strip install-toolexeclibLTLIBRARIES \
+-	install-toolexecmainlibDATA installcheck installcheck-am \
++	install-strip install-toolexeclibDATA \
++	install-toolexeclibLTLIBRARIES installcheck installcheck-am \
+ 	installdirs installdirs-am maintainer-clean \
+ 	maintainer-clean-generic maintainer-clean-multi mostlyclean \
+ 	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+@@ -10624,8 +10624,8 @@ uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
+ 	tags-recursive uninstall uninstall-am uninstall-binPROGRAMS \
+ 	uninstall-binSCRIPTS uninstall-dbexecDATA \
+ 	uninstall-dbexecLTLIBRARIES uninstall-jarDATA \
+-	uninstall-libexecsubPROGRAMS uninstall-toolexeclibLTLIBRARIES \
+-	uninstall-toolexecmainlibDATA
++	uninstall-libexecsubPROGRAMS uninstall-toolexeclibDATA \
++	uninstall-toolexeclibLTLIBRARIES
+ 
+ export gcc_version
+ 
