@@ -795,6 +795,9 @@ src_configure() {
 	# Pass any local EXTRA_ECONF from /etc/portage/env to ./configure.
     confgcc+=( "$@" ${EXTRA_ECONF} )
 
+    # Pass BUILD_CONFIG to ./configure.
+    confgcc+=( --with-build-config=${BUILD_CONFIG} )
+
 	# Create build directory...
 	mkdir -p "${WORKDIR}"/build || die "create build directory failed"
 
@@ -804,7 +807,6 @@ src_configure() {
     # finally run ./configure!
 	../gcc-${PV}/configure \
 		--host=$CHOST \
-		${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} \
 	    $(gcc_conf_arm_opts) "${confgcc[@]}" || die "configure fail"
 
 	    is_crosscompile && gcc_conf_cross_post
