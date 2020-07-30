@@ -632,6 +632,35 @@ src_configure() {
 
     # === END GENERAL CONFIGURATION ===
 
+    # === LANGUAGE CONFIGURATION ===
+
+	# Determine language support:
+	local GCC_LANG="c,c++"
+	if use objc; then
+		GCC_LANG+=",objc"
+		use objc-gc && confgcc+=( --enable-objc-gc )
+		use objc++ && GCC_LANG+=",obj-c++"
+	fi
+
+	use fortran && GCC_LANG+=",fortran" || confgcc+=( --disable-libquadmath )
+
+	use go && GCC_LANG+=",go"
+
+	use ada && GCC_LANG+=",ada" && conf_gcc_lang+=" CC=${GNATBOOT}/bin/gcc CXX=${GNATBOOT}/bin/g++ AR=${GNATBOOT}/bin/gcc-ar AS=as LD=ld NM=${GNATBOOT}/bin/gcc-nm RANLIB=${GNATBOOT}/bin/gcc-ranlib"
+
+	use d && GCC_LANG+=",d"
+
+    if use lto; then
+        GCC_LANG+=",lto"
+    fi
+
+	confgcc+=(
+	    --enable-languages=${GCC_LANG}
+	    --disable-libgcj
+	)
+
+    # === END LANGUAGE CONFIGURATION ===
+
 	if is_crosscompile || tc-is-cross-compiler; then
 		confgcc+=( --target=${CTARGET} )
 	fi
@@ -781,7 +810,7 @@ src_configure() {
 	../gcc-${PV}/configure \
 		--host=$CHOST \
 		${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} \
-		$(gcc_conf_lang_opts) $(gcc_conf_arm_opts) "${confgcc[@]}" || die "configure fail"
+	    $(gcc_conf_arm_opts) "${confgcc[@]}" || die "configure fail"
 
 	    is_crosscompile && gcc_conf_cross_post
 }
