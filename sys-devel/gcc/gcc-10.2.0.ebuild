@@ -29,6 +29,7 @@ IUSE="$IUSE +fortify +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 IUSE="$IUSE valgrind zstd" # TODO: sort these flags
+IUSE="$IUSE checking_release checking_all"
 
 # Version of archive before patches.
 GCC_ARCHIVE_VER="10.2.0"
@@ -611,6 +612,24 @@ src_configure() {
         --enable-version-specific-runtime-libs
     )
 
+    # These checks perform internal consistency checks within gcc, but adds error checking of the requested complexity.
+    #
+    # checking=release performs checks on assert + compiler runtime, and is fairly cheap.
+    # checking=all performs all available tests except 'valgrind', and is fairly expensive.
+    #
+    # See https://gcc.gnu.org/install/configure.html for further information on the checks available within gcc.
+    #
+    # NOTE: '--enable-stage1-checking=...' == ''--enable-checking=...' unless explicitly specified.
+    # NOTE2: '--enable-checking=release' is default $upstream unless disabled via '--enable-checking=no'.
+    # NOTE3: gcc upstream doesn't test '--disable-checking', preferring '--enable-checking=no'. SEE: Gentoo Linux #317217
+    if use checking_release; then
+        confgcc+=( --enable-checking=release )
+    elif use checking_all; then
+        confgcc+=( --enable-checking=all )
+    else
+        confgcc+=( --enable-checking=no )
+    fi
+
     # === END GENERAL CONFIGURATION ===
 
 	if is_crosscompile || tc-is-cross-compiler; then
@@ -707,21 +726,6 @@ src_configure() {
     if ! use pch; then
         confgcc+=( --disable-libstdcxx-pch )
     fi
-
-    # Default to '--enable-checking=release', except when USE=debug, in which case '--enable-checking=all'.
-    #
-    # These checks perform internal consistency checks within gcc, but adds error checking of the requested complexity.
-    #
-    # checking=release performs checks on assert + compiler runtime, and is fairly cheap.
-    # checking=all performs all available tests except 'valgrind', and is fairly expensive.
-    #
-    # See https://gcc.gnu.org/install/configure.html for further information on the checks available within gcc.
-    #
-    # NOTE: '--enable-stage1-checking' == ''--enable-checking' unless explicitly specified.
-    # NOTE2: '--enable-checking=release' is default $upstream unless disabled via '--enable-checking=no'.
-    # NOTE3: $upstream doesn't test '--disable-checking', preferring '--enable-checking=no'. SEE: Gentoo Linux #317217
-    ! use debug && confgcc+=" --enable-checking=release"
-    use debug && confgcc+=" --enable-checking=all"
 
     # can this be shit canned? is solaris only, and i have better things to do with my time than support that
     use libssp || export gcc_cv_libc_provides_ssp=yes
