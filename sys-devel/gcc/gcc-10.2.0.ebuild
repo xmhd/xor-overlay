@@ -140,6 +140,32 @@ is_native_compile() {
 	[[ ${CHOST} == ${CTARGET} ]]
 }
 
+gcc-abi-map() {
+	# Convert the ABI name we use in Gentoo to what gcc uses
+	local map=()
+	case ${CTARGET} in
+	mips*)
+	    map=("o32 32" "n32 n32" "n64 64")
+	    ;;
+	riscv*)
+	    map=("lp64d lp64d" "lp64 lp64")
+	    ;;
+	x86_64*)
+	    map=("amd64 m64" "x86 m32" "x32 mx32")
+	    ;;
+	esac
+
+	local m
+	for m in "${map[@]}" ; do
+		l=( ${m} )
+		[[ $1 == ${l[0]} ]] && echo ${l[1]} && break
+	done
+}
+
+XGCC() {
+    get_make_var GCC_FOR_TARGET ;
+}
+
 pkg_setup() {
 
     ### INFO ###
@@ -668,6 +694,20 @@ src_configure() {
     else
         confgcc+=( --disable-multilib )
     fi
+
+	# translate our notion of multilibs into gcc's
+	local abi list
+	for abi in $(get_all_abis TARGET) ; do
+		local l=$(gcc-abi-map ${abi})
+		[[ -n ${l} ]] && list+=",${l}"
+	done
+	if [[ -n ${list} ]] ; then
+		case ${CTARGET} in
+		x86_64*)
+			confgcc+=( --with-multilib-list=${list:1} )
+			;;
+		esac
+	fi
 
     # multiarch
     if use multiarch; then
