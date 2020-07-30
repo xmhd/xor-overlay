@@ -633,30 +633,30 @@ src_configure() {
     # === END GENERAL CONFIGURATION ===
 
 	if is_crosscompile || tc-is-cross-compiler; then
-		confgcc+=" --target=${CTARGET}"
+		confgcc+=( --target=${CTARGET} )
 	fi
 	if is_crosscompile; then
 		confgcc+="$(gcc_conf_cross_options)"
 	else
-		confgcc+=" --enable-threads=posix --enable-__cxa_atexit --enable-libstdcxx-time"
-		confgcc+=" $(use_enable openmp libgomp)"
-		confgcc+=" $(use_enable bootstrap) --enable-shared"
+		confgcc+=( --enable-threads=posix --enable-__cxa_atexit --enable-libstdcxx-time )
+		confgcc+=( $(use_enable openmp libgomp) )
+		confgcc+=( $(use_enable bootstrap) --enable-shared )
 	fi
 
 	[[ -n ${CBUILD} ]] && confgcc+=" --build=${CBUILD}"
 
     # Default building of PIE executables.
     if use pie; then
-        confgcc+=" --enable-default-pie "
+        confgcc+=( --enable-default-pie )
     else
-        confgcc+=" --disable-default-pie "
+        confgcc+=( --disable-default-pie )
     fi
 
     # Default building of SSP executables.
     if use ssp; then
-        confgcc+=" --enable-default-ssp "
+        confgcc+=( --enable-default-ssp )
     else
-        confgcc+=" --disable-default-ssp "
+        confgcc+=( --disable-default-ssp )
     fi
 
 	if use sanitize; then
@@ -666,9 +666,9 @@ src_configure() {
 	fi
 
 	if use vtv; then
-		confgcc+=" --enable-vtable-verify --enable-libvtv"
+		confgcc+=( --enable-vtable-verify --enable-libvtv )
     else
-		confgcc+=" --disable-vtable-verify --disable-libvtv"
+		confgcc+=( --disable-vtable-verify --disable-libvtv )
 	fi
 
 	if use nls ; then
@@ -714,9 +714,9 @@ src_configure() {
 
     # multiarch
     if use multiarch; then
-        confgcc+=" --enable-multiarch "
+        confgcc+=( --enable-multiarch )
     else
-        confgcc+=" --disable-multiarch "
+        confgcc+=( --disable-multiarch )
     fi
 
     if ! use generic_host; then
@@ -781,7 +781,7 @@ src_configure() {
 	../gcc-${PV}/configure \
 		--host=$CHOST \
 		${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} \
-		$(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc || die "configure fail"
+		$(gcc_conf_lang_opts) $(gcc_conf_arm_opts) "${confgcc[@]}" || die "configure fail"
 
 	    is_crosscompile && gcc_conf_cross_post
 }
