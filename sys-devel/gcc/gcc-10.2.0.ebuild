@@ -585,11 +585,6 @@ src_configure() {
         --enable-version-specific-runtime-libs
     )
 
-    # libquadmath is a small support runtime library for _Float128 types.
-    # sci-libs/fftw happens to use it and expects it to be provided by gcc. Let's provide it unconditionally.
-    # Gentoo Linux bug #608990
-    confgcc+=( --enable-libquadmath )
-
     # These checks perform internal consistency checks within gcc, but adds error checking of the requested complexity.
     #
     # checking=release performs checks on assert + compiler runtime, and is fairly cheap.
@@ -620,7 +615,7 @@ src_configure() {
 		use objc++ && GCC_LANG+=",obj-c++"
 	fi
 
-	use fortran && GCC_LANG+=",fortran"
+	use fortran && GCC_LANG+=",fortran" || confgcc+=( --disable-libquadmath )
 
 	use go && GCC_LANG+=",go"
 
