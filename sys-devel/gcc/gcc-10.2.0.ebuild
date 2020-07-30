@@ -572,6 +572,7 @@ src_configure() {
 	local confgcc
 
 	# === BRANDING ===
+
 	# Export GCC branding
     # TODO: implement alpha, beta and git brandings possibly? specific bug tracker/JIRA for specific versions?
     if ! use hardened && ! use vanilla; then
@@ -582,7 +583,35 @@ src_configure() {
         confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
     fi
 
+    # === END BRANDING ===
 
+    # === GENERAL CONFIGURATION ===
+
+    # Set up paths
+    #--libdir=${LIBPATH}/lib <<< todo: investigate
+    confgcc+=(
+        --prefix=${PREFIX}
+        --bindir=${BINDIR}
+        --includedir=${LIBPATH}/include
+        --datadir=${DATAPATH}
+        --mandir=${DATAPATH}/man
+        --infodir=${DATAPATH/info}
+        --with-gxx-include-dir=${STDCXX_INCDIR}
+        --with-python-dir=${DATAPATH/$PREFIX/}/python
+    )
+
+    # TODO
+    confgcc+=(
+        --enable-obsolete
+        --disable-werror
+        --enable-secureplt
+        --with-system-zlib
+        --enable-clocale=gnu
+        --disable-libunwind-exceptions
+        --enable-version-specific-runtime-libs
+    )
+
+    # === END GENERAL CONFIGURATION ===
 
 	if is_crosscompile || tc-is-cross-compiler; then
 		confgcc+=" --target=${CTARGET}"
@@ -747,21 +776,6 @@ src_configure() {
     # finally run ./configure!
 	../gcc-${PV}/configure \
 		--host=$CHOST \
-		--prefix=${PREFIX} \
-		--bindir=${BINPATH} \
-		--includedir=${LIBPATH}/include \
-		--datadir=${DATAPATH} \
-		--mandir=${DATAPATH}/man \
-		--infodir=${DATAPATH}/info \
-		--with-gxx-include-dir=${STDCXX_INCDIR} \
-		--with-python-dir=${DATAPATH/$PREFIX/}/python \
-		--enable-obsolete \
-		--disable-werror \
-		--enable-secureplt \
-		--with-system-zlib \
-		--enable-clocale=gnu \
-		--disable-libunwind-exceptions \
-		--enable-version-specific-runtime-libs \
 		${BUILD_CONFIG:+--with-build-config="${BUILD_CONFIG}"} \
 		$(gcc_conf_lang_opts) $(gcc_conf_arm_opts) $confgcc || die "configure fail"
 
