@@ -393,6 +393,11 @@ src_prepare() {
 
 	sed -i -e "s/^version :=.*/version := ${GCC_CONFIG_VER}/" ${S}/libgcc/Makefile.in || die
 
+	# make sure the pkg config files install into multilib dirs.
+	# since we configure with just one --libdir, we can't use that (as gcc itself takes care of building multilibs).
+	# Gentoo Linux bug #435728
+	find "${S}" -name Makefile.in -exec sed -i '/^pkgconfigdir/s:=.*:=$(toolexeclibdir)/pkgconfig:' {} +
+
 	# === OSDIRNAMES ===
 
     setup_multilib_osdirnames
