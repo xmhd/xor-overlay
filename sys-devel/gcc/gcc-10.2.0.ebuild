@@ -637,7 +637,7 @@ src_configure() {
 	# === CHOST / CBUILD / CTARGET ===
 
     # Set the CHOST.
-	local confgcc=( --host=${CHOST} )
+	confgcc+=( --host=${CHOST} )
 
     # Set the CTARGET if we are cross compiling.
 	if is_crosscompile || tc-is-cross-compiler; then
