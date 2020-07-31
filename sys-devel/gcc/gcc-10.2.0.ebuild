@@ -647,83 +647,6 @@ src_configure() {
 
 	[[ -n ${CBUILD} ]] && confgcc+=" --build=${CBUILD}"
 
-    # Default building of PIE executables.
-    if use pie; then
-        confgcc+=( --enable-default-pie )
-    else
-        confgcc+=( --disable-default-pie )
-    fi
-
-    # Default building of SSP executables.
-    if use ssp; then
-        confgcc+=( --enable-default-ssp )
-    else
-        confgcc+=( --disable-default-ssp )
-    fi
-
-	if use sanitize; then
-	    confgcc+=( --enable-libsanitizer )
-	else
-	    confgcc+=( --disable-libsanitizer )
-	fi
-
-	if use systemtap; then
-        confgcc+=( --enable-systemtap )
-    else
-        confgcc+=( --disable-systemtap )
-    fi
-
-	if use vtv; then
-		confgcc+=( --enable-vtable-verify --enable-libvtv )
-    else
-		confgcc+=( --disable-vtable-verify --disable-libvtv )
-	fi
-
-	if use nls ; then
-		confgcc+=( --enable-nls --without-included-gettext )
-	else
-		confgcc+=( --disable-nls )
-	fi
-
-    # gcc has support for compressing lto bytecode using zstd
-    if use zstd; then
-        confgcc+=( --with-zstd )
-    else
-        confgcc+=( --without-zstd )
-    fi
-
-    # valgrind toolsuite provides various debugging and profiling tools
-    if use valgrind; then
-        confgcc+=( --enable-valgrind --enable-valgrind-annotations )
-    else
-        confgcc+=( --disable-valgrind --disable-valgrind-annotations )
-    fi
-
-    # lto todo
-    if use lto; then
-        confgcc+=( --enable-lto )
-    else
-        confgcc+=( --disable-lto )
-    fi
-
-    # graphite todo
-    if use graphite; then
-        confgcc+=( --with-isl --disable-isl-version-check )
-    else
-        confgcc+=( --without-isl )
-    fi
-
-    if ! use pch; then
-        confgcc+=( --disable-libstdcxx-pch )
-    fi
-
-    # can this be shit canned? is solaris only, and i have better things to do with my time than support that
-    use libssp || export gcc_cv_libc_provides_ssp=yes
-    if use libssp; then
-        confgcc+=( --enable-libssp )
-
-    fi
-
     # === LIBC CONFIGURATION ===
     #
  	# __cxa_atexit is "essential for fully standards-compliant handling of
@@ -910,6 +833,87 @@ src_configure() {
 	esac
 
 	# === END ARCH CONFIGURATION ===
+
+    # === FEATURE / LIBRARY CONFIGURATION ===
+
+    # graphite todo
+    if use graphite; then
+        confgcc+=( --with-isl --disable-isl-version-check )
+    else
+        confgcc+=( --without-isl )
+    fi
+
+    # can this be shit canned? is solaris only, and i have better things to do with my time than support that
+    use libssp || export gcc_cv_libc_provides_ssp=yes
+    if use libssp; then
+        confgcc+=( --enable-libssp )
+
+    fi
+
+    # lto todo
+    if use lto; then
+        confgcc+=( --enable-lto )
+    else
+        confgcc+=( --disable-lto )
+    fi
+
+	if use nls ; then
+		confgcc+=( --enable-nls --without-included-gettext )
+	else
+		confgcc+=( --disable-nls )
+	fi
+
+    if ! use pch; then
+        confgcc+=( --disable-libstdcxx-pch )
+    fi
+
+    # Default building of PIE executables.
+    if use pie; then
+        confgcc+=( --enable-default-pie )
+    else
+        confgcc+=( --disable-default-pie )
+    fi
+
+	if use sanitize; then
+	    confgcc+=( --enable-libsanitizer )
+	else
+	    confgcc+=( --disable-libsanitizer )
+	fi
+
+    # Default building of SSP executables.
+    if use ssp; then
+        confgcc+=( --enable-default-ssp )
+    else
+        confgcc+=( --disable-default-ssp )
+    fi
+
+	if use systemtap; then
+        confgcc+=( --enable-systemtap )
+    else
+        confgcc+=( --disable-systemtap )
+    fi
+
+    # valgrind toolsuite provides various debugging and profiling tools
+    if use valgrind; then
+        confgcc+=( --enable-valgrind --enable-valgrind-annotations )
+    else
+        confgcc+=( --disable-valgrind --disable-valgrind-annotations )
+    fi
+
+	if use vtv; then
+		confgcc+=( --enable-vtable-verify --enable-libvtv )
+    else
+		confgcc+=( --disable-vtable-verify --disable-libvtv )
+	fi
+
+    # gcc has support for compressing lto bytecode using zstd
+    if use zstd; then
+        confgcc+=( --with-zstd )
+    else
+        confgcc+=( --without-zstd )
+    fi
+
+    # === END FEATURE / LIBRARY CONFIGURATION ===
 
 	# Pass any local EXTRA_ECONF from /etc/portage/env to ./configure.
     confgcc+=( "$@" ${EXTRA_ECONF} )
