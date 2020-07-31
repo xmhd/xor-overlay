@@ -442,7 +442,8 @@ src_prepare() {
         # =3 -strong
         # This ebuild defaults to -strong, and if USE=hardened then set it to -strong
         if use ssp && use hardened; then
-            gcc_hard_flags+=" -DDEFAULT_FLAG_SSP=2 "
+            eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch" || die "patch fail"
+            gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
         fi
 
         # Enable FORTIFY_SOURCE by default

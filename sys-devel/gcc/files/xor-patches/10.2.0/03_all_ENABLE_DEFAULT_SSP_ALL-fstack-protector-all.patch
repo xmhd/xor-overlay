@@ -1,18 +1,12 @@
-From 4c9e0c5982ca24682aaff4bbd860fb0cc9c9185e Mon Sep 17 00:00:00 2001
-From: xor <davidhughes205@gmail.com>
-Date: Fri, 26 Jun 2020 11:45:18 -0400
-Subject: [PATCH] enable-default-ssp-all
-
----
- gcc/defaults.h | 3 +++
- 1 file changed, 3 insertions(+)
-
 diff --git a/gcc/defaults.h b/gcc/defaults.h
-index f1a38626624..49667fe0ba0 100644
+index f1a38626624..158af7366bc 100644
 --- a/gcc/defaults.h
 +++ b/gcc/defaults.h
-@@ -1367,6 +1367,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+@@ -1365,8 +1365,12 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+ /* Default value for flag_stack_protect when flag_stack_protect is initialized to -1:
+    --enable-default-ssp: Default flag_stack_protect to -fstack-protector-strong.
     --disable-default-ssp: Default flag_stack_protect to 0.
++   Hardened: Default flag_stack_protect to -fstack-protector-all.
   */
  #ifdef ENABLE_DEFAULT_SSP
 +# ifdef ENABLE_DEFAULT_SSP_ALL
@@ -21,6 +15,3 @@ index f1a38626624..49667fe0ba0 100644
  # ifndef DEFAULT_FLAG_SSP
  #  define DEFAULT_FLAG_SSP 3
  # endif
--- 
-2.27.0
-
