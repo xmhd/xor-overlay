@@ -527,31 +527,6 @@ _gcc_prepare_cross() {
 	fi
 }
 
-gcc_conf_cross_options() {
-	local conf_gcc_cross
-	conf_gcc_cross+=" --disable-libgomp --disable-bootstrap --enable-poison-system-directories"
-
-	if [[ ${CTARGET} == avr* ]]; then
-		conf_gcc_cross+=" --disable-__cxa_atexit"
-	else
-		conf_gcc_cross+=" --enable-__cxa_atexit"
-	fi
-
-	# Handle bootstrapping cross-compiler and libc in lock-step
-	if ! has_version ${CATEGORY}/${TARGET_LIBC}; then
-		# we are building with libc that is not installed:
-		conf_gcc_cross+=" --disable-shared --disable-libatomic --disable-threads --without-headers --disable-libstdcxx"
-	elif has_version "${CATEGORY}/${TARGET_LIBC}[headers-only]"; then
-		# libc installed, but has USE="crosscompile_opts_headers-only" to only install headers:
-		conf_gcc_cross+=" --disable-shared --disable-libatomic --with-sysroot=${PREFIX}/${CTARGET} --disable-libstdcxx"
-	else
-		# libc is installed:
-		conf_gcc_cross+=" --with-sysroot=${PREFIX}/${CTARGET} --enable-libstdcxx-time"
-	fi
-
-	printf -- "${conf_gcc_cross}"
-}
-
 src_configure() {
 
     ### INFO ###
