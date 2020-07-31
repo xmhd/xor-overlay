@@ -446,14 +446,20 @@ src_prepare() {
         fi
 
         # Enable FORTIFY_SOURCE by default
-	    use fortify && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
-	    # Enable LINK_NOW by default
-	    use link_now && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_EXTRA_OPTIONS-z-now.patch )"
-	    # Enable Stack Clash Protection by default
-	    use stack_clash_protection && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_EXTRA_OPTIONS-fstack-clash-protection.patch )"
+        if use fortify; then
+             use fortify && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
+        fi
 
-	    if use fortify || use link_now || use stack_clash_protection; then
-	        gcc_hard_flags+=" -DEXTRA_OPTIONS "
+        # Enable LINK_NOW by default
+        if use link_now; then
+            eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/01_all_ENABLE_DEFAULT_LINK_NOW-z-now.patch" || die "patch fail"
+            gcc_hard_flags+=" -DENABLE_DEFAULT_LINK_NOW "
+        fi
+
+	    # Enable Stack Clash Protection by default
+	    if use stack_clash_protection; then
+	        eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/01_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch" || die "patch fail"
+	        gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
 	    fi
 
 	    # GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
