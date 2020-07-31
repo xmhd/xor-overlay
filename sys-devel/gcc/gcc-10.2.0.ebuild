@@ -25,7 +25,7 @@ IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system fla
 IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
-IUSE="$IUSE +fortify +link_now +pie vtv" # Extra hardening flags
+IUSE="$IUSE +fortify_source +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 IUSE="$IUSE systemtap valgrind zstd" # TODO: sort these flags
@@ -447,8 +447,8 @@ src_prepare() {
         fi
 
         # Enable FORTIFY_SOURCE by default
-        if use fortify; then
-             use fortify && eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
+        if use fortify_source; then
+             eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
         fi
 
         # Enable LINK_NOW by default
