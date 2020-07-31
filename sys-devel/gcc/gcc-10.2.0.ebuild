@@ -458,7 +458,7 @@ src_prepare() {
 
 	    # Enable Stack Clash Protection by default
 	    if use stack_clash_protection; then
-	        eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/01_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch" || die "patch fail"
+	        eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch" || die "patch fail"
 	        gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
 	    fi
 
