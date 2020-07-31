@@ -547,6 +547,19 @@ gcc_conf_cross_options() {
 
 src_configure() {
 
+    ### INFO ###
+
+    # Configure procedure is as follows
+    #
+    # 1) Branding
+    # 2) General i.e paths
+    # 3) Languages
+    # 4) CHOST / CBUILD / CTARGET
+    # 5) Cross compiling
+    # 6) libc
+    # 7) Arch
+    # 8) Features and libraries
+
     # gcc_conf is our array of opts to pass to ./configure
 	local confgcc
 
@@ -576,6 +589,13 @@ src_configure() {
         --mandir=${DATAPATH}/man
         --infodir=${DATAPATH/info}
         --with-gxx-include-dir=${STDCXX_INCDIR}
+        # Stick the python scripts in their own slotted directory (Gentoo Linux bug #279252)
+        #
+        #  Specifies where to install the Python modules used for aot-compile.
+        # DIR should not include the prefix used in installation.
+        # e.g. --with-python-dir=/lib/python2.5/site-packages == /usr/lib/python2.5/site-packages
+        #
+        # This should translate into "/share/gcc-data/${CTARGET}/${GCC_CONFIG_VER}/python"
         --with-python-dir=${DATAPATH/$PREFIX/}/python
     )
 
