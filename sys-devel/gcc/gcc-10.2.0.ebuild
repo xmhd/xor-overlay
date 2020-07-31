@@ -657,17 +657,69 @@ src_configure() {
 
 	# === END CHOST / CBUILD / CTARGET CONFIGURATION ===
 
-	# === CROSS COMPILER ===
+    # === CROSS COMPILER ===
 
 	if is_crosscompile; then
-		confgcc+="$(gcc_conf_cross_options)"
-	else
+		# Enable build warnings by default with cross-compilers when system paths are included (e.g. via -I flags).
+		confgcc+=( --enable-poison-system-directories )
+
+        # three stage bootstrapping doesnt quite work when you cant run the resulting binaries natively!
+        confgcc+=( --disable-bootstrap )
+
+        # Force disable for is_crosscompile as the configure script can be dumb - Gentoo Linux bug #359855
+        confgcc+=( --disable-libgomp )
+
+        # Configure anything required by a particular TARGET_LIBC...
+
+        # Todo
+        if [[ ${CTARGET} == dietlibc* ]]; then
+            confgcc+=( --disable-libstdcxx-time )
+        fi
+
+        # Todo
+        if [[ ${CTARGET} == uclibc* ]]; then
+		    # Enable shared library support only on targets that support it: Gentoo Linux bug #291870
+			if ! echo '#include <features.h>' | \
+			   $(tc-getCPP ${CTARGET}) -E -dD - 2>/dev/null | \
+			   grep -q __HAVE_SHARED__
+			then
+				confgcc+=( --disable-shared )
+			fi
+        fi
+
+        # Todo
+        if [[ ${CTARGET} == avr* ]]; then
+            confgcc+=( --disable-__cxa_atexit )
+        else
+            confgcc+=( --enable-__cxa_atexit )
+        fi
+
+        # Todo
+        if [[ ${CTARGET} == x86_64-*-mingw* ||  ${CTARGET} == *-w64-mingw* ]]; then
+            confgcc+=( --disable-threads --enable-shared )
+        fi
+
+        # Handle bootstrapping cross-compiler and libc in lock-step
+        if ! has_version ${CATEGORY}/${TARGET_LIBC}; then
+            # we are building with libc that is not installed:
+            confgcc+=( --disable-shared --disable-libatomic --disable-threads --without-headers --disable-libstdcxx )
+        elif has_version "${CATEGORY}/${TARGET_LIBC}[headers-only]"; then
+            # libc installed, but has USE="crosscompile_opts_headers-only" to only install headers:
+            confgcc+=( --disable-shared --disable-libatomic --with-sysroot=${PREFIX}/${CTARGET} --disable-libstdcxx )
+        else
+            # libc is installed:
+            confgcc+=( --with-sysroot=${PREFIX}/${CTARGET} --enable-libstdcxx-time )
+        fi
+
+    else
+        # native compiler
+        # todo place this above when implemented is_native_compile
 		confgcc+=( --enable-threads=posix --enable-__cxa_atexit --enable-libstdcxx-time )
 		confgcc+=( $(use_enable openmp libgomp) )
 		confgcc+=( $(use_enable bootstrap) --enable-shared )
-	fi
+    fi
 
-	# === END CROSS COMPILER ===
+    # === END CROSS COMPILER ===
 
     # === LIBC CONFIGURATION ===
     #
