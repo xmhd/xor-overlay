@@ -634,9 +634,31 @@ src_configure() {
 
     # === END LANGUAGE CONFIGURATION ===
 
+	# === CHOST / CBUILD / CTARGET ===
+
+    # Set the CHOST.
+	local confgcc=( --host=${CHOST} )
+
+    # Set the CTARGET if we are cross compiling.
 	if is_crosscompile || tc-is-cross-compiler; then
+		# Straight from the GCC install doc:
+		# "GCC has code to correctly determine the correct value for target for nearly all native systems.
+		# Therefore, we highly recommend you not provide a configure target when configuring a native compiler."
 		confgcc+=( --target=${CTARGET} )
 	fi
+
+	# TODO: set CBUILD etc for if_is_canadian_cross and is_cross_build
+
+	# Pass CBUILD if one exists
+	# Note: can be incorporated to the above.
+	if [[ -n ${CBUILD} ]]; then
+	    confgcc+=( --build=${CBUILD} )
+	fi
+
+	# === END CHOST / CBUILD / CTARGET CONFIGURATION ===
+
+	# === CROSS COMPILER ===
+
 	if is_crosscompile; then
 		confgcc+="$(gcc_conf_cross_options)"
 	else
@@ -645,12 +667,12 @@ src_configure() {
 		confgcc+=( $(use_enable bootstrap) --enable-shared )
 	fi
 
-	[[ -n ${CBUILD} ]] && confgcc+=" --build=${CBUILD}"
+	# === END CROSS COMPILER ===
 
     # === LIBC CONFIGURATION ===
     #
- 	# __cxa_atexit is "essential for fully standards-compliant handling of
-	# destructors", but apparently requires glibc.
+ 	# __cxa_atexit is "essential for fully standards-compliant handling of destructors", but apparently requires glibc.
+ 	# cross compiler related?
 	case ${CTARGET} in
         *-uclibc*)
             if tc_has_feature nptl ; then
@@ -658,10 +680,6 @@ src_configure() {
                     --disable-__cxa_atexit
                     $(use_enable nptl tls)
                 )
-            fi
-            tc_version_is_between 3.3 3.4 && confgcc+=( --enable-sjlj-exceptions )
-            if tc_version_is_between 3.4 4.3 ; then
-                confgcc+=( --enable-clocale=uclibc )
             fi
             ;;
         *-elf|*-eabi)
