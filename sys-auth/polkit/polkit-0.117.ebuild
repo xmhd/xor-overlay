@@ -34,7 +34,7 @@ BDEPEND="
 	introspection? ( dev-libs/gobject-introspection )
 "
 DEPEND="
-	!duktape? ( dev-lang/spidermonkey:60[-debug] )
+	!duktape? ( dev-lang/spidermonkey:68[-debug] )
 	duktape? ( dev-lang/duktape )
 	dev-libs/glib:2
 	dev-libs/expat
