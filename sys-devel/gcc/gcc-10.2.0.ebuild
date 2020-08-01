@@ -204,7 +204,7 @@ setup_multilib_osdirnames() {
         config+="/t-linux64"
 
         local sed_args=()
-        
+
         sed_args+=( -e 's:$[(]call if_multiarch[^)]*[)]::g' )
 
         einfo "updating multilib directories to be: ${libdirs}"
@@ -418,6 +418,15 @@ src_prepare() {
 	# since we configure with just one --libdir, we can't use that (as gcc itself takes care of building multilibs).
 	# Gentoo Linux bug #435728
 	find "${S}" -name Makefile.in -exec sed -i '/^pkgconfigdir/s:=.*:=$(toolexeclibdir)/pkgconfig:' {} +
+
+	# update configure files
+	local f
+	einfo "Fixing misc issues in configure files"
+	for f in $(grep -l 'autoconf version 2.13' $(find "${S}" -name configure)) ; do
+		ebegin "  Updating ${f/${S}\/} [LANG]"
+		patch "${f}" "${FILESDIR}"/gcc-configure-LANG.patch >& "${T}"/configure-patch.log || eerror "Please file a bug about this"
+		eend $?
+	done
 
 	# === OSDIRNAMES ===
 
@@ -1223,6 +1232,8 @@ cross_toolchain_env_setup() {
 }
 
 src_install() {
+
+    # Change to the build directory
 	cd ${WORKDIR}/build
 
 # PRE-MAKE INSTALL SECTION:
