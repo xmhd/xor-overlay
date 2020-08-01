@@ -204,20 +204,16 @@ setup_multilib_osdirnames() {
         config+="/t-linux64"
 
         local sed_args=()
-        if tc_version_is_at_least 4.6 ; then
-                sed_args+=( -e 's:$[(]call if_multiarch[^)]*[)]::g' )
-        fi
-        if [[ ${SYMLINK_LIB} == "yes" ]] ; then
-                einfo "updating multilib directories to be: ${libdirs}"
-                if tc_version_is_at_least 4.6.4 || tc_version_is_at_least 4.7 ; then
-                        sed_args+=( -e '/^MULTILIB_OSDIRNAMES.*lib32/s:[$][(]if.*):../lib32:' )
-                else
-                        sed_args+=( -e "/^MULTILIB_OSDIRNAMES/s:=.*:= ${libdirs}:" )
-                fi
+        
+        sed_args+=( -e 's:$[(]call if_multiarch[^)]*[)]::g' )
+
+        einfo "updating multilib directories to be: ${libdirs}"
+        if tc_version_is_at_least 4.6.4 || tc_version_is_at_least 4.7 ; then
+                sed_args+=( -e '/^MULTILIB_OSDIRNAMES.*lib32/s:[$][(]if.*):../lib32:' )
         else
-                einfo "using upstream multilib; disabling lib32 autodetection"
-                sed_args+=( -r -e 's:[$][(]if.*,(.*)[)]:\1:' )
+                sed_args+=( -e "/^MULTILIB_OSDIRNAMES/s:=.*:= ${libdirs}:" )
         fi
+
         sed -i "${sed_args[@]}" "${S}"/gcc/config/${config} || die
 }
 
