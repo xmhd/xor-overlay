@@ -605,6 +605,13 @@ src_configure() {
         --enable-version-specific-runtime-libs
     )
 
+    # Allow gcc to search for clock funcs in the main c library.
+    # If it can't find them, then tough cookies, we aren't going to link in -lrt to all c++ programs.
+    # Gentoo Linux bug #411681
+    if use cxx; then
+        confgcc+=( --enable-libstdcxx-time )
+    fi
+
     # These checks perform internal consistency checks within gcc, but adds error checking of the requested complexity.
     #
     # checking=release performs checks on assert + compiler runtime, and is fairly cheap.
@@ -740,7 +747,6 @@ src_configure() {
         # todo place this above when implemented is_native_compile
 		confgcc+=(
 		    --enable-__cxa_atexit
-		    --enable-libstdcxx-time
 		)
 
 		# handle bootstrap here as we can only perform a three stage and any additional bootstraps if native...
