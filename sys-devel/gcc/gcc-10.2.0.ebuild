@@ -725,7 +725,8 @@ src_configure() {
         # Handle bootstrapping cross-compiler and libc in lock-step
         if ! has_version ${CATEGORY}/${TARGET_LIBC}; then
             # we are building with libc that is not installed:
-            confgcc+=( --disable-shared --disable-libatomic --disable-threads --without-headers --disable-libstdcxx )
+            # libquadmath requires a libc, Gentoo Linux bug #734820
+            confgcc+=( --disable-shared --disable-libatomic --disable-libquadmath --disable-threads --without-headers --disable-libstdcxx )
         elif has_version "${CATEGORY}/${TARGET_LIBC}[headers-only]"; then
             # libc installed, but has USE="crosscompile_opts_headers-only" to only install headers:
             confgcc+=( --disable-shared --disable-libatomic --with-sysroot=${PREFIX}/${CTARGET} --disable-libstdcxx )
@@ -738,7 +739,6 @@ src_configure() {
         # native compiler
         # todo place this above when implemented is_native_compile
 		confgcc+=(
-		    --enable-threads=posix
 		    --enable-__cxa_atexit
 		    --enable-libstdcxx-time
 		)
@@ -756,6 +756,18 @@ src_configure() {
 		else
 		    confgcc+=( --disable-libgomp )
 		fi
+
+        # CHOST specific options
+		case ${CHOST} in
+            mingw*|*-mingw*)
+                # mingw requires win32 threads
+                confgcc+=( --enable-threads=win32 )
+                ;;
+            *)
+                # default to posix threads for all other CHOST
+                confgcc+=( --enable-threads=posix )
+                ;;
+		esac
     fi
 
     # === END CROSS COMPILER ===
