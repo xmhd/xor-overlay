@@ -350,6 +350,31 @@ pkg_setup() {
     # GCC_TARGET finished - export.
 	export GCC_TARGET
 
+	# Setup TARGET_LIBC...
+	case ${CTARGET} in
+		*-linux)
+		    TARGET_LIBC=no-idea;;
+		*-dietlibc)
+		    TARGET_LIBC=dietlibc;;
+		*-elf|*-eabi)
+		    TARGET_LIBC=newlib;;
+		*-freebsd*)
+		    TARGET_LIBC=freebsd-lib;;
+		*-gnu*)
+		    TARGET_LIBC=glibc;;
+		*-klibc)
+		    TARGET_LIBC=klibc;;
+		*-musl*)
+		    TARGET_LIBC=musl;;
+		*-uclibc*)
+		    TARGET_LIBC=uclibc;;
+		avr*)
+		    TARGET_LIBC=avr-libc;;
+	esac
+
+	# TARGET_LIBC finished - export.
+	export TARGET_LIBC
+
 	use doc || export MAKEINFO="/dev/null"
 }
 
@@ -505,18 +530,6 @@ src_prepare() {
 }
 
 _gcc_prepare_cross() {
-	case ${CTARGET} in
-		*-linux) TARGET_LIBC=no-idea;;
-		*-dietlibc) TARGET_LIBC=dietlibc;;
-		*-elf|*-eabi) TARGET_LIBC=newlib;;
-		*-freebsd*) TARGET_LIBC=freebsd-lib;;
-		*-gnu*) TARGET_LIBC=glibc;;
-		*-klibc) TARGET_LIBC=klibc;;
-		*-musl*) TARGET_LIBC=musl;;
-		*-uclibc*) TARGET_LIBC=uclibc;;
-		avr*) TARGET_LIBC=avr-libc;;
-	esac
-	export TARGET_LIBC
 
 	# if we don't tell it where to go, libcc1 stuff ends up in ${ROOT}/usr/lib (or rather dies colliding)
 	sed -e 's%cc1libdir = .*%cc1libdir = '"${ROOT}${PREFIX}"'/$(host_noncanonical)/$(target_noncanonical)/lib/$(gcc_version)%' \
@@ -534,7 +547,7 @@ src_configure() {
     # Configure procedure is as follows
     #
     # 1) Branding
-    # 2) General i.e paths
+    # 2) General (paths etc)
     # 3) Languages
     # 4) CHOST / CBUILD / CTARGET
     # 5) Cross compiling
@@ -614,8 +627,10 @@ src_configure() {
 
     # === LANGUAGE CONFIGURATION ===
 
-	# Determine language support:
+	# C/C++ used for stage1 compiler
+	# TODO: can this be changed to c only?
 	local GCC_LANG="c,c++"
+
 	if use objc; then
 		GCC_LANG+=",objc"
 		use objc-gc && confgcc+=( --enable-objc-gc )
@@ -634,6 +649,7 @@ src_configure() {
         GCC_LANG+=",lto"
     fi
 
+    # and now add the GCC_LANG array to confgcc
 	confgcc+=(
 	    --enable-languages=${GCC_LANG}
 	    --disable-libgcj
@@ -654,7 +670,7 @@ src_configure() {
 		confgcc+=( --target=${CTARGET} )
 	fi
 
-	# TODO: set CBUILD etc for if_is_canadian_cross and is_cross_build
+	# TODO: set CBUILD etc for is_canadian_cross and is_cross_build
 
 	# Pass CBUILD if one exists
 	# Note: can be incorporated to the above.
@@ -721,9 +737,25 @@ src_configure() {
     else
         # native compiler
         # todo place this above when implemented is_native_compile
-		confgcc+=( --enable-threads=posix --enable-__cxa_atexit --enable-libstdcxx-time )
-		confgcc+=( $(use_enable openmp libgomp) )
-		confgcc+=( $(use_enable bootstrap) --enable-shared )
+		confgcc+=(
+		    --enable-threads=posix
+		    --enable-__cxa_atexit
+		    --enable-libstdcxx-time
+		)
+
+		# handle bootstrap here as we can only perform a three stage and any additional bootstraps if native...
+        # three stage bootstrapping doesnt quite work when you cant run the resulting binaries natively!
+		if use bootstrap; then
+		    confgcc+=( --enable-bootstrap --enable-shared )
+		else
+		    confgcc+=( --disable-bootstrap )
+		fi
+
+		if use openmp; then
+		    confgcc+=( --enable-libgomp )
+		else
+		    confgcc+=( --disable-libgomp )
+		fi
     fi
 
     # === END CROSS COMPILER ===
