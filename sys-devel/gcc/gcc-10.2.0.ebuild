@@ -600,7 +600,6 @@ src_configure() {
         --disable-werror
         --enable-secureplt
         --with-system-zlib
-        --enable-clocale=gnu
         --disable-libunwind-exceptions
         --enable-version-specific-runtime-libs
     )
@@ -743,12 +742,6 @@ src_configure() {
         fi
 
     else
-        # native compiler
-        # todo place this above when implemented is_native_compile
-		confgcc+=(
-		    --enable-__cxa_atexit
-		)
-
 		# handle bootstrap here as we can only perform a three stage and any additional bootstraps if native...
         # three stage bootstrapping doesnt quite work when you cant run the resulting binaries natively!
 		if use bootstrap; then
@@ -779,9 +772,8 @@ src_configure() {
     # === END CROSS COMPILER ===
 
     # === LIBC CONFIGURATION ===
-    #
+
  	# __cxa_atexit is "essential for fully standards-compliant handling of destructors", but apparently requires glibc.
- 	# cross compiler related?
 	case ${CTARGET} in
         *-uclibc*)
             if tc_has_feature nptl ; then
