@@ -29,7 +29,7 @@ IUSE="$IUSE +fortify_source +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 IUSE="$IUSE systemtap valgrind zstd" # TODO: sort these flags
-IUSE="$IUSE checking_release checking_all"
+IUSE="$IUSE checking_release checking_yes checking_all"
 
 # Version of archive before patches.
 GCC_ARCHIVE_VER="10.2.0"
@@ -626,9 +626,14 @@ src_configure() {
     #
     # NOTE: '--enable-stage1-checking=...' == ''--enable-checking=...' unless explicitly specified.
     # NOTE2: '--enable-checking=release' is default $upstream unless disabled via '--enable-checking=no'.
-    # NOTE3: gcc upstream doesn't test '--disable-checking', preferring '--enable-checking=no'. SEE: Gentoo Linux #317217
+    # NOTE3: gcc upstream doesn't test '--disable-checking', preferring '--enable-checking=no'. SEE: Gentoo Linux #31721
+    # NOTE4: checking=release ==  'assert, runtime'
+    #        checking=yes == 'assert, misc, gc, gimple, rtlflag, runtime, tree, types'
+    #        checking=all == 'assert, df, extra, fold, gc, gcac, gimple, misc, rtl, rtlflag, runtime, tree, types'
     if use checking_release; then
         confgcc+=( --enable-checking=release )
+    elif use checking_yes; then
+        confgcc+=( --enable-checking=yes )
     elif use checking_all; then
         confgcc+=( --enable-checking=all )
     else
