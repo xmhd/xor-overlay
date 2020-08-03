@@ -241,6 +241,7 @@ pkg_setup() {
     # 5) Set and export STAGE1_CFLAGS and BOOT_CFLAGS.
     # 6) Configure BUILD_CONFIG and export.
     # 7) Configure GCC_TARGET and export.
+    # 8) Configure TARGET_LIBC and export.
 
     # we don't want to use the installed compiler's specs to build gcc!
 	unset GCC_SPECS
