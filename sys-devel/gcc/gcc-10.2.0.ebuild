@@ -1062,6 +1062,7 @@ src_configure() {
 	einfo "PREFIX:          ${PREFIX}"
 	einfo "BINPATH:         ${BINPATH}"
 	einfo "LIBPATH:         ${LIBPATH}"
+	einfo "INCLUDEPATH:     ${LIBPATH}/include"
 	einfo "DATAPATH:        ${DATAPATH}"
 	einfo "STDCXX_INCDIR:   ${STDCXX_INCDIR}"
 	echo
@@ -1069,6 +1070,22 @@ src_configure() {
 	echo
 	einfo "Configuring GCC with: ${confgcc[@]//--/\n\t--}"
 	echo
+
+        --prefix=${PREFIX}
+        --bindir=${BINPATH}
+        --includedir=${LIBPATH}/include
+        --datadir=${DATAPATH}
+        --mandir=${DATAPATH}/man
+        --infodir=${DATAPATH/info}
+        --with-gxx-include-dir=${STDCXX_INCDIR}
+        # Stick the python scripts in their own slotted directory (Gentoo Linux bug #279252)
+        #
+        #  Specifies where to install the Python modules used for aot-compile.
+        # DIR should not include the prefix used in installation.
+        # e.g. --with-python-dir=/lib/python2.5/site-packages == /usr/lib/python2.5/site-packages
+        #
+        # This should translate into "/share/gcc-data/${CTARGET}/${GCC_CONFIG_VER}/python"
+        --with-python-dir=${DATAPATH/$PREFIX/}/python
 
 	# todo: force use of bash here? old gcc versions do not detect bash and re-exec itself.
 
