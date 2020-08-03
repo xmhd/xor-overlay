@@ -1052,6 +1052,21 @@ src_configure() {
 	# ... and cd to the newly created build directory.
 	cd "${WORKDIR}"/build || die "cd to build directory failed"
 
+    # Nothing wrong with a bit of verbosity
+	echo
+	einfo "PREFIX:          ${PREFIX}"
+	einfo "BINPATH:         ${BINPATH}"
+	einfo "LIBPATH:         ${LIBPATH}"
+	einfo "DATAPATH:        ${DATAPATH}"
+	einfo "STDCXX_INCDIR:   ${STDCXX_INCDIR}"
+	echo
+	einfo "Languages:       ${GCC_LANG}"
+	echo
+	einfo "Configuring GCC with: ${confgcc[@]//--/\n\t--}"
+	echo
+
+	# todo: force use of bash here? old gcc versions do not detect bash and re-exec itself.
+
     # finally run ./configure!
 	../gcc-${PV}/configure \
 	    "${confgcc[@]}" || die "failed to run configure"
@@ -1070,6 +1085,8 @@ src_compile() {
 
     # Unset ABI
 	unset ABI
+
+	einfo "Compiling ${PN} (${GCC_TARGET})..."
 
 	# Run make against GCC_TARGET, setting some variables as required.
 	emake -C "${WORKDIR}"/build \
