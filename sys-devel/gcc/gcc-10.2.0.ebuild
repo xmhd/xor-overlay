@@ -80,12 +80,12 @@ GENTOO_PATCHES=(
 
 # Ada Support:
 GNAT32="gnat-gpl-2014-x86-linux-bin.tar.gz"
-GNAT64="gnat-gpl-2020-20200429-x86_64-linux-bin.tar.gz"
+GNAT64="gnat-2020-20200429-x86_64-linux-bin.tar.gz"
 SRC_URI="
         $SRC_URI
         ada? (
-                amd64? ( https://community.download.adacore.com/v1/4d99b7b2f212c8efdab2ba8ede474bb9fa15888d?filename=${GNAT64} )
-                x86? (  https://community.download.adacore.com/v1/c5e9e6fdff5cb77ed90cf8c62536653e27c0bed6?filename=${GNAT32} )
+                amd64? ( https://community.download.adacore.com/v1/4d99b7b2f212c8efdab2ba8ede474bb9fa15888d?filename=${GNAT64} -> ${GNAT64} )
+                x86? (  https://community.download.adacore.com/v1/c5e9e6fdff5cb77ed90cf8c62536653e27c0bed6?filename=${GNAT32} -> ${GNAT32} )
         )
 "
 
