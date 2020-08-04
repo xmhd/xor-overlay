@@ -28,7 +28,7 @@ IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +fortify_source +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
-IUSE="$IUSE systemtap valgrind zstd" # TODO: sort these flags
+IUSE="$IUSE nptl systemtap valgrind zstd" # TODO: sort these flags
 IUSE="$IUSE checking_release checking_yes checking_all"
 
 # Version of archive before patches.
