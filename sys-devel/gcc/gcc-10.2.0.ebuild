@@ -80,12 +80,12 @@ GENTOO_PATCHES=(
 
 # Ada Support:
 GNAT32="gnat-gpl-2014-x86-linux-bin.tar.gz"
-GNAT64="gnat-gpl-2017-x86_64-linux-bin.tar.gz"
+GNAT64="gnat-gpl-2020-20200429-x86_64-linux-bin.tar.gz"
 SRC_URI="
         $SRC_URI
         ada? (
-                amd64? ( mirror://funtoo/gcc/${GNAT64} )
-                x86? ( mirror://funtoo/gcc/${GNAT32} )
+                amd64? ( https://community.download.adacore.com/v1/4d99b7b2f212c8efdab2ba8ede474bb9fa15888d?filename=${GNAT64} )
+                x86? (  https://community.download.adacore.com/v1/c5e9e6fdff5cb77ed90cf8c62536653e27c0bed6?filename=${GNAT32} )
         )
 "
 
@@ -676,7 +676,7 @@ src_configure() {
 
 	use go && GCC_LANG+=",go"
 
-	use ada && GCC_LANG+=",ada"
+	use ada && GCC_LANG+=",ada" && conf_gcc_lang+=" CC=${GNATBOOT}/bin/gcc CXX=${GNATBOOT}/bin/g++ AR=${GNATBOOT}/bin/gcc-ar AS=as LD=ld NM=${GNATBOOT}/bin/gcc-nm RANLIB=${GNATBOOT}/bin/gcc-ranlib"
 
 	use d && GCC_LANG+=",d"
 
