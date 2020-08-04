@@ -1253,9 +1253,12 @@ linkify_compiler_binaries() {
 
 tasteful_stripping() {
 	# Now do the fun stripping stuff
-	[[ ! is_crosscompile ]] && 	env RESTRICT="" CHOST=${CHOST} prepstrip "${D}${BINPATH}" ; env RESTRICT="" CHOST=${CTARGET} prepstrip "${D}${LIBPATH}"
+	[[ ! is_crosscompile ]] && \
+		env RESTRICT="" CHOST=${CHOST} prepstrip "${D}${BINPATH}" ; \
+		env RESTRICT="" CHOST=${CTARGET} prepstrip "${D}${LIBPATH}"
 	# gcc used to install helper binaries in lib/ but then moved to libexec/
-	[[ -d ${D}${PREFIX}/libexec/gcc ]] && env RESTRICT="" CHOST=${CHOST} prepstrip "${D}${PREFIX}/libexec/gcc/${CTARGET}/${GCC_CONFIG_VER}"
+	[[ -d ${D}${PREFIX}/libexec/gcc ]] && \
+		env RESTRICT="" CHOST=${CHOST} prepstrip "${D}${PREFIX}/libexec/gcc/${CTARGET}/${GCC_CONFIG_VER}"
 }
 
 doc_cleanups() {
@@ -1270,7 +1273,7 @@ doc_cleanups() {
 	if is_crosscompile || ! use doc || has noinfo ${FEATURES} ; then
 		rm -r "${D}${DATAPATH}"/info
 	else
-		prepinfo "${DATAPATH}"
+		doinfo "${DATAPATH}"
 	fi
 
 	# Strip man files too if 'noman' feature is set.
@@ -1361,7 +1364,7 @@ src_install() {
 	tasteful_stripping
 
 	# Remove python files in the lib path
-	find "${D}${LIBPATH}" -name "*.py" -type f -exec rm "{}" \; 2>/dev/null
+	find "${D}/${LIBPATH}" -name "*.py" -type f -exec rm "{}" \; 2>/dev/null
 
 	# Remove unwanted docs and prepare the rest for installation
 	doc_cleanups
