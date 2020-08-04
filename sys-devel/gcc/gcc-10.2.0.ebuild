@@ -1098,10 +1098,9 @@ src_configure() {
 	# todo: force use of bash here? old gcc versions do not detect bash and re-exec itself.
 
     # finally run ./configure!
-	../gcc-${PV}/configure \
-	    "${confgcc[@]}" || die "failed to run configure"
+	../gcc-${PV}/configure "${confgcc[@]}" || die "failed to run configure"
 
-	    is_crosscompile && gcc_conf_cross_post
+	is_crosscompile && gcc_conf_cross_post
 }
 
 gcc_conf_cross_post() {
