@@ -610,7 +610,7 @@ src_configure() {
         --includedir=${LIBPATH}/include
         --datadir=${DATAPATH}
         --mandir=${DATAPATH}/man
-        --infodir=${DATAPATH/info}
+        --infodir=${DATAPATH}/info
         --with-gxx-include-dir=${STDCXX_INCDIR}
         # Stick the python scripts in their own slotted directory (Gentoo Linux bug #279252)
         #
