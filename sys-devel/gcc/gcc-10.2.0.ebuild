@@ -92,6 +92,7 @@ SRC_URI="
 BDEPEND="
     sys-devel/binutils
     >=sys-devel/bison-1.875
+    doc? ( >=app-doc/doxygen-1.7 )
     >=sys-devel/flex-2.5.4
     elibc_glibc? ( >=sys-libs/glibc-2.8 )
     elibc_musl? ( sys-libs/musl )
