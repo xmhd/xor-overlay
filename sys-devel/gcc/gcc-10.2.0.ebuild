@@ -22,7 +22,7 @@ GCC_MAJOR="${PV%%.*}"
 IUSE="ada +cxx d go +fortran objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
-IUSE="$IUSE openmp altivec graphite lto pch generic_host" # Optimizations/features flags
+IUSE="$IUSE openmp altivec fixed-point graphite lto pch generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +fortify_source +link_now +pie vtv" # Extra hardening flags
@@ -988,6 +988,13 @@ src_configure() {
     # ada
     if use ada; then
         confgcc+=( --disable-libada)
+    fi
+
+    # MIPS only, masked by default in profiles and unmasked for MIPS profile
+    if use fixed-point; then
+        confgcc+=( --enable-fixed-point )
+    else
+        confgcc+=( --disable-fixed-point )
     fi
 
     # graphite todo
