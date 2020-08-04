@@ -19,7 +19,7 @@ FEATURES=${FEATURES/multilib-strict/}
 
 GCC_MAJOR="${PV%%.*}"
 
-IUSE="ada +cxx d go +fortran objc objc++ objc-gc " # Languages
+IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE openmp altivec fixed-point graphite lto pch generic_host" # Optimizations/features flags
@@ -681,6 +681,8 @@ src_configure() {
 
 	use d && GCC_LANG+=",d"
 
+	use jit && ! is_crosscompile && GCC_LANG+=",jit"
+
     if use lto; then
         GCC_LANG+=",lto"
     fi
@@ -1002,6 +1004,12 @@ src_configure() {
         confgcc+=( --with-isl --disable-isl-version-check )
     else
         confgcc+=( --without-isl )
+    fi
+
+    if use jit && ! is_crosscompile; then
+        confgcc+=( --enable-host-shared )
+    else
+        confgcc+=( --disable-host-shared )
     fi
 
     # can this be shit canned? is solaris only, and i have better things to do with my time than support that
