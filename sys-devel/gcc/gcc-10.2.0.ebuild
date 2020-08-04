@@ -228,6 +228,29 @@ is_multilib() {
 	use_if_iuse multilib
 }
 
+pkg_pretend() {
+
+    # Initial check
+    if use vanilla && use hardened; then
+        die "vanilla and hardened USE flags are incompatible - Disable one of them."
+    fi
+
+    # Some features require C++, so check that requirement is met when the relevant USE flags are selected.
+    if ! use cxx; then
+        if use ada; then
+            die "Ada requires a C++ compiler, set USE=cxx to continue."
+        fi
+
+        if use go; then
+            die "Go requires a C++ compiler, set USE=cxx to continue."
+        fi
+
+        if use objc++; then
+            die "Obj-C++ requires a C++ compiler, set USE=cxx to continue."
+        fi
+    fi
+}
+
 pkg_setup() {
 
     ### INFO ###
@@ -402,11 +425,6 @@ src_prepare() {
         export GCC_BRANDING="Funtoo Linux {$PV}"
     elif use hardened; then
         export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
-    fi
-
-    # Initial check
-    if use vanilla && use hardened; then
-        die "vanilla and hardened USE flags are incompatible - Disable one of them."
     fi
 
 	# For some reason, when upgrading gcc, the gcc Makefile will install stuff
@@ -658,7 +676,7 @@ src_configure() {
 
 	use go && GCC_LANG+=",go"
 
-	use ada && GCC_LANG+=",ada" && conf_gcc_lang+=" CC=${GNATBOOT}/bin/gcc CXX=${GNATBOOT}/bin/g++ AR=${GNATBOOT}/bin/gcc-ar AS=as LD=ld NM=${GNATBOOT}/bin/gcc-nm RANLIB=${GNATBOOT}/bin/gcc-ranlib"
+	use ada && GCC_LANG+=",ada"
 
 	use d && GCC_LANG+=",d"
 
@@ -966,6 +984,11 @@ src_configure() {
 
     # === FEATURE / LIBRARY CONFIGURATION ===
 
+    # ada
+    if use ada; then
+        confgcc+=( --disable-libada)
+    fi
+
     # graphite todo
     if use graphite; then
         confgcc+=( --with-isl --disable-isl-version-check )
@@ -1106,7 +1129,12 @@ gcc_conf_cross_post() {
 src_compile() {
 
     # Unset ABI
+    # leftover from Funtoo - needed?
 	unset ABI
+
+	# To compile ada library standard files special compiler options are passed via ADAFLAGS in the Makefile.
+	# Unset ADAFLAGS as setting this override the options...
+	unset ADAFLAGS
 
 	einfo "Compiling ${PN} (${GCC_TARGET})..."
 
@@ -1117,6 +1145,17 @@ src_compile() {
             BOOT_CFLAGS="${BOOT_CFLAGS}" \
 	        LIBPATH="${LIBPATH}" \
             ${GCC_TARGET} || die "emake failed with ${GCC_TARGET}"
+
+    if use ada; then
+		# Without these links it is not getting the good compiler
+		# Need to check why...
+		ln -s gcc ../build/prev-gcc || die
+		ln -s ${CHOST} ../build/prev-${CHOST} || die
+		# Building standard ada library
+		emake -C gcc gnatlib-shared
+		# Building gnat toold
+		emake -C gcc gnattools
+    fi
 
     # Optionally build some docs
 	if ! is_crosscompile && use cxx && use doc; then
