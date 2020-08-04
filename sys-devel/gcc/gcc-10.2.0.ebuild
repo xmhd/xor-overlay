@@ -552,6 +552,9 @@ src_prepare() {
 
 	# Must be called in src_prepare by EAPI6
 	eapply_user
+
+	einfo "Touching generated files ..."
+	./contrib/gcc_update --touch
 }
 
 _gcc_prepare_cross() {
@@ -1126,6 +1129,8 @@ gcc_conf_cross_post() {
 }
 
 src_compile() {
+
+    touch "${S}"/gcc/c-gperf.h
 
     # Unset ABI
     # leftover from Funtoo - needed?
