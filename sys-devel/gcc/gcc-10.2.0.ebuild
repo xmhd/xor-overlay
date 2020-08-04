@@ -1273,7 +1273,7 @@ doc_cleanups() {
 	if is_crosscompile || ! use doc || has noinfo ${FEATURES} ; then
 		rm -r "${D}/${DATAPATH}"/info
 	else
-		doinfo "${DATAPATH}"
+		prepinfo "${DATAPATH}"
 	fi
 
 	# Strip man files too if 'noman' feature is set.
