@@ -1266,19 +1266,19 @@ doc_cleanups() {
 	if [[ -d ${cxx_mandir} ]] ; then
 		# clean bogus manpages #113902
 		find "${cxx_mandir}" -name '*_build_*' -exec rm {} \;
-		( set +f ; cp -r "${cxx_mandir}"/man? "${D}/${DATAPATH}"/man/ )
+		( set +f ; cp -r "${cxx_mandir}"/man? "${D}${DATAPATH}"/man/ )
 	fi
 
 	# Remove info files if we don't want them.
 	if is_crosscompile || ! use doc || has noinfo ${FEATURES} ; then
-		rm -r "${D}/${DATAPATH}"/info
+		rm -r "${D}${DATAPATH}"/info
 	else
 		doinfo "${DATAPATH}"
 	fi
 
 	# Strip man files too if 'noman' feature is set.
 	if is_crosscompile || has noman ${FEATURES} ; then
-		rm -r "${D}/${DATAPATH}"/man
+		rm -r "${D}${DATAPATH}"/man
 	else
 		prepman "${DATAPATH}"
 	fi
