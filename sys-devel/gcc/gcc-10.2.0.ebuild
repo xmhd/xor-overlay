@@ -258,14 +258,23 @@ pkg_setup() {
 
     # Set up procedure is as follows:
     #
-    # 1) Unset GCC_SPECS and LANGUAGES.
-    # 2) Set GCC_BRANCH_VER and GCC_CONFIG_VER.
-    # 3) Capture / Filter / Downgrade FLAGS and ARCH where applicable.
-    # 4) Set globals for TARGET_ABI, TARGET_DEFAULT_ABI and TARGET_MULTILIB_ABIS.
-    # 5) Set and export STAGE1_CFLAGS and BOOT_CFLAGS.
-    # 6) Configure BUILD_CONFIG and export.
-    # 7) Configure GCC_TARGET and export.
-    # 8) Configure TARGET_LIBC and export.
+    # 1) Branding
+    # 2) Unset GCC_SPECS and LANGUAGES.
+    # 3) Set GCC_BRANCH_VER and GCC_CONFIG_VER.
+    # 4) Capture / Filter / Downgrade FLAGS and ARCH where applicable.
+    # 5) Set globals for TARGET_ABI, TARGET_DEFAULT_ABI and TARGET_MULTILIB_ABIS.
+    # 6) Set and export STAGE1_CFLAGS and BOOT_CFLAGS.
+    # 7) Configure BUILD_CONFIG and export.
+    # 8) Configure GCC_TARGET and export.
+    # 9) Configure TARGET_LIBC and export.
+
+    # Export GCC branding
+    # TODO: implement alpha, beta and git brandings possibly? specific bug tracker/JIRA for specific versions?
+    if ! use hardened && ! use vanilla; then
+        export GCC_BRANDING="Funtoo Linux {$PV}"
+    elif use hardened && ! use vanilla; then
+        export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
+    fi
 
     # we don't want to use the installed compiler's specs to build gcc!
 	unset GCC_SPECS
@@ -574,15 +583,10 @@ src_configure() {
 
 	# === BRANDING ===
 
-	# Export GCC branding
-    # TODO: implement alpha, beta and git brandings possibly? specific bug tracker/JIRA for specific versions?
-    if ! use hardened && ! use vanilla; then
-        export GCC_BRANDING="Funtoo Linux {$PV}"
-		confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
-    elif use hardened; then
-        export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
-        confgcc+=( --with-bugurl=http://bugs.funtoo.org --with-pkgversion="$GCC_BRANDING" )
-    fi
+    confgcc+=(
+        --with-bugurl="http://bugs.funtoo.org"
+        --with-pkgversion="$GCC_BRANDING"
+    )
 
     # === END BRANDING ===
 
