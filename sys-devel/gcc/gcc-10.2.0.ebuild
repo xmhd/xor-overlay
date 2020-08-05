@@ -22,7 +22,7 @@ GCC_MAJOR="${PV%%.*}"
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
-IUSE="$IUSE openmp altivec fixed-point graphite lto pch generic_host" # Optimizations/features flags
+IUSE="$IUSE openmp altivec fixed-point graphite lto pch quad generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE +fortify_source +link_now +pie vtv" # Extra hardening flags
@@ -485,6 +485,10 @@ src_prepare() {
         # TODO: write a blurb
         local gcc_hard_flags=""
 
+        # TODO: disable pie in STAGE1_LDFLAGS? bug #618908
+        # This will allow us to build older gcc with a pie enabled modern gcc.
+
+        # Todo
         if use dev_extra_warnings ; then
 			eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-warn-format-security.patch )"
 			eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-warn-trampolines.patch )"
@@ -665,7 +669,7 @@ src_configure() {
 		use objc++ && GCC_LANG+=",obj-c++"
 	fi
 
-	use fortran && GCC_LANG+=",fortran" || confgcc+=( --disable-libquadmath )
+	use fortran && GCC_LANG+=",fortran"
 
 	use go && GCC_LANG+=",go"
 
@@ -1035,6 +1039,12 @@ src_configure() {
         confgcc+=( --enable-default-pie )
     else
         confgcc+=( --disable-default-pie )
+    fi
+
+    if use quad; then
+        confgcc+=( --enable-libquadmath )
+    else
+        confgcc+=( --disable-libquadmath )
     fi
 
 	if use sanitize; then
