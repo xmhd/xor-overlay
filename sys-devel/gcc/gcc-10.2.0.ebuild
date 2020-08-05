@@ -454,6 +454,9 @@ src_prepare() {
 		eend $?
 	done
 
+    # Prevent new texinfo from breaking old versions (see #198182, #464008)
+	eapply "${FILESDIR}/gcc-configure-texinfo.patch" || die "patch fail"
+
 	# === OSDIRNAMES ===
 
     setup_multilib_osdirnames
@@ -1507,7 +1510,7 @@ src_install() {
         fi
 	fi
 
-	# portage regenerates 'dir' files on it's own: bug #672408
+	# portage regenerates 'dir' files on it's own: Gentoo Linux bug #672408
 	# Drop 'dir' files to avoid collisions.
 	if [[ -f "${D}${DATAPATH}"/info/dir ]]; then
 		einfo "Deleting '${D}${DATAPATH}/info/dir'"
