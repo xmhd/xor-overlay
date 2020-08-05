@@ -4,7 +4,7 @@
 
 EAPI=7
 
-inherit flag-o-matic multilib-build eutils pax-utils toolchain-enable toolchain-funcs git-r3
+inherit eutils flag-o-matic libtool multilib-build pax-utils toolchain-enable toolchain-funcs git-r3
 
 DESCRIPTION="The GNU Compiler Collection"
 HOMEPAGE="https://gcc.gnu.org/"
@@ -396,7 +396,10 @@ pkg_setup() {
 	# TARGET_LIBC finished - export.
 	export TARGET_LIBC
 
-	use doc || export MAKEINFO="/dev/null"
+	# Disable gcc info regeneration -- it ships with generated info pages already.
+	# Our custom version/urls/etc... trigger it.
+	# Gentoo Linux bug #464008
+	export gcc_cv_prog_makeinfo_modern=n
 }
 
 src_unpack() {
@@ -466,15 +469,6 @@ src_prepare() {
 			done
 		fi
 
-		# We use --enable-version-specific-libs with ./configure. This
-		# option is designed to place all our libraries into a sub-directory
-		# rather than /usr/lib*.  However, this option, even through 4.8.0,
-		# does not work 100% correctly without a small fix for
-		# libgcc_s.so. See: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=32415.
-		# So, we apply a small patch to get this working:
-
-		eapply "${FILESDIR}/gcc-4.6.4-fix-libgcc-s-path-with-vsrl.patch" || die "patch fail"
-
         # === HARDENING ===
         # TODO: write a blurb
         local gcc_hard_flags=""
@@ -524,9 +518,6 @@ src_prepare() {
         sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die
 	fi
 
-	# === CROSS COMPILER ===
-	is_crosscompile && _gcc_prepare_cross
-
     # === PREPARE ADA TOOLCHAIN ===
     if use ada; then
 
@@ -558,17 +549,6 @@ src_prepare() {
 
 	einfo "Touching generated files ..."
 	./contrib/gcc_update --touch
-}
-
-_gcc_prepare_cross() {
-
-	# if we don't tell it where to go, libcc1 stuff ends up in ${ROOT}/usr/lib (or rather dies colliding)
-	sed -e 's%cc1libdir = .*%cc1libdir = '"${ROOT}${PREFIX}"'/$(host_noncanonical)/$(target_noncanonical)/lib/$(gcc_version)%' \
-		-e 's%plugindir = .*%plugindir = '"${ROOT}${PREFIX}"'/lib/gcc/$(target_noncanonical)/$(gcc_version)/plugin%' \
-		-i "${WORKDIR}/${P}/libcc1"/Makefile.{am,in}
-	if [[ ${CTARGET} == avr* ]]; then
-		sed -e 's%native_system_header_dir=/usr/include%native_system_header_dir=/include%' -i "${WORKDIR}/${P}/gcc/config.gcc"
-	fi
 }
 
 src_configure() {
@@ -632,7 +612,6 @@ src_configure() {
         --enable-secureplt
         --with-system-zlib
         --disable-libunwind-exceptions
-        --enable-version-specific-runtime-libs
     )
 
     # Allow gcc to search for clock funcs in the main c library.
@@ -1166,7 +1145,19 @@ src_compile() {
 
     # Optionally build some docs
 	if ! is_crosscompile && use cxx && use doc; then
-		emake -C "${WORKDIR}"/build/"${CTARGET}"/libstdc++-v3/doc doc-man-doxygen
+	    if type -p doxygen > /dev/null ; then
+		    emake -C "${WORKDIR}"/build/"${CTARGET}"/libstdc++-v3/doc doc-man-doxygen
+
+		    # Clean bogus manpages
+		    # Gentoo Linux bug #113902
+			find -name '*_build_*' -delete
+			# Blow away generated directory references.  Newer versions of gcc
+			# have gotten better at this, but not perfect.  This is easier than
+			# backporting all of the various doxygen patches.  #486754
+			find -name '*_.3' -exec grep -l ' Directory Reference ' {} + | xargs rm -f
+		else
+		    ewarn "Skipping libstdc++ manpage generation since you don't have doxygen installed"
+		fi
 	fi
 }
 
@@ -1271,39 +1262,6 @@ linkify_compiler_binaries() {
 			ln -sf ${CTARGET}-${x} ${CTARGET}-${x}-${GCC_CONFIG_VER}
 		fi
 	done
-}
-
-tasteful_stripping() {
-	# Now do the fun stripping stuff
-	[[ ! is_crosscompile ]] && \
-		env RESTRICT="" CHOST=${CHOST} prepstrip "${D}${BINPATH}" ; \
-		env RESTRICT="" CHOST=${CTARGET} prepstrip "${D}${LIBPATH}"
-	# gcc used to install helper binaries in lib/ but then moved to libexec/
-	[[ -d ${D}${PREFIX}/libexec/gcc ]] && \
-		env RESTRICT="" CHOST=${CHOST} prepstrip "${D}${PREFIX}/libexec/gcc/${CTARGET}/${GCC_CONFIG_VER}"
-}
-
-doc_cleanups() {
-	local cxx_mandir=$(find "${WORKDIR}/build/${CTARGET}/libstdc++-v3" -name man)
-	if [[ -d ${cxx_mandir} ]] ; then
-		# clean bogus manpages #113902
-		find "${cxx_mandir}" -name '*_build_*' -exec rm {} \;
-		( set +f ; cp -r "${cxx_mandir}"/man? "${D}/${DATAPATH}"/man/ )
-	fi
-
-	# Remove info files if we don't want them.
-	if is_crosscompile || ! use doc || has noinfo ${FEATURES} ; then
-		rm -r "${D}/${DATAPATH}"/info
-	else
-		prepinfo "${DATAPATH}"
-	fi
-
-	# Strip man files too if 'noman' feature is set.
-	if is_crosscompile || has noman ${FEATURES} ; then
-		rm -r "${D}/${DATAPATH}"/man
-	else
-		prepman "${DATAPATH}"
-	fi
 }
 
 cross_toolchain_env_setup() {
