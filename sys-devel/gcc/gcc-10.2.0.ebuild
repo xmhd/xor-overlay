@@ -742,9 +742,11 @@ src_configure() {
 
         # Todo
         if [[ ${CTARGET} == avr* ]]; then
-            confgcc+=( --disable-__cxa_atexit )
-        else
-            confgcc+=( --enable-__cxa_atexit )
+            confgcc+=(
+                --disable-__cxa_atexit
+                --enable-shared
+                --disable-threads
+            )
         fi
 
         # Todo
