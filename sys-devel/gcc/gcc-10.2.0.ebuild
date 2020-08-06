@@ -1388,8 +1388,6 @@ src_install() {
 	create_gcc_env_entry
 	create_revdep_rebuild_entry
 
-	# === CLEAN-UPS ===
-
 	# === LINK BINARIES
 
 	dodir /usr/bin
