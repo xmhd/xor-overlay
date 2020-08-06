@@ -436,14 +436,6 @@ eapply_gentoo() {
 
 src_prepare() {
 
-    # Export GCC branding
-    # TODO: implement alpha, beta and git brandings possibly?
-    if ! use hardened && ! use vanilla; then
-        export GCC_BRANDING="Funtoo Linux {$PV}"
-    elif use hardened; then
-        export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
-    fi
-
 	# For some reason, when upgrading gcc, the gcc Makefile will install stuff
 	# like crtbegin.o into a subdirectory based on the name of the currently-installed
 	# gcc version, rather than *our* gcc version. Manually fix this:
