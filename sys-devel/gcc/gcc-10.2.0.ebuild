@@ -1246,64 +1246,6 @@ create_revdep_rebuild_entry() {
 	EOF
 }
 
-linkify_compiler_binaries() {
-	dodir ${PREFIX}/bin
-	cd "${D}"${BINPATH}
-	# Ugh: we really need to auto-detect this list.
-	#	   It's constantly out of date.
-
-	local binary_languages="cpp gcc g++ c++ gcov"
-	local gnat_bins="gnat gnatbind gnatchop gnatclean gnatfind gnatkr gnatlink gnatls gnatmake gnatname gnatprep gnatxref"
-
-	use go && binary_languages="${binary_languages} gccgo"
-	use fortran && binary_languages="${binary_languages} gfortran"
-	use ada && binary_languages="${binary_languages} ${gnat_bins}"
-	use d && binary_languages="${binary_languages} gdc"
-
-	for x in ${binary_languages} ; do
-		[[ -f ${x} ]] && mv ${x} ${CTARGET}-${x}
-
-		if [[ -f ${CTARGET}-${x} ]] ; then
-			if ! is_crosscompile; then
-				ln -sf ${CTARGET}-${x} ${x}
-				dosym ${BINPATH}/${CTARGET}-${x} ${PREFIX}/bin/${x}-${GCC_CONFIG_VER}
-			fi
-			# Create version-ed symlinks
-			dosym ${BINPATH}/${CTARGET}-${x} ${PREFIX}/bin/${CTARGET}-${x}-${GCC_CONFIG_VER}
-		fi
-
-		if [[ -f ${CTARGET}-${x}-${GCC_CONFIG_VER} ]] ; then
-			rm -f ${CTARGET}-${x}-${GCC_CONFIG_VER}
-			ln -sf ${CTARGET}-${x} ${CTARGET}-${x}-${GCC_CONFIG_VER}
-		fi
-	done
-}
-
-cross_toolchain_env_setup() {
-
-	# old xcompile bashrc stuff here
-	dosym /etc/localtime /usr/${CTARGET}/etc/localtime
-	for file in /usr/lib/gcc/${CTARGET}/${GCC_CONFIG_VER}/libstdc*; do
-		dosym "$file" "/usr/${CTARGET}/lib/$(basename $file)"
-	done
-	mkdir -p /etc/revdep-rebuild
-	insinto "/etc/revdep-rebuild"
-	string="SEARCH_DIRS_MASK=\"/usr/${CTARGET} "
-	for dir in /usr/lib/gcc/${CTARGET}/*; do
-		string+="$dir "
-	done
-	for dir in /usr/lib64/gcc/${CTARGET}/*; do
-		string+="$dir "
-	done
-	string="${string%?}"
-	string+='"'
-	if [[ -e /etc/revdep-rebuild/05cross-${CTARGET} ]] ; then
-		string+=" $(cat /etc/revdep-rebuild/05cross-${CTARGET}|sed -e 's/SEARCH_DIRS_MASK=//')"
-	fi
-	printf "$string">05cross-${CTARGET}
-	doins 05cross-${CTARGET}
-}
-
 # Move around the libs to the right location.  For some reason,
 # when installing gcc, it dumps internal libraries into /usr/lib
 # instead of the private gcc lib path
