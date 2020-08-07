@@ -9,7 +9,27 @@ HOMEPAGE="https://sourceware.org/binutils/"
 LICENSE="GPL-3+"
 
 IUSE="default-gold doc +gold multitarget +nls +plugins static-libs test"
-REQUIRED_USE="default-gold? ( gold )"
+
+REQUIRED_USE="
+    default-gold? ( gold )
+"
+
+RDEPEND="
+	>=sys-devel/binutils-config-3
+	sys-libs/zlib
+"
+
+DEPEND="${RDEPEND}"
+
+BDEPEND="
+	doc? ( sys-apps/texinfo )
+	test? ( dev-util/dejagnu )
+	nls? ( sys-devel/gettext )
+	sys-devel/flex
+	virtual/yacc
+"
+
+RESTRICT="!test? ( test )"
 
 # Variables that can be set here:
 # PATCH_VER          - the patchset version
@@ -57,23 +77,6 @@ PATCH_DEV=${PATCH_DEV:-slyfox}
 
 is_cross() { [[ ${CHOST} != ${CTARGET} ]] ; }
 
-#
-# The dependencies
-#
-RDEPEND="
-	>=sys-devel/binutils-config-3
-	sys-libs/zlib
-"
-DEPEND="${RDEPEND}"
-BDEPEND="
-	doc? ( sys-apps/texinfo )
-	test? ( dev-util/dejagnu )
-	nls? ( sys-devel/gettext )
-	sys-devel/flex
-	virtual/yacc
-"
-
-RESTRICT="!test? ( test )"
 
 MY_BUILDDIR=${WORKDIR}/build
 
