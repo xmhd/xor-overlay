@@ -80,6 +80,15 @@ is_cross() { [[ ${CHOST} != ${CTARGET} ]] ; }
 
 MY_BUILDDIR=${WORKDIR}/build
 
+pkg_pretend() {
+
+	if [[ ${CTARGET} == *-uclibc* ]] ; then
+		if grep -qs 'linux-gnu' "${S}"/ltconfig ; then
+			die "sorry, but this binutils doesn't yet support uClibc :("
+		fi
+	fi
+}
+
 pkg_setup() {
 
     #
@@ -109,13 +118,6 @@ src_prepare() {
 	if [[ ! -z ${PATCH_VER} ]] ; then
 		einfo "Applying binutils-${PATCH_BINUTILS_VER} patchset ${PATCH_VER}"
 		eapply "${WORKDIR}/patch"/*.patch
-	fi
-
-	# This check should probably go somewhere else, like pkg_pretend.
-	if [[ ${CTARGET} == *-uclibc* ]] ; then
-		if grep -qs 'linux-gnu' "${S}"/ltconfig ; then
-			die "sorry, but this binutils doesn't yet support uClibc :("
-		fi
 	fi
 
 	# Make sure our explicit libdir paths don't get clobbered. #562460
