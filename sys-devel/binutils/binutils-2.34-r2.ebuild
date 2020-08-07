@@ -278,6 +278,9 @@ src_configure() {
 	    --disable-sim
 	)
 
+	# Pass any local EXTRA_ECONF from /etc/portage/env to ./configure.
+    myconf+=( "$@" ${EXTRA_ECONF} )
+
 	myconf+=(
 		--host=${CHOST}
 		--target=${CTARGET}
@@ -287,7 +290,6 @@ src_configure() {
 		--enable-install-libiberty
 		--disable-werror
 		$(use_enable static-libs static)
-		${EXTRA_ECONF}
 		# Strip out broken static link flags.
 		# https://gcc.gnu.org/PR56750
 		--without-stage1-ldflags
