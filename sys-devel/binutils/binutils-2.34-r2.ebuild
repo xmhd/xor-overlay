@@ -115,18 +115,23 @@ src_unpack() {
 }
 
 src_prepare() {
+
+    # Apply Gentoo Linux patch set
+    # TODO: add a USE=vanilla and more patches?
 	if [[ ! -z ${PATCH_VER} ]] ; then
 		einfo "Applying binutils-${PATCH_BINUTILS_VER} patchset ${PATCH_VER}"
 		eapply "${WORKDIR}/patch"/*.patch
 	fi
 
-	# Make sure our explicit libdir paths don't get clobbered. #562460
+	# Make sure our explicit libdir paths don't get clobbered.
+	# Gentoo Linux bug #562460
 	sed -i \
 		-e 's:@bfdlibdir@:@libdir@:g' \
 		-e 's:@bfdincludedir@:@includedir@:g' \
 		{bfd,opcodes}/Makefile.in || die
 
-	# Fix locale issues if possible #122216
+	# Fix locale issues if possible
+	# Gentoo Linux bug #122216
 	if [[ -e ${FILESDIR}/binutils-configure-LANG.patch ]] ; then
 		einfo "Fixing misc issues in configure files"
 		for f in $(find "${S}" -name configure -exec grep -l 'autoconf version 2.13' {} +) ; do
@@ -137,7 +142,8 @@ src_prepare() {
 		done
 	fi
 
-	# Fix conflicts with newer glibc #272594
+	# Fix conflicts with newer glibc
+	# Gentoo Linux bug #272594
 	if [[ -e libiberty/testsuite/test-demangle.c ]] ; then
 		sed -i 's:\<getline\>:get_line:g' libiberty/testsuite/test-demangle.c
 	fi
