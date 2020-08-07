@@ -7,6 +7,7 @@ inherit eutils flag-o-matic gnuconfig libtool multilib toolchain-funcs
 DESCRIPTION="Tools necessary to build programs"
 HOMEPAGE="https://sourceware.org/binutils/"
 LICENSE="GPL-3+"
+
 IUSE="default-gold doc +gold multitarget +nls +plugins static-libs test"
 REQUIRED_USE="default-gold? ( gold )"
 
@@ -84,6 +85,19 @@ BDEPEND="
 RESTRICT="!test? ( test )"
 
 MY_BUILDDIR=${WORKDIR}/build
+
+pkg_setup() {
+
+    #
+    # The cross-compile logic
+    #
+    export CTARGET=${CTARGET:-${CHOST}}
+    if [[ ${CTARGET} == ${CHOST} ]] ; then
+        if [[ ${CATEGORY} == cross-* ]] ; then
+            export CTARGET=${CATEGORY#cross-}
+        fi
+    fi
+}
 
 src_unpack() {
 	case ${PV} in
