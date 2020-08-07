@@ -91,6 +91,10 @@ pkg_pretend() {
 
 pkg_setup() {
 
+    # export branding
+    # TODO: hardened etc?
+    export BINUTILS_BRANDING="Funtoo Linux ${PV}"
+
 	# Setup some paths
 	LIBPATH=/usr/$(get_libdir)/binutils/${CTARGET}/${PV}
 	INCPATH=${LIBPATH}/include
@@ -239,6 +243,12 @@ src_configure() {
 		myconf+=( --enable-default-hash-style=gnu )
 	fi
 
+	# apply branding
+	myconf+=(
+	    --with-pkgversion="${BINUTILS_BRANDING}"
+	    --with-bugurl="https://bugs.funtoo.org"
+	)
+
 	myconf+=(
 		--prefix="${EPREFIX}"/usr
 		--host=${CHOST}
@@ -259,8 +269,6 @@ src_configure() {
 		# Newer versions (>=2.24) make this an explicit option. #497268
 		--enable-install-libiberty
 		--disable-werror
-		--with-bugurl="$(toolchain-binutils_bugurl)"
-		--with-pkgversion="$(toolchain-binutils_pkgversion)"
 		$(use_enable static-libs static)
 		${EXTRA_ECONF}
 		# Disable modules that are in a combined binutils/gdb tree. #490566
