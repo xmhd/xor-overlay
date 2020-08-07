@@ -269,6 +269,15 @@ src_configure() {
 		--enable-threads
 	)
 
+	# Disable modules that are in a combined binutils/gdb tree
+	# Gentoo Linux bug #490566
+	myconf+=(
+	    --disable-gdb
+	    --disable-libdecnumber
+	    --disable-readline
+	    --disable-sim
+	)
+
 	myconf+=(
 		--host=${CHOST}
 		--target=${CTARGET}
@@ -279,8 +288,6 @@ src_configure() {
 		--disable-werror
 		$(use_enable static-libs static)
 		${EXTRA_ECONF}
-		# Disable modules that are in a combined binutils/gdb tree. #490566
-		--disable-{gdb,libdecnumber,readline,sim}
 		# Strip out broken static link flags.
 		# https://gcc.gnu.org/PR56750
 		--without-stage1-ldflags
