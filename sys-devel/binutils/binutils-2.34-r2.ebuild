@@ -262,12 +262,16 @@ src_configure() {
 		--includedir="${EPREFIX}"${INCPATH}
 	)
 
+	# general
 	myconf+=(
-		--host=${CHOST}
-		--target=${CTARGET}
 		--enable-obsolete
 		--enable-shared
 		--enable-threads
+	)
+
+	myconf+=(
+		--host=${CHOST}
+		--target=${CTARGET}
 		# Newer versions (>=2.27) offer a configure flag now.
 		--enable-relro
 		# Newer versions (>=2.24) make this an explicit option. #497268
