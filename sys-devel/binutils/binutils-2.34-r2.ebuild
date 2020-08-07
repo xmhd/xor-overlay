@@ -249,10 +249,9 @@ src_configure() {
 	    --with-bugurl="https://bugs.funtoo.org"
 	)
 
+	# configure paths
 	myconf+=(
 		--prefix="${EPREFIX}"/usr
-		--host=${CHOST}
-		--target=${CTARGET}
 		--datadir="${EPREFIX}"${DATAPATH}
 		--datarootdir="${EPREFIX}"${DATAPATH}
 		--infodir="${EPREFIX}"${DATAPATH}/info
@@ -261,6 +260,11 @@ src_configure() {
 		--libdir="${EPREFIX}"${LIBPATH}
 		--libexecdir="${EPREFIX}"${LIBPATH}
 		--includedir="${EPREFIX}"${INCPATH}
+	)
+
+	myconf+=(
+		--host=${CHOST}
+		--target=${CTARGET}
 		--enable-obsolete
 		--enable-shared
 		--enable-threads
