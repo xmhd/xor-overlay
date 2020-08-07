@@ -142,8 +142,8 @@ src_prepare() {
 		sed -i 's:\<getline\>:get_line:g' libiberty/testsuite/test-demangle.c
 	fi
 
-	# Apply things from PATCHES and user dirs
-	default
+	# apply any user patches
+	eapply_user
 
 	# Run misc portage update scripts
 	gnuconfig_update
