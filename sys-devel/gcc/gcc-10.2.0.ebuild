@@ -275,7 +275,7 @@ pkg_setup() {
     # Export GCC branding
     # TODO: implement alpha, beta and git brandings possibly? specific bug tracker/JIRA for specific versions?
     if ! use hardened && ! use vanilla; then
-        export GCC_BRANDING="Funtoo Linux {$PV}"
+        export GCC_BRANDING="Funtoo Linux ${PV}"
     elif use hardened && ! use vanilla; then
         export GCC_BRANDING="Funtoo Linux Hardened ${PV}"
     fi
