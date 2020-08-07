@@ -55,15 +55,6 @@ PATCH_DEV=${PATCH_DEV:-slyfox}
 [[ -z ${PATCH_VER} ]] || SRC_URI="${SRC_URI}
 	https://dev.gentoo.org/~${PATCH_DEV}/distfiles/binutils-${PATCH_BINUTILS_VER}-patches-${PATCH_VER}.tar.xz"
 
-#
-# The cross-compile logic
-#
-export CTARGET=${CTARGET:-${CHOST}}
-if [[ ${CTARGET} == ${CHOST} ]] ; then
-	if [[ ${CATEGORY} == cross-* ]] ; then
-		export CTARGET=${CATEGORY#cross-}
-	fi
-fi
 is_cross() { [[ ${CHOST} != ${CTARGET} ]] ; }
 
 #
