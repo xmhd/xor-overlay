@@ -8,6 +8,12 @@ DESCRIPTION="Tools necessary to build programs"
 HOMEPAGE="https://sourceware.org/binutils/"
 LICENSE="GPL-3+"
 
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86"
+
+SLOT=$(ver_cut 1-2)
+
+SRC_URI="mirror://gnu/binutils/binutils-${PV}.tar.xz"
+
 IUSE="default-gold doc +gold multitarget +nls +plugins static-libs test"
 
 REQUIRED_USE="
@@ -41,30 +47,6 @@ RESTRICT="!test? ( test )"
 
 PATCH_VER=6
 PATCH_DEV=dilfridge
-
-case ${PV} in
-	9999)
-		EGIT_REPO_URI="https://sourceware.org/git/binutils-gdb.git"
-		inherit git-r3
-		S=${WORKDIR}/binutils
-		EGIT_CHECKOUT_DIR=${S}
-		SLOT=${PV}
-		;;
-	*.9999)
-		EGIT_REPO_URI="https://sourceware.org/git/binutils-gdb.git"
-		inherit git-r3
-		S=${WORKDIR}/binutils
-		EGIT_CHECKOUT_DIR=${S}
-		EGIT_BRANCH=$(ver_cut 1-2)
-		EGIT_BRANCH="binutils-${EGIT_BRANCH/./_}-branch"
-		SLOT=$(ver_cut 1-2)
-		;;
-	*)
-		SRC_URI="mirror://gnu/binutils/binutils-${PV}.tar.xz"
-		SLOT=$(ver_cut 1-2)
-		KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86"
-		;;
-esac
 
 #
 # The Gentoo patchset
@@ -426,12 +408,9 @@ pkg_postinst() {
 pkg_postrm() {
 	local current_profile=$(binutils-config -c ${CTARGET})
 
-	# If no other versions exist, then uninstall for this
-	# target ... otherwise, switch to the newest version
-	# Note: only do this if this version is unmerged.  We
-	#       rerun binutils-config if this is a remerge, as
-	#       we want the mtimes on the symlinks updated (if
-	#       it is the same as the current selected profile)
+	# If no other versions exist, then uninstall for this target ... otherwise, switch to the newest version
+	# Note: only do this if this version is unmerged.  We rerun binutils-config if this is a remerge, as
+	# we want the mtimes on the symlinks updated (if it is the same as the current selected profile).
 	if [[ ! -e ${EPREFIX}${BINPATH}/ld ]] && [[ ${current_profile} == ${CTARGET}-${PV} ]] ; then
 		local choice=$(binutils-config -l | grep ${CTARGET} | awk '{print $2}')
 		choice=${choice//$'\n'/ }
