@@ -6,17 +6,17 @@ EAPI=7
 DISTUTILS_OPTIONAL=1
 PYTHON_COMPAT=( python3_{6,7} )
 
-inherit bash-completion-r1 flag-o-matic linux-info distutils-r1 systemd toolchain-funcs udev usr-ldscript
+inherit autotools bash-completion-r1 flag-o-matic linux-info distutils-r1 systemd toolchain-funcs udev usr-ldscript
 
 DESCRIPTION="Userland utilities for ZFS Linux kernel module"
-HOMEPAGE="https://zfsonlinux.org/"
+HOMEPAGE="https://github.com/openzfs/zfs"
 
 if [[ ${PV} == "9999" ]] ; then
-	inherit autotools git-r3 linux-mod
-	EGIT_REPO_URI="https://github.com/zfsonlinux/zfs.git"
+	inherit git-r3 linux-mod
+	EGIT_REPO_URI="https://github.com/openzfs/zfs.git"
 else
-	SRC_URI="https://github.com/zfsonlinux/${PN}/releases/download/${P}/${P}.tar.gz"
-	KEYWORDS="amd64 arm64 ppc64"
+	SRC_URI="https://github.com/openzfs/${PN}/releases/download/${P}/${P}.tar.gz"
+	KEYWORDS="amd64 ~arm64 ~ppc64"
 fi
 
 LICENSE="BSD-2 CDDL MIT"
@@ -55,15 +55,16 @@ RDEPEND="${DEPEND}
 			!<sys-kernel/genkernel-3.5.1.1
 			sys-kernel/dracut
 		)
+
 	)
 	test-suite? (
+		sys-apps/kmod[tools]
 		sys-apps/util-linux
 		sys-devel/bc
 		sys-block/parted
 		sys-fs/lsscsi
 		sys-fs/mdadm
 		sys-process/procps
-		virtual/modutils
 	)
 "
 
@@ -73,6 +74,7 @@ RESTRICT="test"
 
 PATCHES=(
 	"${FILESDIR}/bash-completion-sudo.patch"
+	"${FILESDIR}/${PV}-initconfdir.patch"
 )
 
 pkg_setup() {
@@ -179,7 +181,6 @@ src_install() {
 
 	# enforce best available python implementation
 	python_fix_shebang "${ED}/bin"
-
 }
 
 pkg_postinst() {
@@ -189,12 +190,6 @@ pkg_postinst() {
 			elog "the following packages known to provide one and tested on regular basis:"
 			elog "  sys-kernel/dracut"
 			elog "  sys-kernel/genkernel"
-		fi
-
-		if has_version "<=sys-kernel/genkernel-3.5.3.3"; then
-			einfo "genkernel version 3.5.3.3 and earlier does NOT support"
-			einfo " unlocking pools with native zfs encryption enabled at boot"
-			einfo " use dracut or >=genkernel-4 if you requre this functionality"
 		fi
 	fi
 
