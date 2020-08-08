@@ -93,7 +93,7 @@ pkg_setup() {
 
     # export branding
     # TODO: hardened etc?
-    export BINUTILS_BRANDING="Funtoo Linux ${PV}"
+    export BINUTILS_BRANDING="Funtoo Linux ${PV} + p${PATCH_VER}"
 
     #
     # The cross-compile logic
