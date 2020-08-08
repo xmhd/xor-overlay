@@ -95,17 +95,6 @@ pkg_setup() {
     # TODO: hardened etc?
     export BINUTILS_BRANDING="Funtoo Linux ${PV}"
 
-	# Setup some paths
-	LIBPATH=/usr/$(get_libdir)/binutils/${CTARGET}/${PV}
-	INCPATH=${LIBPATH}/include
-	DATAPATH=/usr/share/binutils-data/${CTARGET}/${PV}
-	if is_cross ; then
-		TOOLPATH=/usr/${CHOST}/${CTARGET}
-	else
-		TOOLPATH=/usr/${CTARGET}
-	fi
-	BINPATH=${TOOLPATH}/binutils-bin/${PV}
-
     #
     # The cross-compile logic
     #
@@ -180,6 +169,17 @@ toolchain-binutils_pkgversion() {
 }
 
 src_configure() {
+
+	# Setup some paths
+	LIBPATH=/usr/$(get_libdir)/binutils/${CTARGET}/${PV}
+	INCPATH=${LIBPATH}/include
+	DATAPATH=/usr/share/binutils-data/${CTARGET}/${PV}
+	if is_cross ; then
+		TOOLPATH=/usr/${CHOST}/${CTARGET}
+	else
+		TOOLPATH=/usr/${CTARGET}
+	fi
+	BINPATH=${TOOLPATH}/binutils-bin/${PV}
 
 	# Make sure we filter $LINGUAS so that only ones that
 	# actually work make it through #42033
