@@ -488,33 +488,10 @@ src_prepare() {
 			einfo "Additional warnings enabled by default, this may break some tests and compilations with -Werror."
 		fi
 
-        # -fstack-protector is initially set =-1 in GCC.
-        # =0 TODO
-        # =1 TODO
-        # =2 -all
-        # =3 -strong
-        # This ebuild defaults to -strong, and if USE=hardened then set it to -strong
-        if use ssp && use hardened; then
-            eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch" || die "patch fail"
-            gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
-        fi
-
         # Enable FORTIFY_SOURCE by default
         if use fortify_source; then
              eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
         fi
-
-        # Enable LINK_NOW by default
-        if use link_now; then
-            eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/01_all_ENABLE_DEFAULT_LINK_NOW-z-now.patch" || die "patch fail"
-            gcc_hard_flags+=" -DENABLE_DEFAULT_LINK_NOW "
-        fi
-
-	    # Enable Stack Clash Protection by default
-	    if use stack_clash_protection; then
-	        eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch" || die "patch fail"
-	        gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
-	    fi
 
 	    # GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
         sed -e '/^ALL_CFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CFLAGS = |ALL_CFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in
