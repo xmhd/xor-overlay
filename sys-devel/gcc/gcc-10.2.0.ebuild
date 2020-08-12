@@ -23,7 +23,20 @@ GCC_ARCHIVE_VER="10.2.0"
 # GCC release archive
 GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
 
-SRC_URI="https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}"
+GNAT_X86_BOOTSTRAP="gnat-gpl-2014-x86-linux-bin.tar.gz"
+GNAT_AMD64_BOOTSTRAP="gnat-2020-20200429-x86_64-linux-bin"
+GNAT_ARM_BOOTSTRAP="gnat-gpl-2017-arm-elf-linux-bin.tar.gz"
+GNAT_ARM64_BOOTSTRAP="gnat-2020-20200429-arm-elf-linux64-bin"
+
+SRC_URI="
+    https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}
+
+    bootstrap? (
+        ada? (
+            amd64? ( https://community.download.adacore.com/v1/4d99b7b2f212c8efdab2ba8ede474bb9fa15888d?filename=${GNAT_AMD64_BOOTSTRAP} -> ${GNAT_AMD64_BOOTSTRAP}.tar.gz )
+        )
+    )
+"
 
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
@@ -243,6 +256,8 @@ pkg_pretend() {
             die "Obj-C++ requires a C++ compiler, set USE=cxx to continue."
         fi
     fi
+
+    # TODO: add ada compiler check here for gcc[ada,!bootstrap]
 }
 
 pkg_setup() {
@@ -277,6 +292,9 @@ pkg_setup() {
 	# To compile ada library standard files special compiler options are passed via ADAFLAGS in the Makefile.
 	# Unset ADAFLAGS as setting this override the options...
 	unset ADAFLAGS
+
+    # must not be set when building the Ada compiler, the Ada tools, or the Ada runtime libraries.
+	unset ADA_INCLUDE_PATH ADA_OBJECT_PATH
 
 	GCC_BRANCH_VER=${SLOT}
 	GCC_CONFIG_VER=${PV}
@@ -410,6 +428,15 @@ pkg_setup() {
 
 src_unpack() {
 	unpack $GCC_A
+
+	# Ada
+	if use ada && use bootstrap && ! is_crosscompile; then
+	    case $(tc-arch) in
+	        amd64)
+	            unpack ${GNAT_AMD64_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
+	    esac
+	fi
+
 }
 
 eapply_gentoo() {
