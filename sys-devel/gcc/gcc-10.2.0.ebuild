@@ -78,17 +78,6 @@ GENTOO_PATCHES=(
         34_all_fundecl-ICE-PR95820.patch
 )
 
-# Ada Support:
-GNAT32="gnat-gpl-2014-x86-linux-bin.tar.gz"
-GNAT64="gnat-2020-20200429-x86_64-linux-bin.tar.gz"
-SRC_URI="
-        $SRC_URI
-        ada? (
-                amd64? ( https://community.download.adacore.com/v1/4d99b7b2f212c8efdab2ba8ede474bb9fa15888d?filename=${GNAT64} -> ${GNAT64} )
-                x86? (  https://community.download.adacore.com/v1/c5e9e6fdff5cb77ed90cf8c62536653e27c0bed6?filename=${GNAT32} -> ${GNAT32} )
-        )
-"
-
 BDEPEND="
     sys-devel/binutils
     >=sys-devel/bison-1.875
@@ -285,6 +274,10 @@ pkg_setup() {
 	# Gentoo Linux bug #265283
 	unset LANGUAGES
 
+	# To compile ada library standard files special compiler options are passed via ADAFLAGS in the Makefile.
+	# Unset ADAFLAGS as setting this override the options...
+	unset ADAFLAGS
+
 	GCC_BRANCH_VER=${SLOT}
 	GCC_CONFIG_VER=${PV}
 
@@ -417,17 +410,6 @@ pkg_setup() {
 
 src_unpack() {
 	unpack $GCC_A
-
-	# GNAT ada support
-	if use ada ; then
-		if use amd64; then
-			unpack $GNAT64 || die "ada setup failed"
-		elif use x86; then
-			unpack $GNAT32 || die "ada setup failed"
-		else
-			die "GNAT ada setup failed, only x86 and amd64 currently supported by this ebuild. Patches welcome!"
-		fi
-	fi
 }
 
 eapply_gentoo() {
@@ -532,28 +514,10 @@ src_prepare() {
 
     # === PREPARE ADA TOOLCHAIN ===
     if use ada; then
-
-        export GNATBOOT="${S}/gnatboot"
-
         if [ -f  gcc/ada/libgnat/s-parame.adb ] ; then
             einfo "Patching ada stack handling..."
             grep -q -e '-- Default_Sec_Stack_Size --' gcc/ada/libgnat/s-parame.adb && eapply "${FILESDIR}/Ada-Integer-overflow-in-SS_Allocate.patch"
         fi
-
-        if use amd64; then
-            einfo "Preparing gnat64 for ada:"
-            make -C ${WORKDIR}/${GNAT64%%.*} ins-all prefix=${S}/gnatboot > /dev/null || die "ada preparation failed"
-            find ${S}/gnatboot -name ld -exec mv -v {} {}.old \;
-        elif use x86; then
-            einfo "Preparing gnat32 for ada:"
-            make -C ${WORKDIR}/${GNAT32%%.*} ins-all prefix=${S}/gnatboot > /dev/null || die "ada preparation failed"
-            find ${S}/gnatboot -name ld -exec mv -v {} {}.old \;
-        else
-            die "GNAT ada setup failed, only x86 and amd64 currently supported by this ebuild. Patches welcome!"
-        fi
-
-        # Setup additional paths as needed before we start.
-        use ada && export PATH="${GNATBOOT}/bin:${PATH}"
     fi
 
 	# Must be called in src_prepare by EAPI6
@@ -669,7 +633,7 @@ src_configure() {
 
 	use go && GCC_LANG+=",go"
 
-	use ada && GCC_LANG+=",ada" && conf_gcc_lang+=" CC=${GNATBOOT}/bin/gcc CXX=${GNATBOOT}/bin/g++ AR=${GNATBOOT}/bin/gcc-ar AS=as LD=ld NM=${GNATBOOT}/bin/gcc-nm RANLIB=${GNATBOOT}/bin/gcc-ranlib"
+	use ada && GCC_LANG+=",ada"
 
 	use d && GCC_LANG+=",d"
 
@@ -983,7 +947,7 @@ src_configure() {
 
     # ada
     if use ada; then
-        confgcc+=( --disable-libada)
+        confgcc+=( --disable-libada )
     fi
 
     # MIPS only, masked by default in profiles and unmasked for MIPS profile
@@ -1133,10 +1097,6 @@ src_compile() {
     # leftover from Funtoo - needed?
 	unset ABI
 
-	# To compile ada library standard files special compiler options are passed via ADAFLAGS in the Makefile.
-	# Unset ADAFLAGS as setting this override the options...
-	unset ADAFLAGS
-
 	einfo "Compiling ${PN} (${GCC_TARGET})..."
 
 	# Run make against GCC_TARGET, setting some variables as required.
@@ -1153,9 +1113,9 @@ src_compile() {
 		ln -s gcc ../build/prev-gcc || die
 		ln -s ${CHOST} ../build/prev-${CHOST} || die
 		# Building standard ada library
-		emake -C gcc gnatlib-shared
+		emake -C "${WORKDIR}"/build/gcc gnatlib-shared
 		# Building gnat toold
-		emake -C gcc gnattools
+		emake -C "${WORKDIR}"/build/gcc gnattools
     fi
 
     # Optionally build some docs
