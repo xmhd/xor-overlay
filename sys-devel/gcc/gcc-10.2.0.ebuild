@@ -18,6 +18,12 @@ RESTRICT="strip"
 FEATURES=${FEATURES/multilib-strict/}
 
 GCC_MAJOR="${PV%%.*}"
+# Version of archive before patches.
+GCC_ARCHIVE_VER="10.2.0"
+# GCC release archive
+GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
+
+SRC_URI="https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}"
 
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
@@ -31,11 +37,45 @@ IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 IUSE="$IUSE nptl systemtap valgrind zstd" # TODO: sort these flags
 IUSE="$IUSE checking_release checking_yes checking_all"
 
-# Version of archive before patches.
-GCC_ARCHIVE_VER="10.2.0"
-# GCC release archive
-GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
-SRC_URI="ftp://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}"
+BDEPEND="
+    sys-devel/binutils
+    >=sys-devel/bison-1.875
+    doc? ( >=app-doc/doxygen-1.7 )
+    >=sys-devel/flex-2.5.4
+    elibc_glibc? ( >=sys-libs/glibc-2.8 )
+    elibc_musl? ( sys-libs/musl )
+    nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
+	test? (
+	        >=dev-util/dejagnu-1.4.4
+	        >=sys-devel/autogen-5.5.4
+    )
+    valgrind? ( dev-util/valgrind )
+"
+
+RDEPEND="
+	objc-gc? ( >=dev-libs/boehm-gc-7.6[${MULTILIB_USEDEP}] )
+	nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
+	>=dev-libs/gmp-4.3.2:0=
+	graphite? ( >=dev-libs/isl-0.14:0= )
+	virtual/libiconv[${MULTILIB_USEDEP}]
+	>=dev-libs/mpfr-2.4.2:0=
+	>=dev-libs/mpc-0.8.1:0=
+	sys-libs/zlib[${MULTILIB_USEDEP}]
+	zstd? ( app-arch/zstd )
+"
+
+DEPEND="
+    ${RDEPEND}
+"
+
+PDEPEND="
+    >=sys-devel/gcc-config-1.5
+    >=sys-devel/libtool-2.4.3
+"
+
+REQUIRED_USE="
+    fortran? ( quad )
+"
 
 GENTOO_PATCHES_DIR="${FILESDIR}/gentoo-patches/${GCC_ARCHIVE_VER}/gentoo"
 
@@ -77,46 +117,6 @@ GENTOO_PATCHES=(
         33_all_lto-O0-mix-ICE-ipa-PR96291.patch
         34_all_fundecl-ICE-PR95820.patch
 )
-
-BDEPEND="
-    sys-devel/binutils
-    >=sys-devel/bison-1.875
-    doc? ( >=app-doc/doxygen-1.7 )
-    >=sys-devel/flex-2.5.4
-    elibc_glibc? ( >=sys-libs/glibc-2.8 )
-    elibc_musl? ( sys-libs/musl )
-    nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
-	test? (
-	        >=dev-util/dejagnu-1.4.4
-	        >=sys-devel/autogen-5.5.4
-    )
-    valgrind? ( dev-util/valgrind )
-"
-
-RDEPEND="
-	objc-gc? ( >=dev-libs/boehm-gc-7.6[${MULTILIB_USEDEP}] )
-	nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
-	>=dev-libs/gmp-4.3.2:0=
-	graphite? ( >=dev-libs/isl-0.14:0= )
-	virtual/libiconv[${MULTILIB_USEDEP}]
-	>=dev-libs/mpfr-2.4.2:0=
-	>=dev-libs/mpc-0.8.1:0=
-	sys-libs/zlib[${MULTILIB_USEDEP}]
-	zstd? ( app-arch/zstd )
-"
-
-DEPEND="
-    ${RDEPEND}
-"
-
-PDEPEND="
-    >=sys-devel/gcc-config-1.5
-    >=sys-devel/libtool-2.4.3
-"
-
-REQUIRED_USE="
-    fortran? ( quad )
-"
 
 if [[ ${CATEGORY} != cross-* ]] ; then
 	PDEPEND="${PDEPEND} elibc_glibc? ( >=sys-libs/glibc-2.8 )"
