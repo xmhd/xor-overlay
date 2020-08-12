@@ -427,27 +427,35 @@ pkg_setup() {
 }
 
 src_unpack() {
+    # unpack gcc sources
 	unpack $GCC_A
 
-	# Ada
-	# todo: check for gnat bins in installed gcc - if found, then skip unpacking the bootstrap compiler.
-	if use ada && use bootstrap && ! is_crosscompile; then
-	    case $(tc-arch) in
-	        x86)
-	            unpack ${GNAT_X86_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
-	            ;;
-	        amd64)
-	            unpack ${GNAT_AMD64_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
-	            ;;
-	        arm)
-	            unpack ${GNAT_ARM_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
-	            ;;
-	        arm64)
-	            unpack ${GNAT_ARM64_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
-	            ;;
-	    esac
-	fi
+    # Ada
+    # todo: check for gnat bins in installed gcc - if found, then skip unpacking the bootstrap compiler.
+    if use ada && use bootstrap && ! is_crosscompile; then
+        mkdir ${WORKDIR}/gnatboot || die "failed to create GNAT bootstrap directory"
 
+        # change to gnatboot dir
+        cd "${WORKDIR}/gnatboot"
+
+        # extract the gnat bootstrap compiler
+        case $(tc-arch) in
+            x86)
+                unpack ${GNAT_X86_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
+                ;;
+            amd64)
+                unpack ${GNAT_AMD64_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
+                ;;
+            arm)
+                unpack ${GNAT_ARM_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
+                ;;
+            arm64)
+                unpack ${GNAT_ARM64_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
+                ;;
+        esac
+
+        # done
+    fi
 }
 
 eapply_gentoo() {
@@ -553,38 +561,10 @@ src_prepare() {
     # === PREPARE ADA TOOLCHAIN ===
     if use ada; then
 
-    	export GNATBOOT="${S}/gnatboot"
-
+        # Todo
         if [ -f  gcc/ada/libgnat/s-parame.adb ] ; then
             einfo "Patching ada stack handling..."
             grep -q -e '-- Default_Sec_Stack_Size --' gcc/ada/libgnat/s-parame.adb && eapply "${FILESDIR}/Ada-Integer-overflow-in-SS_Allocate.patch"
-        fi
-
-        einfo "Preparing GNAT bootstrap environment..."
-        case $(tc-arch) in
-            x86)
-                make -C ${WORKDIR}/${GNAT_X86_BOOTSTRAP} ins-all prefix=${S}/gnatboot > /dev/null || die "PREPARING GNAT X86 BOOTSTRAP FAILED"
-                find ${S}/gnatboot -name ld -exec mv -v {} {}.old \;
-                ;;
-            amd64)
-                make -C ${WORKDIR}/${GNAT_AMD64_BOOTSTRAP} ins-all prefix=${S}/gnatboot > /dev/null || die "PREPARING GNAT AMD64 BOOTSTRAP FAILED"
-                find ${S}/gnatboot -name ld -exec mv -v {} {}.old \;
-                ;;
-            arm)
-                make -C ${WORKDIR}/${GNAT_ARM_BOOTSTRAP} ins-all prefix=${S}/gnatboot > /dev/null || die "PREPARING GNAT X86 BOOTSTRAP FAILED"
-                find ${S}/gnatboot -name ld -exec mv -v {} {}.old \;
-                ;;
-            arm64)
-                make -C ${WORKDIR}/${GNAT_ARM_BOOTSTRAP} ins-all prefix=${S}/gnatboot > /dev/null || die "PREPARING GNAT X86 BOOTSTRAP FAILED"
-                find ${S}/gnatboot -name ld -exec mv -v {} {}.old \;
-                ;;
-            *)
-            die "arch is unsupported for ada bootstrap without already having a USE=ada enabled compiler"
-        esac
-
-        # Setup additional paths as needed before we start.
-        if use bootstrap; then
-            export PATH="${GNATBOOT}/bin:${PATH}"
         fi
     fi
 
@@ -704,6 +684,20 @@ src_configure() {
 	# oh boy...
 	if use ada; then
 	    GCC_LANG+=",ada"
+	    if use bootstrap && ! is_crosscompile; then
+	        export GNATBOOT="${WORKDIR}"/gnatboot
+	        PATH="${GNATBOOT}"/bin:${PATH}
+	        confgcc+=(
+	            CC="${GNATBOOT}"/bin/gcc
+	            CXX="${GNATBOOT}"/bin/g++
+	            CPP="${GNATBOOT}"/bin/cpp
+	            AS=as
+	            LD=ld
+	        )
+	        einfo "Using Ada GNAT bootstrap compiler..."
+	    fi
+	    export PATH
+	    einfo "PATH = ${PATH}"
 	fi
 
 	use d && GCC_LANG+=",d"
