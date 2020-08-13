@@ -432,7 +432,7 @@ src_unpack() {
 
     # Ada
     # todo: check for gnat bins in installed gcc - if found, then skip unpacking the bootstrap compiler.
-    if use ada && use bootstrap && ! is_crosscompile; then
+    if (! [[ -e $(gcc-config --get-bin-path)/gnat ]] || use ada && use bootstrap) && ! is_crosscompile; then
 
         # extract the gnat bootstrap compiler and move it to GNATBOOT directory
         case $(tc-arch) in
