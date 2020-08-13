@@ -35,7 +35,7 @@ that are targetted to a specific CUDA compiler, so allowing this in a seamless m
 * Granular hardening options (e.g. pie, ssp, link_now, stack_clash_protection, fortify_source)
 * Cross compiler support via crossdev
 * LTO and PGO with associated bootstraps
-* Ada support, including bootstrapping when current gcc does not have USE=ada (uses gcc binari
+* Ada support (uses gcc binaries from AdaCore for bootstrapping)
 
 
 === CROSSDEV ===
@@ -45,8 +45,6 @@ that are targetted to a specific CUDA compiler, so allowing this in a seamless m
 
 === TODO ===
 
-* Update ebuild to EAPI 7
-* ADA support - WIP
 * Identify and integrate relevant patches from Debian
 * Bundled math-libs? possibly even binutils? I prefer to control these package versions via profile
 * Patch default building of userspace retpolines and add a retpoline USE flag
