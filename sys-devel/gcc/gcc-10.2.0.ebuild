@@ -433,24 +433,24 @@ src_unpack() {
     # Ada
     # todo: check for gnat bins in installed gcc - if found, then skip unpacking the bootstrap compiler.
     if use ada && use bootstrap && ! is_crosscompile; then
-        mkdir ${WORKDIR}/gnatboot || die "failed to create GNAT bootstrap directory"
 
-        # change to gnatboot dir
-        cd "${WORKDIR}/gnatboot"
-
-        # extract the gnat bootstrap compiler
+        # extract the gnat bootstrap compiler and move it to GNATBOOT directory
         case $(tc-arch) in
             x86)
                 unpack ${GNAT_X86_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
+                mv ${GNAT_X86_BOOTSTRAP} "${WORKDIR}"/gnatboot
                 ;;
             amd64)
                 unpack ${GNAT_AMD64_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
+                mv ${GNAT_AMD64_BOOTSTRAP} "${WORKDIR}"/gnatboot
                 ;;
             arm)
                 unpack ${GNAT_ARM_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
+                mv ${GNAT_ARM_BOOTSTRAP} "${WORKDIR}"/gnatboot
                 ;;
             arm64)
                 unpack ${GNAT_ARM64_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
+                mv ${GNAT_ARM64_BOOTSTRAP} "${WORKDIR}"/gnatboot
                 ;;
         esac
 

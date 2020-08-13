@@ -10,12 +10,14 @@ This will allow more granular control over gcc (e.g. patches applied, USE config
 gcc-10.2.0 is currently the master ebuild and is undergoing work at present (though almost 'complete'). Once complete
 the new ebuild will be backported to previous versions of gcc allowing all previous versions to be installed and used.
 
+NOTE: gcc-10.2.0 is not currently being revision bumped on each new commit. Once the ebuild is at a stage I am happy with,
+(after I start backporting to older gcc versions) I will revision bump on each change.
+
 My present intention is to add support to gcc-config allowing multiple compilers to be set, i.e:
 
- [1] x86_64-pc-linux-gnu-8.4.0 [ada]
- [2] x86_64-pc-linux-gnu-9.3.0 [cuda]
- [3] x86_64-pc-linux-gnu-10.2.0 [system]
- [4] x86_64-pc-linux-gnu-11.0.0 [user]
+ [1] x86_64-pc-linux-gnu-9.3.0 [cuda]
+ [2] x86_64-pc-linux-gnu-10.2.0 [system]
+ [3] x86_64-pc-linux-gnu-11.0.0 [user]
 
 A similar working to java-config in Gentoo Linux based systems. This would allow pegging the system compiler to a recent
 gcc version for setting a minimum scope of CFLAGS and features to build with (e.g. retpolines and stack clash protection),
@@ -33,6 +35,7 @@ that are targetted to a specific CUDA compiler, so allowing this in a seamless m
 * Granular hardening options (e.g. pie, ssp, link_now, stack_clash_protection, fortify_source)
 * Cross compiler support via crossdev
 * LTO and PGO with associated bootstraps
+* Ada support, including bootstrapping when current gcc does not have USE=ada (uses gcc binari
 
 
 === CROSSDEV ===
