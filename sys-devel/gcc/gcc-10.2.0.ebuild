@@ -202,12 +202,23 @@ setup_multilib_osdirnames() {
 
         # this only makes sense for some Linux targets
         case ${CTARGET} in
-        x86_64*-linux*)    config="i386" ;;
-        powerpc64*-linux*) config="rs6000" ;;
-        sparc64*-linux*)   config="sparc" ;;
-        s390x*-linux*)     config="s390" ;;
-        *)                     return 0 ;;
+            x86_64*-linux*)
+                config="i386"
+                ;;
+            powerpc64*-linux*)
+                config="rs6000"
+                ;;
+            sparc64*-linux*)
+                config="sparc"
+                ;;
+            s390x*-linux*)
+                config="s390"
+                ;;
+            *)
+            return 0
+            ;;
         esac
+
         config+="/t-linux64"
 
         local sed_args=()
