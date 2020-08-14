@@ -33,7 +33,7 @@ SRC_URI="
 
     bootstrap? (
         ada? (
-            amd64? ( https://bitbucket.org/_x0r/xor-overlay/downloads/${GNAT_AMD64_BOOTSTRAP}.tar.gz )
+            amd64? ( https://community.download.adacore.com/v1/4d99b7b2f212c8efdab2ba8ede474bb9fa15888d?filename=${GNAT_AMD64_BOOTSTRAP} -> ${GNAT_AMD64_BOOTSTRAP}.tar.gz )
         )
     )
 "
