@@ -811,7 +811,7 @@ src_configure() {
 		# handle bootstrap here as we can only perform a three stage and any additional bootstraps if native...
         # three stage bootstrapping doesnt quite work when you cant run the resulting binaries natively!
 		if use bootstrap; then
-		    confgcc+=( --enable-bootstrap --enable-shared )
+		    confgcc+=( --enable-bootstrap )
 		else
 		    confgcc+=( --disable-bootstrap )
 		fi
@@ -820,6 +820,12 @@ src_configure() {
 		    confgcc+=( --enable-libgomp )
 		else
 		    confgcc+=( --disable-libgomp )
+		fi
+
+		if tc-is-static-only; then
+		    confgcc+=( --disable-shared )
+		else
+		    confgcc+=( --enable-shared )
 		fi
 
         # CHOST specific options
