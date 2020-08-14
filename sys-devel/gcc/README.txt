@@ -35,7 +35,6 @@ that are targetted to a specific CUDA compiler, so allowing this in a seamless m
 * Granular hardening options (e.g. pie, ssp, link_now, stack_clash_protection, fortify_source)
 * Cross compiler support via crossdev
 * LTO and PGO with associated bootstraps
-* Ada support (uses gcc binaries from AdaCore for bootstrapping)
 
 
 === CROSSDEV ===
@@ -47,6 +46,7 @@ that are targetted to a specific CUDA compiler, so allowing this in a seamless m
 
 * Identify and integrate relevant patches from Debian
 * Bundled math-libs? possibly even binutils? I prefer to control these package versions via profile
+* Ada support - WIP - currently replacing the AdaCore GNAT GPL bootstrap binaries with self built binaries.
 * Patch default building of userspace retpolines and add a retpoline USE flag
 * Fix up the osdirnames for musl etc where there is no multilib
 * Add support for integrating gcc git patches
