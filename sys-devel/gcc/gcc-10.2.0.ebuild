@@ -24,7 +24,7 @@ GCC_ARCHIVE_VER="10.2.0"
 GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
 
 GNAT_X86_BOOTSTRAP="gnat-gpl-2014-x86-linux-bin"
-GNAT_AMD64_BOOTSTRAP="gnat-2020-20200429-x86_64-linux-bin"
+GNAT_AMD64_BOOTSTRAP="gnat-gpl-2017-x86_64-linux-bin"
 GNAT_ARM_BOOTSTRAP="gnat-gpl-2017-arm-elf-linux-bin"
 GNAT_ARM64_BOOTSTRAP="gnat-2020-20200429-arm-elf-linux64-bin"
 
