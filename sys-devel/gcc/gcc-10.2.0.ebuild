@@ -23,17 +23,40 @@ GCC_ARCHIVE_VER="10.2.0"
 # GCC release archive
 GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
 
-GNAT_X86_BOOTSTRAP="gnat-gpl-2014-x86-linux-bin"
-GNAT_AMD64_BOOTSTRAP="gnat-gpl-2017-x86_64-linux-bin"
-GNAT_ARM_BOOTSTRAP="gnat-gpl-2017-arm-elf-linux-bin"
-GNAT_ARM64_BOOTSTRAP="gnat-2020-20200429-arm-elf-linux64-bin"
+# Straight from the manual...
+#
+# In order to build GNAT, the Ada compiler, you need a working GNAT compiler (GCC version 4.7 or later).
+# This includes GNAT tools such as gnatmake and gnatlink, since the Ada front end is written in Ada and uses some GNAT-specific extensions.
+#
+# In order to build a cross compiler, it is strongly recommended to install the new compiler as native first, and then use it to build the cross compiler.
+# Other native compiler versions may work but this is not guaranteed and will typically fail with hard to understand compilation errors during the build.
+#
+# Similarly, it is strongly recommended to use an older version of GNAT to build GNAT.
+# More recent versions of GNAT than the version built are not guaranteed to work and will often fail during the build with compilation errors.
+# Note that configure does not test whether the GNAT installation works and has a sufficiently recent version; if too old a GNAT version is installed and --enable-languages=ada is used, the build will fail.
+#
+# ADA_INCLUDE_PATH and ADA_OBJECT_PATH environment variables must not be set when building the Ada compiler, the Ada tools, or the Ada runtime libraries.
+# You can check that your build environment is clean by verifying that ‘gnatls -v’ lists only one explicit path in each section.
+#
+# TODO: This is a WIP. GNAT_AMD64_BOOTSTRAP currently works, and is a dynamically linked glibc built gcc.
+# This will be replaced with a statically linked musl built gcc, possibly even with built-in math libraries etc to reduce error margin.
+# Once the above has been completed, bootstrap binaries will be built for the other architectures.
+GNAT_X86_BOOTSTRAP="todo"
+GNAT_AMD64_BOOTSTRAP="gnatboot-10.2.0-amd64-glibc"
+GNAT_ARM_BOOTSTRAP="todo"
+GNAT_ARM64_BOOTSTRAP="todo"
+GNAT_PPC_BOOTSTRAP="todo"
+GNAT_PPC64_BOOTSTRAP="todo"
 
+# todo: rework this a little
 SRC_URI="
     https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}
 
     bootstrap? (
         ada? (
-            amd64? ( https://community.download.adacore.com/v1/4d99b7b2f212c8efdab2ba8ede474bb9fa15888d?filename=${GNAT_AMD64_BOOTSTRAP} -> ${GNAT_AMD64_BOOTSTRAP}.tar.gz )
+            amd64? (
+                elibc_glibc? ( https://bitbucket.org/_x0r/xor-overlay/downloads/${GNAT_AMD64_BOOTSTRAP}.tar.xz )
+            )
         )
     )
 "
@@ -445,23 +468,25 @@ src_unpack() {
     # todo: check for gnat bins in installed gcc - if found, then skip unpacking the bootstrap compiler.
     if use ada && use bootstrap && ! is_crosscompile; then
 
+        # create gnatboot directory
+        mkdir "${WORKDIR}"/gnatboot || die "Failed to create gnatboot directory"
+
+        # change to the gnatboot directory
+        cd "${WORKDIR}"/gnatboot || die "Failed to change to gnatboot directory"
+
         # extract the gnat bootstrap compiler and move it to GNATBOOT directory
         case $(tc-arch) in
             x86)
-                unpack ${GNAT_X86_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
-                mv ${GNAT_X86_BOOTSTRAP} "${WORKDIR}"/gnatboot
+                die "GNAT_X86_BOOTSTRAP support not yet implemented"
                 ;;
             amd64)
-                unpack ${GNAT_AMD64_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
-                mv ${GNAT_AMD64_BOOTSTRAP} "${WORKDIR}"/gnatboot
+                unpack ${GNAT_AMD64_BOOTSTRAP}.tar.xz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
                 ;;
             arm)
-                unpack ${GNAT_ARM_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
-                mv ${GNAT_ARM_BOOTSTRAP} "${WORKDIR}"/gnatboot
+                die "GNAT_ARM_BOOTSTRAP support not yet implemented"
                 ;;
             arm64)
-                unpack ${GNAT_ARM64_BOOTSTRAP}.tar.gz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
-                mv ${GNAT_ARM64_BOOTSTRAP} "${WORKDIR}"/gnatboot
+                die "GNAT_ARM64_BOOTSTRAP support not yet implemented"
                 ;;
         esac
 
