@@ -592,17 +592,18 @@ src_prepare() {
 
         # write HARD_CFLAGS back to the gcc Makefile.
         sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die
-	fi
 
-    # === PREPARE ADA TOOLCHAIN ===
-    if use ada; then
+        # === ADA ===
+        if use ada; then
 
-        # Todo
-        if [ -f  gcc/ada/libgnat/s-parame.adb ] ; then
-            einfo "Patching ada stack handling..."
-            grep -q -e '-- Default_Sec_Stack_Size --' gcc/ada/libgnat/s-parame.adb && eapply "${FILESDIR}/Ada-Integer-overflow-in-SS_Allocate.patch"
+            # Todo
+            if [ -f  gcc/ada/libgnat/s-parame.adb ] ; then
+                einfo "Patching ada stack handling..."
+                grep -q -e '-- Default_Sec_Stack_Size --' gcc/ada/libgnat/s-parame.adb && eapply "${FILESDIR}/Ada-Integer-overflow-in-SS_Allocate.patch"
+            fi
         fi
-    fi
+
+	fi
 
 	# Must be called in src_prepare by EAPI6
 	eapply_user
