@@ -157,7 +157,11 @@ GENTOO_PATCHES=(
 )
 
 ISL_VER="0.21"
-SRC_URI+=" graphite? ( http://isl.gforge.inria.fr/isl-${ISL_VER}.tar.xz ) "
+SRC_URI+="
+    system-isl? (
+        graphite? ( http://isl.gforge.inria.fr/isl-${ISL_VER}.tar.xz )
+    )
+"
 
 if [[ ${CATEGORY} != cross-* ]] ; then
 	PDEPEND="${PDEPEND} elibc_glibc? ( >=sys-libs/glibc-2.8 )"
