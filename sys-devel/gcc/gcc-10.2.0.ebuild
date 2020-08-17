@@ -64,7 +64,7 @@ SRC_URI="
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
-IUSE="$IUSE +system-gettext"
+IUSE="$IUSE +system-gettext +system-zlib"
 IUSE="$IUSE openmp altivec fixed-point graphite lto pch +quad generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
@@ -112,6 +112,7 @@ PDEPEND="
 
 REQUIRED_USE="
     fortran? ( quad )
+    multilib? ( system-zlib )
 "
 
 GENTOO_PATCHES_DIR="${FILESDIR}/gentoo-patches/${GCC_ARCHIVE_VER}/gentoo"
@@ -667,7 +668,7 @@ src_configure() {
         --enable-obsolete
         --disable-werror
         --enable-secureplt
-        --with-system-zlib
+        $(use_with system-zlib)
         --disable-libunwind-exceptions
     )
 
