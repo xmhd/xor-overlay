@@ -17,50 +17,6 @@ SLOT="${PV}"
 RESTRICT="strip"
 FEATURES=${FEATURES/multilib-strict/}
 
-GCC_MAJOR="${PV%%.*}"
-# Version of archive before patches.
-GCC_ARCHIVE_VER="10.2.0"
-# GCC release archive
-GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
-
-# Straight from the manual...
-#
-# In order to build GNAT, the Ada compiler, you need a working GNAT compiler (GCC version 4.7 or later).
-# This includes GNAT tools such as gnatmake and gnatlink, since the Ada front end is written in Ada and uses some GNAT-specific extensions.
-#
-# In order to build a cross compiler, it is strongly recommended to install the new compiler as native first, and then use it to build the cross compiler.
-# Other native compiler versions may work but this is not guaranteed and will typically fail with hard to understand compilation errors during the build.
-#
-# Similarly, it is strongly recommended to use an older version of GNAT to build GNAT.
-# More recent versions of GNAT than the version built are not guaranteed to work and will often fail during the build with compilation errors.
-# Note that configure does not test whether the GNAT installation works and has a sufficiently recent version; if too old a GNAT version is installed and --enable-languages=ada is used, the build will fail.
-#
-# ADA_INCLUDE_PATH and ADA_OBJECT_PATH environment variables must not be set when building the Ada compiler, the Ada tools, or the Ada runtime libraries.
-# You can check that your build environment is clean by verifying that ‘gnatls -v’ lists only one explicit path in each section.
-#
-# TODO: This is a WIP. GNAT_AMD64_BOOTSTRAP currently works, and is a dynamically linked glibc built gcc.
-# This will be replaced with a statically linked musl built gcc, possibly even with built-in math libraries etc to reduce error margin.
-# Once the above has been completed, bootstrap binaries will be built for the other architectures.
-GNAT_X86_BOOTSTRAP="todo"
-GNAT_AMD64_BOOTSTRAP="gnatboot-10.2.0-amd64-glibc"
-GNAT_ARM_BOOTSTRAP="todo"
-GNAT_ARM64_BOOTSTRAP="todo"
-GNAT_PPC_BOOTSTRAP="todo"
-GNAT_PPC64_BOOTSTRAP="todo"
-
-# todo: rework this a little
-SRC_URI="
-    https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}
-
-    bootstrap? (
-        ada? (
-            amd64? (
-                elibc_glibc? ( https://bitbucket.org/_x0r/xor-overlay/downloads/${GNAT_AMD64_BOOTSTRAP}.tar.xz )
-            )
-        )
-    )
-"
-
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
@@ -155,6 +111,35 @@ GENTOO_PATCHES=(
         33_all_lto-O0-mix-ICE-ipa-PR96291.patch
         34_all_fundecl-ICE-PR95820.patch
 )
+
+GCC_MAJOR="${PV%%.*}"
+# Version of archive before patches.
+GCC_ARCHIVE_VER="10.2.0"
+# GCC release archive
+GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
+
+SRC_URI="
+    https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}
+"
+
+# TODO: This is a WIP. GNAT_AMD64_BOOTSTRAP currently works, and is a dynamically linked glibc built gcc.
+# This will be replaced with a statically linked musl built gcc, possibly even with built-in math libraries etc to reduce error margin.
+# Once the above has been completed, bootstrap binaries will be built for the other architectures.
+GNAT_X86_BOOTSTRAP="todo"
+GNAT_AMD64_BOOTSTRAP="gnatboot-10.2.0-amd64-glibc"
+GNAT_ARM_BOOTSTRAP="todo"
+GNAT_ARM64_BOOTSTRAP="todo"
+GNAT_PPC_BOOTSTRAP="todo"
+GNAT_PPC64_BOOTSTRAP="todo"
+SRC_URI+="
+    bootstrap? (
+        ada? (
+            amd64? (
+                elibc_glibc? ( https://bitbucket.org/_x0r/xor-overlay/downloads/${GNAT_AMD64_BOOTSTRAP}.tar.xz )
+            )
+        )
+    )
+"
 
 GMP_VER="6.1.2"
 GMP_EXTRAVER=""
@@ -351,6 +336,10 @@ pkg_setup() {
 	# To compile ada library standard files special compiler options are passed via ADAFLAGS in the Makefile.
 	# Unset ADAFLAGS as setting this override the options...
 	unset ADAFLAGS
+
+	# ADA_INCLUDE_PATH and ADA_OBJECT_PATH environment variables must not be set when building the Ada compiler, the Ada tools, or the Ada runtime libraries.
+    # You can check that your build environment is clean by verifying that ‘gnatls -v’ lists only one explicit path in each section.
+    unset ADA_INCLUDE_PATH ADA_OBJECT_PATH
 
     # must not be set when building the Ada compiler, the Ada tools, or the Ada runtime libraries.
 	unset ADA_INCLUDE_PATH ADA_OBJECT_PATH
@@ -768,6 +757,17 @@ src_configure() {
 	# oh boy...
 	if use ada; then
 	    GCC_LANG+=",ada"
+	    # Straight from the manual...
+        #
+        # In order to build GNAT, the Ada compiler, you need a working GNAT compiler (GCC version 4.7 or later).
+        # This includes GNAT tools such as gnatmake and gnatlink, since the Ada front end is written in Ada and uses some GNAT-specific extensions.
+        #
+        # In order to build a cross compiler, it is strongly recommended to install the new compiler as native first, and then use it to build the cross compiler.
+        # Other native compiler versions may work but this is not guaranteed and will typically fail with hard to understand compilation errors during the build.
+        #
+        # Similarly, it is strongly recommended to use an older version of GNAT to build GNAT.
+        # More recent versions of GNAT than the version built are not guaranteed to work and will often fail during the build with compilation errors.
+        # Note that configure does not test whether the GNAT installation works and has a sufficiently recent version; if too old a GNAT version is installed and --enable-languages=ada is used, the build will fail.
 	    if use bootstrap && ! is_crosscompile; then
 	        export GNATBOOT="${WORKDIR}"/gnatboot/usr
 	        PATH="${GNATBOOT}"/bin:${PATH}
