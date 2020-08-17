@@ -64,7 +64,7 @@ SRC_URI="
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
-IUSE="$IUSE +system-gettext +system-gmp +system-isl +system-zlib"
+IUSE="$IUSE +system-gettext +system-gmp +system-isl +system-mpc +system-zlib"
 IUSE="$IUSE openmp altivec fixed-point graphite lto pch +quad generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
@@ -160,6 +160,11 @@ GMP_VER="6.1.2"
 GMP_EXTRAVER=""
 SRC_URI+="
     !system-gmp? ( https://ftp.gnu.org/gnu/gmp/gmp-${GMP_VER}${GMP_EXTRAVER}.tar.xz )
+"
+
+MPC_VER="1.1.0"
+SRC_URI+="
+    !system-mpc? ( https://ftp.gnu.org/gnu/mpc/mpc-${MPC_VER}.tar.gz )
 "
 
 ISL_VER="0.21"
@@ -487,6 +492,11 @@ src_unpack() {
 	if use graphite && ! use system-isl; then
 	    unpack isl-${ISL_VER}.tar.xz || die "failed to unpack isl"
 	    mv "${WORKDIR}"/isl-${ISL_VER} "${WORKDIR}"/gcc-${GCC_ARCHIVE_VER}/isl || die "failed to move isl to gcc source tree"
+	fi
+
+	if ! use system-mpc; then
+	    unpack mpc-${MPC_VER}.tar.xz || die "failed to unpack mpc"
+	    mv "${WORKDIR}"/mpc-${MPC_VER} "${WORKDIR}"/gcc-${GCC_ARCHIVE_VER}/mpc || die "failed to move mpc to gcc source tree"
 	fi
 
     # Ada
