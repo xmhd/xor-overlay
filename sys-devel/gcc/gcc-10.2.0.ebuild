@@ -64,7 +64,7 @@ SRC_URI="
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
-IUSE="$IUSE +system-gettext +system-gmp +system-isl +system-mpc +system-zlib"
+IUSE="$IUSE +system-gettext +system-gmp +system-isl +system-mpc +system-mpfr +system-zlib"
 IUSE="$IUSE openmp altivec fixed-point graphite lto pch +quad generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
@@ -165,6 +165,11 @@ SRC_URI+="
 MPC_VER="1.1.0"
 SRC_URI+="
     !system-mpc? ( https://ftp.gnu.org/gnu/mpc/mpc-${MPC_VER}.tar.gz )
+"
+
+MPFR_VER="4.0.2"
+SRC_URI+="
+    !system-mpfr? ( http://www.mpfr.org/mpfr-${MPFR_VER}/mpfr-${MPFR_VER}.tar.xz )
 "
 
 ISL_VER="0.21"
@@ -497,6 +502,11 @@ src_unpack() {
 	if ! use system-mpc; then
 	    unpack mpc-${MPC_VER}.tar.xz || die "failed to unpack mpc"
 	    mv "${WORKDIR}"/mpc-${MPC_VER} "${WORKDIR}"/gcc-${GCC_ARCHIVE_VER}/mpc || die "failed to move mpc to gcc source tree"
+	fi
+
+	if ! use system-mpfr; then
+	    unpack mpfr-${MPFR_VER}.tar.xz || die "failed to unpack mpfr"
+	    mv "${WORKDIR}"/mpfr-${MPFR_VER} "${WORKDIR}"/gcc-${GCC_ARCHIVE_VER}/mpfr || die "failed to move mpfr to gcc source tree"
 	fi
 
     # Ada
