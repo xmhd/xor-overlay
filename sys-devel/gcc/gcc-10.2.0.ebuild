@@ -484,7 +484,7 @@ src_unpack() {
     # unpack gcc sources
 	unpack $GCC_A
 
-	if ! system-gmp; then
+	if ! use system-gmp; then
 	    unpack gmp-${GMP_VER}${GMP_EXTRAVER}.tar.xz || die "failed to unpack gmp"
 	    mv "${WORKDIR}"/gmp-${GMP_VER} "${WORKDIR}"/gcc-${GCC_ARCHIVE_VER}/gmp || die "failed to move gmp to gcc source tree"
 	fi
