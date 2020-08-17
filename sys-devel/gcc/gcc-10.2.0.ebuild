@@ -64,7 +64,7 @@ SRC_URI="
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
-IUSE="$IUSE +system-gettext +system-zlib"
+IUSE="$IUSE +system-gettext +system-isl +system-zlib"
 IUSE="$IUSE openmp altivec fixed-point graphite lto pch +quad generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
@@ -155,6 +155,9 @@ GENTOO_PATCHES=(
         33_all_lto-O0-mix-ICE-ipa-PR96291.patch
         34_all_fundecl-ICE-PR95820.patch
 )
+
+ISL_VER="0.21"
+SRC_URI+=" graphite? ( http://isl.gforge.inria.fr/isl-${ISL_VER}.tar.xz ) "
 
 if [[ ${CATEGORY} != cross-* ]] ; then
 	PDEPEND="${PDEPEND} elibc_glibc? ( >=sys-libs/glibc-2.8 )"
@@ -466,6 +469,11 @@ src_unpack() {
     # unpack gcc sources
 	unpack $GCC_A
 
+	if use graphite && ! use system-isl; then
+	    unpack isl-${ISL_VER}.tar.xz || die "failed to unpack isl"
+	    mv "${WORKDIR}"/isl-${ISL_VER} "${WORKDIR}"/gcc-${GCC_ARCHIVE_VER}/isl || die "failed to move isl to gcc source tree"
+	fi
+
     # Ada
     # todo: check for gnat bins in installed gcc - if found, then skip unpacking the bootstrap compiler.
     if use ada && use bootstrap && ! is_crosscompile; then
@@ -494,6 +502,8 @@ src_unpack() {
 
         # done
     fi
+
+
 }
 
 eapply_gentoo() {
@@ -724,7 +734,7 @@ src_configure() {
 	if use ada; then
 	    GCC_LANG+=",ada"
 	    if use bootstrap && ! is_crosscompile; then
-	        export GNATBOOT="${WORKDIR}"/gnatboot
+	        export GNATBOOT="${WORKDIR}"/gnatboot/
 	        PATH="${GNATBOOT}"/bin:${PATH}
 	        confgcc+=(
 	            CC="${GNATBOOT}"/bin/gcc
