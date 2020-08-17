@@ -734,7 +734,7 @@ src_configure() {
 	if use ada; then
 	    GCC_LANG+=",ada"
 	    if use bootstrap && ! is_crosscompile; then
-	        export GNATBOOT="${WORKDIR}"/gnatboot/
+	        export GNATBOOT="${WORKDIR}"/gnatboot/usr
 	        PATH="${GNATBOOT}"/bin:${PATH}
 	        confgcc+=(
 	            CC="${GNATBOOT}"/bin/gcc
