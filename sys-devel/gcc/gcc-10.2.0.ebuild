@@ -64,6 +64,7 @@ SRC_URI="
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
+IUSE="$IUSE +system-gettext"
 IUSE="$IUSE openmp altivec fixed-point graphite lto pch +quad generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
@@ -1093,7 +1094,12 @@ src_configure() {
     fi
 
 	if use nls ; then
-		confgcc+=( --enable-nls --without-included-gettext )
+		confgcc+=( --enable-nls)
+        if use system-gettext; then
+            confgcc+=( --without-included-gettext )
+        else
+            confgcc+=( --with-included-gettext )
+        fi
 	else
 		confgcc+=( --disable-nls )
 	fi
