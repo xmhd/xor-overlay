@@ -158,7 +158,7 @@ GENTOO_PATCHES=(
 
 ISL_VER="0.21"
 SRC_URI+="
-    system-isl? (
+    !system-isl? (
         graphite? ( http://isl.gforge.inria.fr/isl-${ISL_VER}.tar.xz )
     )
 "
