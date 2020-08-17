@@ -64,7 +64,7 @@ SRC_URI="
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
-IUSE="$IUSE +system-gettext +system-isl +system-zlib"
+IUSE="$IUSE +system-gettext +system-gmp +system-isl +system-zlib"
 IUSE="$IUSE openmp altivec fixed-point graphite lto pch +quad generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +ssp" # Base hardening flags
@@ -155,6 +155,12 @@ GENTOO_PATCHES=(
         33_all_lto-O0-mix-ICE-ipa-PR96291.patch
         34_all_fundecl-ICE-PR95820.patch
 )
+
+GMP_VER="6.1.2"
+GMP_EXTRAVER=""
+SRC_URI+="
+    !system-gmp? ( https://ftp.gnu.org/gnu/gmp/gmp-${GMP_VER}${GMP_EXTRAVER}.tar.xz )
+"
 
 ISL_VER="0.21"
 SRC_URI+="
@@ -472,6 +478,11 @@ pkg_setup() {
 src_unpack() {
     # unpack gcc sources
 	unpack $GCC_A
+
+	if ! system-gmp; then
+	    unpack gmp-${GMP_VER}${GMP_EXTRAVER}.tar.xz || die "failed to unpack gmp"
+	    mv "${WORKDIR}"/gmp-${GMP_VER} "${WORKDIR}"/gcc-${GCC_ARCHIVE_VER}/gmp || die "failed to move gmp to gcc source tree"
+	fi
 
 	if use graphite && ! use system-isl; then
 	    unpack isl-${ISL_VER}.tar.xz || die "failed to unpack isl"
