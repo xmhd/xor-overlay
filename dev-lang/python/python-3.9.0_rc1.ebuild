@@ -4,12 +4,11 @@
 EAPI="7"
 WANT_LIBTOOL="none"
 
-inherit autotools check-reqs flag-o-matic pax-utils python-utils-r1 \
-toolchain-funcs
+inherit autotools check-reqs flag-o-matic multiprocessing pax-utils python-utils-r1 toolchain-funcs
 
-MY_P="Python-${PV/_beta/b}"
+MY_P="Python-${PV/_/}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-${PV/_beta/b}"
+PATCHSET="python-gentoo-patches-${PV/_/}"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
