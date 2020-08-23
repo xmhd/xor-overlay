@@ -12,6 +12,12 @@ This overlay contains packages for software that:
 This overlay will eventually (tm) provide users with the ability to create a DISA STIG compliant Gentoo/Funtoo Linux based system.
 And will also include software used for supporting hardware (printers, CAC keys, and so on) used within enterprise/government/DoD.
 
+### Copyright ###
+
+* Original ebuilds in this repository are copyrighted by the author.
+* Forked ebuilds are copyrighted by the original author to the date that they were forked, e.g. (C) Gentoo 2012 - 2020 and then copyrighted 2020 - Present by the new maintainer.
+* All work in this repository is open source and licensed GPL v2 and can be used free of charge as long as the license is respected and the copyright headers remain preserved.
+
 ### Installing ###
 
 * Add an entry under repos.conf in portage with sync-type = git and sync-uri = $URL, and perform an emerge --sync.
