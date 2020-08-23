@@ -1,58 +1,42 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
-# Ninja provides better scalability and cleaner verbose output, and is used
-# throughout all LLVM projects.
-: ${CMAKE_MAKEFILE_GENERATOR:=ninja}
-# (needed due to CMAKE_BUILD_TYPE != Gentoo)
-CMAKE_MIN_VERSION=3.7.0-r1
-PYTHON_COMPAT=( python2_7 )
-
-inherit cmake-multilib llvm multiprocessing python-any-r1 \
-	toolchain-funcs
+CMAKE_ECLASS=cmake
+PYTHON_COMPAT=( python3_{6..9} )
+inherit cmake-multilib llvm llvm.org python-any-r1 toolchain-funcs
 
 DESCRIPTION="New implementation of the C++ standard library, targeting C++11"
 HOMEPAGE="https://libcxx.llvm.org/"
-SRC_URI="https://releases.llvm.org/${PV/_//}/${P/_/}.src.tar.xz"
+LLVM_COMPONENTS=( libcxx )
+llvm.org_set_globals
 
-LICENSE="|| ( UoI-NCSA MIT )"
+LICENSE="Apache-2.0-with-LLVM-exceptions || ( UoI-NCSA MIT )"
 SLOT="0"
-KEYWORDS="amd64 arm arm64 x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~x86"
 IUSE="elibc_glibc elibc_musl +libcxxabi libcxxrt +libunwind +static-libs test"
 REQUIRED_USE="
 	libunwind? ( || ( libcxxabi libcxxrt ) )
-        ?? ( libcxxabi libcxxrt )
+	?? ( libcxxabi libcxxrt )
 "
 RESTRICT="!test? ( test )"
 
 RDEPEND="
 	libcxxabi? ( ~sys-libs/libcxxabi-${PV}[libunwind=,static-libs?,${MULTILIB_USEDEP}] )
-        libcxxrt? ( sys-libs/libcxxrt[libunwind=,static-libs?,${MULTILIB_USEDEP}] )
-        !libcxxabi? ( !libcxxrt? ( >=sys-devel/gcc-4.7:=[cxx] ) )
+	libcxxrt? ( sys-libs/libcxxrt[libunwind=,static-libs?,${MULTILIB_USEDEP}] )
+	!libcxxabi? ( !libcxxrt? ( >=sys-devel/gcc-4.7:=[cxx] ) )
 "
 # llvm-6 for new lit options
 # clang-3.9.0 installs necessary target symlinks unconditionally
 # which removes the need for MULTILIB_USEDEP
 DEPEND="${RDEPEND}
-	test? ( >=sys-devel/clang-3.9.0
-		$(python_gen_any_dep 'dev-python/lit[${PYTHON_USEDEP}]') )
-	app-arch/xz-utils
 	>=sys-devel/llvm-6"
-
-S=${WORKDIR}/${P/_/}.src
+BDEPEND="
+	test? ( >=sys-devel/clang-3.9.0
+		$(python_gen_any_dep 'dev-python/lit[${PYTHON_USEDEP}]') )"
 
 DOCS=( CREDITS.TXT )
-
-PATCHES=(
-	# Add link flag "-Wl,-z,defs" to avoid underlinking; this is needed in a
-	# out-of-tree build.
-	"${FILESDIR}/${PN}-3.9-cmake-link-flags.patch"
-)
-
-# least intrusive of all
-CMAKE_BUILD_TYPE=RelWithDebInfo
 
 python_check_deps() {
 	has_version "dev-python/lit[${PYTHON_USEDEP}]"
@@ -68,12 +52,14 @@ pkg_setup() {
 		eerror "and try again."
 		die
 	fi
-	if tc-is-gcc && [[ $(gcc-version) < 4.7 ]] ; then
-		eerror "${PN} needs to be built with gcc-4.7 or later (or other"
-		eerror "conformant compilers). Please use gcc-config to switch to"
-		eerror "gcc-4.7 or later version."
-		die
-	fi
+}
+
+src_prepare() {
+	# Add link flag "-Wl,-z,defs" to avoid underlinking; this is needed in a
+	# out-of-tree build.
+	eapply "${FILESDIR}/${PN}-3.9-cmake-link-flags.patch"
+
+	llvm.org_src_prepare
 }
 
 test_compiler() {
@@ -103,7 +89,7 @@ src_configure() {
 multilib_src_configure() {
 	# we want -lgcc_s for unwinder, and for compiler runtime when using
 	# gcc, clang with gcc runtime (or any unknown compiler)
-	local extra_libs=() want_gcc_s=ON
+	local extra_libs=() want_gcc_s=ON want_compiler_rt=OFF
 	if use libunwind; then
 		# work-around missing -lunwind upstream
 		extra_libs+=( -lunwind )
@@ -114,6 +100,7 @@ multilib_src_configure() {
 			   ${LDFLAGS} -print-libgcc-file-name)
 			if [[ ${compiler_rt} == *libclang_rt* ]]; then
 				want_gcc_s=OFF
+				want_compiler_rt=ON
 				extra_libs+=( "${compiler_rt}" )
 			fi
 		fi
@@ -140,25 +127,25 @@ multilib_src_configure() {
 		-DLIBCXX_HAS_MUSL_LIBC=$(usex elibc_musl)
 		-DLIBCXX_HAS_GCC_S_LIB=${want_gcc_s}
 		-DLIBCXX_INCLUDE_TESTS=$(usex test)
+		-DLIBCXX_USE_COMPILER_RT=${want_compiler_rt}
 		-DCMAKE_SHARED_LINKER_FLAGS="${extra_libs[*]} ${LDFLAGS}"
 	)
 
 	if use test; then
 		local clang_path=$(type -P "${CHOST:+${CHOST}-}clang" 2>/dev/null)
-		local jobs=${LIT_JOBS:-$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")}
-
 		[[ -n ${clang_path} ]] || die "Unable to find ${CHOST}-clang for tests"
 
 		mycmakeargs+=(
 			-DLLVM_EXTERNAL_LIT="${EPREFIX}/usr/bin/lit"
-			-DLLVM_LIT_ARGS="-vv;-j;${jobs};--param=cxx_under_test=${clang_path}"
+			-DLLVM_LIT_ARGS="$(get_lit_flags);--param=cxx_under_test=${clang_path}"
 		)
 	fi
-	cmake-utils_src_configure
+	cmake_src_configure
 }
 
 multilib_src_test() {
-	cmake-utils_src_make check-libcxx
+	local -x LIT_PRESERVES_TMP=1
+	cmake_build check-libcxx
 }
 
 # Usage: deps
@@ -204,7 +191,7 @@ gen_shared_ldscript() {
 }
 
 multilib_src_install() {
-	cmake-utils_src_install
+	cmake_src_install
 	gen_shared_ldscript
 	use static-libs && gen_static_ldscript
 }

@@ -3,8 +3,9 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python{2_7,3_{6,7,8}} )
-inherit cmake-utils llvm llvm.org multilib-minimal multiprocessing pax-utils python-single-r1 toolchain-funcs
+PYTHON_COMPAT=( python3_{6..9} )
+inherit cmake llvm llvm.org multilib-minimal pax-utils \
+	python-single-r1 toolchain-funcs
 
 DESCRIPTION="C language family frontend for LLVM"
 HOMEPAGE="https://llvm.org/"
@@ -15,12 +16,10 @@ LLVM_TEST_COMPONENTS=(
 	llvm/utils/{UpdateTestChecks,update_cc_test_checks.py}
 )
 llvm.org_set_globals
-# We need extra level of indirection for CLANG_RESOURCE_DIR
-S=${WORKDIR}/x/y/clang
 
 # Keep in sync with sys-devel/llvm
-ALL_LLVM_EXPERIMENTAL_TARGETS=( ARC AVR VE )
-ALL_LLVM_TARGETS=( AArch64 AMDGPU ARM BPF Hexagon Lanai Mips MSP430
+ALL_LLVM_EXPERIMENTAL_TARGETS=( ARC VE )
+ALL_LLVM_TARGETS=( AArch64 AMDGPU ARM AVR BPF Hexagon Lanai Mips MSP430
 	NVPTX PowerPC RISCV Sparc SystemZ WebAssembly X86 XCore
 	"${ALL_LLVM_EXPERIMENTAL_TARGETS[@]}" )
 ALL_LLVM_TARGETS=( "${ALL_LLVM_TARGETS[@]/#/llvm_targets_}" )
@@ -32,8 +31,8 @@ LLVM_TARGET_USEDEPS=${ALL_LLVM_TARGETS[@]/%/?}
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA MIT"
 SLOT="$(ver_cut 1)"
 KEYWORDS=""
-IUSE="debug default-compiler-rt default-libcxx doc +static-analyzer
-	test xml kernel_FreeBSD ${ALL_LLVM_TARGETS[*]}"
+IUSE="debug default-compiler-rt default-libcxx default-lld
+	doc +static-analyzer test xml kernel_FreeBSD ${ALL_LLVM_TARGETS[*]}"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}
 	|| ( ${ALL_LLVM_TARGETS[*]} )"
 RESTRICT="!test? ( test )"
@@ -54,8 +53,12 @@ RDEPEND="${RDEPEND}
 PDEPEND="
 	sys-devel/clang-common
 	~sys-devel/clang-runtime-${PV}
-	default-compiler-rt? ( =sys-libs/compiler-rt-${PV%_*}* )
-	default-libcxx? ( >=sys-libs/libcxx-${PV} )"
+	default-compiler-rt? (
+		=sys-libs/compiler-rt-${PV%_*}*
+		=sys-libs/llvm-libunwind-${PV%_*}*
+	)
+	default-libcxx? ( >=sys-libs/libcxx-${PV} )
+	default-lld? ( sys-devel/lld )"
 
 # Multilib notes:
 # 1. ABI_* flags control ABIs libclang* is built for only.
@@ -98,15 +101,15 @@ check_distribution_components() {
 					clang-libraries|distribution)
 						continue
 						;;
+					# headers for clang-tidy static library
+					clang-tidy-headers)
+						continue
+						;;
 					# tools
 					clang|clangd|clang-*)
 						;;
 					# static libraries
 					clang*|findAllSymbols)
-						continue
-						;;
-					# headers for clang-tidy static library
-					clang-tidy-headers)
 						continue
 						;;
 					# conditional to USE=doc
@@ -169,7 +172,6 @@ get_distribution_components() {
 			c-index-test
 			clang
 			clang-format
-			clang-import-test
 			clang-offload-bundler
 			clang-offload-wrapper
 			clang-refactor
@@ -186,6 +188,7 @@ get_distribution_components() {
 			clang-move
 			clang-query
 			clang-reorder-fields
+			clang-tidy
 			clangd
 			find-all-symbols
 			modularize
@@ -242,12 +245,14 @@ multilib_src_configure() {
 		# override default stdlib and rtlib
 		-DCLANG_DEFAULT_CXX_STDLIB=$(usex default-libcxx libc++ "")
 		-DCLANG_DEFAULT_RTLIB=$(usex default-compiler-rt compiler-rt "")
+		-DCLANG_DEFAULT_UNWINDLIB=$(usex default-compiler-rt libunwind "")
+		-DCLANG_DEFAULT_LINKER=$(usex default-lld lld "")
 
 		-DCLANG_ENABLE_ARCMT=$(usex static-analyzer)
 		-DCLANG_ENABLE_STATIC_ANALYZER=$(usex static-analyzer)
 	)
 	use test && mycmakeargs+=(
-		-DLLVM_MAIN_SRC_DIR="${WORKDIR}/x/y/llvm"
+		-DLLVM_MAIN_SRC_DIR="${WORKDIR}/llvm"
 		-DLLVM_LIT_ARGS="$(get_lit_flags)"
 	)
 
@@ -284,15 +289,19 @@ multilib_src_configure() {
 		)
 	fi
 
+	# LLVM can have very high memory consumption while linking,
+	# exhausting the limit on 32-bit linker executable
+	use x86 && local -x LDFLAGS="${LDFLAGS} -Wl,--no-keep-memory"
+
 	# LLVM_ENABLE_ASSERTIONS=NO does not guarantee this for us, #614844
 	use debug || local -x CPPFLAGS="${CPPFLAGS} -DNDEBUG"
-	cmake-utils_src_configure
+	cmake_src_configure
 
 	multilib_is_native_abi && check_distribution_components
 }
 
 multilib_src_compile() {
-	cmake-utils_src_compile
+	cmake_build distribution
 
 	# provide a symlink for tests
 	if [[ ! -L ${WORKDIR}/lib/clang ]]; then
@@ -304,9 +313,9 @@ multilib_src_compile() {
 multilib_src_test() {
 	# respect TMPDIR!
 	local -x LIT_PRESERVES_TMP=1
-	cmake-utils_src_make check-clang
+	cmake_build check-clang
 	multilib_is_native_abi &&
-		cmake-utils_src_make check-clang-tools check-clangd
+		cmake_build check-clang-tools check-clangd
 }
 
 src_install() {
@@ -362,7 +371,7 @@ src_install() {
 }
 
 multilib_src_install() {
-	DESTDIR=${D} cmake-utils_src_make install-distribution
+	DESTDIR=${D} cmake_build install-distribution
 
 	# move headers to /usr/include for wrapping & ABI mismatch checks
 	# (also drop the version suffix from runtime headers)

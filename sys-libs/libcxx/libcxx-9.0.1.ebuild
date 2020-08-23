@@ -16,17 +16,14 @@ LICENSE="Apache-2.0-with-LLVM-exceptions || ( UoI-NCSA MIT )"
 SLOT="0"
 KEYWORDS="amd64 arm arm64 x86"
 IUSE="elibc_glibc elibc_musl +libcxxabi libcxxrt +libunwind +static-libs test"
-REQUIRED_USE="
-	libunwind? ( || ( libcxxabi libcxxrt ) )
-        ?? ( libcxxabi libcxxrt )
-"
+REQUIRED_USE="libunwind? ( || ( libcxxabi libcxxrt ) )
+	?? ( libcxxabi libcxxrt )"
 RESTRICT="!test? ( test )"
 
 RDEPEND="
 	libcxxabi? ( ~sys-libs/libcxxabi-${PV}[libunwind=,static-libs?,${MULTILIB_USEDEP}] )
-        libcxxrt? ( sys-libs/libcxxrt[libunwind=,static-libs?,${MULTILIB_USEDEP}] )
-        !libcxxabi? ( !libcxxrt? ( >=sys-devel/gcc-4.7:=[cxx] ) )
-"
+	libcxxrt? ( sys-libs/libcxxrt[libunwind=,static-libs?,${MULTILIB_USEDEP}] )
+	!libcxxabi? ( !libcxxrt? ( >=sys-devel/gcc-4.7:=[cxx] ) )"
 # llvm-6 for new lit options
 # clang-3.9.0 installs necessary target symlinks unconditionally
 # which removes the need for MULTILIB_USEDEP
@@ -59,12 +56,6 @@ pkg_setup() {
 		eerror "To build ${PN} against libsupc++, you have to use gcc. Other"
 		eerror "compilers are not supported. Please set CC=gcc and CXX=g++"
 		eerror "and try again."
-		die
-	fi
-	if tc-is-gcc && [[ $(gcc-version) < 4.7 ]] ; then
-		eerror "${PN} needs to be built with gcc-4.7 or later (or other"
-		eerror "conformant compilers). Please use gcc-config to switch to"
-		eerror "gcc-4.7 or later version."
 		die
 	fi
 }
