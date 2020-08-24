@@ -2,8 +2,8 @@
 
 		* gcc/config.in	Add ENABLE_CRTBEGINP, ENABLE_ESP
 
---- gcc/config.in	2009-04-21 11:08:08.000000000 +0200
-+++ gcc/config.in	2009-05-12 00:10:08.000000000 +0200
+--- a/gcc/config.in	2009-04-21 11:08:08.000000000 +0200
++++ b/gcc/config.in	2009-05-12 00:10:08.000000000 +0200
 @@ -46,6 +46,12 @@
  #endif
  

@@ -1,3 +1,6 @@
+4		23 Aug 2020
+	+ 40_all_gcc-c++17.patch
+
 3		29 May 2020
 	+ 38_all_libcpp-ar.patch
 	+ 39_all_whitespace-pa.patch

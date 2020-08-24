@@ -1,3 +1,13 @@
+2		1 Aug 2020
+	U 40_all_gcc49_config_esp.patch
+
+1		1 Aug 2020
+	U 02_all_gcc48_config.in.patch
+	U 05_all_gcc48_gcc.c.patch
+	U 16_all_gcc47_nopie_option.patch
+	U 20_all_gcc49_config_crtbeginp.patch
+	U 24_all_gcc49_invoke.texi.patch
+
 0.6.4		27 Oct 2015
 		U 24_all_gcc49_invoke.texi.patch
 0.6.3		29 Aug 2015

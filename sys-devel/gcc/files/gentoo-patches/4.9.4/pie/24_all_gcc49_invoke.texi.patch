@@ -3,8 +3,8 @@
 		* gcc/doc/invoke.texi	Add NOTES about -fstack-protector-all, -pie and
 		-fPIE/-fpie when --enable-esp is enable, this options is on by default.
 
---- gcc/doc/invoke.texi	2009-04-01 09:18:47.000000000 +0200
-+++ gcc/doc/invoke.texi	2009-06-18 14:08:38.000000000 +0200
+--- a/gcc/doc/invoke.texi	2009-04-01 09:18:47.000000000 +0200
++++ b/gcc/doc/invoke.texi	2009-06-18 14:08:38.000000000 +0200
 @@ -9233,6 +9245,11 @@ If a guard check fails, an error message
  @opindex fstack-protector-all
  Like @option{-fstack-protector} except that all functions are protected.
