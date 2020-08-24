@@ -71,6 +71,16 @@ REQUIRED_USE="
     multilib? ( system-zlib )
 "
 
+GCC_MAJOR="${PV%%.*}"
+# Version of archive before patches.
+GCC_ARCHIVE_VER="10.2.0"
+# GCC release archive
+GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
+
+SRC_URI="
+    https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}
+"
+
 GENTOO_PATCHES_DIR="${FILESDIR}/gentoo-patches/${GCC_ARCHIVE_VER}/gentoo"
 
 # We disable a few of these as we set our own 'extra options' for hardening.
@@ -113,16 +123,6 @@ GENTOO_PATCHES=(
         35_all_ipa-fix-bit-CP.patch
         36_all_ipa-fix-bit-CP-p2.patch
 )
-
-GCC_MAJOR="${PV%%.*}"
-# Version of archive before patches.
-GCC_ARCHIVE_VER="10.2.0"
-# GCC release archive
-GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
-
-SRC_URI="
-    https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}
-"
 
 # TODO: This is a WIP. GNAT_AMD64_BOOTSTRAP currently works, and is a dynamically linked glibc built gcc.
 # This will be replaced with a statically linked musl built gcc, possibly even with built-in math libraries etc to reduce error margin.
