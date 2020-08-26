@@ -121,7 +121,13 @@ get_certs_dir() {
 }
 
 pkg_pretend() {
-	# Ensure we have enough disk space to compile
+
+    # does what it says on the tin...
+    if use hardened && use vanilla; then
+        die "vanilla and hardened USE flags are incompatible - Disable one of them."
+    fi
+
+	# ensure we have enough disk space to compile
 	if use binary ; then
 		CHECKREQS_DISK_BUILD="5G"
 		check-reqs_pkg_setup
