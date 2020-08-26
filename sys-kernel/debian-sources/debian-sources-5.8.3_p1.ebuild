@@ -163,7 +163,6 @@ src_prepare() {
 	debug-print-function ${FUNCNAME} "${@}"
 
     # apply debian patches
-	cd "${S}"
 	for debpatch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
 		eapply -p1 "${WORKDIR}/debian/patches/${debpatch}"
 	done
