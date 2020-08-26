@@ -17,6 +17,10 @@ KERNEL_VER="5.8.4"
 KERNEL_ARCHIVE="linux-${KERNEL_VER}.tar.xz"
 KERNEL_UPSTREAM="https://cdn.kernel.org/pub/linux/kernel/v5.x/"
 
+SRC_URI="
+    ${KERNEL_UPSTREAM}${KERNEL_ARCHIVE}
+"
+
 # Gentoo Linux kernel patches
 GENPATCHES_VER="5.8"
 GENPATCHES_REVISION="6"
@@ -24,10 +28,6 @@ GENPATCHES_BASE_ARCHIVE="genpatches-${GENPATCHES_VER}-${GENPATCHES_REVISION}.bas
 GENPATCHES_EXTRAS_ARCHIVE="genpatches-${GENPATCHES_VER}-${GENPATCHES_REVISION}.extras.tar.xz"
 GENPATCHES_EXPERIMENTAL_ARCHIVE="genpatches-${GENPATCHES_VER}-${GENPATCHES_REVISION}.experimental.tar.xz"
 GENPATCHES_UPSTREAM="https://dev.gentoo.org/~mpagano/genpatches/tarballs/"
-
-SRC_URI="
-    ${KERNEL_UPSTREAM}${KERNEL_ARCHIVE}
-"
 
 SRC_URI+="
     !vanilla? (
@@ -84,10 +84,6 @@ REQUIRED_USE="
 	wireguard? ( binary )
 	zfs? ( binary )
 "
-
-eapply_dtrace() {
-	eapply "${DTRACE_PATCHES_DIR}/${1}"
-}
 
 get_patch_list() {
 	[[ -z "${1}" ]] && die "No patch series file specified"
