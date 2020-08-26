@@ -79,31 +79,6 @@ REQUIRED_USE="
 	zfs? ( binary )
 "
 
-# temporary ;(
-DTRACE_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/dtrace-patches/"
-DTRACE_PATCHES=(
-    0001-ctf-generate-CTF-information-for-the-kernel.patch
-    0002-kallsyms-introduce-new-proc-kallmodsyms-including-bu.patch
-    0003-waitfd-new-syscall-implementing-waitpid-over-fds.patch
-    0004-dtrace-core-and-x86.patch
-    0005-dtrace-modular-components-and-x86-support.patch
-    0006-dtrace-systrace-provider-core-components.patch
-    0007-dtrace-systrace-provider.patch
-    0008-dtrace-sdt-provider-core-components.patch
-    0009-dtrace-sdt-provider-for-x86.patch
-    0010-dtrace-profile-provider-and-test-probe-core-componen.patch
-    0011-dtrace-profile-and-tick-providers-built-on-cyclics.patch
-    0012-dtrace-USDT-and-pid-provider-core-and-x86-components.patch
-    0013-dtrace-USDT-and-pid-providers.patch
-    0014-dtrace-function-boundary-tracing-FBT-core-and-x86-co.patch
-    0015-dtrace-fbt-provider-modular-components.patch
-    0016-dtrace-arm-arm64-port.patch
-    0017-dtrace-add-SDT-probes.patch
-    0018-dtrace-add-rcu_irq_exit-and-rcu_nmi_exit_common-to-F.patch
-    0019-dtrace-add-sample-script-for-building-DTrace-on-Fedo.patch
-    0020-locking-publicize-mutex_owner-and-mutex_owned-again.patch
-)
-
 eapply_dtrace() {
 	eapply "${DTRACE_PATCHES_DIR}/${1}"
 }
@@ -164,13 +139,13 @@ src_prepare() {
 	for debpatch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
 		eapply -p1 "${WORKDIR}/debian/patches/${debpatch}"
 	done
-	# end of debian-specific stuff...
 
 	# do not include debian devs certificates
 	rm -rf "${WORKDIR}"/debian/certs
 
 	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${MODULE_EXT}:" Makefile || die
 	sed	-i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die
+
 	rm -f .config >/dev/null
 	cp -a "${WORKDIR}"/debian "${T}"
 	make -s mrproper || die "make mrproper failed"
@@ -183,15 +158,6 @@ src_prepare() {
 
 	# Restore export_kernel_fpu_functions for zfs
 	eapply "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
-
-
-    if use dtrace; then
-        # Dtrace patches
-        einfo "Applying DTrace patches ..."
-        for my_patch in ${DTRACE_PATCHES[*]} ; do
-            eapply_dtrace "${my_patch}"
-        done
-    fi
 
 	local arch featureset subarch
 	featureset="standard"
@@ -207,6 +173,7 @@ src_prepare() {
 	else
 	die "Architecture not handled in ebuild"
 	fi
+
 	cp "${FILESDIR}"/config-extract . || die
 	chmod +x config-extract || die
 	./config-extract ${arch} ${featureset} ${subarch} || die
@@ -341,47 +308,48 @@ src_prepare() {
 
 src_configure() {
 
-	! use binary && return
+	if use binary; then
+    
+        debug-print-function ${FUNCNAME} "${@}"
 
-	debug-print-function ${FUNCNAME} "${@}"
+        tc-export_build_env
+        MAKEARGS=(
+            V=1
 
-	tc-export_build_env
-	MAKEARGS=(
-		V=1
+            HOSTCC="$(tc-getBUILD_CC)"
+            HOSTCXX="$(tc-getBUILD_CXX)"
+            HOSTCFLAGS="${BUILD_CFLAGS}"
+            HOSTLDFLAGS="${BUILD_LDFLAGS}"
 
-		HOSTCC="$(tc-getBUILD_CC)"
-		HOSTCXX="$(tc-getBUILD_CXX)"
-		HOSTCFLAGS="${BUILD_CFLAGS}"
-		HOSTLDFLAGS="${BUILD_LDFLAGS}"
+            CROSS_COMPILE=${CHOST}-
+            AS="$(tc-getAS)"
+            CC="$(tc-getCC)"
+            LD="$(tc-getLD)"
+            AR="$(tc-getAR)"
+            NM="$(tc-getNM)"
+            STRIP=":"
+            OBJCOPY="$(tc-getOBJCOPY)"
+            OBJDUMP="$(tc-getOBJDUMP)"
 
-		CROSS_COMPILE=${CHOST}-
-		AS="$(tc-getAS)"
-		CC="$(tc-getCC)"
-		LD="$(tc-getLD)"
-		AR="$(tc-getAR)"
-		NM="$(tc-getNM)"
-		STRIP=":"
-		OBJCOPY="$(tc-getOBJCOPY)"
-		OBJDUMP="$(tc-getOBJDUMP)"
+            # we need to pass it to override colliding Gentoo envvar
+            ARCH=$(tc-arch-kernel)
+        )
 
-		# we need to pass it to override colliding Gentoo envvar
-		ARCH=$(tc-arch-kernel)
-	)
-
-	mkdir -p "${WORKDIR}"/modprep || die
-	cp "${T}"/.config "${WORKDIR}"/modprep/ || die
-	emake O="${WORKDIR}"/modprep "${MAKEARGS[@]}" olddefconfig || die "kernel configure failed"
-	emake O="${WORKDIR}"/modprep "${MAKEARGS[@]}" modules_prepare || die "modules_prepare failed"
-	cp -pR "${WORKDIR}"/modprep "${WORKDIR}"/build || die
+        mkdir -p "${WORKDIR}"/modprep || die
+        cp "${T}"/.config "${WORKDIR}"/modprep/ || die
+        emake O="${WORKDIR}"/modprep "${MAKEARGS[@]}" olddefconfig || die "kernel configure failed"
+        emake O="${WORKDIR}"/modprep "${MAKEARGS[@]}" modules_prepare || die "modules_prepare failed"
+        cp -pR "${WORKDIR}"/modprep "${WORKDIR}"/build || die
+    fi
 }
 
 src_compile() {
 
-	! use binary && return
+    if use binary; then
+        debug-print-function ${FUNCNAME} "${@}"
 
-	debug-print-function ${FUNCNAME} "${@}"
-
-	emake O="${WORKDIR}"/build "${MAKEARGS[@]}" all || "kernel build failed"
+        emake O="${WORKDIR}"/build "${MAKEARGS[@]}" all || "kernel build failed"
+    fi
 }
 
 src_install() {
@@ -404,41 +372,42 @@ src_install() {
 
 	# if we didn't use genkernel, we're done. The kernel source tree is left in
 	# an unconfigured state - you can't compile 3rd-party modules against it yet.
-	use binary || return
-	make prepare || die
-	make scripts || die
+	if use binary; then
+        make prepare || die
+        make scripts || die
 
-    local targets=( modules_install )
+        local targets=( modules_install )
 
-    # ARM / ARM64 requires dtb
-    if (use arm || use arm64); then
-            targets+=( dtbs_install )
+        # ARM / ARM64 requires dtb
+        if (use arm || use arm64); then
+                targets+=( dtbs_install )
+        fi
+
+        emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
+        installkernel "${PN}-${PV}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
+
+        # module symlink fix-up:
+        rm -f "${D}"/lib/modules/${PV}-${PN}/source || die
+        rm -f "${D}"/lib/modules/${PV}-${PN}/build || die
+
+        # Set-up module symlinks:
+        ln -s /usr/src/linux-${PN}-${PV} "${D}"/lib/modules/${PV}-${PN}/source || die "failed to install source symlink"
+        ln -s /usr/src/linux-${PN}-${PV} "${D}"/lib/modules/${PV}-${PN}/build || die "failed to install build symlink"
+
+        # Fixes FL-14
+        cp "${WORKDIR}/build/System.map" "${D}"/usr/src/linux-${PN}-${PV}/ || die "failed to install System.map"
+        cp "${WORKDIR}/build/Module.symvers" "${D}"/usr/src/linux-${PN}-${PV}/ || die "failed to install Module.symvers"
+
+        if use sign-modules; then
+            for x in $(find "${D}"/lib/modules -iname *.ko); do
+                # $certs_dir defined previously in this function.
+                ${WORKDIR}/build/scripts/sign-file sha512 $certs_dir/signing_key.pem $certs_dir/signing_key.x509 $x || die
+            done
+            # install the sign-file executable for future use.
+            exeinto /usr/src/linux-${PN}-${PV}/scripts
+            doexe ${WORKDIR}/build/scripts/sign-file
+        fi
     fi
-
-    emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
-	installkernel "${PN}-${PV}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
-
-	# module symlink fix-up:
-	rm -f "${D}"/lib/modules/${PV}-${PN}/source || die
-	rm -f "${D}"/lib/modules/${PV}-${PN}/build || die
-
-	# Set-up module symlinks:
-	ln -s /usr/src/linux-${PN}-${PV} "${D}"/lib/modules/${PV}-${PN}/source || die "failed to install source symlink"
-	ln -s /usr/src/linux-${PN}-${PV} "${D}"/lib/modules/${PV}-${PN}/build || die "failed to install build symlink"
-
-	# Fixes FL-14
-	cp "${WORKDIR}/build/System.map" "${D}"/usr/src/linux-${PN}-${PV}/ || die "failed to install System.map"
-	cp "${WORKDIR}/build/Module.symvers" "${D}"/usr/src/linux-${PN}-${PV}/ || die "failed to install Module.symvers"
-
-	if use sign-modules; then
-		for x in $(find "${D}"/lib/modules -iname *.ko); do
-			# $certs_dir defined previously in this function.
-			${WORKDIR}/build/scripts/sign-file sha512 $certs_dir/signing_key.pem $certs_dir/signing_key.x509 $x || die
-		done
-		# install the sign-file executable for future use.
-		exeinto /usr/src/linux-${PN}-${PV}/scripts
-		doexe ${WORKDIR}/build/scripts/sign-file
-	fi
 }
 
 pkg_postinst() {
