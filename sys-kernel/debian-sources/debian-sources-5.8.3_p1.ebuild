@@ -202,7 +202,7 @@ src_prepare() {
 	cp -aR "${WORKDIR}"/debian "${S}"/debian
 
 	## increase bluetooth polling patch
-	eapply "${FILESDIR}"/${DEB_PV_BASE}/${PN}-${DEB_PV_BASE}-fix-bluetooth-polling.patch
+	eapply "${FILESDIR}"/${DEB_PV_BASE}/fix-bluetooth-polling.patch
 
 	# Restore export_kernel_fpu_functions for zfs
 	eapply "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
