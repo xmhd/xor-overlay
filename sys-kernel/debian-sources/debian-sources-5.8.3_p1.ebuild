@@ -1,10 +1,5 @@
 # Distributed under the terms of the GNU General Public License v2
 
-# Documentation for adding new kernels -- do not remove!
-#
-# Find latest stable kernel release for debian here:
-#   https://packages.debian.org/unstable/kernel/
-
 EAPI=7
 
 inherit check-reqs eutils mount-boot toolchain-funcs
