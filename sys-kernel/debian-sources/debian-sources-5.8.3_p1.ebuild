@@ -6,7 +6,6 @@ inherit check-reqs eutils mount-boot toolchain-funcs
 
 SLOT=$PF
 CKV=${PV}
-KV_FULL=${PN}-${PVR}
 DEB_PV_BASE="5.8.3"
 DEB_EXTRAVERSION="-1~exp1"
 EXTRAVERSION="_p1"
