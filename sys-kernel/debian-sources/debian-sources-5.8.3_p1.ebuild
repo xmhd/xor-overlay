@@ -5,7 +5,6 @@ EAPI=7
 inherit check-reqs eutils mount-boot toolchain-funcs
 
 SLOT=$PF
-CKV=${PV}
 DEB_PV_BASE="5.8.3"
 DEB_EXTRAVERSION="-1~exp1"
 EXTRAVERSION="_p1"
@@ -389,7 +388,7 @@ src_install() {
 
 	debug-print-function ${FUNCNAME} "${@}"
 
-        # TODO: Change to SANDBOX_WRITE=".." for installkernel writes
+    # TODO: Change to SANDBOX_WRITE=".." for installkernel writes
 	# Disable sandbox
 	export SANDBOX_ON=0
 
@@ -409,14 +408,14 @@ src_install() {
 	make prepare || die
 	make scripts || die
 
-        local targets=( modules_install )
+    local targets=( modules_install )
 
-        # ARM / ARM64 requires dtb
-        if (use arm || use arm64); then
-                targets+=( dtbs_install )
-        fi
+    # ARM / ARM64 requires dtb
+    if (use arm || use arm64); then
+            targets+=( dtbs_install )
+    fi
 
-        emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
+    emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
 	installkernel "${PN}-${PV}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
 	# module symlink fix-up:
