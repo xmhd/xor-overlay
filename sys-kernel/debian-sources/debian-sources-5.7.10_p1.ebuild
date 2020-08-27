@@ -8,6 +8,7 @@ SLOT=$PF
 DEB_PV_BASE="5.7.10"
 DEB_EXTRAVERSION="-1~bpo10+1"
 EXTRAVERSION="_p1"
+TEMP_EXTRA_VERSION="debian"
 
 # install modules to /lib/modules/${DEB_PV_BASE}${EXTRAVERSION}-$MODULE_EXT
 MODULE_EXT=${EXTRAVERSION}
@@ -526,8 +527,8 @@ src_install() {
 
 	# copy sources into place:
 	dodir /usr/src
-	cp -a "${S}" "${D}"/usr/src/linux-${PV}-${P} || die "failed to install kernel sources"
-	cd "${D}"/usr/src/linux-${PV}-${P}
+	cp -a "${S}" "${D}"/usr/src/linux-${PV}-${TEMP_EXTRA_VERSION} || die "failed to install kernel sources"
+	cd "${D}"/usr/src/linux-${PV}-${TEMP_EXTRA_VERSION}
 
 	# prepare for real-world use and 3rd-party module building:
 	make mrproper || die
@@ -551,16 +552,16 @@ src_install() {
         installkernel "${PN}-${PV}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
         # module symlink fix-up:
-        rm -rf "${D}"/lib/modules/${PV}-${P} || die "failed to remove old kernel source symlink"
-        rm -rf "${D}"/lib/modules/${PV}-${P} || die "failed to remove old kernel build symlink"
+        rm -rf "${D}"/lib/modules/${PV}-${TEMP_EXTRA_VERSION} || die "failed to remove old kernel source symlink"
+        rm -rf "${D}"/lib/modules/${PV}-${TEMP_EXTRA_VERSION} || die "failed to remove old kernel build symlink"
 
         # Set-up module symlinks:
-        ln -s /usr/src/linux-${PV}-${P} "${D}"/lib/modules/${PV}-${P}/source || die "failed to create kernel source symlink"
-        ln -s /usr/src/linux-${PV}-${P} "${D}"/lib/modules/${PV}-${P}/build || die "failed to create kernel build symlink"
+        ln -s /usr/src/linux-${PV}-${TEMP_EXTRA_VERSION} "${D}"/lib/modules/${PV}-${TEMP_EXTRA_VERSION}/source || die "failed to create kernel source symlink"
+        ln -s /usr/src/linux-${PV}-${TEMP_EXTRA_VERSION} "${D}"/lib/modules/${PV}-${TEMP_EXTRA_VERSION}/build || die "failed to create kernel build symlink"
 
         # Fixes FL-14
-        cp "${WORKDIR}/build/System.map" "${D}"/usr/src/linux-${PV}-${P}/ || die "failed to install System.map"
-        cp "${WORKDIR}/build/Module.symvers" "${D}"/usr/src/linux-${PV}-${P}/ || die "failed to install Module.symvers"
+        cp "${WORKDIR}/build/System.map" "${D}"/usr/src/linux-${PV}-${TEMP_EXTRA_VERSION}/ || die "failed to install System.map"
+        cp "${WORKDIR}/build/Module.symvers" "${D}"/usr/src/linux-${PV}-${TEMP_EXTRA_VERSION}/ || die "failed to install Module.symvers"
 
         if use sign-modules; then
             for x in $(find "${D}"/lib/modules -iname *.ko); do
@@ -592,7 +593,7 @@ pkg_postinst() {
 	fi
 
 	if [ -e ${ROOT}lib/modules ]; then
-		depmod -a ${PV}-${P}
+		depmod -a ${PV}-${TEMP_EXTRA_VERSION}
 	fi
 
 	# NOTE: WIP and not well tested yet.
