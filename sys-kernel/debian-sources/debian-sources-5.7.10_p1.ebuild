@@ -79,8 +79,15 @@ REQUIRED_USE="
 	zfs? ( binary )
 "
 
+# TODO: manage HARDENED_PATCHES and GENTOO_PATCHES can be managed in a git repository and packed into tar balls per version.
+
 HARDENED_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/hardened-patches/"
 
+# 'linux-hardened' minimal patch set to compliment existing Kernel-Self-Protection-Project
+# 0033-enable-protected_-symlinks-hardlinks-by-default.patch
+# 0058-security-perf-Allow-further-restriction-of-perf_even.patch
+# 0060-add-sysctl-to-disallow-unprivileged-CLONE_NEWUSER-by.patch
+# All of the above already provided by Debian patches.
 HARDENED_PATCHES=(
     0001-make-DEFAULT_MMAP_MIN_ADDR-match-LSM_MMAP_MIN_ADDR.patch
     0002-enable-HARDENED_USERCOPY-by-default.patch
@@ -187,8 +194,35 @@ HARDENED_PATCHES=(
     0103-net-tcp-add-option-to-disable-TCP-simultaneous-conne.patch
 )
 
+GENTOO_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/gentoo-patches/"
+
+# Gentoo Linux 'genpatches' patch set
+# 1510_fs-enable-link-security-restrctions-by-default.patch is already provided in debian patches
+# 4567_distro-Gentoo-Kconfiig TODO?
+GENTOO_PATCHES=(
+    1500_XATTR_USER_PREFIX.patch
+#    1510_fs-enable-link-security-restrictions-by-default.patch
+    2000_BT-Check-key-sizes-only-if-Secure-Simple-Pairing-enabled.patch
+    2600_enable-key-swapping-for-apple-mac.patch
+    2900_tmp513-Fix-build-issue-by-selecting-CONFIG_REG.patch
+    2920_sign-file-patch-for-libressl.patch
+#    4567_distro-Gentoo-Kconfig.patch
+    5000_ZSTD-v5-1-8-prepare-zstd-for-preboot-env.patch
+    5001_ZSTD-v5-2-8-prepare-xxhash-for-preboot-env.patch
+    5002_ZSTD-v5-3-8-add-zstd-support-to-decompress.patch
+    5003_ZSTD-v5-4-8-add-support-for-zstd-compres-kern.patch
+    5004_ZSTD-v5-5-8-add-support-for-zstd-compressed-initramfs.patch
+    5005_ZSTD-v5-6-8-bump-ZO-z-extra-bytes-margin.patch
+    5006_ZSTD-v5-7-8-support-for-ZSTD-compressed-kernel.patch
+    5007_ZSTD-v5-8-8-gitignore-add-ZSTD-compressed-files.patch
+)
+
 eapply_hardened() {
 	eapply "${HARDENED_PATCHES_DIR}/${1}"
+}
+
+eapply_hardened() {
+	eapply "${GENTOO_PATCHES_DIR}/${1}"
 }
 
 get_patch_list() {
@@ -265,6 +299,12 @@ src_prepare() {
     einfo "Applying hardening patches ..."
     for my_patch in ${HARDENED_PATCHES[*]} ; do
         eapply_hardened "${my_patch}"
+    done
+
+    # apply gentoo patches
+    einfo "Applying Gentoo Linux patches ..."
+    for my_patch in ${GENTOO_PATCHES[*]} ; do
+        eapply_gentoo "${my_patch}"
     done
 
 	## increase bluetooth polling patch
