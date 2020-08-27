@@ -141,7 +141,7 @@ src_configure() {
 		--with-linux="${KV_DIR}"
 		--with-linux-obj="${KV_OUT_DIR}"
 		--with-udevdir="$(get_udevdir)"
-		--with-pamconfigsdir="${EPREFIX}/unwanted_files"
+		--with-pamconfigsdir="${EPREFIX}/unwanted_debian_files"
 		--with-pammoduledir="$(getpam_mod_dir)"
 		--with-python="${EPYTHON}"
 		--with-systemdunitdir="$(systemd_get_systemunitdir)"
