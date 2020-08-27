@@ -221,7 +221,7 @@ eapply_hardened() {
 	eapply "${HARDENED_PATCHES_DIR}/${1}"
 }
 
-eapply_hardened() {
+eapply_gentoo() {
 	eapply "${GENTOO_PATCHES_DIR}/${1}"
 }
 
