@@ -79,6 +79,118 @@ REQUIRED_USE="
 	zfs? ( binary )
 "
 
+HARDENED_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/hardened-patches/"
+
+HARDENED_PATCHES=(
+    0001-make-DEFAULT_MMAP_MIN_ADDR-match-LSM_MMAP_MIN_ADDR.patch
+    0002-enable-HARDENED_USERCOPY-by-default.patch
+    0003-disable-HARDENED_USERCOPY_FALLBACK-by-default.patch
+    0004-enable-SECURITY_DMESG_RESTRICT-by-default.patch
+    0005-set-kptr_restrict-2-by-default.patch
+    0006-enable-DEBUG_LIST-by-default.patch
+    0007-enable-BUG_ON_DATA_CORRUPTION-by-default.patch
+    0008-enable-ARM64_SW_TTBR0_PAN-by-default.patch
+    0009-arm64-enable-RANDOMIZE_BASE-by-default.patch
+    0010-enable-SLAB_FREELIST_RANDOM-by-default.patch
+    0011-enable-SLAB_FREELIST_HARDENED-by-default.patch
+    0012-disable-SLAB_MERGE_DEFAULT-by-default.patch
+    0013-enable-FORTIFY_SOURCE-by-default.patch
+    0014-enable-PANIC_ON_OOPS-by-default.patch
+    0015-stop-hiding-SLUB_DEBUG-behind-EXPERT.patch
+    0016-stop-hiding-X86_16BIT-behind-EXPERT.patch
+    0017-disable-X86_16BIT-by-default.patch
+    0018-stop-hiding-MODIFY_LDT_SYSCALL-behind-EXPERT.patch
+    0019-disable-MODIFY_LDT_SYSCALL-by-default.patch
+    0020-set-LEGACY_VSYSCALL_NONE-by-default.patch
+    0021-stop-hiding-AIO-behind-EXPERT.patch
+    0022-disable-AIO-by-default.patch
+    0023-remove-SYSVIPC-from-arm64-x86_64-defconfigs.patch
+    0024-disable-DEVPORT-by-default.patch
+    0025-disable-PROC_VMCORE-by-default.patch
+    0026-disable-NFS_DEBUG-by-default.patch
+    0027-enable-DEBUG_WX-by-default.patch
+    0028-disable-LEGACY_PTYS-by-default.patch
+    0029-disable-DEVMEM-by-default.patch
+    0030-enable-IO_STRICT_DEVMEM-by-default.patch
+    0031-disable-COMPAT_BRK-by-default.patch
+    0032-use-maximum-supported-mmap-rnd-entropy-by-default.patch
+#    0033-enable-protected_-symlinks-hardlinks-by-default.patch
+    0034-enable-SECURITY-by-default.patch
+    0035-enable-SECURITY_YAMA-by-default.patch
+    0036-enable-SECURITY_NETWORK-by-default.patch
+    0037-enable-AUDIT-by-default.patch
+    0038-enable-SECURITY_SELINUX-by-default.patch
+    0039-enable-SYN_COOKIES-by-default.patch
+    0040-add-__read_only-for-non-init-related-usage.patch
+    0041-make-sysctl-constants-read-only.patch
+    0042-mark-kernel_set_to_readonly-as-__ro_after_init.patch
+    0043-mark-slub-runtime-configuration-as-__ro_after_init.patch
+    0044-add-__ro_after_init-to-slab_nomerge-and-slab_state.patch
+    0045-mark-kmem_cache-as-__ro_after_init.patch
+    0046-mark-__supported_pte_mask-as-__ro_after_init.patch
+    0047-mark-kobj_ns_type_register-as-only-used-for-init.patch
+    0048-mark-open_softirq-as-only-used-for-init.patch
+    0049-remove-unused-softirq_action-callback-parameter.patch
+    0050-mark-softirq_vec-as-__ro_after_init.patch
+    0051-mm-slab-trigger-BUG-if-requested-object-is-not-a-sla.patch
+    0052-bug-on-kmem_cache_free-with-the-wrong-cache.patch
+    0053-bug-on-PageSlab-PageCompound-in-ksize.patch
+    0054-mm-add-support-for-verifying-page-sanitization.patch
+    0055-slub-Extend-init_on_free-to-slab-caches-with-constru.patch
+    0056-slub-Add-support-for-verifying-slab-sanitization.patch
+    0057-slub-add-multi-purpose-random-canaries.patch
+#    0058-security-perf-Allow-further-restriction-of-perf_even.patch
+    0059-enable-SECURITY_PERF_EVENTS_RESTRICT-by-default.patch
+#    0060-add-sysctl-to-disallow-unprivileged-CLONE_NEWUSER-by.patch
+    0061-add-kmalloc-krealloc-alloc_size-attributes.patch
+    0062-add-vmalloc-alloc_size-attributes.patch
+    0063-add-kvmalloc-alloc_size-attribute.patch
+    0064-add-percpu-alloc_size-attributes.patch
+    0065-add-alloc_pages_exact-alloc_size-attributes.patch
+    0066-Add-the-extra_latent_entropy-kernel-parameter.patch
+    0067-ata-avoid-null-pointer-dereference-on-bug.patch
+    0068-sanity-check-for-negative-length-in-nla_memcpy.patch
+    0069-add-page-destructor-sanity-check.patch
+    0070-PaX-shadow-cr4-sanity-check-essentially-a-revert.patch
+    0071-add-writable-function-pointer-detection.patch
+    0072-support-overriding-early-audit-kernel-cmdline.patch
+    0073-FORTIFY_SOURCE-intra-object-overflow-checking.patch
+    0074-Revert-mm-revert-x86_64-and-arm64-ELF_ET_DYN_BASE-ba.patch
+    0075-x86_64-move-vdso-to-mmap-region-from-stack-region.patch
+    0076-x86-determine-stack-entropy-based-on-mmap-entropy.patch
+    0077-arm64-determine-stack-entropy-based-on-mmap-entropy.patch
+    0078-randomize-lower-bits-of-the-argument-block.patch
+    0079-x86_64-match-arm64-brk-randomization-entropy.patch
+    0080-support-randomizing-the-lower-bits-of-brk.patch
+    0081-mm-randomize-lower-bits-of-brk.patch
+    0082-x86-randomize-lower-bits-of-brk.patch
+    0083-mm-guarantee-brk-gap-is-at-least-one-page.patch
+    0084-x86-guarantee-brk-gap-is-at-least-one-page.patch
+    0085-x86_64-bound-mmap-between-legacy-modern-bases.patch
+    0086-restrict-device-timing-side-channels.patch
+    0087-add-toggle-for-disabling-newly-added-USB-devices.patch
+    0088-hard-wire-legacy-checkreqprot-option-to-0.patch
+    0089-security-tty-Add-owner-user-namespace-to-tty_struct.patch
+    0090-security-tty-make-TIOCSTI-ioctl-require-CAP_SYS_ADMI.patch
+    0091-enable-SECURITY_TIOCSTI_RESTRICT-by-default.patch
+    0092-disable-unprivileged-eBPF-access-by-default.patch
+    0093-enable-BPF-JIT-hardening-by-default-if-available.patch
+    0094-enable-protected_-fifos-regular-by-default.patch
+    0095-Revert-mark-kernel_set_to_readonly-as-__ro_after_ini.patch
+    0096-modpost-Add-CONFIG_DEBUG_WRITABLE_FUNCTION_POINTERS_.patch
+    0097-mm-Fix-extra_latent_entropy.patch
+    0098-add-CONFIG-for-unprivileged_userns_clone.patch
+    0099-enable-INIT_ON_ALLOC_DEFAULT_ON-by-default.patch
+    0100-enable-INIT_ON_FREE_DEFAULT_ON-by-default.patch
+    0101-add-CONFIG-for-unprivileged_userfaultfd.patch
+    0102-slub-Extend-init_on_alloc-to-slab-caches-with-constr.patch
+    0103-net-tcp-add-option-to-disable-TCP-simultaneous-conne.patch
+)
+
+eapply_hardened() {
+	eapply "${HARDENED_PATCHES_DIR}/${1}"
+}
+
 get_patch_list() {
 	[[ -z "${1}" ]] && die "No patch series file specified"
 	local patch_series="${1}"
@@ -148,6 +260,12 @@ src_prepare() {
 	#make -s include/linux/version.h || die "make include/linux/version.h failed"
 	cd "${S}"
 	cp -aR "${WORKDIR}"/debian "${S}"/debian
+
+	# apply hardening patches
+    einfo "Applying hardening patches ..."
+    for my_patch in ${HARDENED_PATCHES[*]} ; do
+        eapply_gentoo "${my_patch}"
+    done
 
 	## increase bluetooth polling patch
 	eapply "${FILESDIR}"/${DEB_PV_BASE}/fix-bluetooth-polling.patch
