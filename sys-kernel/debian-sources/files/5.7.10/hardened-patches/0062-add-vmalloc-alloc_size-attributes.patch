@@ -1,0 +1,49 @@
+From 51cde0739e61391d8f09291a6abe267d458111ab Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Wed, 3 May 2017 12:04:03 -0400
+Subject: [PATCH 062/103] add vmalloc alloc_size attributes
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ include/linux/vmalloc.h | 22 +++++++++++-----------
+ 1 file changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+index a95d3cc74d79..93c9cc5baa23 100644
+--- a/include/linux/vmalloc.h
++++ b/include/linux/vmalloc.h
+@@ -102,20 +102,20 @@ static inline void vmalloc_init(void)
+ static inline unsigned long vmalloc_nr_pages(void) { return 0; }
+ #endif
+ 
+-extern void *vmalloc(unsigned long size);
+-extern void *vzalloc(unsigned long size);
+-extern void *vmalloc_user(unsigned long size);
+-extern void *vmalloc_node(unsigned long size, int node);
+-extern void *vzalloc_node(unsigned long size, int node);
+-extern void *vmalloc_user_node_flags(unsigned long size, int node, gfp_t flags);
+-extern void *vmalloc_exec(unsigned long size);
+-extern void *vmalloc_32(unsigned long size);
+-extern void *vmalloc_32_user(unsigned long size);
+-extern void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot);
++extern void *vmalloc(unsigned long size) __attribute__((alloc_size(1)));
++extern void *vzalloc(unsigned long size) __attribute__((alloc_size(1)));
++extern void *vmalloc_user(unsigned long size) __attribute__((alloc_size(1)));
++extern void *vmalloc_node(unsigned long size, int node) __attribute__((alloc_size(1)));
++extern void *vzalloc_node(unsigned long size, int node) __attribute__((alloc_size(1)));
++extern void *vmalloc_user_node_flags(unsigned long size, int node, gfp_t flags) __attribute__((alloc_size(1)));
++extern void *vmalloc_exec(unsigned long size) __attribute__((alloc_size(1)));
++extern void *vmalloc_32(unsigned long size) __attribute__((alloc_size(1)));
++extern void *vmalloc_32_user(unsigned long size) __attribute__((alloc_size(1)));
++extern void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot) __attribute__((alloc_size(1)));
+ extern void *__vmalloc_node_range(unsigned long size, unsigned long align,
+ 			unsigned long start, unsigned long end, gfp_t gfp_mask,
+ 			pgprot_t prot, unsigned long vm_flags, int node,
+-			const void *caller);
++			const void *caller) __attribute__((alloc_size(1)));
+ #ifndef CONFIG_MMU
+ extern void *__vmalloc_node_flags(unsigned long size, int node, gfp_t flags);
+ static inline void *__vmalloc_node_flags_caller(unsigned long size, int node,
+-- 
+2.28.0
+

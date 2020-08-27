@@ -1,0 +1,34 @@
+From 6884a240df1d02b04abd4dc51b28787fb2adc797 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Wed, 3 May 2017 12:09:17 -0400
+Subject: [PATCH 014/103] enable PANIC_ON_OOPS by default
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ lib/Kconfig.debug | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 4dd69c4bc04a..4f9ce2bd9e61 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -798,6 +798,7 @@ menu "Debug Oops, Lockups and Hangs"
+ 
+ config PANIC_ON_OOPS
+ 	bool "Panic on Oops"
++	default y
+ 	help
+ 	  Say Y here to enable the kernel to panic when it oopses. This
+ 	  has the same effect as setting oops=panic on the kernel command
+@@ -807,7 +808,7 @@ config PANIC_ON_OOPS
+ 	  anything erroneous after an oops which could result in data
+ 	  corruption or other issues.
+ 
+-	  Say N if unsure.
++	  Say Y if unsure.
+ 
+ config PANIC_ON_OOPS_VALUE
+ 	int
+-- 
+2.28.0
+

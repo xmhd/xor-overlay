@@ -5,8 +5,8 @@ EAPI=7
 inherit check-reqs eutils mount-boot toolchain-funcs
 
 SLOT=$PF
-DEB_PV_BASE="5.8.3"
-DEB_EXTRAVERSION="-1~exp1"
+DEB_PV_BASE="5.7.10"
+DEB_EXTRAVERSION="-1~bpo10+1"
 EXTRAVERSION="_p1"
 
 # install modules to /lib/modules/${DEB_PV_BASE}${EXTRAVERSION}-$MODULE_EXT
@@ -78,10 +78,6 @@ REQUIRED_USE="
 	wireguard? ( binary )
 	zfs? ( binary )
 "
-
-eapply_dtrace() {
-	eapply "${DTRACE_PATCHES_DIR}/${1}"
-}
 
 get_patch_list() {
 	[[ -z "${1}" ]] && die "No patch series file specified"
