@@ -23,7 +23,7 @@ fi
 
 LICENSE="BSD-2 CDDL MIT"
 SLOT="0"
-IUSE="custom-cflags debug kernel-builtin libressl minimal pam python +rootfs test-suite static-libs"
+IUSE="custom-cflags debug kernel-builtin libressl minimal nls pam python +rootfs test-suite static-libs"
 
 DEPEND="
 	net-libs/libtirpc[static-libs?]
@@ -42,6 +42,7 @@ DEPEND="
 
 BDEPEND="virtual/awk
 	virtual/pkgconfig
+	nls? ( sys-devel/gettext )
 	python? (
 		dev-python/setuptools[${PYTHON_USEDEP}]
 	)
@@ -146,6 +147,7 @@ src_configure() {
 		--with-systemdunitdir="$(systemd_get_systemunitdir)"
 		--with-systemdpresetdir="${EPREFIX}/lib/systemd/system-preset"
 		$(use_enable debug)
+		$(use_enable nls)
 		$(use_enable pam)
 		$(use_enable python pyzfs)
 		$(use_enable static-libs static)
