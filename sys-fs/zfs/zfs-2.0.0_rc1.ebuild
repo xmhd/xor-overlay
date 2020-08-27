@@ -5,7 +5,6 @@ EAPI=7
 
 DISTUTILS_OPTIONAL=1
 PYTHON_COMPAT=( python3_{6,7} )
-MY_P="${P/_rc/-rc}"
 
 inherit autotools bash-completion-r1 distutils-r1 flag-o-matic linux-info pam systemd toolchain-funcs udev usr-ldscript
 
@@ -16,6 +15,7 @@ if [[ ${PV} == "9999" ]] ; then
 	inherit git-r3 linux-mod
 	EGIT_REPO_URI="https://github.com/openzfs/zfs.git"
 else
+	MY_P="${P/_rc/-rc}"
 	SRC_URI="https://github.com/openzfs/${PN}/releases/download/${MY_P}/${MY_P}.tar.gz"
 	KEYWORDS="~amd64 ~arm64 ~ppc64"
 	S="${WORKDIR}/${P%_rc?}"
@@ -23,10 +23,9 @@ fi
 
 LICENSE="BSD-2 CDDL MIT"
 SLOT="0"
-IUSE="custom-cflags debug kernel-builtin libressl pam python +rootfs test-suite static-libs"
+IUSE="custom-cflags debug kernel-builtin libressl minimal pam python +rootfs test-suite static-libs"
 
 DEPEND="
-	${PYTHON_DEPS}
 	net-libs/libtirpc[static-libs?]
 	sys-apps/util-linux[static-libs?]
 	sys-libs/zlib[static-libs(+)?]
@@ -34,6 +33,7 @@ DEPEND="
 	virtual/libudev[static-libs(-)?]
 	libressl? ( dev-libs/libressl:0=[static-libs?] )
 	!libressl? ( dev-libs/openssl:0=[static-libs?] )
+	!minimal? ( ${PYTHON_DEPS} )
 	pam? ( sys-libs/pam )
 	python? (
 		virtual/python-cffi[${PYTHON_USEDEP}]
@@ -71,7 +71,11 @@ RDEPEND="${DEPEND}
 	)
 "
 
-REQUIRED_USE="${PYTHON_REQUIRED_USE}"
+REQUIRED_USE="
+	!minimal? ( ${PYTHON_REQUIRED_USE} )
+	python? ( !minimal )
+	test-suite? ( !minimal )
+"
 
 RESTRICT="test"
 
@@ -122,7 +126,7 @@ src_prepare() {
 
 src_configure() {
 	use custom-cflags || strip-flags
-	python_setup
+	use minimal || python_setup
 
 	local myconf=(
 		--bindir="${EPREFIX}/bin"
@@ -145,6 +149,7 @@ src_configure() {
 		$(use_enable pam)
 		$(use_enable python pyzfs)
 		$(use_enable static-libs static)
+		$(usex minimal --without-python --with-python="${EPYTHON}")
 	)
 
 	econf "${myconf[@]}"
@@ -185,7 +190,7 @@ src_install() {
 	fi
 
 	# enforce best available python implementation
-	python_fix_shebang "${ED}/bin"
+	use minimal || python_fix_shebang "${ED}/bin"
 }
 
 pkg_postinst() {
