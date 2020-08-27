@@ -171,11 +171,16 @@ src_prepare() {
 		arch="arm64"
 		subarch="arm64"
 	else
-	die "Architecture not handled in ebuild"
+	    die "Architecture not handled in ebuild"
 	fi
 
+    # Copy 'config-extract' tool to the work directory
 	cp "${FILESDIR}"/config-extract . || die
+
+	# ... and make it executable
 	chmod +x config-extract || die
+
+	# ... and now extract the kernel config file!
 	./config-extract ${arch} ${featureset} ${subarch} || die
 
     ### TWEAK KERNEL CONFIG ###
@@ -197,7 +202,7 @@ src_prepare() {
     ## Do not configure Debian devs certificates
     tweak_config .config CONFIG_SYSTEM_TRUSTED_KEYS
 
-	set_no_config .config CONFIG_DEBUG
+	tweak_config .config CONFIG_DEBUG n
     if use custom-cflags; then
             MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
             if [ -n "$MARCH" ]; then
@@ -210,6 +215,8 @@ src_prepare() {
 		tweak_config .config CONFIG_XEN_BLKDEV_BACKEND y
 		tweak_config .config CONFIG_IXGBEVF y
 	fi
+
+	# hardening opts
     if use hardened; then
         tweak_config .config CONFIG_AUDIT y
         tweak_config .config CONFIG_EXPERT y
@@ -234,6 +241,7 @@ src_prepare() {
         tweak_config .config CONFIG_SLAB_SANITIZE_VERIFY y
         tweak_config .config CONFIG_PAGE_SANITIZE_VERIFY y
 
+        # gcc plugins
         ! if use clang; then
             tweak_config .config CONFIG_GCC_PLUGINS y
             tweak_config .config CONFIG_GCC_PLUGIN_LATENT_ENTROPY y
@@ -247,6 +255,8 @@ src_prepare() {
             tweak_config .config CONFIG_STACKLEAK_RUNTIME_DISABLE n
         fi
     fi
+
+    # sign kernel modules via
 	if use sign-modules; then
 		certs_dir=$(get_certs_dir)
 		echo
@@ -309,7 +319,7 @@ src_prepare() {
 src_configure() {
 
 	if use binary; then
-    
+
         debug-print-function ${FUNCNAME} "${@}"
 
         tc-export_build_env
