@@ -526,8 +526,8 @@ src_install() {
 
 	# copy sources into place:
 	dodir /usr/src
-	cp -a "${S}" "${D}"/usr/src/linux-${PN}-${PV} || die
-	cd "${D}"/usr/src/linux-${PN}-${PV}
+	cp -a "${S}" "${D}"/usr/src/linux-${PV}-${P} || die "failed to install kernel sources"
+	cd "${D}"/usr/src/linux-${PV}-${P}
 
 	# prepare for real-world use and 3rd-party module building:
 	make mrproper || die
@@ -551,16 +551,16 @@ src_install() {
         installkernel "${PN}-${PV}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
         # module symlink fix-up:
-        rm -f "${D}"/lib/modules/${PV}-${PN}/source || die
-        rm -f "${D}"/lib/modules/${PV}-${PN}/build || die
+        rm -rf "${D}"/lib/modules/${PV}-${P} || die "failed to remove old kernel source symlink"
+        rm -rf "${D}"/lib/modules/${PV}-${P} || die "failed to remove old kernel build symlink"
 
         # Set-up module symlinks:
-        ln -s /usr/src/linux-${PN}-${PV} "${D}"/lib/modules/${PV}-${PN}/source || die "failed to install source symlink"
-        ln -s /usr/src/linux-${PN}-${PV} "${D}"/lib/modules/${PV}-${PN}/build || die "failed to install build symlink"
+        ln -s /usr/src/linux-${PV}-${P} "${D}"/lib/modules/${PV}-${P}/source || die "failed to create kernel source symlink"
+        ln -s /usr/src/linux-${PV}-${P} "${D}"/lib/modules/${PV}-${P}/build || die "failed to create kernel build symlink"
 
         # Fixes FL-14
-        cp "${WORKDIR}/build/System.map" "${D}"/usr/src/linux-${PN}-${PV}/ || die "failed to install System.map"
-        cp "${WORKDIR}/build/Module.symvers" "${D}"/usr/src/linux-${PN}-${PV}/ || die "failed to install Module.symvers"
+        cp "${WORKDIR}/build/System.map" "${D}"/usr/src/linux-${PV}-${P}/ || die "failed to install System.map"
+        cp "${WORKDIR}/build/Module.symvers" "${D}"/usr/src/linux-${PV}-${P}/ || die "failed to install Module.symvers"
 
         if use sign-modules; then
             for x in $(find "${D}"/lib/modules -iname *.ko); do
@@ -568,7 +568,7 @@ src_install() {
                 ${WORKDIR}/build/scripts/sign-file sha512 $certs_dir/signing_key.pem $certs_dir/signing_key.x509 $x || die
             done
             # install the sign-file executable for future use.
-            exeinto /usr/src/linux-${PN}-${PV}/scripts
+            exeinto /usr/src/linux-${PV}-${P}/scripts
             doexe ${WORKDIR}/build/scripts/sign-file
         fi
     fi
@@ -588,11 +588,11 @@ pkg_postinst() {
 	    ewarn ""
 	    ewarn "/usr/src/linux symlink automatically set to ${PN}-${PV}"
 	    ewarn ""
-		ln -sf "${ROOT}"/usr/src/linux-${PN}-${PV} "${ROOT}"/usr/src/linux
+		ln -sf "${ROOT}"/usr/src/linux-${PV}-${P} "${ROOT}"/usr/src/linux
 	fi
 
 	if [ -e ${ROOT}lib/modules ]; then
-		depmod -a ${PV}-${PN}
+		depmod -a ${PV}-${P}
 	fi
 
 	# NOTE: WIP and not well tested yet.
@@ -627,10 +627,10 @@ pkg_postinst() {
         $(usex selinux "-a selinux" "-o selinux") \
         $(usex systemd "-a systemd systemd-initrd systemd-networkd" "-o systemd systemd-initrd systemd-networkd") \
         $(usex zfs "-a zfs" "-o zfs") \
-        --kver "${PV}-${PN}" \
-        --kmoddir "${ROOT}"lib/modules/${PV}-${PN} \
+        --kver "${PV}-${P}" \
+        --kmoddir "${ROOT}"lib/modules/${PV}-${P} \
         --fwdir "${ROOT}"lib/firmware \
-        --kernel-image "${ROOT}"boot/kernel-${PV}-${PN}
+        --kernel-image "${ROOT}"boot/kernel-${PV}-${P}
         einfo ">>> Dracut: Finished building initramfs"
         ewarn "Dracut initramfs has been generated!"
         ewarn ""
