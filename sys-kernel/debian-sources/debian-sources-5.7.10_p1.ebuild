@@ -286,7 +286,6 @@ src_prepare() {
 	rm -rf "${WORKDIR}"/debian/certs
 
 	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${MODULE_EXT}:" Makefile || die
-	sed	-i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die
 
 	rm -f .config >/dev/null
 	cp -a "${WORKDIR}"/debian "${T}"
