@@ -264,7 +264,7 @@ src_prepare() {
 	# apply hardening patches
     einfo "Applying hardening patches ..."
     for my_patch in ${HARDENED_PATCHES[*]} ; do
-        eapply_gentoo "${my_patch}"
+        eapply_hardened "${my_patch}"
     done
 
 	## increase bluetooth polling patch
