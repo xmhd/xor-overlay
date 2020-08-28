@@ -274,27 +274,29 @@ pkg_setup() {
 	unset ARCH; unset LDFLAGS #will interfere with Makefile if set
 }
 
+src_unpack() {
+
+    # unpack the kernel sources to ${WORKDIR}
+    unpack ${KERNEL_ARCHIVE} || die "failed to unpack kernel sources"
+
+    # unpack the kernel patches
+    # note: they go inside the kernel sources work directory because config-extract requires them to generate kernel configs.
+    unpack ${PATCH_ARCHIVE} && mv "${WORKDIR}"/debian "${WORKDIR}"/linux-${DEB_PV_BASE}/ || die "failed to unpack kernel patches"
+}
+
 src_prepare() {
 
 	debug-print-function ${FUNCNAME} "${@}"
+
+	# punt the debian devs certificates
+	rm -rf "${S}"/debian/certs
+
+	### PATCHES ###
 
     # apply debian patches
 	for debpatch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
 		eapply -p1 "${WORKDIR}/debian/patches/${debpatch}"
 	done
-
-	# do not include debian devs certificates
-	rm -rf "${WORKDIR}"/debian/certs
-
-    # append EXTRAVERSION to the kernel sources Makefile
-	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${MODULE_EXT}:" Makefile || die
-
-	# todo: look at this
-	sed	-i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die
-
-    # clean kernel sources of any binary objects and existing config
-	make -s mrproper || die "make mrproper failed"
-	#make -s include/linux/version.h || die "make include/linux/version.h failed"
 
     # only apply these if USE=hardened as the patches will break proprietary userspace and some others.
     if use hardened; then
@@ -316,6 +318,14 @@ src_prepare() {
 
 	# Restore export_kernel_fpu_functions for zfs
 	eapply "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
+
+    # append EXTRAVERSION to the kernel sources Makefile
+	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${MODULE_EXT}:" Makefile || die
+
+	# todo: look at this, haven't seen it used in many cases.
+	sed	-i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die
+
+    ### GENERATE CONFIG ###
 
 	local arch featureset subarch
 	featureset="standard"
@@ -341,7 +351,7 @@ src_prepare() {
 	# ... and now extract the kernel config file!
 	./config-extract ${arch} ${featureset} ${subarch} || die
 
-    ### TWEAK KERNEL CONFIG ###
+    ### TWEAK CONFIG ###
 
     ## FL-3381 Enable IKCONFIG so that /proc/config.gz can be used for various checks
     ## TODO: Maybe not a good idea for USE=hardened, look into this.
