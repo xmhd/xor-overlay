@@ -280,8 +280,7 @@ src_unpack() {
     unpack ${KERNEL_ARCHIVE} || die "failed to unpack kernel sources"
 
     # unpack the kernel patches
-    # note: they go inside the kernel sources work directory because config-extract requires them to generate kernel configs.
-    unpack ${PATCH_ARCHIVE} && mv "${WORKDIR}"/debian "${WORKDIR}"/linux-${DEB_PV_BASE}/ || die "failed to unpack kernel patches"
+    unpack ${PATCH_ARCHIVE} || die "failed to unpack kernel patches"
 }
 
 src_prepare() {
@@ -294,8 +293,8 @@ src_prepare() {
 	### PATCHES ###
 
     # apply debian patches
-	for debpatch in $( get_patch_list "${S}/debian/patches/series" ); do
-		eapply -p1 "${S}/debian/patches/${debpatch}"
+	for debpatch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
+		eapply -p1 "${WORKDIR}/debian/patches/${debpatch}"
 	done
 
     # only apply these if USE=hardened as the patches will break proprietary userspace and some others.
@@ -324,6 +323,9 @@ src_prepare() {
 
 	# todo: look at this, haven't seen it used in many cases.
 	sed	-i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die
+
+    # copy the debian patches into the kernel sources work directory (config-extract requires this).
+	cp -a "${WORKDIR}"/debian "${S}"/debian
 
     ### GENERATE CONFIG ###
 
@@ -546,7 +548,7 @@ src_install() {
 	# prepare for real-world use and 3rd-party module building:
 	make mrproper || die
 	cp "${T}"/.config .config || die
-	cp -a "${T}"/debian debian || die
+	cp -a "${WORKDIR}"/debian debian || die
 
 	# if we didn't use genkernel, we're done. The kernel source tree is left in
 	# an unconfigured state - you can't compile 3rd-party modules against it yet.
