@@ -286,21 +286,24 @@ src_prepare() {
 	# do not include debian devs certificates
 	rm -rf "${WORKDIR}"/debian/certs
 
+    # append EXTRAVERSION to the kernel sources Makefile
 	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${MODULE_EXT}:" Makefile || die
+
+	# todo: look at this
 	sed	-i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die
 
-	rm -f .config >/dev/null
-	cp -a "${WORKDIR}"/debian "${T}"
+    # clean kernel sources of any binary objects and existing config
 	make -s mrproper || die "make mrproper failed"
 	#make -s include/linux/version.h || die "make include/linux/version.h failed"
-	cd "${S}"
-	cp -aR "${WORKDIR}"/debian "${S}"/debian
 
-	# apply hardening patches
-    einfo "Applying hardening patches ..."
-    for my_patch in ${HARDENED_PATCHES[*]} ; do
-        eapply_hardened "${my_patch}"
-    done
+    # only apply these if USE=hardened as the patches will break proprietary userspace and some others.
+    if use hardened; then
+        # apply hardening patches
+        einfo "Applying hardening patches ..."
+        for my_patch in ${HARDENED_PATCHES[*]} ; do
+            eapply_hardened "${my_patch}"
+        done
+    fi
 
     # apply gentoo patches
     einfo "Applying Gentoo Linux patches ..."
