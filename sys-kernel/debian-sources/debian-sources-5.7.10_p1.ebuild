@@ -364,11 +364,6 @@ src_prepare() {
     ## TODO: See if this is still required? if not, can it be shit canned?
     tweak_config .config CONFIG_X86_MCELOG_LEGACY y
 
-    ## FL-823 Build XFS into kernel
-    ## TODO: can most likely be shit canned as no longer using genkernel, + Dracut includes all kernel moduels in initrd.
-    tweak_config .config CONFIG_XFS_FS y
-    tweak_config .config CONFIG_LIBCRC32C y
-
     ## Do not configure Debian devs certificates
     tweak_config .config CONFIG_SYSTEM_TRUSTED_KEYS
 
