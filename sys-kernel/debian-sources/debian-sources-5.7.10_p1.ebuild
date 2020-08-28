@@ -294,8 +294,8 @@ src_prepare() {
 	### PATCHES ###
 
     # apply debian patches
-	for debpatch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
-		eapply -p1 "${WORKDIR}/debian/patches/${debpatch}"
+	for debpatch in $( get_patch_list "${S}/debian/patches/series" ); do
+		eapply -p1 "${S}/debian/patches/${debpatch}"
 	done
 
     # only apply these if USE=hardened as the patches will break proprietary userspace and some others.
