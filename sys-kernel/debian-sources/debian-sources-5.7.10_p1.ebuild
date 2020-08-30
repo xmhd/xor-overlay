@@ -485,17 +485,12 @@ src_prepare() {
         echo
     fi
 
-
+    # enable wireguard support within kernel
     if use wireguard; then
-        tweak_config .config CONFIG_NET y
-		tweak_config .config CONFIG_INET y
-		tweak_config .config CONFIG_INET_UDP_TUNNEL y
-		tweak_config .config CONFIG_NF_CONNTRACK y
-		tweak_config .config CONFIG_NETFILTER_XT_MATCH_HASHLIMIT y
-		tweak_config .config CONFIG_IP6_NF_IPTABLES y
-		tweak_config .config CONFIG_CRYPTO_BLKCIPHER y
-		tweak_config .config CONFIG_PADATA y
+        echo 'CONFIG_WIREGUARD=m' >> .config
+        # there are some other options, but I need to verify them first, so I'll start with this
     fi
+    
 	# get config into good state:
 	yes "" | make oldconfig >/dev/null 2>&1 || die
 	cp .config "${T}"/.config || die
