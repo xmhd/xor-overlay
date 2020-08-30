@@ -368,7 +368,7 @@ src_prepare() {
     if use mcelog; then
         ## FL-4424 Enable legacy support for MCELOG
         ## TODO: See if this is still required? if not, can it be shit canned?
-        tweak_config .config CONFIG_X86_MCELOG_LEGACY y
+        echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
     fi
 
 	tweak_config .config CONFIG_DEBUG n
