@@ -614,20 +614,20 @@ pkg_postinst() {
 	    ewarn ""
 	    ewarn "/usr/src/linux symlink automatically set to ${PN}-${PV}"
 	    ewarn ""
-		ln -sf "${ROOT}"/usr/src/linux-${PV}-${P} "${ROOT}"/usr/src/linux
+		ln -sf "${ROOT}"/usr/src/linux-${DEB_PV_BASE}${MODULE_EXT} "${ROOT}"/usr/src/linux
 	fi
 
 	if [ -e ${ROOT}lib/modules ]; then
-		depmod -a ${PV}-${TEMP_EXTRA_VERSION}
+		depmod -a ${DEB_PV_BASE}${MODULE_EXT}
 	fi
 
 	# NOTE: WIP and not well tested yet.
 	#
 	# Dracut will build an initramfs when USE=binary.
+	#
 	# The initramfs will be configurable via USE, i.e.
-	# USE=zfs will pass '--zfs' to Dracut and USE=-systemd
-	# will pass '--omit dracut-systemd systemd systemd-networkd systemd-initrd'
-	# to exclude these (Dracut) modules from the initramfs.
+	# USE=zfs will pass '--zfs' to Dracut
+	# USE=-systemd will pass '--omit dracut-systemd systemd systemd-networkd systemd-initrd' to exclude these (Dracut) modules from the initramfs.
 	if use binary; then
 	    einfo ""
         einfo ">>> Dracut: building initramfs"
@@ -655,9 +655,9 @@ pkg_postinst() {
         $(usex systemd "-a systemd systemd-initrd systemd-networkd" "-o systemd systemd-initrd systemd-networkd") \
         $(usex zfs "-a zfs" "-o zfs") \
         --kver "${PV}-${P}" \
-        --kmoddir "${ROOT}"lib/modules/${PV}-${P} \
+        --kmoddir "${ROOT}"lib/modules/${DEB_PV_BASE}${MODULE_EXT} \
         --fwdir "${ROOT}"lib/firmware \
-        --kernel-image "${ROOT}"boot/kernel-${PV}-${P}
+        --kernel-image "${ROOT}"boot/vmlinuz-${DEB_PV_BASE}${MODULE_EXT}
         einfo ""
         einfo ">>> Dracut: Finished building initramfs"
         ewarn ""
