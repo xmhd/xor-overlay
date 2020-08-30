@@ -415,16 +415,16 @@ src_prepare() {
 
         # gcc plugins
         ! if use clang; then
-            tweak_config .config CONFIG_GCC_PLUGINS y
-            tweak_config .config CONFIG_GCC_PLUGIN_LATENT_ENTROPY y
-            tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK y
-            tweak_config .config CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL y
-            tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT y
-            tweak_config .config CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE n
-            tweak_config .config CONFIG_GCC_PLUGIN_STACKLEAK y
-            tweak_config .config CONFIG_STACKLEAK_TRACK_MIN_SIZE 100
-            tweak_config .config CONFIG_STACKLEAK_METRICS n
-            tweak_config .config CONFIG_STACKLEAK_RUNTIME_DISABLE n
+            echo "CONFIG_GCC_PLUGINS=y" >> .config
+            echo "CONFIG_GCC_PLUGIN_LATENT_ENTROPY=y" >> .config
+            echo "CONFIG_GCC_PLUGIN_STRUCTLEAK=y" >> .config
+            echo "CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL=y" >> .config
+            echo "CONFIG_GCC_PLUGIN_STACKLEAK=y" >> .config
+            echo "CONFIG_STACKLEAK_TRACK_MIN_SIZE=100" >> .config
+            echo "CONFIG_STACKLEAK_METRICS=n" >> .config
+            echo "CONFIG_STACKLEAK_RUNTIME_DISABLE=n" >> .config
+            echo "CONFIG_GCC_PLUGIN_RANDSTRUCT=y" >> .config
+            echo "CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE=n" >> .config
         fi
     fi
 
