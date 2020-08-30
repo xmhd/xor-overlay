@@ -357,31 +357,26 @@ src_prepare() {
 
     ### TWEAK CONFIG ###
 
-    ## Do not configure Debian devs certificates
+    # Do not configure Debian devs certificates
     tweak_config .config CONFIG_SYSTEM_TRUSTED_KEYS
 
-    ## FL-3381 Enable IKCONFIG so that /proc/config.gz can be used for various checks
-    ## TODO: Maybe not a good idea for USE=hardened, look into this.
-    tweak_config .config CONFIG_IKCONFIG y
-    tweak_config .config CONFIG_IKCONFIG_PROC y
-
-    # only enable debugging symbols etc if USE=debug...
-    if use debug; then
-        echo "CONFIG_DEBUG_INFO=y" >> .config
-    else
-        echo "CONFIG_DEBUG_INFO=n" >> .config
-    fi
-
-    # mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
-    if use mcelog; then
-        echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
-    fi
+    # enable IKCONFIG so that /proc/config.gz can be used for various checks
+    # TODO: Maybe not a good idea for USE=hardened, look into this...
+    echo "CONFIG_IKCONFIG=y" >> .config
+    echo "CONFIG_IKCONFIG_PROC=y" >> .config
 
     if use custom-cflags; then
             MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
             if [ -n "$MARCH" ]; then
                     sed -i -e 's/-mtune=generic/$MARCH/g' arch/x86/Makefile || die "Canna optimize this kernel anymore, captain!"
             fi
+    fi
+
+    # only enable debugging symbols etc if USE=debug...
+    if use debug; then
+        echo "CONFIG_DEBUG_INFO=y" >> .config
+    else
+        echo "CONFIG_DEBUG_INFO=n" >> .config
     fi
 
     # these options should already be set, but are a hard dependency for ec2, so we ensure they are set if USE=ec2
@@ -393,29 +388,30 @@ src_prepare() {
 	fi
 
 	# hardening opts
+	# TODO: document these
     if use hardened; then
-        tweak_config .config CONFIG_AUDIT y
-        tweak_config .config CONFIG_EXPERT y
-        tweak_config .config CONFIG_SLUB_DEBUG y
-        tweak_config .config CONFIG_SLAB_MERGE_DEFAULT n
-        tweak_config .config CONFIG_SLAB_FREELIST_RANDOM y
-        tweak_config .config CONFIG_SLAB_FREELIST_HARDENED y
-        tweak_config .config CONFIG_SLAB_CANARY y
-        tweak_config .config CONFIG_SHUFFLE_PAGE_ALLOCATOR y
-        tweak_config .config CONFIG_RANDOMIZE_BASE y
-        tweak_config .config CONFIG_RANDOMIZE_MEMORY y
-        tweak_config .config CONFIG_HIBERNATION n
-        tweak_config .config CONFIG_HARDENED_USERCOPY y
-        tweak_config .config CONFIG_HARDENED_USERCOPY_FALLBACK n
-        tweak_config .config CONFIG_FORTIFY_SOURCE y
-        tweak_config .config CONFIG_STACKPROTECTOR y
-        tweak_config .config CONFIG_STACKPROTECTOR_STRONG y
-        tweak_config .config CONFIG_ARCH_MMAP_RND_BITS 32
-        tweak_config .config CONFIG_ARCH_MMAP_RND_COMPAT_BITS 16
-        tweak_config .config CONFIG_INIT_ON_FREE_DEFAULT_ON y
-        tweak_config .config CONFIG_INIT_ON_ALLOC_DEFAULT_ON y
-        tweak_config .config CONFIG_SLAB_SANITIZE_VERIFY y
-        tweak_config .config CONFIG_PAGE_SANITIZE_VERIFY y
+        echo "CONFIG_AUDIT=y" >> .config
+        echo "CONFIG_EXPERT=y" >> .config
+        echo "CONFIG_SLUB_DEBUG=y" >> .config
+        echo "CONFIG_SLAB_MERGE_DEFAULT=n" >> .config
+        echo "CONFIG_SLAB_FREELIST_RANDOM=y" >> .config
+        echo "CONFIG_SLAB_FREELIST_HARDENED=y" >> .config
+        echo "CONFIG_SLAB_CANARY=y" >> .config
+        echo "CONFIG_SHUFFLE_PAGE_ALLOCATOR=y" >> .config
+        echo "CONFIG_RANDOMIZE_BASE=y" >> .config
+        echo "CONFIG_RANDOMIZE_MEMORY=y" >> .config
+        echo "CONFIG_HIBERNATION=n" >> .config
+        echo "CONFIG_HARDENED_USERCOPY=y" >> .config
+        echo "CONFIG_HARDENED_USERCOPY_FALLBACK=n" >> .config
+        echo "CONFIG_FORTIFY_SOURCE=y" >> .config
+        echo "CONFIG_STACKPROTECTOR=y" >> .config
+        echo "CONFIG_STACKPROTECTOR_STRONG=y" >> .config
+        echo "CONFIG_ARCH_MMAP_RND_BITS=32" >> .config
+        echo "CONFIG_ARCH_MMAP_RND_COMPAT_BITS=16" >> .config
+        echo "CONFIG_INIT_ON_FREE_DEFAULT_ON=y" >> .config
+        echo "CONFIG_INIT_ON_ALLOC_DEFAULT_ON=y" >> .config
+        echo "CONFIG_SLAB_SANITIZE_VERIFY=y" >> .config
+        echo "CONFIG_PAGE_SANITIZE_VERIFY=y" >> .config
 
         # gcc plugins
         ! if use clang; then
@@ -430,6 +426,11 @@ src_prepare() {
             tweak_config .config CONFIG_STACKLEAK_METRICS n
             tweak_config .config CONFIG_STACKLEAK_RUNTIME_DISABLE n
         fi
+    fi
+
+    # mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
+    if use mcelog; then
+        echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
     fi
 
     # sign kernel modules via
