@@ -366,11 +366,8 @@ src_prepare() {
     tweak_config .config CONFIG_IKCONFIG_PROC y
 
     # only enable debugging symbols etc if USE=debug...
-    # depends on CONFIG_DEBUG_KERNEL=y and CONFIG_COMPILE_TEST=n
     if use debug; then
         echo "CONFIG_DEBUG_INFO=y" >> .config
-        echo "CONFIG_DEBUG_KERNEL=y" >> .config
-        echo "CONFIG_COMPILE_TEST=n" >> .config
     else
         echo "CONFIG_DEBUG_INFO=n" >> .config
     fi
