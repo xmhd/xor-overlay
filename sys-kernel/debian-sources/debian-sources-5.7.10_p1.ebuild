@@ -8,7 +8,7 @@ DESCRIPTION="Linux kernel sources with Debian patches."
 HOMEPAGE="https://packages.debian.org/unstable/kernel/"
 
 LICENSE="GPL-2"
-KEYWORDS="*"
+KEYWORDS="x86 amd64 arm arm64"
 
 SLOT="${PF}"
 
