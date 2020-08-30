@@ -38,6 +38,7 @@ IUSE="binary btrfs clang custom-cflags debug dmraid dtrace ec2 firmware hardened
 
 BDEPEND="
 	sys-devel/bc
+	debug? ( dev-util/dwarves )
 	virtual/libelf
 "
 
@@ -364,14 +365,18 @@ src_prepare() {
     tweak_config .config CONFIG_IKCONFIG y
     tweak_config .config CONFIG_IKCONFIG_PROC y
 
-    if ! use debug; then
-        echo "CONFIG_DEBUG=n"
+    # only enable debugging symbols etc if USE=debug...
+    # depends on CONFIG_DEBUG_KERNEL=y and CONFIG_COMPILE_TEST=n
+    if use debug; then
+        echo "CONFIG_DEBUG_INFO=y" >> .config
+        echo "CONFIG_DEBUG_KERNEL=y" >> .config
+        echo "CONFIG_COMPILE_TEST=n" >> .config
+    else
+        echo "CONFIG_DEBUG_INFO=n" >> .config
     fi
 
     # mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
     if use mcelog; then
-        ## FL-4424 Enable legacy support for MCELOG
-        ## TODO: See if this is still required? if not, can it be shit canned?
         echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
     fi
 
