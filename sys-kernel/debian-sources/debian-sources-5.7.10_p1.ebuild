@@ -414,7 +414,7 @@ src_prepare() {
         echo "CONFIG_PAGE_SANITIZE_VERIFY=y" >> .config
 
         # gcc plugins
-        ! if use clang; then
+        if ! use clang; then
             echo "CONFIG_GCC_PLUGINS=y" >> .config
             echo "CONFIG_GCC_PLUGIN_LATENT_ENTROPY=y" >> .config
             echo "CONFIG_GCC_PLUGIN_STRUCTLEAK=y" >> .config
