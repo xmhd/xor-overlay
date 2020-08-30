@@ -10,10 +10,14 @@ DEB_EXTRAVERSION="-1~bpo10+1"
 EXTRAVERSION="_p1"
 TEMP_EXTRA_VERSION="debian"
 
-# install modules to /lib/modules/${DEB_PV_BASE}${EXTRAVERSION}-$MODULE_EXT
-MODULE_EXT=${EXTRAVERSION}
-[ "$PR" != "r0" ] && MODULE_EXT=$MODULE_EXT-$PR
-MODULE_EXT=$MODULE_EXT-${TEMP_EXTRA_VERSION}
+# at a minimum we will append EXTRAVERSION (debian patch set revision) and TEMP_EXTRA_VERSION (debian name) to MODULE_EXT
+# if we have a local revision, we append that between EXTRAVERSION and TEMP_EXTRA_VERSION, e.g. _p1-debian-r5
+# if we do not have a local revision, then we have only EXTRAVERSION and TEMP_EXTRA_VERSION, e.g. _p1-debian
+if [ "${PR}" != "r0" ]; then
+    MODULE_EXT=${EXTRAVERSION}-${TEMP_EXTRA_VERSION}-${PR}
+else
+    MODULE_EXT=${EXTRAVERSION}-${TEMP_EXTRA_VERSION}
+fi
 
 DEB_PV="${DEB_PV_BASE}${DEB_EXTRAVERSION}"
 KERNEL_ARCHIVE="linux_${DEB_PV_BASE}.orig.tar.xz"
