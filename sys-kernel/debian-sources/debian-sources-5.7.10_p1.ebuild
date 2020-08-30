@@ -355,6 +355,9 @@ src_prepare() {
 
     ### TWEAK CONFIG ###
 
+    ## Do not configure Debian devs certificates
+    tweak_config .config CONFIG_SYSTEM_TRUSTED_KEYS
+
     ## FL-3381 Enable IKCONFIG so that /proc/config.gz can be used for various checks
     ## TODO: Maybe not a good idea for USE=hardened, look into this.
     tweak_config .config CONFIG_IKCONFIG y
@@ -363,9 +366,6 @@ src_prepare() {
     ## FL-4424 Enable legacy support for MCELOG
     ## TODO: See if this is still required? if not, can it be shit canned?
     tweak_config .config CONFIG_X86_MCELOG_LEGACY y
-
-    ## Do not configure Debian devs certificates
-    tweak_config .config CONFIG_SYSTEM_TRUSTED_KEYS
 
 	tweak_config .config CONFIG_DEBUG n
     if use custom-cflags; then
