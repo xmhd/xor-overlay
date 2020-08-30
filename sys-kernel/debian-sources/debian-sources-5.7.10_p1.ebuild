@@ -359,6 +359,7 @@ src_prepare() {
 
     # Do not configure Debian devs certificates
     tweak_config .config CONFIG_SYSTEM_TRUSTED_KEYS
+    echo 'CONFIG_SYSTEM_TRUSTED_KEYS=""'
 
     # enable IKCONFIG so that /proc/config.gz can be used for various checks
     # TODO: Maybe not a good idea for USE=hardened, look into this...
@@ -426,6 +427,12 @@ src_prepare() {
             echo "CONFIG_GCC_PLUGIN_RANDSTRUCT=y" >> .config
             echo "CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE=n" >> .config
         fi
+
+        # main hardening options complete... anything after this point is a focus on disabling potential attack vectors
+        # i.e legacy drivers, new complex code that isn't yet proven, or code that we really don't want in a hardened kernel.
+        echo 'CONFIG_KEXEC=n' >> .config
+        echo "CONFIG_KEXEC_FILE=n" >> .config
+        echo 'CONFIG_KEXEC_SIG=n' >> .config
     fi
 
     # mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
