@@ -629,6 +629,7 @@ pkg_postinst() {
 	# will pass '--omit dracut-systemd systemd systemd-networkd systemd-initrd'
 	# to exclude these (Dracut) modules from the initramfs.
 	if use binary; then
+	    einfo ""
         einfo ">>> Dracut: building initramfs"
         dracut \
         --stdlog=1 \
@@ -657,7 +658,9 @@ pkg_postinst() {
         --kmoddir "${ROOT}"lib/modules/${PV}-${P} \
         --fwdir "${ROOT}"lib/firmware \
         --kernel-image "${ROOT}"boot/kernel-${PV}-${P}
+        einfo ""
         einfo ">>> Dracut: Finished building initramfs"
+        ewarn ""
         ewarn "Dracut initramfs has been generated!"
         ewarn ""
         ewarn "Required kernel arguments:"
@@ -679,6 +682,7 @@ pkg_postinst() {
 	fi
 
     if use hardened; then
+        ewarn ""
         ewarn "WARNING... WARNING... WARNING..."
         ewarn ""
         ewarn "Hardened patches have been applied to the kernel and KCONFIG options have been set."
@@ -697,6 +701,7 @@ pkg_postinst() {
 
 	# TODO: tidy up below
 	if use binary && [[ -e "${ROOT}"var/lib/module-rebuild/moduledb ]]; then
+	    ewarn ""
 		ewarn "WARNING... WARNING... WARNING..."
 		ewarn ""
 		ewarn "External kernel modules are not yet automatically built"
