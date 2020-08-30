@@ -34,7 +34,7 @@ RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
 
-IUSE="binary btrfs clang custom-cflags dmraid dtrace ec2 firmware hardened iscsi libressl luks lvm mcelog mdadm microcode multipath nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs clang custom-cflags debug dmraid dtrace ec2 firmware hardened iscsi libressl luks lvm mcelog mdadm microcode multipath nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -364,6 +364,10 @@ src_prepare() {
     tweak_config .config CONFIG_IKCONFIG y
     tweak_config .config CONFIG_IKCONFIG_PROC y
 
+    if ! use debug; then
+        echo "CONFIG_DEBUG=n"
+    fi
+
     # mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
     if use mcelog; then
         ## FL-4424 Enable legacy support for MCELOG
@@ -371,7 +375,6 @@ src_prepare() {
         echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
     fi
 
-	tweak_config .config CONFIG_DEBUG n
     if use custom-cflags; then
             MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
             if [ -n "$MARCH" ]; then
