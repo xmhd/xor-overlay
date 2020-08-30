@@ -23,6 +23,10 @@ REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 RDEPEND="${PYTHON_DEPS}"
 DEPEND="${RDEPEND}"
 
+src_unpack() {
+    default
+}
+
 src_install() {
 	default
 	dobin kconfig-hardened-check.py
