@@ -57,7 +57,9 @@ DEPEND="
 		sys-boot/plymouth[libkms,udev]
 	)
 	sign-modules? (
-		|| ( dev-libs/openssl ) ( dev-libs/libressl )
+		|| ( dev-libs/openssl
+		     dev-libs/libressl
+        )
 		sys-apps/kmod
 	)
 	systemd? ( sys-apps/systemd )
@@ -483,7 +485,7 @@ src_prepare() {
         echo
     fi
 
-    
+
     if use wireguard; then
         tweak_config .config CONFIG_NET y
 		tweak_config .config CONFIG_INET y
