@@ -364,9 +364,12 @@ src_prepare() {
     tweak_config .config CONFIG_IKCONFIG y
     tweak_config .config CONFIG_IKCONFIG_PROC y
 
-    ## FL-4424 Enable legacy support for MCELOG
-    ## TODO: See if this is still required? if not, can it be shit canned?
-    tweak_config .config CONFIG_X86_MCELOG_LEGACY y
+    # mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
+    if use mcelog; then
+        ## FL-4424 Enable legacy support for MCELOG
+        ## TODO: See if this is still required? if not, can it be shit canned?
+        tweak_config .config CONFIG_X86_MCELOG_LEGACY y
+    fi
 
 	tweak_config .config CONFIG_DEBUG n
     if use custom-cflags; then
