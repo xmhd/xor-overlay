@@ -4,39 +4,15 @@ EAPI=7
 
 inherit check-reqs eutils mount-boot toolchain-funcs
 
-SLOT=$PF
-DEB_PV_BASE="5.7.10"
-DEB_EXTRAVERSION="-1~bpo10+1"
-EXTRAVERSION="_p1"
-TEMP_EXTRA_VERSION="debian"
-
-# at a minimum we will append EXTRAVERSION (debian patch set revision) and TEMP_EXTRA_VERSION (debian name) to MODULE_EXT
-# if we have a local revision, we append that between EXTRAVERSION and TEMP_EXTRA_VERSION, e.g. _p1-debian-r5
-# if we do not have a local revision, then we have only EXTRAVERSION and TEMP_EXTRA_VERSION, e.g. _p1-debian
-if [ "${PR}" != "r0" ]; then
-    MODULE_EXT=${EXTRAVERSION}-${TEMP_EXTRA_VERSION}-${PR}
-else
-    MODULE_EXT=${EXTRAVERSION}-${TEMP_EXTRA_VERSION}
-fi
-
-DEB_PV="${DEB_PV_BASE}${DEB_EXTRAVERSION}"
-KERNEL_ARCHIVE="linux_${DEB_PV_BASE}.orig.tar.xz"
-PATCH_ARCHIVE="linux_${DEB_PV}.debian.tar.xz"
-DEB_UPSTREAM="http://http.debian.net/debian/pool/main/l/linux"
-
-SRC_URI="
-	$DEB_UPSTREAM/${KERNEL_ARCHIVE}
-	$DEB_UPSTREAM/${PATCH_ARCHIVE}
-"
-
-S="$WORKDIR/linux-${DEB_PV_BASE}"
-
 DESCRIPTION="Linux kernel sources with Debian patches."
 HOMEPAGE="https://packages.debian.org/unstable/kernel/"
 
-RESTRICT="binchecks strip mirror"
 LICENSE="GPL-2"
 KEYWORDS="*"
+
+SLOT="${PF}"
+
+RESTRICT="binchecks strip mirror"
 
 IUSE="binary btrfs clang custom-cflags debug dmraid dtrace ec2 firmware hardened iscsi libressl luks lvm mcelog mdadm microcode multipath nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
 
@@ -87,6 +63,32 @@ REQUIRED_USE="
 	wireguard? ( binary )
 	zfs? ( binary )
 "
+
+DEB_PV_BASE="5.7.10"
+DEB_EXTRAVERSION="-1~bpo10+1"
+EXTRAVERSION="_p1"
+TEMP_EXTRA_VERSION="debian"
+
+# at a minimum we will append EXTRAVERSION (debian patch set revision) and TEMP_EXTRA_VERSION (debian name) to MODULE_EXT
+# if we have a local revision, we append that between EXTRAVERSION and TEMP_EXTRA_VERSION, e.g. _p1-debian-r5
+# if we do not have a local revision, then we have only EXTRAVERSION and TEMP_EXTRA_VERSION, e.g. _p1-debian
+if [ "${PR}" != "r0" ]; then
+    MODULE_EXT=${EXTRAVERSION}-${TEMP_EXTRA_VERSION}-${PR}
+else
+    MODULE_EXT=${EXTRAVERSION}-${TEMP_EXTRA_VERSION}
+fi
+
+DEB_PV="${DEB_PV_BASE}${DEB_EXTRAVERSION}"
+KERNEL_ARCHIVE="linux_${DEB_PV_BASE}.orig.tar.xz"
+PATCH_ARCHIVE="linux_${DEB_PV}.debian.tar.xz"
+DEB_UPSTREAM="http://http.debian.net/debian/pool/main/l/linux"
+
+SRC_URI="
+	$DEB_UPSTREAM/${KERNEL_ARCHIVE}
+	$DEB_UPSTREAM/${PATCH_ARCHIVE}
+"
+
+S="$WORKDIR/linux-${DEB_PV_BASE}"
 
 # TODO: manage HARDENED_PATCHES and GENTOO_PATCHES can be managed in a git repository and packed into tar balls per version.
 
