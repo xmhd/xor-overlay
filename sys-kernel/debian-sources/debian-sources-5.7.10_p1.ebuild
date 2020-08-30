@@ -321,10 +321,10 @@ src_prepare() {
 	eapply "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
 
     # append EXTRAVERSION to the kernel sources Makefile
-	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${MODULE_EXT}:" Makefile || die
+	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${MODULE_EXT}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
 
 	# todo: look at this, haven't seen it used in many cases.
-	sed	-i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die
+	sed	-i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
 
     # copy the debian patches into the kernel sources work directory (config-extract requires this).
 	cp -a "${WORKDIR}"/debian "${S}"/debian
