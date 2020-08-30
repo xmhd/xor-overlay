@@ -240,16 +240,6 @@ get_patch_list() {
 	done < "${patch_series}"
 }
 
-tweak_config() {
-	einfo "Setting $2=$3 in kernel config."
-	sed -i -e "/^$2=/d" $1
-}
-
-zap_config() {
-	einfo "Removing *$2* from kernel config."
-	sed -i -e "/$2/d" $1
-}
-
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
 	for subdir in $PF $P linux; do
@@ -490,7 +480,7 @@ src_prepare() {
         echo 'CONFIG_WIREGUARD=m' >> .config
         # there are some other options, but I need to verify them first, so I'll start with this
     fi
-    
+
 	# get config into good state:
 	yes "" | make oldconfig >/dev/null 2>&1 || die
 	cp .config "${T}"/.config || die
