@@ -441,9 +441,9 @@ src_prepare() {
     fi
 
     # sign kernel modules via
-	if use sign-modules; then
-		certs_dir=$(get_certs_dir)
-		echo
+    if use sign-modules; then
+        certs_dir=$(get_certs_dir)
+        echo
 		if [ -z "$certs_dir" ]; then
 			eerror "No certs dir found in /etc/kernel/certs; aborting."
 			die
@@ -451,36 +451,39 @@ src_prepare() {
 			einfo "Using certificate directory of $certs_dir for kernel module signing."
 		fi
 		echo
-		# turn on options for signing modules.
-		# first, remove existing configs and comments:
-		zap_config .config CONFIG_MODULE_SIG
-		# now add our settings:
-		tweak_config .config CONFIG_MODULE_SIG y
-		tweak_config .config CONFIG_MODULE_SIG_FORCE n
-		tweak_config .config CONFIG_MODULE_SIG_ALL n
-		# LibreSSL currently (2.9.0) does not have CMS support, so is limited to SHA1.
-		# https://bugs.gentoo.org/706086
-		# https://bugzilla.kernel.org/show_bug.cgi?id=202159
-		if use libressl; then
-			tweak_config .config CONFIG_MODULE_SIG_HASH \"sha1\"
-		else
-			tweak_config .config CONFIG_MODULE_SIG_HASH \"sha512\"
-		fi
-		tweak_config .config CONFIG_MODULE_SIG_KEY  \"${certs_dir}/signing_key.pem\"
-		tweak_config .config CONFIG_SYSTEM_TRUSTED_KEYRING y
-		tweak_config .config CONFIG_SYSTEM_EXTRA_CERTIFICATE y
-		tweak_config .config CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE 4096
-		# See above comment re: LibreSSL
-		if use libressl; then
-			echo "CONFIG_MODULE_SIG_SHA1=y" >> .config
-		else
-			echo "CONFIG_MODULE_SIG_SHA512=y" >> .config
-		fi
-		ewarn "This kernel will ALLOW non-signed modules to be loaded with a WARNING."
-		ewarn "To enable strict enforcement, YOU MUST add module.sig_enforce=1 as a kernel boot"
-		ewarn "parameter (to params in /etc/boot.conf, and re-run boot-update.)"
-		echo
-	fi
+        # turn on options for signing modules.
+        # first, remove existing configs and comments:
+        echo 'CONFIG_MODULE_SIG=""' >> .config
+        # now add our settings:
+        echo 'CONFIG_MODULE_SIG=y' >> .config
+        echo 'CONFIG_MODULE_SIG_FORCE=n' >> .config
+        echo 'CONFIG_MODULE_SIG_ALL=n' >> .config
+        # LibreSSL currently (2.9.0) does not have CMS support, so is limited to SHA1.
+        # https://bugs.gentoo.org/706086
+        # https://bugzilla.kernel.org/show_bug.cgi?id=202159
+        if use libressl; then
+            echo 'CONFIG_MODULE_SIG_HASH="sha1"' >> .config
+        else
+            echo 'CONFIG_MODULE_SIG_HASH="sha512"' >> .config
+        fi
+        echo 'CONFIG_MODULE_SIG_KEY="${certs_dir}/signing_key.pem"' >> .config
+        echo 'CONFIG_SYSTEM_TRUSTED_KEYRING=y' >> .config
+        echo 'CONFIG_SYSTEM_EXTRA_CERTIFICATE=y' >> .config
+        echo 'CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE="4096"' >> .config
+
+        # See above comment re: LibreSSL
+        if use libressl; then
+            echo "CONFIG_MODULE_SIG_SHA1=y" >> .config
+        else
+            echo "CONFIG_MODULE_SIG_SHA512=y" >> .config
+        fi
+        ewarn "This kernel will ALLOW non-signed modules to be loaded with a WARNING."
+        ewarn "To enable strict enforcement, YOU MUST add module.sig_enforce=1 as a kernel boot"
+        ewarn "parameter (to params in /etc/boot.conf, and re-run boot-update.)"
+        echo
+    fi
+
+    
     if use wireguard; then
         tweak_config .config CONFIG_NET y
 		tweak_config .config CONFIG_INET y
