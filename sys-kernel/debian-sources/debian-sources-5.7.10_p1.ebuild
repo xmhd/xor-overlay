@@ -14,7 +14,7 @@ SLOT="${PF}"
 
 RESTRICT="binchecks strip mirror"
 
-IUSE="binary btrfs clang custom-cflags debug dmraid dtrace ec2 firmware hardened iscsi libressl luks lvm mcelog mdadm microcode multipath nbd nfs plymouth selinux sign-modules systemd wireguard zfs"
+IUSE="binary btrfs clang custom-cflags debug dmraid dtrace ec2 firmware hardened iscsi libressl luks lvm mcelog mdadm microcode multipath nbd nfs plymouth selinux sign-modules symlink systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -608,10 +608,10 @@ pkg_postinst() {
 		rm "${ROOT}"usr/src/linux
 	fi
 
-	if use binary && [[ ! -e "${ROOT}"/usr/src/linux ]]; then
+	if use symlink; then
 	    ewarn "WARNING... WARNING... WARNING"
 	    ewarn ""
-	    ewarn "/usr/src/linux symlink automatically set to ${PN}-${PV}"
+	    ewarn "/usr/src/linux symlink automatically set to linux-${DEB_PV_BASE}${MODULE_EXT}"
 	    ewarn ""
 		ln -sf "${ROOT}"/usr/src/linux-${DEB_PV_BASE}${MODULE_EXT} "${ROOT}"/usr/src/linux
 	fi
