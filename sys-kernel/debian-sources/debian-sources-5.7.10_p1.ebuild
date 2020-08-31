@@ -604,19 +604,23 @@ pkg_postinst() {
 	# TODO: Change to SANDBOX_WRITE=".." for Dracut writes
 	export SANDBOX_ON=0
 
-	if use binary && [[ -h "${ROOT}"/usr/src/linux ]]; then
-		rm "${ROOT}"usr/src/linux
-	fi
-
+    # if USE=symlink...
 	if use symlink; then
+	    # delete the existing symlink if one exists
+	    if [[ -h "${EROOT}"/usr/src/linux ]]; then
+            rm "${EROOT}"/usr/src/linux
+        fi
+        # and now symlink the newly installed sources
+	    ewarn ""
 	    ewarn "WARNING... WARNING... WARNING"
 	    ewarn ""
 	    ewarn "/usr/src/linux symlink automatically set to linux-${DEB_PV_BASE}${MODULE_EXT}"
 	    ewarn ""
-		ln -sf "${ROOT}"/usr/src/linux-${DEB_PV_BASE}${MODULE_EXT} "${ROOT}"/usr/src/linux
+		ln -sf "${EROOT}"/usr/src/linux-${DEB_PV_BASE}${MODULE_EXT} "${EROOT}"/usr/src/linux
 	fi
 
-	if [ -e ${ROOT}lib/modules ]; then
+    # if there's a modules folder for these sources, generate modules.dep and map files
+	if [[ -d ${EROOT}/lib/modules/${DEB_PV_BASE}${MODULE_EXT} ]]; then
 		depmod -a ${DEB_PV_BASE}${MODULE_EXT}
 	fi
 
@@ -653,10 +657,10 @@ pkg_postinst() {
         $(usex selinux "-a selinux" "-o selinux") \
         $(usex systemd "-a systemd systemd-initrd systemd-networkd" "-o systemd systemd-initrd systemd-networkd") \
         $(usex zfs "-a zfs" "-o zfs") \
-        --kver "${PV}-${P}" \
-        --kmoddir "${ROOT}"lib/modules/${DEB_PV_BASE}${MODULE_EXT} \
-        --fwdir "${ROOT}"lib/firmware \
-        --kernel-image "${ROOT}"boot/vmlinuz-${DEB_PV_BASE}${MODULE_EXT}
+        --kver "${DEB_PV_BASE}${MODULE_EXT}" \
+        --kmoddir "${EROOT}"/lib/modules/${DEB_PV_BASE}${MODULE_EXT} \
+        --fwdir "${EROOT}"/lib/firmware \
+        --kernel-image "${EROOT}"/boot/vmlinuz-${DEB_PV_BASE}${MODULE_EXT}
         einfo ""
         einfo ">>> Dracut: Finished building initramfs"
         ewarn ""
@@ -680,6 +684,7 @@ pkg_postinst() {
         ewarn "    Please consult "man 7 dracut.kernel" for additional kernel arguments."
 	fi
 
+    # warn about the issues with running a hardened kernel
     if use hardened; then
         ewarn ""
         ewarn "WARNING... WARNING... WARNING..."
@@ -698,8 +703,9 @@ pkg_postinst() {
         ewarn ""
     fi
 
+    # if there are out-of-tree kernel modules detected, warn warn warn
 	# TODO: tidy up below
-	if use binary && [[ -e "${ROOT}"var/lib/module-rebuild/moduledb ]]; then
+	if use binary && [[ -e "${EROOT}"/var/lib/module-rebuild/moduledb ]]; then
 	    ewarn ""
 		ewarn "WARNING... WARNING... WARNING..."
 		ewarn ""
@@ -710,7 +716,7 @@ pkg_postinst() {
 	fi
 
 	if use binary; then
-		if [ -e /etc/boot.conf ]; then
+		if [[ -e /etc/boot.conf ]]; then
 			ego boot update
 		fi
 	fi
