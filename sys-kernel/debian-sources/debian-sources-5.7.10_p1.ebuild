@@ -573,7 +573,7 @@ src_install() {
         fi
 
         emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
-        installkernel "${PN}-${PV}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
+        installkernel "${DEB_PV_BASE}${MODULE_EXT}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
         # module symlink fix-up:
         rm -rf "${D}"/lib/modules/${DEB_PV_BASE}${MODULE_EXT}/source || die "failed to remove old kernel source symlink"
