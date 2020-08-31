@@ -356,7 +356,7 @@ src_prepare() {
     ### TWEAK CONFIG ###
 
     # Do not configure Debian devs certificates
-    echo 'CONFIG_SYSTEM_TRUSTED_KEYS=""'
+    echo 'CONFIG_SYSTEM_TRUSTED_KEYS=""' >> .config
 
     # enable IKCONFIG so that /proc/config.gz can be used for various checks
     # TODO: Maybe not a good idea for USE=hardened, look into this...
