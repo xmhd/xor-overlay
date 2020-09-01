@@ -10,7 +10,7 @@ KEYWORDS="x86 amd64"
 
 SLOT="0"
 
-IUSE="dtrace-headers test"
+IUSE="test"
 
 RDEPEND="
     dev-libs/elfutils
@@ -20,20 +20,19 @@ RDEPEND="
 
 DEPEND="
     sys-devel/bison
-    dtrace-headers? ( sys-kernel/debian-sources[dtrace] )
+    sys-kernel/debian-sources[dtrace]
     sys-devel/flex
     virtual/os-headers
 "
 
 DTRACE_UTILS_VER="2.0.0"
 DTRACE_UTILS_REV="1.2"
-DTRACE_ARCHIVE="${DTRACE_UTILS_VER}-${DTRACE_UTILS_REV}.tar.gz"
+DTRACE_UTILS_ARCHIVE="${DTRACE_UTILS_VER}-${DTRACE_UTILS_REV}.tar.gz"
 
-SRC_URI="https://github.com/oracle/dtrace-utils/archive/${DTRACE_ARCHIVE}"
+SRC_URI="https://github.com/oracle/dtrace-utils/archive/${DTRACE_UTILS_ARCHIVE}"
+
 
 src_unpack() {
 
-	unpack ${DTRACE_ARCHIVE}
-	use test || rm -r ${WORKDIR}/${DTRACE_ARCHIVE}/test
-
+    unpack ${DTRACE_ARCHIVE} && mv ${WORKDIR}/${PN}-${DTRACE_UTILS_VER}-${DTRACE_UTILS_REV} ${WORKDIR}/${PN}-${DTRACE_UTILS_VER} || die "failed to unpack archive"
 }

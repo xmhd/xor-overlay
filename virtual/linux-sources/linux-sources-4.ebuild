@@ -6,14 +6,14 @@ EAPI=6
 DESCRIPTION="Virtual for Linux kernel sources"
 SLOT="0"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
-IUSE="debian firmware"
+IUSE="dtrace firmware"
 
 RDEPEND="
-	debian? ( sys-kernel/debian-sources )
+	dtrace? ( sys-kernel/debian-sources[dtrace] )
 	firmware? ( sys-kernel/linux-firmware )
 	|| (
+	    sys-kernel/debian-sources
 		sys-kernel/gentoo-sources
-		sys-kernel/debian-sources
 		sys-kernel/vanilla-sources
 		sys-kernel/ck-sources
 		sys-kernel/git-sources
@@ -27,4 +27,5 @@ RDEPEND="
 		sys-kernel/raspberrypi-sources
 		sys-kernel/vanilla-kernel
 		sys-kernel/vanilla-kernel-bin
-	)"
+	)
+"
