@@ -118,7 +118,7 @@ HARDENED_PATCHES=(
     0016-stop-hiding-X86_16BIT-behind-EXPERT.patch
     0017-disable-X86_16BIT-by-default.patch
     0018-stop-hiding-MODIFY_LDT_SYSCALL-behind-EXPERT.patch
-#    0019-disable-MODIFY_LDT_SYSCALL-by-default.patch
+    0019-disable-MODIFY_LDT_SYSCALL-by-default.patch
     0020-set-LEGACY_VSYSCALL_NONE-by-default.patch
     0021-stop-hiding-AIO-behind-EXPERT.patch
     0022-disable-AIO-by-default.patch
@@ -429,9 +429,6 @@ src_prepare() {
         echo 'CONFIG_KEXEC=n' >> .config
         echo "CONFIG_KEXEC_FILE=n" >> .config
         echo 'CONFIG_KEXEC_SIG=n' >> .config
-
-        # tweaks for patch conflicts
-        echo 'CONFIG_MODIFY_LDT_SYSCALL=n' >> .config
     fi
 
     # mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
