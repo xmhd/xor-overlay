@@ -1,0 +1,38 @@
+From 975a3d21c3e7aa185cc197ad25b0f8b817db9d8b Mon Sep 17 00:00:00 2001
+From: Dave Kleikamp <dave.kleikamp@oracle.com>
+Date: Mon, 7 May 2018 15:16:59 -0500
+Subject: [PATCH 06/13] kbuild: arm64: Set objects.builtin dependency to Image
+ for CONFIG_CTF
+
+Similar to what is done for x86, change the objects.builtin dependency
+from vmlinux to Image to prevent vmlinux from being rebuilt with a
+different version string.
+
+Orabug: 30344873
+
+Signed-off-by: Dave Kleikamp <dave.kleikamp@oracle.com>
+Reviewed-by: Allen Pais <allen.pais@oracle.com>
+Reviewed-by: Tom Saeger <tom.saeger@oracle.com>
+---
+ Makefile | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/Makefile b/Makefile
+index 61727ff71dfd..ef9156f35c83 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1351,7 +1351,11 @@ KBUILD_BUILTIN := 1
+ ifeq ($(SRCARCH),x86)
+ objects.builtin: $(vmlinux-dirs) $(if $(KBUILD_BUILTIN),bzImage) FORCE
+ else
++ifeq ($(SRCARCH),arm64)
++objects.builtin: $(vmlinux-dirs) $(if $(KBUILD_BUILTIN),Image) FORCE
++else
+ objects.builtin: $(vmlinux-dirs) $(if $(KBUILD_BUILTIN),vmlinux) FORCE
++endif
+ endif
+ 	@echo $(KBUILD_VMLINUX_OBJS) | \
+ 		tr " " "\n" | grep "\.o$$" | xargs -r file | \
+-- 
+2.28.0
+
