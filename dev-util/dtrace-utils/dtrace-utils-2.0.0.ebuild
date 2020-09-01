@@ -34,6 +34,6 @@ SRC_URI="https://github.com/oracle/dtrace-utils/archive/${DTRACE_ARCHIVE}"
 src_unpack() {
 
 	unpack ${DTRACE_ARCHIVE}
-	use test || rm -r ${WORKDIR}/${P}/test
+	use test || rm -r ${WORKDIR}/${DTRACE_ARCHIVE}/test
 
 }
