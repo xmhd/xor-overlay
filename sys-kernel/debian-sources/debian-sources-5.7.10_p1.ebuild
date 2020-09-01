@@ -631,6 +631,10 @@ pkg_postinst() {
 	# The initramfs will be configurable via USE, i.e.
 	# USE=zfs will pass '--zfs' to Dracut
 	# USE=-systemd will pass '--omit dracut-systemd systemd systemd-networkd systemd-initrd' to exclude these (Dracut) modules from the initramfs.
+	#
+	# NOTE 2: this will create a fairly.... minimal, and modular initramfs. It has been tested with things with ZFS and LUKS, and 'works'.
+	# Things like network support have not been tested (I am currently unsure how well this works with Gentoo Linux based systems),
+	# and may end up requiring network-manager for decent support (this really needs further research).
 	if use binary; then
 	    einfo ""
         einfo ">>> Dracut: building initramfs"
