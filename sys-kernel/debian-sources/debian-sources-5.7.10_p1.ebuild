@@ -638,8 +638,8 @@ pkg_postinst() {
         --stdlog=1 \
         --force \
         --no-hostonly \
-        --add "base dm fs-lib i18n kernel-modules network rootfs-block shutdown terminfo udev-rules usrmount" \
-        --omit "biosdevname bootchart busybox caps convertfs dash debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh network-manager qemu qemu-net rpmversion securityfs ssh-client stratis syslog url-lib" \
+        --add "base dm fs-lib i18n kernel-modules rootfs-block shutdown terminfo udev-rules usrmount" \
+        --omit "biosdevname bootchart busybox caps convertfs dash debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh network network-manager qemu qemu-net rpmversion securityfs ssh-client stratis syslog url-lib" \
         $(usex btrfs "-a btrfs" "-o btrfs") \
         $(usex dmraid "-a dmraid" "-o dmraid") \
         $(usex hardened "-o resume" "-a resume") \
@@ -655,14 +655,16 @@ pkg_postinst() {
         $(usex nfs "-a nfs" "-o nfs") \
         $(usex plymouth "-a plymouth" "-o plymouth") \
         $(usex selinux "-a selinux" "-o selinux") \
-        $(usex systemd "-a systemd systemd-initrd systemd-networkd" "-o systemd systemd-initrd systemd-networkd") \
+        $(usex systemd "-a systemd -a systemd-initrd -a systemd-networkd" "-o systemd -o systemd-initrd -o systemd-networkd") \
         $(usex zfs "-a zfs" "-o zfs") \
-        --kver "${DEB_PV_BASE}${MODULE_EXT}" \
-        --kmoddir "${EROOT}"/lib/modules/${DEB_PV_BASE}${MODULE_EXT} \
-        --fwdir "${EROOT}"/lib/firmware \
-        --kernel-image "${EROOT}"/boot/vmlinuz-${DEB_PV_BASE}${MODULE_EXT}
+        --kver ${DEB_PV_BASE}${MODULE_EXT} \
+        --kmoddir ${EROOT}/lib/modules/${DEB_PV_BASE}${MODULE_EXT} \
+        --fwdir ${EROOT}/lib/firmware \
+        --kernel-image ${EROOT}/boot/vmlinuz-${DEB_PV_BASE}${MODULE_EXT}
         einfo ""
         einfo ">>> Dracut: Finished building initramfs"
+        ewarn ""
+        ewarn "WARNING... WARNING... WARNING..."
         ewarn ""
         ewarn "Dracut initramfs has been generated!"
         ewarn ""
