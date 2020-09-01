@@ -1,0 +1,26 @@
+From 14df4e6fbf202ce25d73a601caccbee51bf552b5 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Wed, 3 May 2017 12:06:14 -0400
+Subject: [PATCH 005/103] set kptr_restrict=2 by default
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ lib/vsprintf.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/vsprintf.c b/lib/vsprintf.c
+index 7c47ad52ce2f..d1e002579732 100644
+--- a/lib/vsprintf.c
++++ b/lib/vsprintf.c
+@@ -817,7 +817,7 @@ static char *ptr_to_id(char *buf, char *end, const void *ptr,
+ 	return pointer_string(buf, end, (const void *)hashval, spec);
+ }
+ 
+-int kptr_restrict __read_mostly;
++int kptr_restrict __read_mostly = 2;
+ 
+ static noinline_for_stack
+ char *restricted_pointer(char *buf, char *end, const void *ptr,
+-- 
+2.28.0
+

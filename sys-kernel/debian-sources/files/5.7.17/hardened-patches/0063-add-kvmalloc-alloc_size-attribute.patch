@@ -1,0 +1,26 @@
+From e2a3fc186db86fbbd59195bccdae1a1b5ef58fb5 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Tue, 4 Jul 2017 00:51:33 -0400
+Subject: [PATCH 063/103] add kvmalloc alloc_size attribute
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ include/linux/mm.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 465e8ad671f8..57f78e2fcdac 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -751,7 +751,7 @@ static inline int is_vmalloc_or_module_addr(const void *x)
+ }
+ #endif
+ 
+-extern void *kvmalloc_node(size_t size, gfp_t flags, int node);
++extern void *kvmalloc_node(size_t size, gfp_t flags, int node) __attribute__((alloc_size(1)));
+ static inline void *kvmalloc(size_t size, gfp_t flags)
+ {
+ 	return kvmalloc_node(size, flags, NUMA_NO_NODE);
+-- 
+2.28.0
+
