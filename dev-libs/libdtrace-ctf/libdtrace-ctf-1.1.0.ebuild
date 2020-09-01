@@ -22,5 +22,4 @@ RDEPEND="
 
 src_unpack() {
 	unpack ${A}
-	mv ${WORKDIR}/${PN}-${P} ${WORKDIR}/${P}
 }
