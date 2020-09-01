@@ -1,0 +1,67 @@
+From d4ed1fd89f873a47898a5bc065022efaa3e95d87 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Fri, 12 May 2017 03:22:00 -0400
+Subject: [PATCH 042/102] mark kernel_set_to_readonly as __ro_after_init
+
+This change was extracted from PaX where it's part of KERNEXEC.
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ arch/x86/mm/init_32.c | 5 ++---
+ arch/x86/mm/init_64.c | 5 ++---
+ 2 files changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index de73992b8432..3908c634165d 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -837,7 +837,7 @@ void arch_remove_memory(int nid, u64 start, u64 size,
+ }
+ #endif
+ 
+-int kernel_set_to_readonly __read_mostly;
++int kernel_set_to_readonly __ro_after_init;
+ 
+ static void mark_nxdata_nx(void)
+ {
+@@ -861,12 +861,11 @@ void mark_rodata_ro(void)
+ 	unsigned long start = PFN_ALIGN(_text);
+ 	unsigned long size = (unsigned long)__end_rodata - start;
+ 
++	kernel_set_to_readonly = 1;
+ 	set_pages_ro(virt_to_page(start), size >> PAGE_SHIFT);
+ 	pr_info("Write protecting kernel text and read-only data: %luk\n",
+ 		size >> 10);
+ 
+-	kernel_set_to_readonly = 1;
+-
+ #ifdef CONFIG_CPA_DEBUG
+ 	pr_info("Testing CPA: Reverting %lx-%lx\n", start, start + size);
+ 	set_pages_rw(virt_to_page(start), size >> PAGE_SHIFT);
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 0a14711d3a93..8fe11ea9508b 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -1255,7 +1255,7 @@ void __init mem_init(void)
+ 	mem_init_print_info(NULL);
+ }
+ 
+-int kernel_set_to_readonly;
++int kernel_set_to_readonly __ro_after_init;
+ 
+ void mark_rodata_ro(void)
+ {
+@@ -1268,9 +1268,8 @@ void mark_rodata_ro(void)
+ 
+ 	printk(KERN_INFO "Write protecting the kernel read-only data: %luk\n",
+ 	       (end - start) >> 10);
+-	set_memory_ro(start, (end - start) >> PAGE_SHIFT);
+-
+ 	kernel_set_to_readonly = 1;
++	set_memory_ro(start, (end - start) >> PAGE_SHIFT);
+ 
+ 	/*
+ 	 * The rodata/data/bss/brk section (but not the kernel text!)
+-- 
+2.28.0
+

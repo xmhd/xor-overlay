@@ -1,0 +1,33 @@
+From 965efc7f47c88322e429b1a63338fc51ec6c3345 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Mon, 15 May 2017 23:59:18 -0400
+Subject: [PATCH 069/102] add page destructor sanity check
+
+Taken from the public PaX patches.
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ mm/swap.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/mm/swap.c b/mm/swap.c
+index a4af8c999963..45a14e677085 100644
+--- a/mm/swap.c
++++ b/mm/swap.c
+@@ -94,6 +94,13 @@ static void __put_compound_page(struct page *page)
+ 	if (!PageHuge(page))
+ 		__page_cache_release(page);
+ 	dtor = get_compound_page_dtor(page);
++	if (!PageHuge(page))
++		BUG_ON(dtor != free_compound_page
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++			&& dtor != free_transhuge_page
++#endif
++		);
++
+ 	(*dtor)(page);
+ }
+ 
+-- 
+2.28.0
+

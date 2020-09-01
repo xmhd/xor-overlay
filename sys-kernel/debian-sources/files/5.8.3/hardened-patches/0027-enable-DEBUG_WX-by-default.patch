@@ -1,0 +1,38 @@
+From cb5d4e07dbdb44fd11be3faa7173511697ceebd0 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Mon, 29 May 2017 12:11:11 -0400
+Subject: [PATCH 027/102] enable DEBUG_WX by default
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ arch/arm64/Kconfig.debug | 1 +
+ arch/x86/Kconfig.debug   | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/arch/arm64/Kconfig.debug b/arch/arm64/Kconfig.debug
+index 1c906d932d6b..d8b5cdb45682 100644
+--- a/arch/arm64/Kconfig.debug
++++ b/arch/arm64/Kconfig.debug
+@@ -26,6 +26,7 @@ config ARM64_RANDOMIZE_TEXT_OFFSET
+ config DEBUG_WX
+ 	bool "Warn on W+X mappings at boot"
+ 	select PTDUMP_CORE
++	default y
+ 	---help---
+ 	  Generate a warning if any W+X mappings are found at boot.
+ 
+diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
+index 2e74690b028a..87c7294dd172 100644
+--- a/arch/x86/Kconfig.debug
++++ b/arch/x86/Kconfig.debug
+@@ -75,6 +75,7 @@ config EFI_PGT_DUMP
+ config DEBUG_WX
+ 	bool "Warn on W+X mappings at boot"
+ 	select PTDUMP_CORE
++	default y
+ 	---help---
+ 	  Generate a warning if any W+X mappings are found at boot.
+ 
+-- 
+2.28.0
+

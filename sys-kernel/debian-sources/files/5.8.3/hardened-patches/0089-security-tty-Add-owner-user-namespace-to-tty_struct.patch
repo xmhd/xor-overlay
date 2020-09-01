@@ -1,0 +1,187 @@
+From 9fc14aeb4e2d5cba1ad369ee6f658e9b72b32224 Mon Sep 17 00:00:00 2001
+From: Matt Brown <matt@nmatt.com>
+Date: Mon, 29 May 2017 17:37:59 -0400
+Subject: [PATCH 089/102] security: tty: Add owner user namespace to tty_struct
+
+This patch adds struct user_namespace *owner_user_ns to the tty_struct.
+Then it is set to current_user_ns() in the alloc_tty_struct function.
+
+This is done to facilitate capability checks against the original user
+namespace that allocated the tty.
+
+E.g. ns_capable(tty->owner_user_ns,CAP_SYS_ADMIN)
+
+This combined with the use of user namespace's will allow hardening
+protections to be built to mitigate container escapes that utilize TTY
+ioctls such as TIOCSTI.
+
+See: https://bugzilla.redhat.com/show_bug.cgi?id=1411256
+
+Acked-by: Serge Hallyn <serge@hallyn.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Matt Brown <matt@nmatt.com>
+Signed-off-by: Levente Polyak <levente@leventepolyak.net>
+---
+ Documentation/admin-guide/sysctl/kernel.rst | 19 +++++++++++++++++++
+ drivers/tty/tty_io.c                        | 10 ++++++++++
+ include/linux/tty.h                         |  4 ++++
+ kernel/sysctl.c                             | 12 ++++++++++++
+ security/Kconfig                            | 13 +++++++++++++
+ 5 files changed, 58 insertions(+)
+
+diff --git a/Documentation/admin-guide/sysctl/kernel.rst b/Documentation/admin-guide/sysctl/kernel.rst
+index 335696d3360d..cff409b35952 100644
+--- a/Documentation/admin-guide/sysctl/kernel.rst
++++ b/Documentation/admin-guide/sysctl/kernel.rst
+@@ -1155,6 +1155,25 @@ If a value outside of this range is written to ``threads-max`` an
+ ``EINVAL`` error occurs.
+ 
+ 
++tiocsti_restrict
++================
++
++This toggle indicates whether unprivileged users are prevented from using the
++``TIOCSTI`` ioctl to inject commands into other processes which share a tty
++session.
++
++When ``tiocsti_restrict`` is set to (0) there are no restrictions(accept the
++default restriction of only being able to injection commands into one's own
++tty). When ``tiocsti_restrict`` is set to (1), users must have ``CAP_SYS_ADMIN``
++to use the ``TIOCSTI`` ioctl.
++
++When user namespaces are in use, the check for the capability ``CAP_SYS_ADMIN``
++is done against the user namespace that originally opened the tty.
++
++The kernel config option ``CONFIG_SECURITY_TIOCSTI_RESTRICT`` sets the default
++value of ``tiocsti_restrict``.
++
++
+ unknown_nmi_panic
+ =================
+ 
+diff --git a/drivers/tty/tty_io.c b/drivers/tty/tty_io.c
+index 5a6f36b391d9..616d82a19160 100644
+--- a/drivers/tty/tty_io.c
++++ b/drivers/tty/tty_io.c
+@@ -174,6 +174,7 @@ static void free_tty_struct(struct tty_struct *tty)
+ 	put_device(tty->dev);
+ 	kfree(tty->write_buf);
+ 	tty->magic = 0xDEADDEAD;
++	put_user_ns(tty->owner_user_ns);
+ 	kfree(tty);
+ }
+ 
+@@ -2179,11 +2180,19 @@ static int tty_fasync(int fd, struct file *filp, int on)
+  *	FIXME: may race normal receive processing
+  */
+ 
++int tiocsti_restrict = IS_ENABLED(CONFIG_SECURITY_TIOCSTI_RESTRICT);
++
+ static int tiocsti(struct tty_struct *tty, char __user *p)
+ {
+ 	char ch, mbz = 0;
+ 	struct tty_ldisc *ld;
+ 
++	if (tiocsti_restrict &&
++		!ns_capable(tty->owner_user_ns, CAP_SYS_ADMIN)) {
++		dev_warn_ratelimited(tty->dev,
++			"Denied TIOCSTI ioctl for non-privileged process\n");
++		return -EPERM;
++	}
+ 	if ((current->signal->tty != tty) && !capable(CAP_SYS_ADMIN))
+ 		return -EPERM;
+ 	if (get_user(ch, p))
+@@ -3009,6 +3018,7 @@ struct tty_struct *alloc_tty_struct(struct tty_driver *driver, int idx)
+ 	tty->index = idx;
+ 	tty_line_name(driver, idx, tty->name);
+ 	tty->dev = tty_get_device(tty);
++	tty->owner_user_ns = get_user_ns(current_user_ns());
+ 
+ 	return tty;
+ }
+diff --git a/include/linux/tty.h b/include/linux/tty.h
+index bd5fe0e907e8..5d0444635d57 100644
+--- a/include/linux/tty.h
++++ b/include/linux/tty.h
+@@ -14,6 +14,7 @@
+ #include <uapi/linux/tty.h>
+ #include <linux/rwsem.h>
+ #include <linux/llist.h>
++#include <linux/user_namespace.h>
+ 
+ 
+ /*
+@@ -338,6 +339,7 @@ struct tty_struct {
+ 	/* If the tty has a pending do_SAK, queue it here - akpm */
+ 	struct work_struct SAK_work;
+ 	struct tty_port *port;
++	struct user_namespace *owner_user_ns;
+ } __randomize_layout;
+ 
+ /* Each of a tty's open files has private_data pointing to tty_file_private */
+@@ -347,6 +349,8 @@ struct tty_file_private {
+ 	struct list_head list;
+ };
+ 
++extern int tiocsti_restrict;
++
+ /* tty magic number */
+ #define TTY_MAGIC		0x5401
+ 
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index 183593930f2b..87bc1d26c376 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -68,6 +68,7 @@
+ #include <linux/bpf.h>
+ #include <linux/mount.h>
+ #include <linux/userfaultfd_k.h>
++#include <linux/tty.h>
+ 
+ #include "../lib/kstrtox.h"
+ 
+@@ -899,6 +900,17 @@ static struct ctl_table kern_table[] = {
+ 		.extra1		= SYSCTL_ZERO,
+ 		.extra2		= &two,
+ 	},
++#endif
++#if defined CONFIG_TTY
++	{
++		.procname	= "tiocsti_restrict",
++		.data		= &tiocsti_restrict,
++		.maxlen		= sizeof(int),
++		.mode		= 0644,
++		.proc_handler	= proc_dointvec_minmax_sysadmin,
++		.extra1		= SYSCTL_ZERO,
++		.extra2		= SYSCTL_ONE,
++	},
+ #endif
+ 	{
+ 		.procname	= "device_sidechannel_restrict",
+diff --git a/security/Kconfig b/security/Kconfig
+index 5149ee2e2d7d..d0b7215d4fe5 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -29,6 +29,19 @@ config SECURITY_PERF_EVENTS_RESTRICT
+ 	  perf_event_open syscall will be permitted unless it is
+ 	  changed.
+ 
++config SECURITY_TIOCSTI_RESTRICT
++	bool "Restrict unprivileged use of tiocsti command injection"
++	default n
++	help
++	  This enforces restrictions on unprivileged users injecting commands
++	  into other processes which share a tty session using the TIOCSTI
++	  ioctl. This option makes TIOCSTI use require CAP_SYS_ADMIN.
++
++	  If this option is not selected, no restrictions will be enforced
++	  unless the tiocsti_restrict sysctl is explicitly set to (1).
++
++	  If you are unsure how to answer this question, answer N.
++
+ config SECURITY
+ 	bool "Enable different security models"
+ 	depends on SYSFS
+-- 
+2.28.0
+
