@@ -1,7 +1,7 @@
-From 15f788f4a83b51c35214e104c630e4ec582141c5 Mon Sep 17 00:00:00 2001
+From cbaef7c12df7ca4edea7434a343606d80588d3d8 Mon Sep 17 00:00:00 2001
 From: Nick Alcock <nick.alcock@oracle.com>
 Date: Wed, 14 Nov 2018 20:28:51 +0000
-Subject: [PATCH 03/20] waitfd: new syscall implementing waitpid() over fds
+Subject: [PATCH 03/13] waitfd: new syscall implementing waitpid() over fds
 
 This syscall, originally due to Casey Dahlin but significantly modified
 since, is called quite like waitid():
@@ -257,10 +257,10 @@ index 12eebcdea9c8..39052781f69d 100644
  	/* Allocates slab cache used to allocate "struct epitem" items */
  	epi_cache = kmem_cache_create("eventpoll_epi", sizeof(struct epitem),
 diff --git a/fs/io_uring.c b/fs/io_uring.c
-index 51be3a20ade1..70446999860d 100644
+index fb9dc865c9ea..70f3f65a6ed0 100644
 --- a/fs/io_uring.c
 +++ b/fs/io_uring.c
-@@ -4351,7 +4351,8 @@ static void __io_queue_proc(struct io_poll_iocb *poll, struct io_poll_table *pt,
+@@ -4352,7 +4352,8 @@ static void __io_queue_proc(struct io_poll_iocb *poll, struct io_poll_table *pt,
  }
  
  static void io_async_queue_proc(struct file *file, struct wait_queue_head *head,
@@ -269,8 +269,8 @@ index 51be3a20ade1..70446999860d 100644
 +				unsigned long fixed_event)
  {
  	struct io_poll_table *pt = container_of(p, struct io_poll_table, pt);
- 
-@@ -4678,7 +4679,7 @@ static int io_poll_wake(struct wait_queue_entry *wait, unsigned mode, int sync,
+ 	struct async_poll *apoll = pt->req->apoll;
+@@ -4682,7 +4683,7 @@ static int io_poll_wake(struct wait_queue_entry *wait, unsigned mode, int sync,
  }
  
  static void io_poll_queue_proc(struct file *file, struct wait_queue_head *head,
@@ -538,10 +538,10 @@ index 3a3201e4618e..1054416ced59 100644
  /*
   * 32 bit systems traditionally used different
 diff --git a/init/Kconfig b/init/Kconfig
-index 68104e5f938b..75726ced13a7 100644
+index 94533488ff02..5c218ceb7b51 100644
 --- a/init/Kconfig
 +++ b/init/Kconfig
-@@ -1486,6 +1486,22 @@ config EPOLL
+@@ -1484,6 +1484,22 @@ config EPOLL
  	  Disabling this option will cause the kernel to be built without
  	  support for epoll family of system calls.
  
@@ -608,7 +608,7 @@ index 3b69a560a7ac..2cdd1d180bb5 100644
  COND_SYSCALL(epoll_create);
  COND_SYSCALL(inotify_init);
 diff --git a/mm/memcontrol.c b/mm/memcontrol.c
-index ef0e291a8cf4..60050ba402e3 100644
+index 9a4a77104d16..ecff73f6d1fa 100644
 --- a/mm/memcontrol.c
 +++ b/mm/memcontrol.c
 @@ -4564,7 +4564,7 @@ static int memcg_event_wake(wait_queue_entry_t *wait, unsigned mode,
@@ -621,10 +621,10 @@ index ef0e291a8cf4..60050ba402e3 100644
  	struct mem_cgroup_event *event =
  		container_of(pt, struct mem_cgroup_event, pt);
 diff --git a/net/9p/trans_fd.c b/net/9p/trans_fd.c
-index 13cd683a658a..1f1f4d300275 100644
+index 12ecacf0c55f..d2fc232edd64 100644
 --- a/net/9p/trans_fd.c
 +++ b/net/9p/trans_fd.c
-@@ -541,7 +541,8 @@ static int p9_pollwake(wait_queue_entry_t *wait, unsigned int mode, int sync, vo
+@@ -545,7 +545,8 @@ static int p9_pollwake(wait_queue_entry_t *wait, unsigned int mode, int sync, vo
   */
  
  static void

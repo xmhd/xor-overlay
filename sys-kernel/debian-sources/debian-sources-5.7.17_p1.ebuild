@@ -406,6 +406,10 @@ src_prepare() {
         echo "CONFIG_DEBUG_INFO=n" >> .config
     fi
 
+    if use dtrace; then
+        echo "CONFIG_WAITFD=y" >> .config
+    fi
+
     # these options should already be set, but are a hard dependency for ec2, so we ensure they are set if USE=ec2
 	if use ec2; then
 	    echo "CONFIG_BLK_DEV_NVME=y" >> .config
