@@ -25,8 +25,8 @@ DEPEND="
     virtual/os-headers
 "
 
-DTRACE_UTILS_VER="2.0.0"
-DTRACE_UTILS_REV="1.2"
+DTRACE_UTILS_VER="1.2.1"
+DTRACE_UTILS_REV="1"
 DTRACE_UTILS_ARCHIVE="${DTRACE_UTILS_VER}-${DTRACE_UTILS_REV}.tar.gz"
 
 SRC_URI="https://github.com/oracle/dtrace-utils/archive/${DTRACE_UTILS_ARCHIVE}"
