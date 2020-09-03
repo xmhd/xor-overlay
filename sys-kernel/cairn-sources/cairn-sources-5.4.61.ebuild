@@ -294,9 +294,6 @@ src_unpack() {
 
     # unpack the kernel sources to ${WORKDIR}
     unpack ${KERNEL_ARCHIVE} || die "failed to unpack kernel sources"
-
-    # unpack the kernel patches
-    unpack ${PATCH_ARCHIVE} || die "failed to unpack kernel patches"
 }
 
 src_prepare() {
