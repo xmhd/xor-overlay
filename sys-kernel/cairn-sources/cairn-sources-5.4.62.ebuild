@@ -668,7 +668,7 @@ pkg_postinst() {
         ewarn ""
         ewarn "WARNING... WARNING... WARNING"
         ewarn ""
-        ewarn "/usr/src/linux symlink automatically set to linux-${DEB_PV_BASE}${MODULE_EXT}"
+        ewarn "/usr/src/linux symlink automatically set to linux-${PV}{KERNEL_EXTRAVERSION}"
         ewarn ""
         ln -sf "${EROOT}"/usr/src/linux-${PV}${KERNEL_EXTRAVERSION} "${EROOT}"/usr/src/linux
     fi
