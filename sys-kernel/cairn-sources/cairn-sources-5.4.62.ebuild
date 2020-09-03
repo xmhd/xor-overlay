@@ -368,6 +368,9 @@ src_unpack() {
     mkdir "${WORKDIR}"/gentoo-patches && cd "${WORKDIR}"/gentoo-patches
     unpack ${GENTOO_PATCHES_BASE} && unpack ${GENTOO_PATCHES_EXTRAS} && unpack ${GENTOO_PATCHES_EXPERIMENTAL} || die "failed to unpack genpatches"
     cd "${WORKDIR}"
+
+    # move kconfig to kernel sources directory
+    cp "${DISTDIR}"/${KCONFIG_FILE} "${WORKDIR}"/linux-${KERNEL_VERSION}/
 }
 
 src_prepare() {
