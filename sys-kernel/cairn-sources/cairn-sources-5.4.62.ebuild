@@ -84,7 +84,7 @@ S="$WORKDIR/linux-${KERNEL_VERSION}"
 
 # TODO: manage HARDENED_PATCHES and GENTOO_PATCHES can be managed in a git repository and packed into tar balls per version.
 
-HARDENED_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/hardened-patches/"
+HARDENED_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/hardened-patches/"
 
 # 'linux-hardened' minimal patch set to compliment existing Kernel-Self-Protection-Project
 # 0033-enable-protected_-symlinks-hardlinks-by-default.patch
@@ -289,7 +289,7 @@ GENTOO_PATCHES=(
     5013_enable-cpu-optimizations-for-gcc10.patch
 )
 
-DTRACE_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/dtrace-patches"
+DTRACE_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/dtrace-patches"
 
 DTRACE_PATCHES=(
     0001-ctf-generate-CTF-information-for-the-kernel.patch
@@ -392,11 +392,15 @@ src_prepare() {
             done
         fi
 
+        # Cairn Linux patches are misc fix-ups
+
+        einfo "Applying Cairn Linux patches ..."
+
         ## increase bluetooth polling patch
-        eapply "${FILESDIR}"/${DEB_PV_BASE}/fix-bluetooth-polling.patch
+        eapply "${FILESDIR}"/${KERNEL_VERSION}/fix-bluetooth-polling.patch
 
         # Restore export_kernel_fpu_functions for zfs
-        eapply "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
+        eapply "${FILESDIR}"/${KERNEL_VERSION}/export_kernel_fpu_functions_5_3.patch
 
         # append EXTRAVERSION to the kernel sources Makefile
         sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${MODULE_EXT}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
