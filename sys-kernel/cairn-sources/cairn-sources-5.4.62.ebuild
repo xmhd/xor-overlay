@@ -68,6 +68,7 @@ REQUIRED_USE="
 KERNEL_VERSION="5.4.62"
 KERNEL_ARCHIVE="linux-${KERNEL_VERSION}.tar.xz"
 KERNEL_UPSTREAM="https://cdn.kernel.org/pub/linux/kernel/v5.x/${KERNEL_ARCHIVE}"
+KERNEL_EXTRAVERSION="-cairn"
 
 # temporarily use fedora kernel configs
 KCONFIG_VERSION="5.4.21"
@@ -406,7 +407,7 @@ src_prepare() {
         eapply "${FILESDIR}"/${KERNEL_VERSION}/export_kernel_fpu_functions.patch
 
         # append EXTRAVERSION to the kernel sources Makefile
-        #sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${MODULE_EXT}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
+        sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${KERNEL_EXTRAVERSION}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
 
         # todo: look at this, haven't seen it used in many cases.
         sed -i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
@@ -609,13 +610,8 @@ src_install() {
 
     # copy sources into place:
     dodir /usr/src
-    cp -a "${S}" "${D}"/usr/src/linux-${DEB_PV_BASE}${MODULE_EXT} || die "failed to install kernel sources"
-    cd "${D}"/usr/src/linux-${DEB_PV_BASE}${MODULE_EXT}
-
-    # prepare for real-world use and 3rd-party module building:
-    make mrproper || die
-    cp "${T}"/.config .config || die
-    cp -a "${WORKDIR}"/debian debian || die
+    cp -a "${S}" "${D}"/usr/src/linux-${PV}${KERNEL_EXTRAVERSION} || die "failed to install kernel sources"
+    cd "${D}"/usr/src/linux-${PV}${KERNEL_EXTRAVERSION}
 
     # if we didn't use genkernel, we're done. The kernel source tree is left in
     # an unconfigured state - you can't compile 3rd-party modules against it yet.
@@ -631,27 +627,27 @@ src_install() {
         fi
 
         emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
-        installkernel "${DEB_PV_BASE}${MODULE_EXT}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
+        installkernel "${PV}${KERNEL_EXTRAVERSION}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
         # module symlink fix-up:
-        rm -rf "${D}"/lib/modules/${PV}/source || die "failed to remove old kernel source symlink"
-        rm -rf "${D}"/lib/modules/${PV}/build || die "failed to remove old kernel build symlink"
+        rm -rf "${D}"/lib/modules/${PV}${KERNEL_EXTRAVERSION}/source || die "failed to remove old kernel source symlink"
+        rm -rf "${D}"/lib/modules/${PV}${KERNEL_EXTRAVERSION}/build || die "failed to remove old kernel build symlink"
 
         # Set-up module symlinks:
-        ln -s /usr/src/linux-${PV}-${TEMP_EXTRA_VERSION} "${D}"/lib/modules/${DEB_PV_BASE}${MODULE_EXT}/source || die "failed to create kernel source symlink"
-        ln -s /usr/src/linux-${PV}-${TEMP_EXTRA_VERSION} "${D}"/lib/modules/${DEB_PV_BASE}${MODULE_EXT}/build || die "failed to create kernel build symlink"
+        ln -s /usr/src/linux-${PV}${KERNEL_EXTRAVERSION} "${ED}"/lib/modules/${PV}${KERNEL_EXTRAVERSION}/source || die "failed to create kernel source symlink"
+        ln -s /usr/src/linux-${PV}${KERNEL_EXTRAVERSION} "${ED}"/lib/modules/${PV}${KERNEL_EXTRAVERSION}/build || die "failed to create kernel build symlink"
 
         # Fixes FL-14
-        cp "${WORKDIR}/build/System.map" "${D}"/usr/src/linux-${DEB_PV_BASE}${MODULE_EXT}/ || die "failed to install System.map"
-        cp "${WORKDIR}/build/Module.symvers" "${D}"/usr/src/linux-${DEB_PV_BASE}${MODULE_EXT}/ || die "failed to install Module.symvers"
+        cp "${WORKDIR}/build/System.map" "${D}"/usr/src/linux-${PV}${KERNEL_EXTRAVERSION}/ || die "failed to install System.map"
+        cp "${WORKDIR}/build/Module.symvers" "${D}"/usr/src/linux-${PV}${KERNEL_EXTRAVERSION}/ || die "failed to install Module.symvers"
 
         if use sign-modules; then
-            for x in $(find "${D}"/lib/modules -iname *.ko); do
+            for x in $(find "${ED}"/lib/modules -iname *.ko); do
                 # $certs_dir defined previously in this function.
                 ${WORKDIR}/build/scripts/sign-file sha512 $certs_dir/signing_key.pem $certs_dir/signing_key.x509 $x || die
             done
             # install the sign-file executable for future use.
-            exeinto /usr/src/linux-${PV}-${P}/scripts
+            exeinto /usr/src/linux-${PV}-${KERNEL_EXTRAVERSION}/scripts
             doexe ${WORKDIR}/build/scripts/sign-file
         fi
     fi
@@ -674,12 +670,12 @@ pkg_postinst() {
         ewarn ""
         ewarn "/usr/src/linux symlink automatically set to linux-${DEB_PV_BASE}${MODULE_EXT}"
         ewarn ""
-        ln -sf "${EROOT}"/usr/src/linux-${DEB_PV_BASE}${MODULE_EXT} "${EROOT}"/usr/src/linux
+        ln -sf "${EROOT}"/usr/src/linux-${PV}${KERNEL_EXTRAVERSION} "${EROOT}"/usr/src/linux
     fi
 
     # if there's a modules folder for these sources, generate modules.dep and map files
-    if [[ -d ${EROOT}/lib/modules/${DEB_PV_BASE}${MODULE_EXT} ]]; then
-        depmod -a ${DEB_PV_BASE}${MODULE_EXT}
+    if [[ -d ${EROOT}/lib/modules/${PV}${KERNEL_EXTRAVERSION} ]]; then
+        depmod -a ${PV}${KERNEL_EXTRAVERSION}
     fi
 
     # NOTE: WIP and not well tested yet.
@@ -719,10 +715,10 @@ pkg_postinst() {
         $(usex selinux "-a selinux" "-o selinux") \
         $(usex systemd "-a systemd -a systemd-initrd -a systemd-networkd" "-o systemd -o systemd-initrd -o systemd-networkd") \
         $(usex zfs "-a zfs" "-o zfs") \
-        --kver ${DEB_PV_BASE}${MODULE_EXT} \
-        --kmoddir ${EROOT}/lib/modules/${DEB_PV_BASE}${MODULE_EXT} \
+        --kver ${PV}${KERNEL_EXTRAVERSION} \
+        --kmoddir ${EROOT}/lib/modules/${PV}${KERNEL_EXTRAVERSION} \
         --fwdir ${EROOT}/lib/firmware \
-        --kernel-image ${EROOT}/boot/vmlinuz-${DEB_PV_BASE}${MODULE_EXT}
+        --kernel-image ${EROOT}/boot/vmlinuz-${PV}${KERNEL_EXTRAVERSION}
         einfo ""
         einfo ">>> Dracut: Finished building initramfs"
         ewarn ""
