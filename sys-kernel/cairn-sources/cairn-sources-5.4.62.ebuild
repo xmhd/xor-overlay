@@ -560,7 +560,16 @@ src_prepare() {
         # there are some other options, but I need to verify them first, so I'll start with this
     fi
 
-    # Apply any user patches
+    # get kconfig into good state
+    yes "" | make oldconfig >/dev/null 2>&1 || die
+
+    # punt kconfig to TEMPDIR for safe keeping
+    cp .config "${T}"/.config || die
+
+    # get the kernel sources into a good state
+    make -s mrproper || die "make mrproper failed"
+
+    # apply any user patches
     eapply_user
 }
 
@@ -622,6 +631,12 @@ src_install() {
     dodir /usr/src
     cp -a "${S}" "${D}"/usr/src/linux-${PV}${KERNEL_EXTRAVERSION} || die "failed to install kernel sources"
     cd "${D}"/usr/src/linux-${PV}${KERNEL_EXTRAVERSION}
+
+    # prepare for real-world use and 3rd-party module building:
+    make mrproper || die "failed to prepare kernel sources"
+
+    # grab the kconfig we stored earlier...
+    cp "${T}"/.config .config || die "failed to source kernel config from ${TEMPDIR}"
 
     # if we didn't use genkernel, we're done. The kernel source tree is left in
     # an unconfigured state - you can't compile 3rd-party modules against it yet.
