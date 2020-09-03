@@ -314,6 +314,10 @@ DTRACE_PATCHES=(
     0018-dtrace-add-rcu_irq_exit-and-rcu_nmi_exit_common-to-F.patch
     0019-dtrace-add-sample-script-for-building-DTrace-on-Fedo.patch
     0020-locking-publicize-mutex_owner-and-mutex_owned-again.patch
+    0021-fixup-dtrace-function-boundary-tracing-FBT-core-and-.patch
+    0022-fixup-dtrace-sdt-provider-core-components.patch
+    0023-fixup-dtrace-modular-components-and-x86-support.patch
+    0024-fixup-dtrace-add-SDT-probes.patch
 )
 
 eapply_hardened() {

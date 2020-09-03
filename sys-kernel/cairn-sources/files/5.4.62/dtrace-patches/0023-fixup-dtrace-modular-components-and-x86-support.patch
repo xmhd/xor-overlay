@@ -1,0 +1,32 @@
+From c4590b9a8fbe7a3f45b3491075f3bb95347f86f6 Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Mon, 9 Dec 2019 16:54:03 +0000
+Subject: [PATCH 23/24] fixup! dtrace: modular components and x86 support
+
+---
+ dtrace/dtrace_probe.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/dtrace/dtrace_probe.c b/dtrace/dtrace_probe.c
+index 0a0468bd7c35..8e2e04cb9c13 100644
+--- a/dtrace/dtrace_probe.c
++++ b/dtrace/dtrace_probe.c
+@@ -654,12 +654,12 @@ static __always_inline int dtrace_probe_pcap(uint64_t val, size_t *valoffs,
+ 		void *vaddr;
+ 
+ 		flen = dtrace_load32(shinfo + offsetof(struct skb_shared_info,
+-				     frags[f].size));
++				     frags[f].bv_len));
+ 		foff = dtrace_load32(shinfo + offsetof(struct skb_shared_info,
+-				     frags[f].page_offset));
++				     frags[f].bv_offset));
+ 		frag = (struct page *)dtrace_loadptr(shinfo + offsetof(
+ 						     struct skb_shared_info,
+-						     frags[f].page.p));
++						     frags[f].bv_page));
+ 
+ 		dtrace_skb_frag_foreach_page(frag, foff, flen,
+ 					     p, poff, plen, copied) {
+-- 
+2.28.0
+
