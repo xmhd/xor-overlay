@@ -12,6 +12,7 @@ RDEPEND="
 	dtrace? ( sys-kernel/debian-sources[dtrace] )
 	firmware? ( sys-kernel/linux-firmware )
 	|| (
+	    sys-kernel/cairn-sources
 	    sys-kernel/debian-sources
 		sys-kernel/gentoo-sources
 		sys-kernel/vanilla-sources
