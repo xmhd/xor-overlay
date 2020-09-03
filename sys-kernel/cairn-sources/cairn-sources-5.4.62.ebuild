@@ -197,7 +197,20 @@ HARDENED_PATCHES=(
     0103-net-tcp-add-option-to-disable-TCP-simultaneous-conne.patch
 )
 
-GENTOO_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/gentoo-patches/"
+GENTOO_PATCHES_DIR="${WORKDIR}/gentoo-patches/"
+GENTOO_PATCHES_RELEASE="5.4-62"
+GENTOO_PATCHES_BASE="genpatches-${GENTOO_PATCHES_RELEASE}.base.tar.xz"
+GENTOO_PATCHES_EXTRAS="genpatches-${GENTOO_PATCHES_RELEASE}.extras.tar.xz"
+GENTOO_PATCHES_EXPERIMENTAL="genpatches-${GENTOO_PATCHES_RELEASE}.experimental.tar.xz"
+GENTOO_PATCHES_UPSTREAM="
+    https://dev.gentoo.org/~mpagano/genpatches/tarballs/${GENTOO_PATCHES_BASE}
+    https://dev.gentoo.org/~mpagano/genpatches/tarballs/${GENTOO_PATCHES_EXTRAS}
+    https://dev.gentoo.org/~mpagano/genpatches/tarballs/${GENTOO_PATCHES_EXPERIMENTAL}
+"
+
+SRC_URI+="
+    ${GENTOO_PATCHES_UPSTREAM}
+"
 
 # Gentoo Linux 'genpatches' patch set
 # 1510_fs-enable-link-security-restrctions-by-default.patch is already provided in debian patches
@@ -294,6 +307,11 @@ src_unpack() {
 
     # unpack the kernel sources to ${WORKDIR}
     unpack ${KERNEL_ARCHIVE} || die "failed to unpack kernel sources"
+
+    # unpack genpatches
+    mkdir ${WORKDIR}/gentoo-patches
+    unpack ${GENTOO_PATCHES_BASE} && unpack ${GENTOO_PATCHES_EXTRAS} && unpack ${GENTOO_PATCHES_EXPERIMENTAL} || die "failed to unpack genpatches"
+    mv "${WORKDIR}"/*.patch >> "${WORKDIR}"/gentoo-patches
 }
 
 src_prepare() {
