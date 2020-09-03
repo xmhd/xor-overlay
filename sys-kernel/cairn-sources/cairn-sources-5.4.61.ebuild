@@ -10,11 +10,11 @@ HOMEPAGE="https://kernel.org"
 LICENSE="GPL-2"
 KEYWORDS="x86 amd64 arm arm64"
 
-SLOT="${PF}"
+SLOT="${PV}"
 
 RESTRICT="binchecks strip mirror"
 
-IUSE="binary btrfs clang custom-cflags debug dmraid dtrace ec2 firmware hardened iscsi libressl luks lvm mcelog mdadm microcode multipath nbd nfs plymouth selinux sign-modules symlink systemd wireguard zfs"
+IUSE="binary btrfs clang custom-cflags debug dmraid dtrace ec2 firmware hardened iscsi libressl luks lvm mcelog mdadm microcode multipath nbd nfs plymouth selinux sign-modules symlink systemd vanilla wireguard zfs"
 
 BDEPEND="
     sys-devel/bc
@@ -273,6 +273,11 @@ get_certs_dir() {
 }
 
 pkg_pretend() {
+
+    if use vanilla && use hardened; then
+        die "vanilla and hardened USE flags are incompatible - Disable one of them."
+    fi
+
     # Ensure we have enough disk space to compile
     if use binary ; then
         CHECKREQS_DISK_BUILD="5G"
@@ -298,41 +303,36 @@ src_prepare() {
 
     debug-print-function ${FUNCNAME} "${@}"
 
-    ### PATCHES ###
+    # only patch kernel sources if USE=-vanilla
+    if ! use vanilla; then
+        ### PATCHES ###
 
-    # only apply these if USE=hardened as the patches will break proprietary userspace and some others.
-    if use hardened; then
-        # apply hardening patches
-        einfo "Applying hardening patches ..."
-        for my_patch in ${HARDENED_PATCHES[*]} ; do
-            eapply_hardened "${my_patch}"
+        # apply gentoo patches
+        einfo "Applying Gentoo Linux patches ..."
+        for my_patch in ${GENTOO_PATCHES[*]} ; do
+            eapply_gentoo "${my_patch}"
         done
+
+        # optionally apply dtrace patches
+        if use dtrace; then
+            einfo "Applying DTrace patches ..."
+            for my_patch in ${DTRACE_PATCHES[*]} ; do
+                eapply_dtrace "${my_patch}"
+            done
+        fi
+
+        ## increase bluetooth polling patch
+        eapply "${FILESDIR}"/${DEB_PV_BASE}/fix-bluetooth-polling.patch
+
+        # Restore export_kernel_fpu_functions for zfs
+        eapply "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
+
+        # append EXTRAVERSION to the kernel sources Makefile
+        sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${MODULE_EXT}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
+
+        # todo: look at this, haven't seen it used in many cases.
+        sed -i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
     fi
-
-    # apply gentoo patches
-    einfo "Applying Gentoo Linux patches ..."
-    for my_patch in ${GENTOO_PATCHES[*]} ; do
-        eapply_gentoo "${my_patch}"
-    done
-
-    # optionally apply dtrace patches
-    if use dtrace; then
-        for my_patch in ${DTRACE_PATCHES[*]} ; do
-            eapply_dtrace "${my_patch}"
-        done
-    fi
-
-    ## increase bluetooth polling patch
-    eapply "${FILESDIR}"/${DEB_PV_BASE}/fix-bluetooth-polling.patch
-
-    # Restore export_kernel_fpu_functions for zfs
-    eapply "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
-
-    # append EXTRAVERSION to the kernel sources Makefile
-    sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${MODULE_EXT}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
-
-    # todo: look at this, haven't seen it used in many cases.
-    sed -i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
 
     ### TWEAK CONFIG ###
 
