@@ -216,21 +216,77 @@ SRC_URI+="
 # 1510_fs-enable-link-security-restrctions-by-default.patch is already provided in debian patches
 # 4567_distro-Gentoo-Kconfiig TODO?
 GENTOO_PATCHES=(
+    #1000_linux-5.4.1.patch
+    #1001_linux-5.4.2.patch
+    #1002_linux-5.4.3.patch
+    #1003_linux-5.4.4.patch
+    #1004_linux-5.4.5.patch
+    #1005_linux-5.4.6.patch
+    #1006_linux-5.4.7.patch
+    #1007_linux-5.4.8.patch
+    #1008_linux-5.4.9.patch
+    #1009_linux-5.4.10.patch
+    #1010_linux-5.4.11.patch
+    #1011_linux-5.4.12.patch
+    #1012_linux-5.4.13.patch
+    #1013_linux-5.4.14.patch
+    #1014_linux-5.4.15.patch
+    #1015_linux-5.4.16.patch
+    #1016_linux-5.4.17.patch
+    #1017_linux-5.4.18.patch
+    #1018_linux-5.4.19.patch
+    #1019_linux-5.4.20.patch
+    #1020_linux-5.4.21.patch
+    #1021_linux-5.4.22.patch
+    #1022_linux-5.4.23.patch
+    #1023_linux-5.4.24.patch
+    #1024_linux-5.4.25.patch
+    #1025_linux-5.4.26.patch
+    #1026_linux-5.4.27.patch
+    #1027_linux-5.4.28.patch
+    #1028_linux-5.4.29.patch
+    #1029_linux-5.4.30.patch
+    #1030_linux-5.4.31.patch
+    #1031_linux-5.4.32.patch
+    #1032_linux-5.4.33.patch
+    #1033_linux-5.4.34.patch
+    #1034_linux-5.4.35.patch
+    #1035_linux-5.4.36.patch
+    #1036_linux-5.4.37.patch
+    #1037_linux-5.4.38.patch
+    #1038_linux-5.4.39.patch
+    #1039_linux-5.4.40.patch
+    #1040_linux-5.4.41.patch
+    #1041_linux-5.4.42.patch
+    #1042_linux-5.4.43.patch
+    #1043_linux-5.4.44.patch
+    #1044_linux-5.4.45.patch
+    #1045_linux-5.4.46.patch
+    #1046_linux-5.4.47.patch
+    #1047_linux-5.4.48.patch
+    #1048_linux-5.4.49.patch
+    #1049_linux-5.4.50.patch
+    #1050_linux-5.4.51.patch
+    #1051_linux-5.4.52.patch
+    #1052_linux-5.4.53.patch
+    #1053_linux-5.4.54.patch
+    #1054_linux-5.4.55.patch
+    #1055_linux-5.4.56.patch
+    #1056_linux-5.4.57.patch
+    #1057_linux-5.4.58.patch
+    #1058_linux-5.4.59.patch
+    #1059_linux-5.4.60.patch
+    #1060_linux-5.4.61.patch
     1500_XATTR_USER_PREFIX.patch
-#    1510_fs-enable-link-security-restrictions-by-default.patch
+    1510_fs-enable-link-security-restrictions-by-default.patch
     2000_BT-Check-key-sizes-only-if-Secure-Simple-Pairing-enabled.patch
+    2400_wireguard-backport-v5.4.54.patch
     2600_enable-key-swapping-for-apple-mac.patch
-    2900_tmp513-Fix-build-issue-by-selecting-CONFIG_REG.patch
     2920_sign-file-patch-for-libressl.patch
-#    4567_distro-Gentoo-Kconfig.patch
-    5000_ZSTD-v5-1-8-prepare-zstd-for-preboot-env.patch
-    5001_ZSTD-v5-2-8-prepare-xxhash-for-preboot-env.patch
-    5002_ZSTD-v5-3-8-add-zstd-support-to-decompress.patch
-    5003_ZSTD-v5-4-8-add-support-for-zstd-compres-kern.patch
-    5004_ZSTD-v5-5-8-add-support-for-zstd-compressed-initramfs.patch
-    5005_ZSTD-v5-6-8-bump-ZO-z-extra-bytes-margin.patch
-    5006_ZSTD-v5-7-8-support-for-ZSTD-compressed-kernel.patch
-    5007_ZSTD-v5-8-8-gitignore-add-ZSTD-compressed-files.patch
+    4567_distro-Gentoo-Kconfig.patch
+    #5011_enable-cpu-optimizations-for-gcc8.patch
+    #5012_enable-cpu-optimizations-for-gcc91.patch
+    5013_enable-cpu-optimizations-for-gcc10.patch
 )
 
 DTRACE_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/dtrace-patches"
@@ -308,10 +364,10 @@ src_unpack() {
     # unpack the kernel sources to ${WORKDIR}
     unpack ${KERNEL_ARCHIVE} || die "failed to unpack kernel sources"
 
-    # unpack genpatches
-    mkdir ${WORKDIR}/gentoo-patches
+    # unpack genpatches... unfortunately they have no directory, so we need to create one
+    mkdir "${WORKDIR}"/gentoo-patches && cd "${WORKDIR}"/gentoo-patches
     unpack ${GENTOO_PATCHES_BASE} && unpack ${GENTOO_PATCHES_EXTRAS} && unpack ${GENTOO_PATCHES_EXPERIMENTAL} || die "failed to unpack genpatches"
-    mv "${WORKDIR}"/*.patch >> "${WORKDIR}"/gentoo-patches
+    cd "${WORKDIR}"
 }
 
 src_prepare() {
