@@ -1,0 +1,25 @@
+From 880bdefce03667bf85f600bbd90cb6c9cf5aa2a9 Mon Sep 17 00:00:00 2001
+From: Bernhard40 <32568352+Bernhard40@users.noreply.github.com>
+Date: Fri, 6 Oct 2017 10:21:50 +0000
+Subject: [PATCH 022/104] stop hiding AIO behind EXPERT
+
+---
+ init/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 362adc5907c0..64c28ead5a3a 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1501,7 +1501,7 @@ config SHMEM
+ 	  which may be appropriate on small systems without swap.
+ 
+ config AIO
+-	bool "Enable AIO support" if EXPERT
++	bool "Enable AIO support"
+ 	default y
+ 	help
+ 	  This option enables POSIX asynchronous I/O which may by used
+-- 
+2.28.0
+

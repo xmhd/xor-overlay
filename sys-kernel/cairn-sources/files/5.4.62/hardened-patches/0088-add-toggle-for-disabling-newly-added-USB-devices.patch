@@ -1,0 +1,76 @@
+From 932c940c79be80851903fb497cdbdb99897141bb Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Tue, 16 May 2017 17:51:48 -0400
+Subject: [PATCH 088/104] add toggle for disabling newly added USB devices
+
+Based on the public grsecurity patches.
+
+Note: not for submission upstream and may be removed once CopperheadOS
+is migrated to another mechanism for this.
+---
+ drivers/usb/core/hub.c |  8 ++++++++
+ kernel/sysctl.c        | 15 +++++++++++++++
+ 2 files changed, 23 insertions(+)
+
+diff --git a/drivers/usb/core/hub.c b/drivers/usb/core/hub.c
+index 4d3de33885ff..4aa21cd2531a 100644
+--- a/drivers/usb/core/hub.c
++++ b/drivers/usb/core/hub.c
+@@ -45,6 +45,8 @@
+ #define USB_TP_TRANSMISSION_DELAY	40	/* ns */
+ #define USB_TP_TRANSMISSION_DELAY_MAX	65535	/* ns */
+ 
++extern int deny_new_usb;
++
+ /* Protect struct usb_device->state and ->children members
+  * Note: Both are also protected by ->dev.sem, except that ->state can
+  * change to USB_STATE_NOTATTACHED even when the semaphore isn't held. */
+@@ -5014,6 +5016,12 @@ static void hub_port_connect(struct usb_hub *hub, int port1, u16 portstatus,
+ 			goto done;
+ 		return;
+ 	}
++
++	if (deny_new_usb) {
++		dev_err(&port_dev->dev, "denied insert of USB device on port %d\n", port1);
++		goto done;
++	}
++
+ 	if (hub_is_superspeed(hub->hdev))
+ 		unit_load = 150;
+ 	else
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index 35714e42ff71..384260ba7339 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -104,6 +104,10 @@
+ #if defined(CONFIG_SYSCTL)
+ 
+ /* External variables not in a header file. */
++#if IS_ENABLED(CONFIG_USB)
++int deny_new_usb __read_mostly = 0;
++EXPORT_SYMBOL(deny_new_usb);
++#endif
+ extern int suid_dumpable;
+ #ifdef CONFIG_COREDUMP
+ extern int core_uses_pid;
+@@ -926,6 +930,17 @@ static struct ctl_table kern_table[] = {
+ 		.extra1		= SYSCTL_ZERO,
+ 		.extra2		= SYSCTL_ONE,
+ 	},
++#if IS_ENABLED(CONFIG_USB)
++	{
++		.procname	= "deny_new_usb",
++		.data		= &deny_new_usb,
++		.maxlen		= sizeof(int),
++		.mode		= 0644,
++		.proc_handler	= proc_dointvec_minmax_sysadmin,
++		.extra1		= SYSCTL_ZERO,
++		.extra2		= SYSCTL_ONE,
++	},
++#endif
+ 	{
+ 		.procname	= "ngroups_max",
+ 		.data		= &ngroups_max,
+-- 
+2.28.0
+

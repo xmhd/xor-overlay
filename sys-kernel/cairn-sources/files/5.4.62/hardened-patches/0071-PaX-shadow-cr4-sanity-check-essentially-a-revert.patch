@@ -1,0 +1,49 @@
+From fafbf283335401ebe5edd939ddbf3bb093759fed Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Tue, 16 May 2017 00:59:48 -0400
+Subject: [PATCH 071/104] PaX shadow cr4 sanity check (essentially a revert)
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ arch/x86/include/asm/tlbflush.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/x86/include/asm/tlbflush.h b/arch/x86/include/asm/tlbflush.h
+index 6f66d841262d..b786e7cb395d 100644
+--- a/arch/x86/include/asm/tlbflush.h
++++ b/arch/x86/include/asm/tlbflush.h
+@@ -295,6 +295,7 @@ static inline void cr4_set_bits_irqsoff(unsigned long mask)
+ 	unsigned long cr4;
+ 
+ 	cr4 = this_cpu_read(cpu_tlbstate.cr4);
++	BUG_ON(cr4 != __read_cr4());
+ 	if ((cr4 | mask) != cr4)
+ 		__cr4_set(cr4 | mask);
+ }
+@@ -305,6 +306,7 @@ static inline void cr4_clear_bits_irqsoff(unsigned long mask)
+ 	unsigned long cr4;
+ 
+ 	cr4 = this_cpu_read(cpu_tlbstate.cr4);
++	BUG_ON(cr4 != __read_cr4());
+ 	if ((cr4 & ~mask) != cr4)
+ 		__cr4_set(cr4 & ~mask);
+ }
+@@ -334,6 +336,7 @@ static inline void cr4_toggle_bits_irqsoff(unsigned long mask)
+ 	unsigned long cr4;
+ 
+ 	cr4 = this_cpu_read(cpu_tlbstate.cr4);
++        BUG_ON(cr4 != __read_cr4());
+ 	__cr4_set(cr4 ^ mask);
+ }
+ 
+@@ -440,6 +443,7 @@ static inline void __native_flush_tlb_global(void)
+ 	raw_local_irq_save(flags);
+ 
+ 	cr4 = this_cpu_read(cpu_tlbstate.cr4);
++	BUG_ON(cr4 != __read_cr4());
+ 	/* toggle PGE */
+ 	native_write_cr4(cr4 ^ X86_CR4_PGE);
+ 	/* write old PGE again and flush TLBs */
+-- 
+2.28.0
+
