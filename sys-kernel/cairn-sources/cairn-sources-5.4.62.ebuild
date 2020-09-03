@@ -371,7 +371,7 @@ src_unpack() {
     cd "${WORKDIR}"
 
     # move kconfig to kernel sources directory
-    cp "${DISTDIR}"/${KCONFIG_FILE} "${WORKDIR}"/linux-${KERNEL_VERSION}/
+    cp "${DISTDIR}"/${KCONFIG_FILE} "${WORKDIR}"/linux-${KERNEL_VERSION}/.config
 }
 
 src_prepare() {
