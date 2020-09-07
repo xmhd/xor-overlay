@@ -203,7 +203,7 @@ HARDENED_PATCHES=(
     0101-add-CONFIG-for-unprivileged_userfaultfd.patch
     0102-slub-Extend-init_on_alloc-to-slab-caches-with-constr.patch
     0103-net-tcp-add-option-to-disable-TCP-simultaneous-conne.patch
-    0104-backport-net-packet-fix-overflow-in-tpacket_rcv.patch
+#    0104-backport-net-packet-fix-overflow-in-tpacket_rcv.patch
 )
 
 GENTOO_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/gentoo-patches/"
