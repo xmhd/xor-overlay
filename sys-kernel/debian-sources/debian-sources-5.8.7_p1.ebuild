@@ -226,7 +226,7 @@ GENTOO_PATCHES=(
     5005_ZSTD-v10-6-8-bump-ZO-z-extra-bytes-margin.patch
     5006_ZSTD-v10-7-8-support-for-ZSTD-compressed-kernel.patch
     5007_ZSTD-v10-8-8-gitignore-add-ZSTD-compressed-files.patch
-    5013_enable-cpu-optimizations-for-gcc10.patch
+#    5013_enable-cpu-optimizations-for-gcc10.patch
 )
 
 DTRACE_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/dtrace-patches"
