@@ -1,0 +1,75 @@
+From 13de237d5f545ea3b92c91df8a89b7a324971771 Mon Sep 17 00:00:00 2001
+From: Thibaut Sautereau <thibaut.sautereau@ssi.gouv.fr>
+Date: Fri, 20 Sep 2019 14:02:42 +0200
+Subject: [PATCH 055/104] slub: Extend init_on_free to slab caches with
+ constructors
+
+This is the remaining non-upstream part of SLAB_SANITIZE, which was a
+partial port, from Daniel Micay, of the feature from PaX without the
+default fast mode based on passing SLAB_NO_SANITIZE in
+performance-critical cases that are not particularly security sensitive.
+
+Signed-off-by: Thibaut Sautereau <thibaut.sautereau@ssi.gouv.fr>
+---
+ mm/slab.h | 12 +++++++++---
+ mm/slub.c | 14 +++++++++++++-
+ 2 files changed, 22 insertions(+), 4 deletions(-)
+
+diff --git a/mm/slab.h b/mm/slab.h
+index eaa1bd06dd33..58a1bac7c4ff 100644
+--- a/mm/slab.h
++++ b/mm/slab.h
+@@ -696,9 +696,15 @@ static inline bool slab_want_init_on_alloc(gfp_t flags, struct kmem_cache *c)
+ 
+ static inline bool slab_want_init_on_free(struct kmem_cache *c)
+ {
+-	if (static_branch_unlikely(&init_on_free))
+-		return !(c->ctor ||
+-			 (c->flags & (SLAB_TYPESAFE_BY_RCU | SLAB_POISON)));
++	if (static_branch_unlikely(&init_on_free)) {
++#ifndef CONFIG_SLUB
++		if (c->ctor)
++			return false;
++#endif
++		if (c->flags & (SLAB_TYPESAFE_BY_RCU | SLAB_POISON))
++			return false;
++		return true;
++	}
+ 	return false;
+ }
+ 
+diff --git a/mm/slub.c b/mm/slub.c
+index 24e0d37b2ff3..79f5ebbeec2d 100644
+--- a/mm/slub.c
++++ b/mm/slub.c
+@@ -1501,7 +1501,8 @@ static inline bool slab_free_freelist_hook(struct kmem_cache *s,
+ 							   : 0;
+ 			memset((char *)object + s->inuse, 0,
+ 			       s->size - s->inuse - rsize);
+-
++			if (s->ctor)
++				s->ctor(object);
+ 		}
+ 		/* If object's reuse doesn't have to be delayed */
+ 		if (!slab_free_hook(s, object)) {
+@@ -1510,6 +1511,17 @@ static inline bool slab_free_freelist_hook(struct kmem_cache *s,
+ 			*head = object;
+ 			if (!*tail)
+ 				*tail = object;
++		} else if (slab_want_init_on_free(s) && s->ctor) {
++			/* Objects that are put into quarantine by KASAN will
++			 * still undergo free_consistency_checks() and thus
++			 * need to show a valid freepointer to check_object().
++			 *
++			 * Note that doing this for all caches (not just ctor
++			 * ones, which have s->offset != NULL)) causes a GPF,
++			 * due to KASAN poisoning and the way set_freepointer()
++			 * eventually dereferences the freepointer.
++			 */
++			set_freepointer(s, object, NULL);
+ 		}
+ 	} while (object != old_tail);
+ 
+-- 
+2.28.0
+

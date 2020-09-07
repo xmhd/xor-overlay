@@ -1,0 +1,66 @@
+From c9f62610b6ff7b1f951e2251c4e88d0eb7b69bce Mon Sep 17 00:00:00 2001
+From: Levente Polyak <levente@leventepolyak.net>
+Date: Wed, 31 Jul 2019 20:50:48 +0100
+Subject: [PATCH 098/104] add CONFIG for unprivileged_userns_clone
+
+When disabled, unprivileged users will not be able to create
+new namespaces. Allowing users to create their own namespaces
+has been part of several recent local privilege escalation
+exploits, so if you need user namespaces but are
+paranoid^Wsecurity-conscious you want to disable this.
+
+By default unprivileged user namespaces are disabled.
+
+Authored-by: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
+Edited-by: Levente Polyak (anthraxx) <levente@leventepolyak.net>
+---
+ init/Kconfig            | 16 ++++++++++++++++
+ kernel/user_namespace.c |  4 ++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 2da84838c8ed..a448bd0740b1 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1141,6 +1141,22 @@ config USER_NS
+ 
+ 	  If unsure, say N.
+ 
++config USER_NS_UNPRIVILEGED
++	bool "Allow unprivileged users to create namespaces"
++	depends on USER_NS
++	default n
++	help
++	  When disabled, unprivileged users will not be able to create
++	  new namespaces. Allowing users to create their own namespaces
++	  has been part of several recent local privilege escalation
++	  exploits, so if you need user namespaces but are
++	  paranoid^Wsecurity-conscious you want to disable this.
++
++	  This setting can be overridden at runtime via the
++	  kernel.unprivileged_userns_clone sysctl.
++
++	  If unsure, say N.
++
+ config PID_NS
+ 	bool "PID Namespaces"
+ 	default y
+diff --git a/kernel/user_namespace.c b/kernel/user_namespace.c
+index 2fd16493231b..66b5afb0d0ee 100644
+--- a/kernel/user_namespace.c
++++ b/kernel/user_namespace.c
+@@ -22,7 +22,11 @@
+ #include <linux/sort.h>
+ 
+ /* sysctl */
++#ifdef CONFIG_USER_NS_UNPRIVILEGED
++int unprivileged_userns_clone = 1;
++#else
+ int unprivileged_userns_clone;
++#endif
+ 
+ static struct kmem_cache *user_ns_cachep __read_mostly;
+ static DEFINE_MUTEX(userns_state_mutex);
+-- 
+2.28.0
+

@@ -1,0 +1,39 @@
+From f007594dd1ad915434eea32fab60b31a733c8454 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Wed, 3 May 2017 11:50:53 -0400
+Subject: [PATCH 052/104] bug on kmem_cache_free with the wrong cache
+
+At least when CONFIG_BUG_ON_DATA_CORRUPTION is enabled.
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+Signed-off-by: Levente Polyak <levente@leventepolyak.net>
+Signed-off-by: Thibaut Sautereau <thibaut.sautereau@ssi.gouv.fr>
+---
+ mm/slab.h | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/mm/slab.h b/mm/slab.h
+index d11816c8459a..eaa1bd06dd33 100644
+--- a/mm/slab.h
++++ b/mm/slab.h
+@@ -524,9 +524,14 @@ static inline struct kmem_cache *cache_from_obj(struct kmem_cache *s, void *x)
+ 		return s;
+ 
+ 	cachep = virt_to_cache(x);
+-	WARN_ONCE(cachep && !slab_equal_or_root(cachep, s),
+-		  "%s: Wrong slab cache. %s but object is from %s\n",
+-		  __func__, s->name, cachep->name);
++	if (cachep && !slab_equal_or_root(cachep, s)) {
++#ifdef CONFIG_BUG_ON_DATA_CORRUPTION
++		BUG();
++#else
++		WARN_ONCE(1, "%s: Wrong slab cache. %s but object is from %s\n",
++			     __func__, s->name, cachep->name);
++#endif
++	}
+ 	return cachep;
+ }
+ 
+-- 
+2.28.0
+

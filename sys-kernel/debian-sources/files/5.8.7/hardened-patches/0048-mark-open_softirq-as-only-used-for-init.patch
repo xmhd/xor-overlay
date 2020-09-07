@@ -1,0 +1,39 @@
+From e10f3a4c6b114e748d68afed3487999e9f8ec375 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Tue, 4 Jul 2017 01:32:30 -0400
+Subject: [PATCH 048/104] mark open_softirq as only used for init
+
+---
+ include/linux/interrupt.h | 2 +-
+ kernel/softirq.c          | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/include/linux/interrupt.h b/include/linux/interrupt.h
+index 5db970b6615a..d7df8e56b7f5 100644
+--- a/include/linux/interrupt.h
++++ b/include/linux/interrupt.h
+@@ -569,7 +569,7 @@ static inline void do_softirq_own_stack(void)
+ }
+ #endif
+ 
+-extern void open_softirq(int nr, void (*action)(struct softirq_action *));
++extern void __init open_softirq(int nr, void (*action)(struct softirq_action *));
+ extern void softirq_init(void);
+ extern void __raise_softirq_irqoff(unsigned int nr);
+ 
+diff --git a/kernel/softirq.c b/kernel/softirq.c
+index c4201b7f42b1..9747b7bcc1bd 100644
+--- a/kernel/softirq.c
++++ b/kernel/softirq.c
+@@ -479,7 +479,7 @@ void __raise_softirq_irqoff(unsigned int nr)
+ 	or_softirq_pending(1UL << nr);
+ }
+ 
+-void open_softirq(int nr, void (*action)(struct softirq_action *))
++void __init open_softirq(int nr, void (*action)(struct softirq_action *))
+ {
+ 	softirq_vec[nr].action = action;
+ }
+-- 
+2.28.0
+

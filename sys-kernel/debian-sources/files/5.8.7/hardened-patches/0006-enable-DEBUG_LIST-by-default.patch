@@ -1,0 +1,25 @@
+From 2d70d81fabe64bd5e0fee65207ca5c4d38048d23 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Wed, 3 May 2017 12:10:57 -0400
+Subject: [PATCH 006/104] enable DEBUG_LIST by default
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ lib/Kconfig.debug | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 9ad9210d70a1..b184b288c1dd 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1401,6 +1401,7 @@ menu "Debug kernel data structures"
+ config DEBUG_LIST
+ 	bool "Debug linked list manipulation"
+ 	depends on DEBUG_KERNEL || BUG_ON_DATA_CORRUPTION
++	default y
+ 	help
+ 	  Enable this to turn on extended checks in the linked-list
+ 	  walking routines.
+-- 
+2.28.0
+

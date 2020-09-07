@@ -1,0 +1,68 @@
+From 1042896a1f44be1bd72de4b242987ef9e47d93ce Mon Sep 17 00:00:00 2001
+From: Levente Polyak <levente@leventepolyak.net>
+Date: Wed, 2 Oct 2019 01:22:17 +0200
+Subject: [PATCH 101/104] add CONFIG for unprivileged_userfaultfd
+
+When disabled, unprivileged users will not be able to use the userfaultfd
+syscall. Userfaultfd provide attackers with a way to stall a kernel
+thread in the middle of memory accesses from userspace by initiating an
+access on an unmapped page. To avoid various heap grooming and heap
+spraying techniques for exploiting use-after-free flaws this should be
+disabled by default.
+
+This setting can be overridden at runtime via the
+vm.unprivileged_userfaultfd sysctl.
+
+Signed-off-by: Levente Polyak <levente@leventepolyak.net>
+---
+ fs/userfaultfd.c |  4 ++++
+ init/Kconfig     | 17 +++++++++++++++++
+ 2 files changed, 21 insertions(+)
+
+diff --git a/fs/userfaultfd.c b/fs/userfaultfd.c
+index 52de29000c7e..9d80754991f8 100644
+--- a/fs/userfaultfd.c
++++ b/fs/userfaultfd.c
+@@ -28,7 +28,11 @@
+ #include <linux/security.h>
+ #include <linux/hugetlb.h>
+ 
++#ifdef CONFIG_USERFAULTFD_UNPRIVILEGED
+ int sysctl_unprivileged_userfaultfd __read_mostly = 1;
++#else
++int sysctl_unprivileged_userfaultfd __read_mostly;
++#endif
+ 
+ static struct kmem_cache *userfaultfd_ctx_cachep __read_mostly;
+ 
+diff --git a/init/Kconfig b/init/Kconfig
+index a448bd0740b1..3dea8a772b81 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1705,6 +1705,23 @@ config USERFAULTFD
+ 	  Enable the userfaultfd() system call that allows to intercept and
+ 	  handle page faults in userland.
+ 
++config USERFAULTFD_UNPRIVILEGED
++	bool "Allow unprivileged users to use the userfaultfd syscall"
++	depends on USERFAULTFD
++	default n
++	help
++	  When disabled, unprivileged users will not be able to use the userfaultfd
++	  syscall. Userfaultfd provide attackers with a way to stall a kernel
++	  thread in the middle of memory accesses from userspace by initiating an
++	  access on an unmapped page. To avoid various heap grooming and heap
++	  spraying techniques for exploiting use-after-free flaws this should be
++	  disabled by default.
++
++	  This setting can be overridden at runtime via the
++	  vm.unprivileged_userfaultfd sysctl.
++
++	  If unsure, say N.
++
+ config ARCH_HAS_MEMBARRIER_CALLBACKS
+ 	bool
+ 
+-- 
+2.28.0
+

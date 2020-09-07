@@ -1,0 +1,24 @@
+From aae0a597c1ff84cb0fc78e28e208db8e4669adb5 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Sun, 25 Feb 2018 01:33:48 -0500
+Subject: [PATCH 009/104] arm64: enable RANDOMIZE_BASE by default
+
+---
+ arch/arm64/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 513631a217f8..4cd05949d9e5 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -1767,6 +1767,7 @@ config RANDOMIZE_BASE
+ 	bool "Randomize the address of the kernel image"
+ 	select ARM64_MODULE_PLTS if MODULES
+ 	select RELOCATABLE
++	default y
+ 	help
+ 	  Randomizes the virtual address at which the kernel image is
+ 	  loaded, as a security feature that deters exploit attempts
+-- 
+2.28.0
+
