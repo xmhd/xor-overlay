@@ -630,15 +630,6 @@ src_prepare() {
 
         # write HARD_CFLAGS back to the gcc Makefile.
         sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die "failed to write CFLAGS to gcc Makefile"
-
-        # === ADA ===
-        if use ada; then
-            # Todo
-            if [ -f  gcc/ada/libgnat/s-parame.adb ] ; then
-                einfo "Patching Ada stack handling..."
-                grep -q -e '-- Default_Sec_Stack_Size --' gcc/ada/libgnat/s-parame.adb && eapply "${FILESDIR}/Ada-Integer-overflow-in-SS_Allocate.patch" || die "failed to apply Ada stack handling patch "
-            fi
-        fi
 	fi
 
 	# apply any user patches
