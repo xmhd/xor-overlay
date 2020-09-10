@@ -65,7 +65,7 @@ REQUIRED_USE="
 "
 
 # linux kernel upstream
-KERNEL_VERSION="5.4.63"
+KERNEL_VERSION="5.4.64"
 KERNEL_ARCHIVE="linux-${KERNEL_VERSION}.tar.xz"
 KERNEL_UPSTREAM="https://cdn.kernel.org/pub/linux/kernel/v5.x/${KERNEL_ARCHIVE}"
 KERNEL_EXTRAVERSION="-cairn"
