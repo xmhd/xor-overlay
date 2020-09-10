@@ -67,6 +67,9 @@ PDEPEND="
 "
 
 REQUIRED_USE="
+    ada? ( cxx )
+    go? ( cxx )
+    objc++? ( cxx )
     fortran? ( quad )
     multilib? ( system-zlib )
 "
