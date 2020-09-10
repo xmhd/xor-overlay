@@ -575,7 +575,7 @@ src_prepare() {
 		if [ -n "$GENTOO_PATCHES_VER" ]; then
 			einfo "Applying Gentoo patches ..."
 			for my_patch in ${GENTOO_PATCHES[*]} ; do
-				eapply_gentoo "${my_patch}"
+				eapply_gentoo "${my_patch}" || die "failed to apply Gentoo Linux patches"
 			done
 		fi
 
@@ -603,47 +603,45 @@ src_prepare() {
         # =3 -strong
         # This ebuild defaults to -strong, and if USE=hardened then set it to -strong
         if use ssp && use hardened; then
-            eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch" || die "patch fail"
+            eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch" || die "failed to apply default -stack-protector-all patch"
             gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
         fi
 
         # Enable FORTIFY_SOURCE by default
         if use fortify_source; then
-             eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )"
+             eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-fortify-source.patch )" || die "failed to apply default FORTIFY_SOURCE patch"
         fi
 
         # Enable LINK_NOW by default
         if use link_now; then
-            eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/01_all_ENABLE_DEFAULT_LINK_NOW-z-now.patch" || die "patch fail"
+            eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/01_all_ENABLE_DEFAULT_LINK_NOW-z-now.patch" || die "failed to apply default LINK_NOW patch"
             gcc_hard_flags+=" -DENABLE_DEFAULT_LINK_NOW "
         fi
 
 	    # Enable Stack Clash Protection by default
 	    if use stack_clash_protection; then
-	        eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch" || die "patch fail"
+	        eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch" || die "failed to apply default -stack-clash-protection patch"
 	        gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
 	    fi
 
 	    # GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
-        sed -e '/^ALL_CFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CFLAGS = |ALL_CFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in
-        sed -e '/^ALL_CXXFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CXXFLAGS = |ALL_CXXFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in
+        sed -e '/^ALL_CFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CFLAGS = |ALL_CFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in || die "failed to write HARD_CFLAGS to gcc Makefile"
+        sed -e '/^ALL_CXXFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CXXFLAGS = |ALL_CXXFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in || die "failed to write HARD_CXXFLAGS to gcc Makefile"
 
         # write HARD_CFLAGS back to the gcc Makefile.
-        sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die
+        sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die "failed to write CFLAGS to gcc Makefile"
 
         # === ADA ===
         if use ada; then
-
             # Todo
             if [ -f  gcc/ada/libgnat/s-parame.adb ] ; then
-                einfo "Patching ada stack handling..."
-                grep -q -e '-- Default_Sec_Stack_Size --' gcc/ada/libgnat/s-parame.adb && eapply "${FILESDIR}/Ada-Integer-overflow-in-SS_Allocate.patch"
+                einfo "Patching Ada stack handling..."
+                grep -q -e '-- Default_Sec_Stack_Size --' gcc/ada/libgnat/s-parame.adb && eapply "${FILESDIR}/Ada-Integer-overflow-in-SS_Allocate.patch" || die "failed to apply Ada stack handling patch "
             fi
         fi
-
 	fi
 
-	# Must be called in src_prepare by EAPI6
+	# apply any user patches
 	eapply_user
 
 	einfo "Touching generated files ..."
