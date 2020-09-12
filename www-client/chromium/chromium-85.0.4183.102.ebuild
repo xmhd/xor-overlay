@@ -21,7 +21,7 @@ SRC_URI="https://commondatastorage.googleapis.com/chromium-browser-official/${P}
 LICENSE="BSD"
 SLOT="0"
 KEYWORDS="amd64 arm64 ~x86"
-IUSE="component-build cups cpu_flags_arm_neon +hangouts headless +js-type-check kerberos ozone ozone-wayland pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc vaapi wayland widevine"
+IUSE="component-build cups cpu_flags_arm_neon +hangouts headless +js-type-check kerberos ozone ozone-wayland pic +proprietary-codecs pulseaudio selinux +suid +system-ffmpeg +system-icu +system-libvpx +tcmalloc vaapi widevine"
 RESTRICT="!system-ffmpeg? ( proprietary-codecs? ( bindist ) )"
 REQUIRED_USE="
 	component-build? ( !suid )
