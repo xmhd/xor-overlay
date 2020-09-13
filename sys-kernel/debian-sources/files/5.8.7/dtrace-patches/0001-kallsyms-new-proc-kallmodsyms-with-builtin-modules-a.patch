@@ -1,7 +1,7 @@
-From 45474df19df0f2c4311816fe479932df26c84733 Mon Sep 17 00:00:00 2001
+From 6a18ebef0c1c0efd0f76a6d1f85e4ff3dd4bcee9 Mon Sep 17 00:00:00 2001
 From: Kris Van Hees <kris.van.hees@oracle.com>
 Date: Thu, 7 Nov 2019 16:50:15 -0500
-Subject: [PATCH 01/13] kallsyms: new /proc/kallmodsyms with builtin modules
+Subject: [PATCH 01/14] kallsyms: new /proc/kallmodsyms with builtin modules
  and symbol sizes
 
 /proc/kallsyms is very useful for tracers and other tools that need to
@@ -98,7 +98,7 @@ Reviewed-by: Kris Van Hees <kris.van.hees@oracle.com>
  create mode 100644 scripts/Makefile.modbuiltin
 
 diff --git a/.gitignore b/.gitignore
-index 2258e906f01c..6f1b094e86ba 100644
+index d5f4804ed07c..48ef09c8f9a3 100644
 --- a/.gitignore
 +++ b/.gitignore
 @@ -47,6 +47,7 @@
@@ -110,7 +110,7 @@ index 2258e906f01c..6f1b094e86ba 100644
  #
  # Top-level generic files
 diff --git a/Documentation/dontdiff b/Documentation/dontdiff
-index 72fc2e9e2b63..9d0db2ef3a51 100644
+index ef9519c32c55..bbf2b880b665 100644
 --- a/Documentation/dontdiff
 +++ b/Documentation/dontdiff
 @@ -181,6 +181,7 @@ modules.builtin
@@ -122,10 +122,10 @@ index 72fc2e9e2b63..9d0db2ef3a51 100644
  nconf
  nconf-cfg
 diff --git a/Makefile b/Makefile
-index a2fbdb4c952d..a0f9d4a3e62c 100644
+index 7932464518f1..2e279764ce7b 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -1105,7 +1105,7 @@ cmd_link-vmlinux =                                                 \
+@@ -1135,7 +1135,7 @@ cmd_link-vmlinux =                                                 \
  	$(CONFIG_SHELL) $< $(LD) $(KBUILD_LDFLAGS) $(LDFLAGS_vmlinux) ;    \
  	$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
  
@@ -134,7 +134,7 @@ index a2fbdb4c952d..a0f9d4a3e62c 100644
  	+$(call if_changed,link-vmlinux)
  
  targets := vmlinux
-@@ -1384,6 +1384,24 @@ modules modules_install:
+@@ -1422,6 +1422,24 @@ modules modules_install:
  
  endif # CONFIG_MODULES
  
@@ -159,7 +159,7 @@ index a2fbdb4c952d..a0f9d4a3e62c 100644
  ###
  # Cleaning is done on three levels.
  # make clean     Delete most generated files
-@@ -1751,7 +1769,7 @@ clean: $(clean-dirs)
+@@ -1774,7 +1792,7 @@ clean: $(clean-dirs)
  		-o -name '*.lex.c' -o -name '*.tab.[ch]' \
  		-o -name '*.asn1.[ch]' \
  		-o -name '*.symtypes' -o -name 'modules.order' \
@@ -169,10 +169,10 @@ index a2fbdb4c952d..a0f9d4a3e62c 100644
  		-o -name '*.ll' \
  		-o -name '*.gcno' \) -type f -print | xargs rm -f
 diff --git a/include/linux/module.h b/include/linux/module.h
-index 1ad393e62bef..0d9777ecee92 100644
+index 2e6670860d27..c5e7bfd45610 100644
 --- a/include/linux/module.h
 +++ b/include/linux/module.h
-@@ -605,7 +605,8 @@ bool each_symbol_section(bool (*fn)(const struct symsearch *arr,
+@@ -613,7 +613,8 @@ bool each_symbol_section(bool (*fn)(const struct symsearch *arr,
  /* Returns 0 and fills in value, defined and namebuf, or -ERANGE if
     symnum out of range. */
  int module_get_kallsym(unsigned int symnum, unsigned long *value, char *type,
@@ -182,7 +182,7 @@ index 1ad393e62bef..0d9777ecee92 100644
  
  /* Look for this name: can be of form module:name. */
  unsigned long module_kallsyms_lookup_name(const char *name);
-@@ -787,8 +788,8 @@ static inline int lookup_module_symbol_attrs(unsigned long addr, unsigned long *
+@@ -795,8 +796,8 @@ static inline int lookup_module_symbol_attrs(unsigned long addr, unsigned long *
  }
  
  static inline int module_get_kallsym(unsigned int symnum, unsigned long *value,
@@ -194,10 +194,10 @@ index 1ad393e62bef..0d9777ecee92 100644
  	return -ERANGE;
  }
 diff --git a/init/Kconfig b/init/Kconfig
-index 74a5ac65644f..94533488ff02 100644
+index 0498af567f70..4a47e0190539 100644
 --- a/init/Kconfig
 +++ b/init/Kconfig
-@@ -1396,6 +1396,14 @@ config POSIX_TIMERS
+@@ -1433,6 +1433,14 @@ config POSIX_TIMERS
  
  	  If unsure say y.
  
@@ -507,10 +507,10 @@ index bb14e64f62a4..b91c217a8fab 100644
  }
  device_initcall(kallsyms_init);
 diff --git a/kernel/module.c b/kernel/module.c
-index af59c86f1547..a93d29acad28 100644
+index aa183c9ac0a2..f578aad6f5d2 100644
 --- a/kernel/module.c
 +++ b/kernel/module.c
-@@ -4150,7 +4150,8 @@ int lookup_module_symbol_attrs(unsigned long addr, unsigned long *size,
+@@ -4181,7 +4181,8 @@ int lookup_module_symbol_attrs(unsigned long addr, unsigned long *size,
  }
  
  int module_get_kallsym(unsigned int symnum, unsigned long *value, char *type,
@@ -520,7 +520,7 @@ index af59c86f1547..a93d29acad28 100644
  {
  	struct module *mod;
  
-@@ -4169,6 +4170,7 @@ int module_get_kallsym(unsigned int symnum, unsigned long *value, char *type,
+@@ -4200,6 +4201,7 @@ int module_get_kallsym(unsigned int symnum, unsigned long *value, char *type,
  			strlcpy(name, kallsyms_symbol_name(kallsyms, symnum), KSYM_NAME_LEN);
  			strlcpy(module_name, mod->name, MODULE_NAME_LEN);
  			*exported = is_exported(name, *value, mod);
@@ -529,7 +529,7 @@ index af59c86f1547..a93d29acad28 100644
  			return 0;
  		}
 diff --git a/scripts/Kbuild.include b/scripts/Kbuild.include
-index fe427f7fcfb3..0df0cc65d4f2 100644
+index 9a15fbf66aa1..1831197f0739 100644
 --- a/scripts/Kbuild.include
 +++ b/scripts/Kbuild.include
 @@ -163,6 +163,12 @@ ld-ifversion = $(shell [ $(ld-version) $(1) $(2) ] && echo $(3) || echo $(4))
@@ -1406,10 +1406,10 @@ index a39d93e3c6ae..bf74f62c3a7e 100644
  		return 1;
  	/*
 diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index d09ab4afbda4..29e92e722226 100755
+index 92dd745906f4..2a144d99baf6 100755
 --- a/scripts/link-vmlinux.sh
 +++ b/scripts/link-vmlinux.sh
-@@ -82,6 +82,7 @@ vmlinux_link()
+@@ -105,6 +105,7 @@ vmlinux_link()
  			--start-group				\
  			${KBUILD_VMLINUX_LIBS}			\
  			--end-group				\
@@ -1417,7 +1417,7 @@ index d09ab4afbda4..29e92e722226 100755
  			${@}"
  
  		${LD} ${KBUILD_LDFLAGS} ${LDFLAGS_vmlinux}	\
-@@ -95,6 +96,7 @@ vmlinux_link()
+@@ -118,6 +119,7 @@ vmlinux_link()
  			-Wl,--start-group			\
  			${KBUILD_VMLINUX_LIBS}			\
  			-Wl,--end-group				\
@@ -1425,7 +1425,7 @@ index d09ab4afbda4..29e92e722226 100755
  			${@}"
  
  		${CC} ${CFLAGS_vmlinux}				\
-@@ -148,6 +150,19 @@ kallsyms()
+@@ -171,6 +173,19 @@ kallsyms()
  	info KSYM ${2}
  	local kallsymopt;
  
@@ -1445,7 +1445,7 @@ index d09ab4afbda4..29e92e722226 100755
  	if [ -n "${CONFIG_KALLSYMS_ALL}" ]; then
  		kallsymopt="${kallsymopt} --all-symbols"
  	fi
-@@ -160,12 +175,18 @@ kallsyms()
+@@ -183,12 +198,18 @@ kallsyms()
  		kallsymopt="${kallsymopt} --base-relative"
  	fi
  

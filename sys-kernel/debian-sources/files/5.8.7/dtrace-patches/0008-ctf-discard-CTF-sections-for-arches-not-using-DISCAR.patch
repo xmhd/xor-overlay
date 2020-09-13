@@ -1,7 +1,7 @@
-From 95e1df6b50aff56ead600ca25d4d4688bea03d92 Mon Sep 17 00:00:00 2001
+From 3be4e3a49e1067698adb7ad0ca76d0cc4848285a Mon Sep 17 00:00:00 2001
 From: Nick Alcock <nick.alcock@oracle.com>
 Date: Sat, 14 Mar 2020 19:15:32 +0000
-Subject: [PATCH 08/13] ctf: discard CTF sections for arches not using DISCARDS
+Subject: [PATCH 08/14] ctf: discard CTF sections for arches not using DISCARDS
 
 CTF sections are not needed at kernel link time (we get them straight
 from the object files), so we already discard CTF sections in the
@@ -31,10 +31,10 @@ index 381a8e105fa5..6a90870c29dc 100644
  		*(.discard.*)
  
 diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index 9869412ac156..7c4361d8d2de 100644
+index 5423ffe0a987..7ae0089a9217 100644
 --- a/arch/arm64/kernel/vmlinux.lds.S
 +++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -100,6 +100,7 @@ SECTIONS
+@@ -93,6 +93,7 @@ SECTIONS
  		EXIT_CALL
  		*(.discard)
  		*(.discard.*)

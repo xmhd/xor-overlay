@@ -1,7 +1,7 @@
-From 61c91cfbdaa9fd1af0fb62880e0f75db1a3f3cc3 Mon Sep 17 00:00:00 2001
+From 7459cc7b62f0556bf8b68f18204974514297891b Mon Sep 17 00:00:00 2001
 From: Nick Alcock <nick.alcock@oracle.com>
 Date: Wed, 15 Apr 2020 17:39:08 +0100
-Subject: [PATCH 09/13] ctf: discard CTF from the vDSO
+Subject: [PATCH 09/14] ctf: discard CTF from the vDSO
 
 The vDSO is meant to be no more than one page long: but CTF is getting
 left in it, making it much longer than that on all arches that include C
@@ -42,10 +42,10 @@ index d3c9f03e7e79..dc1c2c0b6a93 100644
  ldflags-y := -Bsymbolic --no-undefined -soname=linux-vdso.so.1 \
  	    -z max-page-size=4096 -nostdlib -shared $(ldflags-y) \
 diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
-index 3862cad2410c..deec4440a4e4 100644
+index 45d5cfe46429..c911329bddd9 100644
 --- a/arch/arm64/kernel/vdso/Makefile
 +++ b/arch/arm64/kernel/vdso/Makefile
-@@ -32,6 +32,10 @@ UBSAN_SANITIZE			:= n
+@@ -37,6 +37,10 @@ UBSAN_SANITIZE			:= n
  OBJECT_FILES_NON_STANDARD	:= y
  KCOV_INSTRUMENT			:= n
  
@@ -57,7 +57,7 @@ index 3862cad2410c..deec4440a4e4 100644
  
  ifneq ($(c-gettimeofday-y),)
 diff --git a/arch/mips/vdso/Makefile b/arch/mips/vdso/Makefile
-index d7fe8408603e..cc6bc2d9ac90 100644
+index 2e64c7600eea..ffaf08465b1d 100644
 --- a/arch/mips/vdso/Makefile
 +++ b/arch/mips/vdso/Makefile
 @@ -40,6 +40,10 @@ cflags-vdso := $(ccflags-vdso) \
@@ -111,11 +111,11 @@ index 708cb6304c2d..510cc409da49 100644
  VDSOCOMPAT-$(CONFIG_COMPAT)	:= y
  
 diff --git a/arch/x86/entry/vdso/Makefile b/arch/x86/entry/vdso/Makefile
-index 433a1259f61d..f510b224ce85 100644
+index 04e65f0698f6..7a34b72b79d7 100644
 --- a/arch/x86/entry/vdso/Makefile
 +++ b/arch/x86/entry/vdso/Makefile
-@@ -14,6 +14,10 @@ KASAN_SANITIZE			:= n
- UBSAN_SANITIZE			:= n
+@@ -17,6 +17,10 @@ UBSAN_SANITIZE			:= n
+ KCSAN_SANITIZE			:= n
  OBJECT_FILES_NON_STANDARD	:= y
  
 +ifdef CONFIG_CTF_USING_BINUTILS
@@ -125,7 +125,7 @@ index 433a1259f61d..f510b224ce85 100644
  # Prevents link failures: __sanitizer_cov_trace_pc() is not linked in.
  KCOV_INSTRUMENT		:= n
  
-@@ -156,6 +160,10 @@ ifneq ($(RETPOLINE_VDSO_CFLAGS),)
+@@ -162,6 +166,10 @@ ifneq ($(RETPOLINE_VDSO_CFLAGS),)
  endif
  endif
  
@@ -135,7 +135,7 @@ index 433a1259f61d..f510b224ce85 100644
 +
  $(obj)/vdso32.so.dbg: KBUILD_CFLAGS = $(KBUILD_CFLAGS_32)
  
- $(obj)/vdso32.so.dbg: FORCE \
+ $(obj)/vdso32.so.dbg: $(obj)/vdso32/vdso32.lds $(vobjs32) FORCE
 diff --git a/arch/x86/um/vdso/Makefile b/arch/x86/um/vdso/Makefile
 index 0caddd6acb22..19b6e3d12255 100644
 --- a/arch/x86/um/vdso/Makefile

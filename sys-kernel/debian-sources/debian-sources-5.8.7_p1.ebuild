@@ -232,26 +232,20 @@ GENTOO_PATCHES=(
 DTRACE_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/dtrace-patches"
 
 DTRACE_PATCHES=(
-    0001-ctf-generate-CTF-information-for-the-kernel.patch
-    0002-kallsyms-introduce-new-proc-kallmodsyms-including-bu.patch
+    0001-kallsyms-new-proc-kallmodsyms-with-builtin-modules-a.patch
+    0002-ctf-generate-CTF-information-for-the-kernel.patch
     0003-waitfd-new-syscall-implementing-waitpid-over-fds.patch
-    0004-dtrace-core-and-x86.patch
-    0005-dtrace-modular-components-and-x86-support.patch
-    0006-dtrace-systrace-provider-core-components.patch
-    0007-dtrace-systrace-provider.patch
-    0008-dtrace-sdt-provider-core-components.patch
-    0009-dtrace-sdt-provider-for-x86.patch
-    0010-dtrace-profile-provider-and-test-probe-core-componen.patch
-    0011-dtrace-profile-and-tick-providers-built-on-cyclics.patch
-    0012-dtrace-USDT-and-pid-provider-core-and-x86-components.patch
-    0013-dtrace-USDT-and-pid-providers.patch
-    0014-dtrace-function-boundary-tracing-FBT-core-and-x86-co.patch
-    0015-dtrace-fbt-provider-modular-components.patch
-    0016-dtrace-arm-arm64-port.patch
-    0017-dtrace-add-SDT-probes.patch
-    0018-dtrace-add-rcu_irq_exit-and-rcu_nmi_exit_common-to-F.patch
-    0019-dtrace-add-sample-script-for-building-DTrace-on-Fedo.patch
-    0020-locking-publicize-mutex_owner-and-mutex_owned-again.patch
+    0004-ctf-kernel-build-with-gt-for-CTF-generation-using-GC.patch
+    0005-ctf-toolchain-based-CTF-support.patch
+    0006-kbuild-arm64-Set-objects.builtin-dependency-to-Image.patch
+    0007-ctf-adapt-to-the-new-CTF-linker-API.patch
+    0008-ctf-discard-CTF-sections-for-arches-not-using-DISCAR.patch
+    0009-ctf-discard-CTF-from-the-vDSO.patch
+    0010-ctf-fix-memory-leak-in-ctfarchive.patch
+    0011-ctf-adjust-to-upcoming-binutils-ctf_link_add_ctf-API.patch
+    0012-ctf-support-ld-ctf-variables-if-available.patch
+    0013-ctf-add-.ctf-to-.gitignore.patch
+    0014-waitfd-enable-by-default.patch
 )
 
 eapply_hardened() {

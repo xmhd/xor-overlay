@@ -1,7 +1,7 @@
-From 76243ea055a840ddb2864c8dd971db76a15815f6 Mon Sep 17 00:00:00 2001
+From f9566b0c08270e8899b2f183380fc9140759a3ed Mon Sep 17 00:00:00 2001
 From: Nick Alcock <nick.alcock@oracle.com>
 Date: Wed, 14 Nov 2018 19:42:21 +0000
-Subject: [PATCH 02/13] ctf: generate CTF information for the kernel
+Subject: [PATCH 02/14] ctf: generate CTF information for the kernel
 
 This introduces a new tool, dwarf2ctf, which runs whenever 'make ctf' is
 run, extracting information on the kernel's types and global variables
@@ -65,7 +65,7 @@ Reviewed-by: Kris Van Hees <kris.van.hees@oracle.com>
  .gitignore                         |    2 +
  Documentation/dwarf2ctf            | 1056 ++++++
  Documentation/process/changes.rst  |   23 +-
- Makefile                           |   51 +-
+ Makefile                           |   49 +-
  lib/Kconfig                        |   12 +
  scripts/Makefile                   |    1 +
  scripts/Makefile.modfinal          |  141 +-
@@ -78,7 +78,7 @@ Reviewed-by: Kris Van Hees <kris.van.hees@oracle.com>
  scripts/eu_simple.h                |   91 +
  scripts/move-if-change             |    8 +
  scripts/package/mkspec             |   12 +
- 16 files changed, 6722 insertions(+), 7 deletions(-)
+ 16 files changed, 6721 insertions(+), 6 deletions(-)
  create mode 100644 Documentation/dwarf2ctf
  create mode 100644 scripts/dwarf2ctf/.gitignore
  create mode 100644 scripts/dwarf2ctf/Makefile
@@ -90,7 +90,7 @@ Reviewed-by: Kris Van Hees <kris.van.hees@oracle.com>
  create mode 100755 scripts/move-if-change
 
 diff --git a/.gitignore b/.gitignore
-index 6f1b094e86ba..e19b0319a0ef 100644
+index 48ef09c8f9a3..74e0568c12f5 100644
 --- a/.gitignore
 +++ b/.gitignore
 @@ -48,6 +48,7 @@ Module.symvers
@@ -101,10 +101,10 @@ index 6f1b094e86ba..e19b0319a0ef 100644
  
  #
  # Top-level generic files
-@@ -57,6 +58,7 @@ modules_thick.builtin
- /linux
+@@ -58,6 +59,7 @@ modules_thick.builtin
  /vmlinux
  /vmlinux.32
+ /vmlinux.symvers
 +/vmlinux.ctfa
  /vmlinux-gdb.py
  /vmlinuz
@@ -1172,7 +1172,7 @@ index 000000000000..48a75c0519ff
 +module_to_ctf_file hash, writing out every CTF file into a new suitably-named
 +file via zlib's compressed file I/O functions.
 diff --git a/Documentation/process/changes.rst b/Documentation/process/changes.rst
-index 91c5ff8e161e..269552b38e3e 100644
+index 8f68e728ae6b..f28053c6c421 100644
 --- a/Documentation/process/changes.rst
 +++ b/Documentation/process/changes.rst
 @@ -55,9 +55,14 @@ iptables               1.4.2            iptables -V
@@ -1223,12 +1223,12 @@ index 91c5ff8e161e..269552b38e3e 100644
  ****************
  
 diff --git a/Makefile b/Makefile
-index a0f9d4a3e62c..4cc9c968fa39 100644
+index 2e279764ce7b..fb5e6df27702 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -1332,6 +1332,45 @@ modules: $(if $(KBUILD_BUILTIN),vmlinux) modules.order
- modules.order: descend
- 	$(Q)$(AWK) '!x[$$0]++' $(addsuffix /$@, $(build-dirs)) > $@
+@@ -1370,6 +1370,45 @@ modules.order: $(subdir-modorder) FORCE
+ 
+ targets += modules.order
  
 +ifneq (CONFIG_CTF@,'@')
 +
@@ -1272,7 +1272,7 @@ index a0f9d4a3e62c..4cc9c968fa39 100644
  # Target to prepare building external modules
  PHONY += modules_prepare
  modules_prepare: prepare
-@@ -1353,6 +1392,9 @@ _modinst_:
+@@ -1391,6 +1430,9 @@ _modinst_:
  	@sed 's:^:kernel/:' modules.order > $(MODLIB)/modules.order
  	@cp -f modules.builtin $(MODLIB)/
  	@cp -f $(objtree)/modules.builtin.modinfo $(MODLIB)/
@@ -1282,18 +1282,16 @@ index a0f9d4a3e62c..4cc9c968fa39 100644
  	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modinst
  
  # This depmod is only for convenience to give the initial
-@@ -1410,8 +1452,8 @@ $(modthickbuiltin-dirs): include/config/tristate.conf
+@@ -1448,7 +1490,7 @@ $(modthickbuiltin-dirs): include/config/tristate.conf
  # make distclean Remove editor backup files, patch leftover files and the like
  
  # Directories & files removed with 'make clean'
--CLEAN_DIRS  += include/ksym
--CLEAN_FILES += modules.builtin modules.builtin.modinfo modules.nsdeps
-+CLEAN_DIRS  += include/ksym .ctf
-+CLEAN_FILES += modules.builtin modules.builtin.modinfo modules.nsdeps .ctf.filelist .ctf.filelist.raw
+-CLEAN_FILES += include/ksym vmlinux.symvers \
++CLEAN_FILES += include/ksym vmlinux.symvers .ctf .ctf.filelist .ctf.filelist.raw \
+ 	       modules.builtin modules.builtin.modinfo modules.nsdeps
  
  # Directories & files removed with 'make mrproper'
- MRPROPER_DIRS  += include/config include/generated          \
-@@ -1512,6 +1554,8 @@ help:
+@@ -1544,6 +1586,8 @@ help:
  	@echo  '                    (requires a recent binutils and recent build (System.map))'
  	@echo  '  dir/file.ko     - Build module including final link'
  	@echo  '  modules_prepare - Set up for building external modules'
@@ -1302,7 +1300,7 @@ index a0f9d4a3e62c..4cc9c968fa39 100644
  	@echo  '  tags/TAGS	  - Generate tags file for editors'
  	@echo  '  cscope	  - Generate cscope index'
  	@echo  '  gtags           - Generate GNU GLOBAL index'
-@@ -1770,8 +1814,9 @@ clean: $(clean-dirs)
+@@ -1793,8 +1837,9 @@ clean: $(clean-dirs)
  		-o -name '*.asn1.[ch]' \
  		-o -name '*.symtypes' -o -name 'modules.order' \
  		-o -name '.tmp_*.o.*' -o -name modules_thick.builtin \
@@ -1314,10 +1312,10 @@ index a0f9d4a3e62c..4cc9c968fa39 100644
  
  # Generate tags for editors
 diff --git a/lib/Kconfig b/lib/Kconfig
-index 5d53f9609c25..91df76b70b89 100644
+index df3f3da95990..820df07a1f60 100644
 --- a/lib/Kconfig
 +++ b/lib/Kconfig
-@@ -572,6 +572,18 @@ config DIMLIB
+@@ -578,6 +578,18 @@ config DIMLIB
  #
  config LIBFDT
  	bool

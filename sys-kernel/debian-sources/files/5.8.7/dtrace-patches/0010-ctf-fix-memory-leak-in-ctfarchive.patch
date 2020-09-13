@@ -1,7 +1,7 @@
-From 590ec62a4852299ec3cbd2ad150cd6a3295ee1f0 Mon Sep 17 00:00:00 2001
+From a1444a0908c8480eeff6bec53a17ed0064211106 Mon Sep 17 00:00:00 2001
 From: Nick Alcock <nick.alcock@oracle.com>
 Date: Wed, 27 May 2020 18:19:32 +0100
-Subject: [PATCH 10/13] ctf: fix memory leak in ctfarchive
+Subject: [PATCH 10/14] ctf: fix memory leak in ctfarchive
 
 Spotted while working on something else: almost entirely irrelevant
 given that ctfarchive terminates immediately, but makes valgrind runs

@@ -1,7 +1,7 @@
-From a1a8bf646ccdc8fcafd3d7be8181fe91984b72c0 Mon Sep 17 00:00:00 2001
+From 181279a0e15e4a4e1b0754dc68072d5cc361954e Mon Sep 17 00:00:00 2001
 From: Nick Alcock <nick.alcock@oracle.com>
 Date: Mon, 1 Jun 2020 14:20:02 +0100
-Subject: [PATCH 12/13] ctf: support ld --ctf-variables, if available
+Subject: [PATCH 12/14] ctf: support ld --ctf-variables, if available
 
 Newer binutils will require this option to generate variables sections
 in the output CTF.  (We use ld-option so that things still work in the
@@ -15,10 +15,10 @@ Reviewed-by: Jack Vogel <jack.vogel@oracle.com>
  1 file changed, 2 insertions(+)
 
 diff --git a/Makefile b/Makefile
-index ef9156f35c83..c1cd0f6288ce 100644
+index 7389e061e4f7..c5840f4e6443 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -933,6 +933,8 @@ KBUILD_CPPFLAGS += $(KCPPFLAGS)
+@@ -962,6 +962,8 @@ KBUILD_CPPFLAGS += $(KCPPFLAGS)
  KBUILD_AFLAGS   += $(KAFLAGS)
  KBUILD_CFLAGS   += $(KCFLAGS)
  

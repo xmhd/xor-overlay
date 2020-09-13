@@ -1,0 +1,29 @@
+From 2bf700dc976f646b5e7d267d26830dc346dab4ed Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Wed, 26 Aug 2020 19:43:07 +0100
+Subject: [PATCH 14/14] waitfd: enable by default
+
+Makes building an all-options-default kernel that works with
+DTrace easier.
+
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+---
+ init/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index d58f937e99ba..7cb5bad721d2 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1530,7 +1530,7 @@ config EPOLL
+ config WAITFD
+ 	bool "Enable waitfd() system call" if EXPERT
+ 	select ANON_INODES
+-	default n
++	default y
+ 	help
+ 	  Enable the waitfd() system call that allows receiving child state
+ 	  changes from a file descriptor.  This permits use of poll() to
+-- 
+2.28.0
+

@@ -1,7 +1,7 @@
-From b5bc414280ebb30ae1659bbe35d8338fbbcc3dca Mon Sep 17 00:00:00 2001
+From 4dcd5f831ac6bd6eb1fe1b2713296a9394b6a1e6 Mon Sep 17 00:00:00 2001
 From: Nick Alcock <nick.alcock@oracle.com>
 Date: Wed, 24 Jun 2020 16:01:44 +0100
-Subject: [PATCH 11/13] ctf: adjust to upcoming binutils ctf_link_add_ctf API
+Subject: [PATCH 11/14] ctf: adjust to upcoming binutils ctf_link_add_ctf API
  change
 
 The unreviewed intermediate state of work which is the current OL8

@@ -1,7 +1,7 @@
-From 2a190251feae4a40f47cf188a82e84a2252012cb Mon Sep 17 00:00:00 2001
+From cba6b6dbbff3d0f640b0a2a99b2623d69119c6a9 Mon Sep 17 00:00:00 2001
 From: Nick Alcock <nick.alcock@oracle.com>
 Date: Thu, 25 Jul 2019 12:44:34 +0100
-Subject: [PATCH 05/13] ctf: toolchain-based CTF support
+Subject: [PATCH 05/14] ctf: toolchain-based CTF support
 
 This adds the option to use a new CTF deduplicator based on the libctf
 linking machinery.  Its deduplication is very bad at the moment but will
@@ -78,10 +78,10 @@ Reviewed-by: Kris Van Hees <kris.van.hees@oracle.com>
  create mode 100644 scripts/modules_thick.h
 
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index dc29044d3ed9..c28cdda1ee78 100644
+index 052e0f05a984..21b4942947e6 100644
 --- a/include/asm-generic/vmlinux.lds.h
 +++ b/include/asm-generic/vmlinux.lds.h
-@@ -927,6 +927,7 @@
+@@ -937,6 +937,7 @@
  	*(.discard)							\
  	*(.discard.*)							\
  	*(.modinfo)							\
@@ -1048,7 +1048,7 @@ index 57ef1007736d..16d124df1379 100644
   * Expand the builtin modules list.
   */
 diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index 29e92e722226..45b13df36c1b 100755
+index 2a144d99baf6..26e6a1dfae3c 100755
 --- a/scripts/link-vmlinux.sh
 +++ b/scripts/link-vmlinux.sh
 @@ -39,7 +39,9 @@ info()
@@ -1078,9 +1078,9 @@ index 29e92e722226..45b13df36c1b 100755
 +        rm -f .tmp.remove-ctf.lds
  }
  
- # Link of vmlinux
+ objtool_link()
 diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 5c3c50c5ec52..334e430a87e8 100644
+index 69341b36f271..2e2dae693121 100644
 --- a/scripts/mod/modpost.c
 +++ b/scripts/mod/modpost.c
 @@ -883,6 +883,7 @@ static const char *const section_white_list[] =
