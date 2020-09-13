@@ -23,6 +23,7 @@ RDEPEND="
 DEPEND="
     sys-devel/bison
     sys-devel/binutils[multitarget]
+    sys-devel/clang
     sys-devel/flex
     dev-libs/libbpf
     net-libs/libpcap
