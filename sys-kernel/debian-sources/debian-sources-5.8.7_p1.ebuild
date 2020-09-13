@@ -25,6 +25,10 @@ BDEPEND="
 DEPEND="
 	binary? ( sys-kernel/dracut )
 	btrfs? ( sys-fs/btrfs-progs )
+	dtrace? (
+	    dev-util/dtrace-utils
+	    dev-libs/libdtrace-ctf
+	)
 	firmware? (
 		sys-kernel/linux-firmware
 	)
