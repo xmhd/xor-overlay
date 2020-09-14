@@ -1,3 +1,8 @@
+3		TODO
+	U 28_all_EXTRA_OPTIONS-fstack-clash-protection.patch
+	+ 37_all_c-vector-init-PR96377.patch
+	+ 38_all_gcov-TOPN-PR96913.patch
+
 2		23 Aug 2020
 	+ 33_all_lto-O0-mix-ICE-ipa-PR96291.patch
 	+ 34_all_fundecl-ICE-PR95820.patch

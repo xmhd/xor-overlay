@@ -1,0 +1,42 @@
+https://gcc.gnu.org/PR96913
+https://gcc.gnu.org/PR96394
+https://bugs.gentoo.org/734006
+
+From ae887148e112e018bec0bab5bc15e53f2225037a Mon Sep 17 00:00:00 2001
+From: Sergei Trofimovich <siarheit@google.com>
+Date: Sun, 6 Sep 2020 12:13:54 +0100
+Subject: [PATCH] gcov: fix TOPN streaming from shared libraries
+
+Before the change gcc did not stream correctly TOPN counters
+if counters belonged to a non-local shared object.
+
+As a result zero-section optimization generated TOPN sections
+in a form not recognizable by '__gcov_merge_topn'.
+
+The problem happens because in a case of multiple shared objects
+'__gcov_merge_topn' function is present in address space multiple
+times (once per each object).
+
+The fix is to never rely on function address and predicate on TOPN
+counter types.
+
+libgcc/ChangeLog:
+
+	PR gcov-profile/96913
+	* libgcov-driver.c (write_one_data): Avoid function pointer
+	comparison in TOP streaming decision.
+---
+ libgcc/libgcov-driver.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+--- a/libgcc/libgcov-driver.c
++++ b/libgcc/libgcov-driver.c
+@@ -242,7 +242,7 @@ prune_counters (struct gcov_info *gi)
+ 	  if (gi->merge[j] == NULL)
+ 	    continue;
+ 
+-	  if (gi->merge[j] == __gcov_merge_topn)
++	  if (j == GCOV_COUNTER_V_TOPN || j == GCOV_COUNTER_V_INDIR)
+ 	    {
+ 	      gcc_assert (!(ci->num % GCOV_TOPN_VALUES_COUNTERS));
+ 	      for (unsigned k = 0; k < (ci->num / GCOV_TOPN_VALUES_COUNTERS);

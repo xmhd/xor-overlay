@@ -1,3 +1,7 @@
+4		TODO
+	+ 30_all_plugin-objdump.patch
+	U 11_all_extra-options.patch
+
 3		29 May 2020
 	+ 29_all_libcpp-ar.patch
 

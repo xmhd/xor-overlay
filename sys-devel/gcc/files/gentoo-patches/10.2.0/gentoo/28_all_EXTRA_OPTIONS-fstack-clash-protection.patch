@@ -30,7 +30,7 @@ On Hardened we add some options like -fstack-clash-protection.
     vtable entries.  Setting this nonzero tells the compiler to use
     function descriptors instead.  The value of this macro says how
 --- a/gcc/toplev.c	2018-02-13 17:18:37.000000000 +0100
-+++ b/toplev.c	2018-04-30 16:46:37.244027303 +0200
++++ b/gcc/toplev.c	2018-04-30 16:46:37.244027303 +0200
 @@ -1682,6 +1682,10 @@ process_options (void)
  
    /* -fstack-clash-protection is not currently supported on targets

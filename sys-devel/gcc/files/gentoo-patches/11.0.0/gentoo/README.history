@@ -1,3 +1,9 @@
+5		TODO
+	U 27_all_EXTRA_OPTIONS-fstack-clash-protection.patch
+
+4		26 Aug 2020
+	- 25_all_hppa-faster-synth_mult.patch
+
 3		23 Aug 2020
 	- 16_all_libgfortran-Werror.patch
 
