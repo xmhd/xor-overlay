@@ -31,7 +31,6 @@ src_prepare() {
 }
 
 src_configure() {
-    set_arch_to_kernel
 
     if ! use custom-cflags; then
         strip-flags
@@ -41,7 +40,6 @@ src_configure() {
 }
 
 src_compile() {
-    set_arch_to_kernel
 
     myemakeargs=(
         V=1
@@ -51,7 +49,7 @@ src_compile() {
 }
 
 src_install() {
-    set_arch_to_kernel
+	linux-mod_src_install
 
     myemakeargs+=(
         DEPMOD="/bin/true"
