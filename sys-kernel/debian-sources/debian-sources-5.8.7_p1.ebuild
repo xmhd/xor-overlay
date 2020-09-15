@@ -51,23 +51,6 @@ DEPEND="
 	zfs? ( sys-fs/zfs )
 "
 
-REQUIRED_USE="
-	btrfs? ( binary )
-	custom-cflags? ( binary )
-	ec2? ( binary )
-	libressl? ( binary )
-	luks? ( binary )
-	lvm? ( binary )
-	mdadm? ( binary )
-	microcode? ( binary )
-	plymouth? ( binary )
-	selinux? ( binary )
-	sign-modules? ( binary )
-	systemd? ( binary )
-	wireguard? ( binary )
-	zfs? ( binary )
-"
-
 DEB_PV_BASE="5.8.7"
 DEB_EXTRAVERSION="-1"
 EXTRAVERSION="_p1"
