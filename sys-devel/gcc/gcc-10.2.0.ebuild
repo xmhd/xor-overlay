@@ -28,7 +28,7 @@ IUSE="$IUSE +fortify_source +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 IUSE="$IUSE nptl systemtap valgrind zstd" # TODO: sort these flags
-IUSE="$IUSE checking_release checking_yes checking_all"
+IUSE="$IUSE checking_release checking_yes checking_all" # gcc internal checking
 
 BDEPEND="
     sys-devel/binutils
@@ -646,8 +646,8 @@ src_prepare() {
 
         # apply any musl specific patches
         if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
-            eapply "${FILESDIR}"/10.1.0/cpu_indicator.patch
-            eapply "${FILESDIR}"/7.1.0/posix_memalign.patch
+            eapply "${FILESDIR}"/musl-patches/10.2.0/cpu_indicator.patch
+            eapply "${FILESDIR}"/musl-patches/10.2.0/posix_memalign.patch
         fi
 	fi
 
