@@ -1,5 +1,5 @@
 From d16a8ceb1c3c8a7ec381090b4c316ff4c55661c0 Mon Sep 17 00:00:00 2001
-From:
+From: 
 Date: Thu, 7 May 2020 21:14:11 -0500
 Subject: [PATCH] convert "__cpu_indicator_init" to
  "__cpu_indicator_init_local"
@@ -20,10 +20,10 @@ index 48f00c5fc..78650b202 100644
 -	/* Make it call __cpu_indicator_init in libgcc. */
 +	/* Make it call __cpu_indicator_init_local in libgcc. */
  	tree call_expr, fndecl, type;
-         type = build_function_type_list (integer_type_node, NULL_TREE);
+         type = build_function_type_list (integer_type_node, NULL_TREE); 
 -	fndecl = build_fn_decl ("__cpu_indicator_init", type);
 +	fndecl = build_fn_decl ("__cpu_indicator_init_local", type);
- 	call_expr = build_call_expr (fndecl, 0);
+ 	call_expr = build_call_expr (fndecl, 0); 
  	return expand_expr (call_expr, target, mode, EXPAND_NORMAL);
        }
 diff --git a/libgcc/config/i386/cpuinfo.c b/libgcc/config/i386/cpuinfo.c
@@ -33,7 +33,7 @@ index 00322c586..f42bbb8af 100644
 @@ -508,7 +508,7 @@ __cpu_indicator_init (void)
    return 0;
  }
-
+ 
 -#if defined SHARED && defined USE_ELF_SYMVER
 -__asm__ (".symver __cpu_indicator_init, __cpu_indicator_init@GCC_4.8.0");
 -__asm__ (".symver __cpu_model, __cpu_model@GCC_4.8.0");
@@ -41,5 +41,7 @@ index 00322c586..f42bbb8af 100644
 +int __cpu_indicator_init_local (void)
 +  __attribute__ ((weak, alias ("__cpu_indicator_init")));
  #endif
---
+-- 
 2.26.2
+
+
