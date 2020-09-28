@@ -655,7 +655,7 @@ src_prepare() {
 
         # apply any musl specific patches
         if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
-            eapply "${FILESDIR}"/musel-patches/10.2.0/gcc-pure64.patch
+            eapply "${FILESDIR}"/musl-patches/10.2.0/gcc-pure64.patch
             eapply "${FILESDIR}"/musl-patches/10.2.0/cpu_indicator.patch
             eapply "${FILESDIR}"/musl-patches/10.2.0/posix_memalign.patch
         fi
