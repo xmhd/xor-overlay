@@ -23,7 +23,7 @@ IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system fla
 IUSE="$IUSE +system-gettext +system-gmp +system-isl +system-mpc +system-mpfr +system-zlib"
 IUSE="$IUSE openmp altivec fixed-point graphite lto pch +quad generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
-IUSE="$IUSE libssp +ssp" # Base hardening flags
+IUSE="$IUSE libssp +stack_protector_strong stack_protector_all" # Base hardening flags
 IUSE="$IUSE +fortify_source +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
@@ -306,6 +306,10 @@ pkg_pretend() {
         if use objc++; then
             die "Obj-C++ requires a C++ compiler, set USE=cxx to continue."
         fi
+    fi
+
+    if use stack_protector_strong && use stack_protector_all; then
+        die "stack_protector_strong and stack_protector_all are incompatible - Disable one of them."
     fi
 
     # TODO: add ada compiler check here for gcc[ada,!bootstrap]
@@ -607,7 +611,7 @@ src_prepare() {
         # =2 -all
         # =3 -strong
         # This ebuild defaults to -strong, and if USE=hardened then set it to -strong
-        if use ssp && use hardened; then
+        if use stack_protector_all; then
             eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch" || die "failed to apply default -stack-protector-all patch"
             gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
         fi
@@ -1170,7 +1174,7 @@ src_configure() {
 	fi
 
     # Default building of SSP executables.
-    if use ssp; then
+    if use stack_protector_strong || use stack_protector_all; then
         confgcc+=( --enable-default-ssp )
     else
         confgcc+=( --disable-default-ssp )
