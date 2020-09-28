@@ -20,7 +20,7 @@ FEATURES=${FEATURES/multilib-strict/}
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
-IUSE="$IUSE +system-gettext +system-gmp +system-isl +system-mpc +system-mpfr +system-zlib"
+IUSE="$IUSE +system-gettext +system-zlib"
 IUSE="$IUSE openmp altivec fixed-point graphite lto pch +quad generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +stack_protector_strong stack_protector_all" # Base hardening flags
@@ -145,29 +145,6 @@ SRC_URI+="
                 elibc_glibc? ( https://bitbucket.org/_x0r/xor-overlay/downloads/${GNAT_AMD64_BOOTSTRAP}.tar.xz )
             )
         )
-    )
-"
-
-GMP_VER="6.1.2"
-GMP_EXTRAVER=""
-SRC_URI+="
-    !system-gmp? ( https://ftp.gnu.org/gnu/gmp/gmp-${GMP_VER}${GMP_EXTRAVER}.tar.xz )
-"
-
-MPC_VER="1.1.0"
-SRC_URI+="
-    !system-mpc? ( https://ftp.gnu.org/gnu/mpc/mpc-${MPC_VER}.tar.gz )
-"
-
-MPFR_VER="4.0.2"
-SRC_URI+="
-    !system-mpfr? ( http://www.mpfr.org/mpfr-${MPFR_VER}/mpfr-${MPFR_VER}.tar.xz )
-"
-
-ISL_VER="0.21"
-SRC_URI+="
-    !system-isl? (
-        graphite? ( http://isl.gforge.inria.fr/isl-${ISL_VER}.tar.xz )
     )
 "
 
@@ -501,26 +478,6 @@ pkg_setup() {
 src_unpack() {
     # unpack gcc sources
 	unpack $GCC_A
-
-	if ! use system-gmp; then
-	    unpack gmp-${GMP_VER}${GMP_EXTRAVER}.tar.xz || die "failed to unpack gmp"
-	    mv "${WORKDIR}"/gmp-${GMP_VER} "${WORKDIR}"/gcc-${GCC_ARCHIVE_VER}/gmp || die "failed to move gmp to gcc source tree"
-	fi
-
-	if use graphite && ! use system-isl; then
-	    unpack isl-${ISL_VER}.tar.xz || die "failed to unpack isl"
-	    mv "${WORKDIR}"/isl-${ISL_VER} "${WORKDIR}"/gcc-${GCC_ARCHIVE_VER}/isl || die "failed to move isl to gcc source tree"
-	fi
-
-	if ! use system-mpc; then
-	    unpack mpc-${MPC_VER}.tar.xz || die "failed to unpack mpc"
-	    mv "${WORKDIR}"/mpc-${MPC_VER} "${WORKDIR}"/gcc-${GCC_ARCHIVE_VER}/mpc || die "failed to move mpc to gcc source tree"
-	fi
-
-	if ! use system-mpfr; then
-	    unpack mpfr-${MPFR_VER}.tar.xz || die "failed to unpack mpfr"
-	    mv "${WORKDIR}"/mpfr-${MPFR_VER} "${WORKDIR}"/gcc-${GCC_ARCHIVE_VER}/mpfr || die "failed to move mpfr to gcc source tree"
-	fi
 
     # Ada
     # todo: check for gnat bins in installed gcc - if found, then skip unpacking the bootstrap compiler.
