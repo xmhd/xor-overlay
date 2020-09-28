@@ -235,6 +235,9 @@ get_make_var() {
 # while people are transitioning from the old style to the new style,
 # we always set the MULTILIB_OSDIRNAMES var for relevant targets.
 setup_multilib_osdirnames() {
+
+    # this logic only current applies to glibc based systems
+    if use elibc_glibc; then
         is_multilib || return 0
 
         local config
@@ -273,6 +276,7 @@ setup_multilib_osdirnames() {
         fi
 
         sed -i "${sed_args[@]}" "${S}"/gcc/config/${config} || die
+    fi
 }
 
 # General purpose version check.  Without a second arg matches up to minor version (x.x.x)
@@ -973,17 +977,21 @@ src_configure() {
 
     # translate our notion of multilibs into gcc's
 	local abi list
-	for abi in $(get_all_abis TARGET) ; do
-		local l=$(gcc-abi-map ${abi})
-		[[ -n ${l} ]] && list+=",${l}"
-	done
-	if [[ -n ${list} ]] ; then
-		case ${CTARGET} in
-		x86_64*)
-			confgcc+=( --with-multilib-list=${list:1} )
-			;;
-		esac
-	fi
+	if use elibc_glibc; then
+        for abi in $(get_all_abis TARGET) ; do
+            local l=$(gcc-abi-map ${abi})
+            [[ -n ${l} ]] && list+=",${l}"
+        done
+        if [[ -n ${list} ]] ; then
+            case ${CTARGET} in
+            x86_64*)
+                confgcc+=( --with-multilib-list=${list:1} )
+                ;;
+            esac
+        fi
+    elif use elibc_musl; then
+        confgc+=( --with-multilib-list= )
+    fi
 
     # multiarch
     if use multiarch; then
