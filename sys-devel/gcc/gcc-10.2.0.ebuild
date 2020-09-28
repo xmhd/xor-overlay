@@ -290,7 +290,7 @@ pkg_pretend() {
 
     # Initial check
     if use vanilla && use hardened; then
-        die "vanilla and hardened USE flags are incompatible - Disable one of them."
+        die "vanilla and hardened USE flags are incompatible - disable one of them."
     fi
 
     # Some features require C++, so check that requirement is met when the relevant USE flags are selected.
@@ -308,8 +308,12 @@ pkg_pretend() {
         fi
     fi
 
+    if use elibc_musl && use multilib; then
+        die "multilib and musl are incompatible - disable one of them."
+    fi
+
     if use stack_protector_strong && use stack_protector_all; then
-        die "stack_protector_strong and stack_protector_all are incompatible - Disable one of them."
+        die "stack_protector_strong and stack_protector_all are incompatible - disable one of them."
     fi
 
     # TODO: add ada compiler check here for gcc[ada,!bootstrap]
@@ -639,6 +643,12 @@ src_prepare() {
 
         # write HARD_CFLAGS back to the gcc Makefile.
         sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die "failed to write CFLAGS to gcc Makefile"
+
+        # apply any musl specific patches
+        if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
+            eapply "${FILESDIR}"/10.1.0/cpu_indicator.patch
+            eapply "${FILESDIR}"/7.1.0/posix_memalign.patch
+        fi
 	fi
 
 	# apply any user patches
