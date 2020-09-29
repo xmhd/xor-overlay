@@ -24,6 +24,11 @@ DEPEND="
 
 PATCHES=( "${FILESDIR}"/${PN}-3.4.2-no-bs-namespace.patch )
 
+src_unpack() {
+        unpack
+        mv ${PN} -> ${PN}-${PV}
+}
+
 src_configure() {
 	use static && append-ldflags -static
 	default
