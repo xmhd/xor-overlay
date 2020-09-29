@@ -25,13 +25,10 @@ And will also include software used for supporting hardware (printers, CAC keys,
 
 ### TLDR; Changelog for packages forked from main repositories ###
 
-* Chromium - includes hardware acceleration for video playback (currently X264, VP9 in progress), and WIP further hardening/privacy.
 * Python 2 - Maintained for legacy support.
 * Python - link-time-optmization and profile-guided-optimization support added to ebuilds.
 * sysvinit - Added fix to inittab to support shutting down containers from host.
-* Portage - added Funtoo Linux patches for additional debug information, and Funtoo Linux cdn host URL to GENTOO_MIRRORS.
 * OpenRC - added support for mounting systemd cgroups for compatibility with software which hard depends on said cgroups.
-* kmod - Added patches from $upstream for various fixes (see patches dir/files for header comments).
 * All JetBrains software - up-to-date working releases.
 * nm-applet - Removed hard dependency on polkit as it is not required.
 * libsecret - Removed hard dependency on gnome-keyring and added USE flag to support multiple providers of FreeDesktop.org libsecret service (e.g. keepassx, gnome-keyring).
@@ -39,12 +36,8 @@ And will also include software used for supporting hardware (printers, CAC keys,
 * icecream - up-to-date releases.
 * Clang - some fixes with new CMAKE config options.
 * libcxx - Re-added libcxxrt as an alternative to libcxxabi.
-* polkit - Duktape is now an alternative provider of a JS engine, offering a more lightweight alternative to SpiderMonkey.
-* debianutils - remove dep on installkernel-gentoo packages as not used.
-* zfs + zfs-kmod - few USE flag + dep changes. Optional initramfs regeneration on pkg_postinst.
 * OpenJDK - forked to add older OpenJDK versions and remove some java-pkg setup from ebuild as this overlay will not be building java files from source, rather installing the jar files to /usr/share/java.
 *           Only OpenJDK (or other JVM variants, e.g. GraalVM, Amazon Corretto, Azure Zulu) will benefit from being source built.
-* LibreOffice - forked to maintain the lts version for enterprise use.
 * debianutils - removed gentoo-installkernel stuff from ebuild as we use Debian' installkernel script.
 
 ### TLDR; Changelog for packages not in the main repositories ###
@@ -54,13 +47,11 @@ And will also include software used for supporting hardware (printers, CAC keys,
 * DTrace - tracer from Solaris & BSD, supported in Oracle Linux and now *too Linux.
 * Eclipse Java IDE (including enterprise edition).
 * Netbeans IDE - IDE formerly by Sun, now under Apache.
-* Adobe Acrobat PDF Reader (ancient but some enterprise software will require it).
 * Various packages for CAC key support.
 * Various packages for PKCS11 support (including pam modules).
 * OpenRGB - Open source software for customising RGB LEDs on hardware.
 * MangoHUD - GUI overlay for displaying CPU + GPU temperatures, FPS etc during gaming.
 * PyWal - Match your terminal font colours to your wallpaper.
-* CDE - classic CDE desktop experience.
 
 ### TLDR; Changelog for eclasses forked from main repositories ###
 
@@ -90,14 +81,12 @@ And will also include software used for supporting hardware (printers, CAC keys,
 ### TODO: ###
 * Continue STIG work.
 * Toolchain work.
-* Add additional kernel sources packages (RHEL, Kernel-self-protection, ???).
 * OpenJDK - legacy versions and removal of all from-source Java support as it's mostly broken and little to no gain building anything other than the JVM from source.
 * Profiles - continue expansion and further modularisation.
 * Cockpit - import from RHEL and add sysvinit+OpenRC support.
 * mdev/static-dev support???
 * Expand Clang/LLVM system compiler mix-in.
 * Expand on hardening features/defaults.
-* VMware - enterprise standard hypervisor.
 * beadm - boot envrionment support for zfs users.
 * profit??
 
