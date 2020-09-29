@@ -20,7 +20,7 @@ FEATURES=${FEATURES/multilib-strict/}
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
-IUSE="$IUSE +system-gettext +system-zlib"
+IUSE="$IUSE +system-bootstrap +system-gettext +system-zlib"
 IUSE="$IUSE openmp altivec fixed-point graphite lto pch +quad generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +stack_protector_strong stack_protector_all" # Base hardening flags
@@ -37,7 +37,6 @@ BDEPEND="
     >=sys-devel/flex-2.5.4
     elibc_glibc? ( >=sys-libs/glibc-2.8 )
     elibc_musl? ( sys-libs/musl )
-    nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
 	test? (
 	        >=dev-util/dejagnu-1.4.4
 	        >=sys-devel/autogen-5.5.4
@@ -47,13 +46,15 @@ BDEPEND="
 
 RDEPEND="
 	objc-gc? ( >=dev-libs/boehm-gc-7.6[${MULTILIB_USEDEP}] )
-	nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
+    nls? (
+        system-gettext? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
+    )
 	>=dev-libs/gmp-4.3.2:0=
 	graphite? ( >=dev-libs/isl-0.14:0= )
 	virtual/libiconv[${MULTILIB_USEDEP}]
 	>=dev-libs/mpfr-2.4.2:0=
 	>=dev-libs/mpc-0.8.1:0=
-	sys-libs/zlib[${MULTILIB_USEDEP}]
+	system-zlib? ( sys-libs/zlib[${MULTILIB_USEDEP}] )
 	zstd? ( app-arch/zstd )
 "
 
@@ -139,10 +140,12 @@ GNAT_ARM64_BOOTSTRAP="todo"
 GNAT_PPC_BOOTSTRAP="todo"
 GNAT_PPC64_BOOTSTRAP="todo"
 SRC_URI+="
-    bootstrap? (
-        ada? (
-            amd64? (
-                elibc_glibc? ( https://bitbucket.org/_x0r/xor-overlay/downloads/${GNAT_AMD64_BOOTSTRAP}.tar.xz )
+    !system-bootstrap? (
+        bootstrap? (
+            ada? (
+                amd64? (
+                    elibc_glibc? ( https://bitbucket.org/_x0r/xor-overlay/downloads/${GNAT_AMD64_BOOTSTRAP}.tar.xz )
+                )
             )
         )
     )
