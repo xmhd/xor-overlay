@@ -26,7 +26,7 @@ PATCHES=( "${FILESDIR}"/${PN}-3.4.2-no-bs-namespace.patch )
 
 src_unpack() {
         unpack ${PN}_${PV}.tar.xz
-        mv ${PN} -> ${PN}-${PV}
+        mv ${PN} ${PN}-${PV}
 }
 
 src_configure() {
