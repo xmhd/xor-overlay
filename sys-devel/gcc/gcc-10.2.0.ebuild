@@ -130,6 +130,8 @@ GENTOO_PATCHES=(
     38_all_gcov-TOPN-PR96913.patch
 )
 
+ALPINE_PATCHES_DIR="${FILESDIR}/alpine-patches/${GCC_ARCHIVE_VER}"
+
 ALPINE_PATCHES=(
     0001-posix_memalign.patch
 #    0002-gcc-poison-system-directories.patch
@@ -601,6 +603,15 @@ src_prepare() {
 			done
 		fi
 
+		# Alpine Linux patches
+		# most of these are musl related, so only apply to musl targets for now.
+		if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
+		    einfo "Applying Alpine patches ..."
+		    for my_patch in ${ALPINE_PATCHES[*]} ; do
+				eapply "${ALPINE_PATCHES_DIR}/${my_patch}" || die "failed to apply Alpine Linux patches"
+			done
+		fi
+
         # === HARDENING ===
         # TODO: write a blurb
         local gcc_hard_flags=""
@@ -610,8 +621,8 @@ src_prepare() {
 
         # Todo
         if use dev_extra_warnings ; then
-			eapply "${FILESDIR}/${GENTOO_PATCHES_DIR}/02_all_default-warn-format-security.patch" || die "failed to apply default-warn-format-security patch"
-			eapply "${FILESDIR}/${GENTOO_PATCHES_DIR}/03_all_default-warn-trampolines.patch" || die "failed to apply default-warn-trampolines patch"
+			eapply "${GENTOO_PATCHES_DIR}/02_all_default-warn-format-security.patch" || die "failed to apply default-warn-format-security patch"
+			eapply "${GENTOO_PATCHES_DIR}/03_all_default-warn-trampolines.patch" || die "failed to apply default-warn-trampolines patch"
 			if use test ; then
 				ewarn "USE=dev_extra_warnings enables warnings by default which are known to break gcc's tests!"
 			fi
