@@ -130,6 +130,50 @@ GENTOO_PATCHES=(
     38_all_gcov-TOPN-PR96913.patch
 )
 
+ALPINE_PATCHES=(
+    0001-posix_memalign.patch
+#    0002-gcc-poison-system-directories.patch
+#    0003-Turn-on-Wl-z-relro-z-now-by-default.patch
+#    0004-Turn-on-D_FORTIFY_SOURCE-2-by-default-for-C-C-ObjC-O.patch
+#    0005-On-linux-targets-pass-as-needed-by-default-to-the-li.patch
+#    0006-Enable-Wformat-and-Wformat-security-by-default.patch
+#    0007-Enable-Wtrampolines-by-default.patch
+    0008-Disable-ssp-on-nostdlib-nodefaultlibs-and-ffreestand.patch
+    0009-Ensure-that-msgfmt-doesn-t-encounter-problems-during.patch
+    0010-Don-t-declare-asprintf-if-defined-as-a-macro.patch
+    0011-libiberty-copy-PIC-objects-during-build-process.patch
+    0012-libitm-disable-FORTIFY.patch
+    0013-libgcc_s.patch
+    0014-nopie.patch
+    0015-libffi-use-__linux__-instead-of-__gnu_linux__-for-mu.patch
+    0016-dlang-update-zlib-binding.patch
+    0017-dlang-fix-fcntl-on-mips-add-libucontext-dep.patch
+    0018-ada-fix-shared-linking.patch
+    0019-build-fix-CXXFLAGS_FOR_BUILD-passing.patch
+    0020-libstdc-futex-add-time64-compatibility.patch
+    0021-add-fortify-headers-paths.patch
+    0022-Alpine-musl-package-provides-libssp_nonshared.a.-We-.patch
+    0023-DP-Use-push-state-pop-state-for-gold-as-well-when-li.patch
+    0024-Pure-64-bit-MIPS.patch
+    0025-use-pure-64-bit-configuration-where-appropriate.patch
+    0026-always-build-libgcc_eh.a.patch
+    0027-ada-libgnarl-compatibility-for-musl.patch
+    0028-ada-musl-support-fixes.patch
+    0029-c-Fix-bogus-vector-initialisation-error-PR96377.patch
+    0030-rs6000-ICE-when-using-an-MMA-type-as-a-function-para.patch
+    0031-gcc-go-Use-_off_t-type-instead-of-_loff_t.patch
+    0032-gcc-go-Don-t-include-sys-user.h.patch
+    0033-gcc-go-Fix-ucontext_t-on-PPC64.patch
+    0034-gcc-go-Fix-handling-of-signal-34-on-musl.patch
+    0035-gcc-go-Use-int64-type-as-offset-argument-for-mmap.patch
+    0036-gcc-go-Fix-st_-a-m-c-tim-fields-in-generated-sysinfo.patch
+    0037-gcc-go-signal-34-is-special-on-musl-libc.patch
+    0038-gcc-go-Prefer-_off_t-over-_off64_t.patch
+    0039-gcc-go-undef-SETCONTEXT_CLOBBERS_TLS-in-proc.c.patch
+    0040-gcc-go-link-to-libucontext.patch
+    0041-gcc-go-Disable-printing-of-unaccessible-ppc64-struct.patch
+)
+
 # TODO: This is a WIP. GNAT_AMD64_BOOTSTRAP currently works, and is a dynamically linked glibc built gcc.
 # This will be replaced with a statically linked musl built gcc, possibly even with built-in math libraries etc to reduce error margin.
 # Once the above has been completed, bootstrap binaries will be built for the other architectures.
@@ -514,10 +558,6 @@ src_unpack() {
 
 }
 
-eapply_gentoo() {
-	eapply "${GENTOO_PATCHES_DIR}/${1}"
-}
-
 src_prepare() {
 
 	# For some reason, when upgrading gcc, the gcc Makefile will install stuff
@@ -557,7 +597,7 @@ src_prepare() {
 		if [ -n "$GENTOO_PATCHES_VER" ]; then
 			einfo "Applying Gentoo patches ..."
 			for my_patch in ${GENTOO_PATCHES[*]} ; do
-				eapply_gentoo "${my_patch}" || die "failed to apply Gentoo Linux patches"
+				eapply "${GENTOO_PATCHES_DIR}/${my_patch}" || die "failed to apply Gentoo Linux patches"
 			done
 		fi
 
