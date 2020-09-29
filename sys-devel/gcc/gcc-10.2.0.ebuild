@@ -610,8 +610,8 @@ src_prepare() {
 
         # Todo
         if use dev_extra_warnings ; then
-			eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-warn-format-security.patch )"
-			eapply_gentoo "$(set +f ; cd "${GENTOO_PATCHES_DIR}" && echo ??_all_default-warn-trampolines.patch )"
+			eapply "${FILESDIR}/${GENTOO_PATCHES_DIR}/02_all_default-warn-format-security.patch" || die "failed to apply default-warn-format-security patch"
+			eapply "${FILESDIR}/${GENTOO_PATCHES_DIR}/03_all_default-warn-trampolines.patch" || die "failed to apply default-warn-trampolines patch"
 			if use test ; then
 				ewarn "USE=dev_extra_warnings enables warnings by default which are known to break gcc's tests!"
 			fi
@@ -652,13 +652,6 @@ src_prepare() {
 
         # write HARD_CFLAGS back to the gcc Makefile.
         sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die "failed to write CFLAGS to gcc Makefile"
-
-        # apply any musl specific patches
-        if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
-            eapply "${FILESDIR}"/musl-patches/10.2.0/gcc-pure64.patch
-            eapply "${FILESDIR}"/musl-patches/10.2.0/cpu_indicator.patch
-            eapply "${FILESDIR}"/musl-patches/10.2.0/posix_memalign.patch
-        fi
 	fi
 
 	# apply any user patches
