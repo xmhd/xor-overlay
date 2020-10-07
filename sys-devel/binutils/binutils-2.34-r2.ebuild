@@ -228,7 +228,7 @@ src_configure() {
 	# apply branding
 	myconf+=(
 	    --with-pkgversion="${BINUTILS_BRANDING}"
-	    --with-bugurl="https://bugs.funtoo.org"
+	    --with-bugurl="https://bugs.cairnlinux.org"
 	)
 
 	# configure paths
