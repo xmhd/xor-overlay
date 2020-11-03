@@ -73,7 +73,7 @@ KERNEL_EXTRAVERSION="-cairn"
 # temporarily use fedora kernel configs
 KCONFIG_VERSION="5.9.2"
 KCONFIG_HASH="94a4277f8827d1b2c911deabe56e7d929dc93146"
-KCONFIG_FILE="kernel-x86_64.config"
+KCONFIG_FILE="kernel-x86_64-fedora.config"
 KCONFIG_UPSTREAM="https://src.fedoraproject.org/rpms/kernel/raw/${KCONFIG_HASH}/f/${KCONFIG_FILE}"
 
 SRC_URI="
