@@ -51,7 +51,7 @@ DEPEND="
 	zfs? ( sys-fs/zfs )
 "
 
-DEB_PV_BASE="5.8.7"
+DEB_PV_BASE="5.9.1"
 DEB_EXTRAVERSION="-1"
 EXTRAVERSION="_p1"
 TEMP_EXTRA_VERSION="debian"
