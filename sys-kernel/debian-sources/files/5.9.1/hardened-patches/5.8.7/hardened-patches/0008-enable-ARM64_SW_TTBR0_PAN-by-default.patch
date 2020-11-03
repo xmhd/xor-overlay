@@ -1,0 +1,24 @@
+From eb7e025dd94895e0ce6e34c8a6233b4772403fe5 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Sun, 25 Feb 2018 01:39:32 -0500
+Subject: [PATCH 008/104] enable ARM64_SW_TTBR0_PAN by default
+
+---
+ arch/arm64/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 66dc41fd49f2..513631a217f8 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -1223,6 +1223,7 @@ config RODATA_FULL_DEFAULT_ENABLED
+ 
+ config ARM64_SW_TTBR0_PAN
+ 	bool "Emulate Privileged Access Never using TTBR0_EL1 switching"
++	default y
+ 	help
+ 	  Enabling this option prevents the kernel from accessing
+ 	  user-space memory directly by pointing TTBR0_EL1 to a reserved
+-- 
+2.28.0
+

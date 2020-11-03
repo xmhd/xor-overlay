@@ -1,0 +1,31 @@
+From b343965820e03328275237af25303ab111882e54 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Wed, 3 May 2017 11:57:35 -0400
+Subject: [PATCH 053/104] bug on !PageSlab && !PageCompound in ksize
+
+At least when CONFIG_BUG_ON_DATA_CORRUPTION is enabled.
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ mm/slub.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/mm/slub.c b/mm/slub.c
+index 34111acddc63..24e0d37b2ff3 100644
+--- a/mm/slub.c
++++ b/mm/slub.c
+@@ -4020,7 +4020,11 @@ size_t __ksize(const void *object)
+ 	page = virt_to_head_page(object);
+ 
+ 	if (unlikely(!PageSlab(page))) {
++#ifdef CONFIG_BUG_ON_DATA_CORRUPTION
++		BUG_ON(!PageCompound(page));
++#else
+ 		WARN_ON(!PageCompound(page));
++#endif
+ 		return page_size(page);
+ 	}
+ 
+-- 
+2.28.0
+

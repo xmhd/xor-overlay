@@ -1,0 +1,169 @@
+From 0db1b6849f6b96a7679170ac594f6bcbf013153c Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Tue, 16 May 2017 18:26:10 -0400
+Subject: [PATCH 086/104] restrict device timing side channels
+
+Based on the public grsecurity patches.
+
+Signed-off-by: Thibaut Sautereau <thibaut.sautereau@ssi.gouv.fr>
+Signed-off-by: Levente Polyak <levente@leventepolyak.net>
+---
+ fs/inode.c                 |  4 ++++
+ fs/stat.c                  | 20 +++++++++++++++-----
+ include/linux/capability.h |  5 +++++
+ include/linux/fs.h         | 11 +++++++++++
+ include/linux/fsnotify.h   |  3 +++
+ kernel/capability.c        |  6 ++++++
+ kernel/sysctl.c            |  9 +++++++++
+ 7 files changed, 53 insertions(+), 5 deletions(-)
+
+diff --git a/fs/inode.c b/fs/inode.c
+index 72c4c347afb7..f777be3dce1a 100644
+--- a/fs/inode.c
++++ b/fs/inode.c
+@@ -116,6 +116,10 @@ int proc_nr_inodes(struct ctl_table *table, int write,
+ }
+ #endif
+ 
++/* sysctl */
++int device_sidechannel_restrict __read_mostly = 1;
++EXPORT_SYMBOL(device_sidechannel_restrict);
++
+ static int no_open(struct inode *inode, struct file *file)
+ {
+ 	return -ENXIO;
+diff --git a/fs/stat.c b/fs/stat.c
+index 44f8ad346db4..0fd7c369c6b3 100644
+--- a/fs/stat.c
++++ b/fs/stat.c
+@@ -43,8 +43,13 @@ void generic_fillattr(struct inode *inode, struct kstat *stat)
+ 	stat->gid = inode->i_gid;
+ 	stat->rdev = inode->i_rdev;
+ 	stat->size = i_size_read(inode);
+-	stat->atime = inode->i_atime;
+-	stat->mtime = inode->i_mtime;
++	if (is_sidechannel_device(inode) && !capable_noaudit(CAP_MKNOD)) {
++		stat->atime = inode->i_ctime;
++		stat->mtime = inode->i_ctime;
++	} else {
++		stat->atime = inode->i_atime;
++		stat->mtime = inode->i_mtime;
++	}
+ 	stat->ctime = inode->i_ctime;
+ 	stat->blksize = i_blocksize(inode);
+ 	stat->blocks = inode->i_blocks;
+@@ -83,9 +88,14 @@ int vfs_getattr_nosec(const struct path *path, struct kstat *stat,
+ 	if (IS_DAX(inode))
+ 		stat->attributes |= STATX_ATTR_DAX;
+ 
+-	if (inode->i_op->getattr)
+-		return inode->i_op->getattr(path, stat, request_mask,
+-					    query_flags);
++	if (inode->i_op->getattr) {
++		int retval = inode->i_op->getattr(path, stat, request_mask, query_flags);
++		if (!retval && is_sidechannel_device(inode) && !capable_noaudit(CAP_MKNOD)) {
++			stat->atime = stat->ctime;
++			stat->mtime = stat->ctime;
++		}
++		return retval;
++	}
+ 
+ 	generic_fillattr(inode, stat);
+ 	return 0;
+diff --git a/include/linux/capability.h b/include/linux/capability.h
+index b4345b38a6be..d1982fd7dfcf 100644
+--- a/include/linux/capability.h
++++ b/include/linux/capability.h
+@@ -208,6 +208,7 @@ extern bool has_capability_noaudit(struct task_struct *t, int cap);
+ extern bool has_ns_capability_noaudit(struct task_struct *t,
+ 				      struct user_namespace *ns, int cap);
+ extern bool capable(int cap);
++extern bool capable_noaudit(int cap);
+ extern bool ns_capable(struct user_namespace *ns, int cap);
+ extern bool ns_capable_noaudit(struct user_namespace *ns, int cap);
+ extern bool ns_capable_setid(struct user_namespace *ns, int cap);
+@@ -234,6 +235,10 @@ static inline bool capable(int cap)
+ {
+ 	return true;
+ }
++static inline bool capable_noaudit(int cap)
++{
++	return true;
++}
+ static inline bool ns_capable(struct user_namespace *ns, int cap)
+ {
+ 	return true;
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index ac1e89872db4..98c95a8c2fcc 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -3678,4 +3678,15 @@ static inline int inode_drain_writes(struct inode *inode)
+ 	return filemap_write_and_wait(inode->i_mapping);
+ }
+ 
++extern int device_sidechannel_restrict;
++
++static inline bool is_sidechannel_device(const struct inode *inode)
++{
++	umode_t mode;
++	if (!device_sidechannel_restrict)
++		return false;
++	mode = inode->i_mode;
++	return ((S_ISCHR(mode) || S_ISBLK(mode)) && (mode & (S_IROTH | S_IWOTH)));
++}
++
+ #endif /* _LINUX_FS_H */
+diff --git a/include/linux/fsnotify.h b/include/linux/fsnotify.h
+index 5ab28f6c7d26..39f25bc7376e 100644
+--- a/include/linux/fsnotify.h
++++ b/include/linux/fsnotify.h
+@@ -68,6 +68,9 @@ static inline int fsnotify_file(struct file *file, __u32 mask)
+ 	if (file->f_mode & FMODE_NONOTIFY)
+ 		return 0;
+ 
++	if (mask & (FS_ACCESS | FS_MODIFY) && is_sidechannel_device(inode))
++		return 0;
++
+ 	if (S_ISDIR(inode->i_mode))
+ 		mask |= FS_ISDIR;
+ 
+diff --git a/kernel/capability.c b/kernel/capability.c
+index 1444f3954d75..8cc9dd7992f2 100644
+--- a/kernel/capability.c
++++ b/kernel/capability.c
+@@ -449,6 +449,12 @@ bool capable(int cap)
+ 	return ns_capable(&init_user_ns, cap);
+ }
+ EXPORT_SYMBOL(capable);
++
++bool capable_noaudit(int cap)
++{
++	return ns_capable_noaudit(&init_user_ns, cap);
++}
++EXPORT_SYMBOL(capable_noaudit);
+ #endif /* CONFIG_MULTIUSER */
+ 
+ /**
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index 1b39115fe2a9..148bcd0230d1 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -2252,6 +2252,15 @@ static struct ctl_table kern_table[] = {
+ 		.extra2		= &two,
+ 	},
+ #endif
++	{
++		.procname	= "device_sidechannel_restrict",
++		.data		= &device_sidechannel_restrict,
++		.maxlen		= sizeof(int),
++		.mode		= 0644,
++		.proc_handler	= proc_dointvec_minmax_sysadmin,
++		.extra1		= SYSCTL_ZERO,
++		.extra2		= SYSCTL_ONE,
++	},
+ 	{
+ 		.procname	= "ngroups_max",
+ 		.data		= &ngroups_max,
+-- 
+2.28.0
+

@@ -1,0 +1,27 @@
+From 6ebbd8ff7b605fed3cbd11302b0a4f1170ce33bc Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Tue, 30 May 2017 10:47:23 -0400
+Subject: [PATCH 033/104] enable protected_{symlinks,hardlinks} by default
+
+---
+ fs/namei.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/fs/namei.c b/fs/namei.c
+index 72d4219c93ac..fa5d85184031 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -932,8 +932,8 @@ static inline void put_link(struct nameidata *nd)
+ 		path_put(&last->link);
+ }
+ 
+-int sysctl_protected_symlinks __read_mostly = 0;
+-int sysctl_protected_hardlinks __read_mostly = 0;
++int sysctl_protected_symlinks __read_mostly = 1;
++int sysctl_protected_hardlinks __read_mostly = 1;
+ int sysctl_protected_fifos __read_mostly;
+ int sysctl_protected_regular __read_mostly;
+ 
+-- 
+2.28.0
+

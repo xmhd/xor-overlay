@@ -1,0 +1,24 @@
+From 086763905d50a6db8a932d44d72ee770b4f23def Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Thu, 26 Apr 2018 02:01:26 -0400
+Subject: [PATCH 003/104] disable HARDENED_USERCOPY_FALLBACK by default
+
+---
+ security/Kconfig | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/security/Kconfig b/security/Kconfig
+index 30547931b7a6..145d319d4d5d 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -167,7 +167,6 @@ config HARDENED_USERCOPY
+ config HARDENED_USERCOPY_FALLBACK
+ 	bool "Allow usercopy whitelist violations to fallback to object size"
+ 	depends on HARDENED_USERCOPY
+-	default y
+ 	help
+ 	  This is a temporary option that allows missing usercopy whitelists
+ 	  to be discovered via a WARN() to the kernel log, instead of
+-- 
+2.28.0
+

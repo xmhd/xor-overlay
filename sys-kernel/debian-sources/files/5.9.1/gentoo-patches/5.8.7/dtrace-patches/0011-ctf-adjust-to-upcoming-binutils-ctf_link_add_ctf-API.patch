@@ -1,0 +1,64 @@
+From 4dcd5f831ac6bd6eb1fe1b2713296a9394b6a1e6 Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Wed, 24 Jun 2020 16:01:44 +0100
+Subject: [PATCH 11/14] ctf: adjust to upcoming binutils ctf_link_add_ctf API
+ change
+
+The unreviewed intermediate state of work which is the current OL8
+binutils CTF deduplicator backport broke the API for ctf_link_add_file.
+This breakage is gone in the latest release, so we have to adapt,
+without breaking if the old binutils is used so we don't have to upgrade
+everything in sync.
+
+Thankfully the unreviewed intermediate backport also contains #defines
+which do not exist in the latest version: one such is CTF_LINK_FINAL.
+So we can use this to pick the right API.
+
+Orabug: 31535036
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Reviewed-by: Jack Vogel <jack.vogel@oracle.com>
+---
+ scripts/ctf/ctfarchive.c | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/ctf/ctfarchive.c b/scripts/ctf/ctfarchive.c
+index 2e21b286dfc6..30129992d1e9 100644
+--- a/scripts/ctf/ctfarchive.c
++++ b/scripts/ctf/ctfarchive.c
+@@ -5,7 +5,7 @@
+  * deduplicated CTF derived from those object files, split up by kernel
+  * module.
+  *
+- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
++ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+@@ -23,12 +23,23 @@
+ 
+ static ctf_file_t *output;
+ 
++static int private_ctf_link_add_ctf (ctf_file_t *fp,
++				     const char *name)
++{
++#if !defined (CTF_LINK_FINAL)
++	return ctf_link_add_ctf (fp, NULL, name);
++#else
++	/* Non-upstreamed, erroneously-broken API.  */
++	return ctf_link_add_ctf (fp, NULL, name, NULL, 0);
++#endif
++}
++
+ /*
+  * Add a file to the link.
+  */
+ static void add_to_link(const char *fn)
+ {
+-	if (ctf_link_add_ctf (output, NULL, fn, NULL, 0) < 0)
++	if (private_ctf_link_add_ctf (output, fn) < 0)
+ 	{
+ 		fprintf(stderr, "Cannot add CTF file %s: %s\n", fn,
+ 			ctf_errmsg(ctf_errno(output)));
+-- 
+2.28.0
+

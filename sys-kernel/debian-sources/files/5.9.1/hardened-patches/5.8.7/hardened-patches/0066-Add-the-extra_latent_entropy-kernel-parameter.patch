@@ -1,0 +1,104 @@
+From ee82c3e554701a5aaac51393bfa2463806f856b4 Mon Sep 17 00:00:00 2001
+From: Emese Revfy <re.emese@gmail.com>
+Date: Tue, 31 May 2016 01:34:02 +0200
+Subject: [PATCH 066/104] Add the extra_latent_entropy kernel parameter
+
+When extra_latent_entropy is passed on the kernel command line,
+entropy will be extracted from up to the first 4GB of RAM while the
+runtime memory allocator is being initialized.
+
+Based on work created by the PaX Team.
+
+Signed-off-by: Emese Revfy <re.emese@gmail.com>
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ .../admin-guide/kernel-parameters.txt         |  5 ++++
+ mm/page_alloc.c                               | 25 +++++++++++++++++++
+ scripts/gcc-plugins/Kconfig                   |  5 ++++
+ 3 files changed, 35 insertions(+)
+
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index fb95fad81c79..01538ebd9c80 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -3505,6 +3505,11 @@
+ 			the specified number of seconds.  This is to be used if
+ 			your oopses keep scrolling off the screen.
+ 
++	extra_latent_entropy
++			Enable a very simple form of latent entropy extraction
++			from the first 4GB of memory as the bootmem allocator
++			passes the memory pages to the buddy allocator.
++
+ 	pcbit=		[HW,ISDN]
+ 
+ 	pcd.		[PARIDE]
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 0812b00e44b5..645f3a362631 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -69,6 +69,7 @@
+ #include <linux/nmi.h>
+ #include <linux/psi.h>
+ #include <linux/padata.h>
++#include <linux/random.h>
+ 
+ #include <asm/sections.h>
+ #include <asm/tlbflush.h>
+@@ -107,6 +108,15 @@ struct pcpu_drain {
+ static DEFINE_MUTEX(pcpu_drain_mutex);
+ static DEFINE_PER_CPU(struct pcpu_drain, pcpu_drain);
+ 
++bool __meminitdata extra_latent_entropy;
++
++static int __init setup_extra_latent_entropy(char *str)
++{
++	extra_latent_entropy = true;
++	return 0;
++}
++early_param("extra_latent_entropy", setup_extra_latent_entropy);
++
+ #ifdef CONFIG_GCC_PLUGIN_LATENT_ENTROPY
+ volatile unsigned long latent_entropy __latent_entropy;
+ EXPORT_SYMBOL(latent_entropy);
+@@ -1497,6 +1507,21 @@ void __free_pages_core(struct page *page, unsigned int order)
+ 	__ClearPageReserved(p);
+ 	set_page_count(p, 0);
+ 
++	if (extra_latent_entropy && !PageHighMem(page) && page_to_pfn(page) < 0x100000) {
++		unsigned long hash = 0;
++		size_t index, end = PAGE_SIZE * nr_pages / sizeof hash;
++		const unsigned long *data = lowmem_page_address(page);
++
++		for (index = 0; index < end; index++)
++			hash ^= hash + data[index];
++#ifdef CONFIG_GCC_PLUGIN_LATENT_ENTROPY
++		latent_entropy ^= hash;
++		add_device_randomness((const void *)&latent_entropy, sizeof(latent_entropy));
++#else
++		add_device_randomness((const void *)&hash, sizeof(hash));
++#endif
++	}
++
+ 	atomic_long_add(nr_pages, &page_zone(page)->managed_pages);
+ 	set_page_refcounted(page);
+ 	__free_pages(page, order);
+diff --git a/scripts/gcc-plugins/Kconfig b/scripts/gcc-plugins/Kconfig
+index ae19fb0243b9..ad78375ece5e 100644
+--- a/scripts/gcc-plugins/Kconfig
++++ b/scripts/gcc-plugins/Kconfig
+@@ -53,6 +53,11 @@ config GCC_PLUGIN_LATENT_ENTROPY
+ 	  is some slowdown of the boot process (about 0.5%) and fork and
+ 	  irq processing.
+ 
++	  When extra_latent_entropy is passed on the kernel command line,
++	  entropy will be extracted from up to the first 4GB of RAM while the
++	  runtime memory allocator is being initialized.  This costs even more
++	  slowdown of the boot process.
++
+ 	  Note that entropy extracted this way is not cryptographically
+ 	  secure!
+ 
+-- 
+2.28.0
+

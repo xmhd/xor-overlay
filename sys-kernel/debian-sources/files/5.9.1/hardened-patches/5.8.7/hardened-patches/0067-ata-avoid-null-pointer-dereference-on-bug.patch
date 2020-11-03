@@ -1,0 +1,37 @@
+From ee336dbb572fd62fa7dc4d1ebc6714ac82c7a78e Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Mon, 15 May 2017 23:45:34 -0400
+Subject: [PATCH 067/104] ata: avoid null pointer dereference on bug
+
+Extracted from PaX.
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ drivers/ata/libata-core.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
+index b1cd4d97bc2a..0690e29b265a 100644
+--- a/drivers/ata/libata-core.c
++++ b/drivers/ata/libata-core.c
+@@ -4541,7 +4541,7 @@ void ata_qc_free(struct ata_queued_cmd *qc)
+ 	struct ata_port *ap;
+ 	unsigned int tag;
+ 
+-	WARN_ON_ONCE(qc == NULL); /* ata_qc_from_tag _might_ return NULL */
++	BUG_ON(qc == NULL); /* ata_qc_from_tag _might_ return NULL */
+ 	ap = qc->ap;
+ 
+ 	qc->flags = 0;
+@@ -4558,7 +4558,7 @@ void __ata_qc_complete(struct ata_queued_cmd *qc)
+ 	struct ata_port *ap;
+ 	struct ata_link *link;
+ 
+-	WARN_ON_ONCE(qc == NULL); /* ata_qc_from_tag _might_ return NULL */
++	BUG_ON(qc == NULL); /* ata_qc_from_tag _might_ return NULL */
+ 	WARN_ON_ONCE(!(qc->flags & ATA_QCFLAG_ACTIVE));
+ 	ap = qc->ap;
+ 	link = qc->dev->link;
+-- 
+2.28.0
+

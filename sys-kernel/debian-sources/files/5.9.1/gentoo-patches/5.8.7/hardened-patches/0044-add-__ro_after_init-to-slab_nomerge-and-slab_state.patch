@@ -1,0 +1,38 @@
+From bbe2cf9d3a9afc793102e081e9176ad12acd4197 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Wed, 3 May 2017 11:35:35 -0400
+Subject: [PATCH 044/104] add __ro_after_init to slab_nomerge and slab_state
+
+This was extracted from the PaX patch where it's part of the KERNEXEC
+feature as __read_only.
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ mm/slab_common.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/mm/slab_common.c b/mm/slab_common.c
+index fe8b68482670..7d9b07472ba7 100644
+--- a/mm/slab_common.c
++++ b/mm/slab_common.c
+@@ -28,7 +28,7 @@
+ 
+ #include "slab.h"
+ 
+-enum slab_state slab_state;
++enum slab_state slab_state __ro_after_init;
+ LIST_HEAD(slab_caches);
+ DEFINE_MUTEX(slab_mutex);
+ struct kmem_cache *kmem_cache;
+@@ -59,7 +59,7 @@ static DECLARE_WORK(slab_caches_to_rcu_destroy_work,
+ /*
+  * Merge control. If this is set then no merging of slab caches will occur.
+  */
+-static bool slab_nomerge = !IS_ENABLED(CONFIG_SLAB_MERGE_DEFAULT);
++static bool slab_nomerge __ro_after_init = !IS_ENABLED(CONFIG_SLAB_MERGE_DEFAULT);
+ 
+ static int __init setup_slab_nomerge(char *str)
+ {
+-- 
+2.28.0
+

@@ -1,0 +1,101 @@
+From 2f8482815c7bc490e60f826204ab99a94aeae26e Mon Sep 17 00:00:00 2001
+From: Thibaut Sautereau <thibaut.sautereau@ssi.gouv.fr>
+Date: Tue, 7 May 2019 11:46:21 +0200
+Subject: [PATCH 097/104] mm: Fix extra_latent_entropy
+
+Commit a9cd410a3d29 ("mm/page_alloc.c: memory hotplug: free pages as
+higher order") changed `static void __init __free_pages_boot_core()`
+into `void __free_pages_core()`, causing the following section mismatch
+warning at compile time:
+
+    WARNING: vmlinux.o(.text+0x180fe4): Section mismatch in reference from the function __free_pages_core() to the variable .meminit.data:extra_latent_entropy
+    The function __free_pages_core() references the variable __meminitdata extra_latent_entropy.
+    This is often because __free_pages_core lacks a __meminitdata annotation or the annotation of extra_latent_entropy is wrong.
+
+This commit is an attempt at fixing this issue. I'm not sure it's OK as
+we are accessing pages that are still managed by the bootmem allocator.
+The prefetching part is not an issue as it only affects struct pages.
+
+Signed-off-by: Thibaut Sautereau <thibaut.sautereau@ssi.gouv.fr>
+---
+ mm/page_alloc.c | 34 ++++++++++++++++++++--------------
+ 1 file changed, 20 insertions(+), 14 deletions(-)
+
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 645f3a362631..a8147f2857a2 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -1492,21 +1492,9 @@ static void __free_pages_ok(struct page *page, unsigned int order)
+ 	local_irq_restore(flags);
+ }
+ 
+-void __free_pages_core(struct page *page, unsigned int order)
++static void __init __gather_extra_latent_entropy(struct page *page,
++						 unsigned int nr_pages)
+ {
+-	unsigned int nr_pages = 1 << order;
+-	struct page *p = page;
+-	unsigned int loop;
+-
+-	prefetchw(p);
+-	for (loop = 0; loop < (nr_pages - 1); loop++, p++) {
+-		prefetchw(p + 1);
+-		__ClearPageReserved(p);
+-		set_page_count(p, 0);
+-	}
+-	__ClearPageReserved(p);
+-	set_page_count(p, 0);
+-
+ 	if (extra_latent_entropy && !PageHighMem(page) && page_to_pfn(page) < 0x100000) {
+ 		unsigned long hash = 0;
+ 		size_t index, end = PAGE_SIZE * nr_pages / sizeof hash;
+@@ -1521,7 +1509,22 @@ void __free_pages_core(struct page *page, unsigned int order)
+ 		add_device_randomness((const void *)&hash, sizeof(hash));
+ #endif
+ 	}
++}
+ 
++void __free_pages_core(struct page *page, unsigned int order)
++{
++	unsigned int nr_pages = 1 << order;
++	struct page *p = page;
++	unsigned int loop;
++
++	prefetchw(p);
++	for (loop = 0; loop < (nr_pages - 1); loop++, p++) {
++		prefetchw(p + 1);
++		__ClearPageReserved(p);
++		set_page_count(p, 0);
++	}
++	__ClearPageReserved(p);
++	set_page_count(p, 0);
+ 	atomic_long_add(nr_pages, &page_zone(page)->managed_pages);
+ 	set_page_refcounted(page);
+ 	__free_pages(page, order);
+@@ -1576,6 +1579,7 @@ void __init memblock_free_pages(struct page *page, unsigned long pfn,
+ {
+ 	if (early_page_uninitialised(pfn))
+ 		return;
++	__gather_extra_latent_entropy(page, 1 << order);
+ 	__free_pages_core(page, order);
+ }
+ 
+@@ -1667,6 +1671,7 @@ static void __init deferred_free_range(unsigned long pfn,
+ 	if (nr_pages == pageblock_nr_pages &&
+ 	    (pfn & (pageblock_nr_pages - 1)) == 0) {
+ 		set_pageblock_migratetype(page, MIGRATE_MOVABLE);
++		__gather_extra_latent_entropy(page, 1 << pageblock_order);
+ 		__free_pages_core(page, pageblock_order);
+ 		return;
+ 	}
+@@ -1674,6 +1679,7 @@ static void __init deferred_free_range(unsigned long pfn,
+ 	for (i = 0; i < nr_pages; i++, page++, pfn++) {
+ 		if ((pfn & (pageblock_nr_pages - 1)) == 0)
+ 			set_pageblock_migratetype(page, MIGRATE_MOVABLE);
++		__gather_extra_latent_entropy(page, 1);
+ 		__free_pages_core(page, 0);
+ 	}
+ }
+-- 
+2.28.0
+

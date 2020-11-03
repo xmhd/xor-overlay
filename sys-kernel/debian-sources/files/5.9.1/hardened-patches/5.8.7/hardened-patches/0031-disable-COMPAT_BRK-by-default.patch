@@ -1,0 +1,24 @@
+From b8d0cc18f5a9bf7f6ffbd7b514534d26b77d7595 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Sun, 7 May 2017 18:28:33 -0400
+Subject: [PATCH 031/104] disable COMPAT_BRK by default
+
+---
+ init/Kconfig | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 7bbf4aef6d79..00d769eed7c2 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1824,7 +1824,6 @@ config SLUB_MEMCG_SYSFS_ON
+ 
+ config COMPAT_BRK
+ 	bool "Disable heap randomization"
+-	default y
+ 	help
+ 	  Randomizing heap placement makes heap exploits harder, but it
+ 	  also breaks ancient binaries (including anything libc5 based).
+-- 
+2.28.0
+

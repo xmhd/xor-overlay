@@ -1,0 +1,25 @@
+From 2cf6f0ab44dceea2591c6cb29f9b3b844c9741fa Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Sun, 25 Feb 2018 02:16:49 -0500
+Subject: [PATCH 038/104] enable SECURITY_SELINUX by default
+
+---
+ security/selinux/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/security/selinux/Kconfig b/security/selinux/Kconfig
+index 9e921fc72538..76d7ed11513c 100644
+--- a/security/selinux/Kconfig
++++ b/security/selinux/Kconfig
+@@ -3,7 +3,7 @@ config SECURITY_SELINUX
+ 	bool "NSA SELinux Support"
+ 	depends on SECURITY_NETWORK && AUDIT && NET && INET
+ 	select NETWORK_SECMARK
+-	default n
++	default y
+ 	help
+ 	  This selects NSA Security-Enhanced Linux (SELinux).
+ 	  You will also need a policy configuration and a labeled filesystem.
+-- 
+2.28.0
+

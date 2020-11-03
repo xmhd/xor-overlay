@@ -1,0 +1,25 @@
+From d328d2f524afeec65aede671ffc6b8d8c932f436 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Mon, 8 May 2017 12:51:54 -0400
+Subject: [PATCH 013/104] enable FORTIFY_SOURCE by default
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ security/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/security/Kconfig b/security/Kconfig
+index e95b9e2efd25..13826cd5626e 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -191,6 +191,7 @@ config HARDENED_USERCOPY_PAGESPAN
+ config FORTIFY_SOURCE
+ 	bool "Harden common str/mem functions against buffer overflows"
+ 	depends on ARCH_HAS_FORTIFY_SOURCE
++	default y
+ 	help
+ 	  Detect overflows of buffers in common string and memory functions
+ 	  where the compiler can determine and validate the buffer sizes.
+-- 
+2.28.0
+

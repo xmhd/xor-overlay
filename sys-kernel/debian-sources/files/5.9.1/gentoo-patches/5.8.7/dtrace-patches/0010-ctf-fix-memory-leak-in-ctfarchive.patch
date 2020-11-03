@@ -1,0 +1,31 @@
+From a1444a0908c8480eeff6bec53a17ed0064211106 Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Wed, 27 May 2020 18:19:32 +0100
+Subject: [PATCH 10/14] ctf: fix memory leak in ctfarchive
+
+Spotted while working on something else: almost entirely irrelevant
+given that ctfarchive terminates immediately, but makes valgrind runs
+cleaner.  Folding in to the OL8-mainline CTF bug as a result.
+
+Orabug: 31535036
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Reviewed-by: Jack Vogel <jack.vogel@oracle.com>
+---
+ scripts/ctf/ctfarchive.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/scripts/ctf/ctfarchive.c b/scripts/ctf/ctfarchive.c
+index 355a7b124557..2e21b286dfc6 100644
+--- a/scripts/ctf/ctfarchive.c
++++ b/scripts/ctf/ctfarchive.c
+@@ -268,6 +268,7 @@ int main (int argc, char *argv[])
+ 	if (fclose(fp) < 0)
+ 		goto err;
+ 	free (file_data);
++	ctf_file_close (output);
+ 
+ 	return 0;
+ err:
+-- 
+2.28.0
+

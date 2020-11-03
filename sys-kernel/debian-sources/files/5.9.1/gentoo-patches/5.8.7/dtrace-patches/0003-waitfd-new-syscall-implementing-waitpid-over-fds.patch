@@ -1,0 +1,808 @@
+From 2b43b09818b3931af79145096f2cc5b16d3fe9ed Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Wed, 14 Nov 2018 20:28:51 +0000
+Subject: [PATCH 03/14] waitfd: new syscall implementing waitpid() over fds
+
+This syscall, originally due to Casey Dahlin but significantly modified
+since, is called quite like waitid():
+
+	fd = waitfd(P_PID, some_pid, WEXITED | WSTOPPED, 0);
+
+This returns a file descriptor which becomes ready whenever waitpid()
+would return, and when read() returns the return value waitpid() would
+have returned.  (Alternatively, you can use it as a pure indication that
+waitpid() is callable without hanging, and then call waitpid()).  See the
+example in tools/testing/selftests/waitfd/.
+
+The original reason for rejection of this patch back in 2009 was that it
+was redundant to waitpid()ing in a separate thread and transmitting
+process information to another thread that polls: but this is only the
+case for the conventional child-process use of waitpid().  Other
+waitpid() uses, such as ptrace() returns, are targetted on a single
+thread, so without waitfd or something like it, it is impossible to have
+a thread that both accepts requests for servicing from other threads
+over an fd *and* manipulates the state of a ptrace()d process in
+response to those requests without ugly CPU-chewing polling (accepting
+requests requires blocking in poll() or select(): handling the ptraced
+process requires blocking in waitpid()).
+
+There is one ugliness in this patch which I would appreciate suggestions
+to improve (due to me, not due to Casey, don't blame him).  The poll()
+machinery expects to be used with files, or things enough like files
+that the wake_up key contains an indication as to whether this wakeup
+corresponds to a POLLIN / POLLOUT / POLLERR event on this fd.  You can
+override this in your poll_queue_proc, but the poll() and epoll() queue
+procs both have this interpretation.
+
+Unfortunately, this is not true for waitfds, which wait on the the
+wait_chldexit waitqueue, whose key is a pointer to the task_struct of
+the task being killed.  We can't do anything with this key, but we
+certainly don't want the poll machinery treating it as a bitmask and
+checking it against poll events!
+
+So we introduce a new poll_wait() analogue, poll_wait_fixed().  This is used
+for poll_wait() calls which know they must wait on waitqueues whose keys are
+not a typecast representation of poll events, and passes in an extra
+argument to the poll_queue_proc, which if nonzero is the event which a
+wakeup on this waitqueue should be considered as equivalent to.  The
+poll_queue_proc can then skip adding entirely if that fixed event is not
+included in the set to be caught by this poll().
+
+We also add a new poll_table_entry.fixed_key.  The poll_queue_proc can
+record the fixed key it is passed in here, and reuse it at wakeup time to
+track that a nonzero fixed key was passed in to poll_wait_fixed() and that
+the key should be ignored in preference to fixed_key.
+
+With this in place, you can say, e.g. (as waitfd does)
+
+        poll_wait_fixed(file, &current->signal->wait_chldexit, wait,
+                POLLIN);
+
+and the key passed to wakeups on the wait_chldexit waitqueue will be
+ignored: the fd will always be treated as having raised POLLIN, waking
+up poll()s and epoll()s that have specified that event.  (Obviously, a
+poll function that calls this should return the same value from the poll
+function as was passed to poll_wait_fixed(), or, as usual, zero if this
+was a spurious wakeup.)
+
+I do not like this scheme: it's sufficiently arcane that I had to go
+back to my old commit messages to figure out what it was doing and
+why.  But I don't see another way to cause poll() to return on
+appropriate activity on waitqueues that do not actually correspond to
+files.  (I do wonder how signalfd works.  It doesn't seem to need any of
+this and I don't understand why not.  I would be overjoyed to remove the
+whole invasive poll_wait_fixed() mess, but I'm not sure what to replace
+it with.)
+
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Signed-off-by: Kris Van Hees <kris.van.hees@oracle.com>
+Signed-off-by: Tomas Jedlicka <tomas.jedlicka@oracle.com>
+Signed-off-by: Eugene Loh <eugene.loh@oracle.com>
+Signed-off-by: David Mc Lean <david.mclean@oracle.com>
+Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
+---
+ arch/x86/entry/syscalls/syscall_32.tbl  |   3 +
+ arch/x86/entry/syscalls/syscall_64.tbl  |   3 +
+ drivers/vfio/virqfd.c                   |   3 +-
+ drivers/vhost/vhost.c                   |   2 +-
+ fs/Makefile                             |   1 +
+ fs/aio.c                                |   2 +-
+ fs/eventpoll.c                          |  22 +++-
+ fs/io_uring.c                           |   5 +-
+ fs/select.c                             |  21 +++-
+ fs/waitfd.c                             | 130 ++++++++++++++++++++++++
+ include/linux/poll.h                    |  14 ++-
+ include/linux/syscalls.h                |   3 +
+ include/uapi/asm-generic/unistd.h       |   5 +-
+ init/Kconfig                            |  16 +++
+ kernel/exit.c                           |  13 ++-
+ kernel/sys_ni.c                         |   1 +
+ mm/memcontrol.c                         |   2 +-
+ net/9p/trans_fd.c                       |   3 +-
+ tools/testing/selftests/waitfd/Makefile |  28 +++++
+ tools/testing/selftests/waitfd/waitfd.c | 116 +++++++++++++++++++++
+ virt/kvm/eventfd.c                      |   2 +-
+ 21 files changed, 376 insertions(+), 19 deletions(-)
+ create mode 100644 fs/waitfd.c
+ create mode 100644 tools/testing/selftests/waitfd/Makefile
+ create mode 100644 tools/testing/selftests/waitfd/waitfd.c
+
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index d8f8a1a69ed1..ba11a531e371 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -443,3 +443,6 @@
+ 437	i386	openat2			sys_openat2
+ 438	i386	pidfd_getfd		sys_pidfd_getfd
+ 439	i386	faccessat2		sys_faccessat2
++# This one is a temporary number, designed for no clashes.
++# Nothing but DTrace should use it.
++473	i386	waitfd			sys_waitfd
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index 78847b32e137..e59ed4d11e15 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -360,6 +360,9 @@
+ 437	common	openat2			sys_openat2
+ 438	common	pidfd_getfd		sys_pidfd_getfd
+ 439	common	faccessat2		sys_faccessat2
++# This one is a temporary number, designed for no clashes.
++# Nothing but DTrace should use it.
++473	common	waitfd			sys_waitfd
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff --git a/drivers/vfio/virqfd.c b/drivers/vfio/virqfd.c
+index 997cb5d0a657..6bfafa889af2 100644
+--- a/drivers/vfio/virqfd.c
++++ b/drivers/vfio/virqfd.c
+@@ -76,7 +76,8 @@ static int virqfd_wakeup(wait_queue_entry_t *wait, unsigned mode, int sync, void
+ }
+ 
+ static void virqfd_ptable_queue_proc(struct file *file,
+-				     wait_queue_head_t *wqh, poll_table *pt)
++				     wait_queue_head_t *wqh, poll_table *pt,
++				     unsigned long unused)
+ {
+ 	struct virqfd *virqfd = container_of(pt, struct virqfd, pt);
+ 	add_wait_queue(wqh, &virqfd->wait);
+diff --git a/drivers/vhost/vhost.c b/drivers/vhost/vhost.c
+index d7b8df3edffc..a61e2919fab7 100644
+--- a/drivers/vhost/vhost.c
++++ b/drivers/vhost/vhost.c
+@@ -152,7 +152,7 @@ static void vhost_flush_work(struct vhost_work *work)
+ }
+ 
+ static void vhost_poll_func(struct file *file, wait_queue_head_t *wqh,
+-			    poll_table *pt)
++			    poll_table *pt, unsigned long unused)
+ {
+ 	struct vhost_poll *poll;
+ 
+diff --git a/fs/Makefile b/fs/Makefile
+index 2ce5112b02c8..559a619f07c1 100644
+--- a/fs/Makefile
++++ b/fs/Makefile
+@@ -30,6 +30,7 @@ obj-$(CONFIG_SIGNALFD)		+= signalfd.o
+ obj-$(CONFIG_TIMERFD)		+= timerfd.o
+ obj-$(CONFIG_EVENTFD)		+= eventfd.o
+ obj-$(CONFIG_USERFAULTFD)	+= userfaultfd.o
++obj-$(CONFIG_WAITFD)		+= waitfd.o
+ obj-$(CONFIG_AIO)               += aio.o
+ obj-$(CONFIG_IO_URING)		+= io_uring.o
+ obj-$(CONFIG_IO_WQ)		+= io-wq.o
+diff --git a/fs/aio.c b/fs/aio.c
+index 91e7cc4a9f17..748c1dec7d74 100644
+--- a/fs/aio.c
++++ b/fs/aio.c
+@@ -1722,7 +1722,7 @@ struct aio_poll_table {
+ 
+ static void
+ aio_poll_queue_proc(struct file *file, struct wait_queue_head *head,
+-		struct poll_table_struct *p)
++		struct poll_table_struct *p, unsigned long fixed_event)
+ {
+ 	struct aio_poll_table *pt = container_of(p, struct aio_poll_table, pt);
+ 
+diff --git a/fs/eventpoll.c b/fs/eventpoll.c
+index 12eebcdea9c8..39052781f69d 100644
+--- a/fs/eventpoll.c
++++ b/fs/eventpoll.c
+@@ -157,6 +157,9 @@ struct epitem {
+ 	/* Number of active wait queue attached to poll operations */
+ 	int nwait;
+ 
++	/* fd always raises this fixed event. */
++	unsigned long fixed_event;
++
+ 	/* List containing poll wait queues */
+ 	struct list_head pwqlist;
+ 
+@@ -869,7 +872,7 @@ static int ep_eventpoll_release(struct inode *inode, struct file *file)
+ static __poll_t ep_read_events_proc(struct eventpoll *ep, struct list_head *head,
+ 			       void *priv);
+ static void ep_ptable_queue_proc(struct file *file, wait_queue_head_t *whead,
+-				 poll_table *pt);
++				 poll_table *pt, unsigned long fixed_event);
+ 
+ /*
+  * Differs from ep_eventpoll_poll() in that internal callers already have
+@@ -1285,6 +1288,13 @@ static int ep_poll_callback(wait_queue_entry_t *wait, unsigned mode, int sync, v
+ 	if (!(epi->event.events & EPOLLEXCLUSIVE))
+ 		ewake = 1;
+ 
++	/*
++	 * If this fd type has a hardwired event which should override the key
++	 * (e.g. if it is waiting on a non-file waitqueue), jam it in here.
++	 */
++	if (epi->fixed_event)
++		key = (void *)epi->fixed_event;
++
+ 	if (pollflags & POLLFREE) {
+ 		/*
+ 		 * If we race with ep_remove_wait_queue() it can miss
+@@ -1309,11 +1319,17 @@ static int ep_poll_callback(wait_queue_entry_t *wait, unsigned mode, int sync, v
+  * target file wakeup lists.
+  */
+ static void ep_ptable_queue_proc(struct file *file, wait_queue_head_t *whead,
+-				 poll_table *pt)
++				 poll_table *pt, unsigned long fixed_event)
+ {
+ 	struct epitem *epi = ep_item_from_epqueue(pt);
+ 	struct eppoll_entry *pwq;
+ 
++	if (fixed_event & !(epi->event.events & fixed_event))
++		return;
++
++	if (fixed_event)
++		epi->fixed_event = fixed_event;
++
+ 	if (epi->nwait >= 0 && (pwq = kmem_cache_alloc(pwq_cache, GFP_KERNEL))) {
+ 		init_waitqueue_func_entry(&pwq->wait, ep_poll_callback);
+ 		pwq->whead = whead;
+@@ -1513,6 +1529,7 @@ static int ep_insert(struct eventpoll *ep, const struct epoll_event *event,
+ 	ep_set_ffd(&epi->ffd, tfile, fd);
+ 	epi->event = *event;
+ 	epi->nwait = 0;
++	epi->fixed_event = 0;
+ 	epi->next = EP_UNACTIVE_PTR;
+ 	if (epi->event.events & EPOLLWAKEUP) {
+ 		error = ep_create_wakeup_source(epi);
+@@ -2413,7 +2430,6 @@ static int __init eventpoll_init(void)
+ 	 * We can have many thousands of epitems, so prevent this from
+ 	 * using an extra cache line on 64-bit (and smaller) CPUs
+ 	 */
+-	BUILD_BUG_ON(sizeof(void *) <= 8 && sizeof(struct epitem) > 128);
+ 
+ 	/* Allocates slab cache used to allocate "struct epitem" items */
+ 	epi_cache = kmem_cache_create("eventpoll_epi", sizeof(struct epitem),
+diff --git a/fs/io_uring.c b/fs/io_uring.c
+index 493e5047e67c..728d381ac401 100644
+--- a/fs/io_uring.c
++++ b/fs/io_uring.c
+@@ -4291,7 +4291,8 @@ static void __io_queue_proc(struct io_poll_iocb *poll, struct io_poll_table *pt,
+ }
+ 
+ static void io_async_queue_proc(struct file *file, struct wait_queue_head *head,
+-			       struct poll_table_struct *p)
++				struct poll_table_struct *p,
++				unsigned long fixed_event)
+ {
+ 	struct io_poll_table *pt = container_of(p, struct io_poll_table, pt);
+ 	struct async_poll *apoll = pt->req->apoll;
+@@ -4624,7 +4625,7 @@ static int io_poll_wake(struct wait_queue_entry *wait, unsigned mode, int sync,
+ }
+ 
+ static void io_poll_queue_proc(struct file *file, struct wait_queue_head *head,
+-			       struct poll_table_struct *p)
++			       struct poll_table_struct *p, unsigned long fixed_event)
+ {
+ 	struct io_poll_table *pt = container_of(p, struct io_poll_table, pt);
+ 
+diff --git a/fs/select.c b/fs/select.c
+index 7aef49552d4c..836e7b0016ee 100644
+--- a/fs/select.c
++++ b/fs/select.c
+@@ -116,7 +116,7 @@ struct poll_table_page {
+  * poll table.
+  */
+ static void __pollwait(struct file *filp, wait_queue_head_t *wait_address,
+-		       poll_table *p);
++		       poll_table *p, unsigned long fixed_event);
+ 
+ void poll_initwait(struct poll_wqueues *pwq)
+ {
+@@ -212,6 +212,14 @@ static int pollwake(wait_queue_entry_t *wait, unsigned mode, int sync, void *key
+ 	struct poll_table_entry *entry;
+ 
+ 	entry = container_of(wait, struct poll_table_entry, wait);
++
++	/*
++	 * If this fd type has a hardwired key which should override the key
++	 * (e.g. if it is waiting on a non-file waitqueue), jam it in here.
++	 */
++	if (entry->fixed_key)
++		key = (void *)entry->fixed_key;
++
+ 	if (key && !(key_to_poll(key) & entry->key))
+ 		return 0;
+ 	return __pollwake(wait, mode, sync, key);
+@@ -219,15 +227,22 @@ static int pollwake(wait_queue_entry_t *wait, unsigned mode, int sync, void *key
+ 
+ /* Add a new entry */
+ static void __pollwait(struct file *filp, wait_queue_head_t *wait_address,
+-				poll_table *p)
++				poll_table *p, unsigned long fixed_event)
+ {
+ 	struct poll_wqueues *pwq = container_of(p, struct poll_wqueues, pt);
+-	struct poll_table_entry *entry = poll_get_entry(pwq);
++	struct poll_table_entry *entry;
++
++	if (fixed_event && !(p->_key & fixed_event))
++		return;
++
++	entry = poll_get_entry(pwq);
+ 	if (!entry)
+ 		return;
++
+ 	entry->filp = get_file(filp);
+ 	entry->wait_address = wait_address;
+ 	entry->key = p->_key;
++	entry->fixed_key = fixed_event;
+ 	init_waitqueue_func_entry(&entry->wait, pollwake);
+ 	entry->wait.private = pwq;
+ 	add_wait_queue(wait_address, &entry->wait);
+diff --git a/fs/waitfd.c b/fs/waitfd.c
+new file mode 100644
+index 000000000000..311f84d7b85f
+--- /dev/null
++++ b/fs/waitfd.c
+@@ -0,0 +1,130 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ *  fs/waitfd.c
++ *
++ *  Copyright (C) 2008  Red Hat, Casey Dahlin <cdahlin@redhat.com>
++ *
++ *  Largely derived from fs/signalfd.c
++ */
++
++#include <linux/file.h>
++#include <linux/poll.h>
++#include <linux/init.h>
++#include <linux/fs.h>
++#include <linux/sched.h>
++#include <linux/slab.h>
++#include <linux/kernel.h>
++#include <linux/signal.h>
++#include <linux/list.h>
++#include <linux/anon_inodes.h>
++#include <linux/syscalls.h>
++
++long kernel_wait4(pid_t upid, int __user *stat_addr,
++	      int options, struct rusage __user *ru);
++
++struct waitfd_ctx {
++	int	options;
++	pid_t	upid;
++};
++
++static int waitfd_release(struct inode *inode, struct file *file)
++{
++	kfree(file->private_data);
++	return 0;
++}
++
++static unsigned int waitfd_poll(struct file *file, poll_table *wait)
++{
++	struct waitfd_ctx *ctx = file->private_data;
++	long value;
++
++	poll_wait_fixed(file, &current->signal->wait_chldexit, wait,
++		POLLIN);
++
++	value = kernel_wait4(ctx->upid, NULL, ctx->options | WNOHANG | WNOWAIT,
++			 NULL);
++	if (value > 0 || value == -ECHILD)
++		return POLLIN | POLLRDNORM;
++
++	return 0;
++}
++
++/*
++ * Returns a multiple of the size of a stat_addr, or a negative error code. The
++ * "count" parameter must be at least sizeof(int).
++ */
++static ssize_t waitfd_read(struct file *file, char __user *buf, size_t count,
++			     loff_t *ppos)
++{
++	struct waitfd_ctx *ctx = file->private_data;
++	int __user *stat_addr = (int *)buf;
++	int flags = ctx->options;
++	ssize_t ret, total = 0;
++
++	count /= sizeof(int);
++	if (!count)
++		return -EINVAL;
++
++	if (file->f_flags & O_NONBLOCK)
++		flags |= WNOHANG;
++
++	do {
++		ret = kernel_wait4(ctx->upid, stat_addr, flags, NULL);
++		if (ret == 0)
++			ret = -EAGAIN;
++		if (ret == -ECHILD)
++			ret = 0;
++		if (ret <= 0)
++			break;
++
++		stat_addr++;
++		total += sizeof(int);
++	} while (--count);
++
++	return total ? total : ret;
++}
++
++static const struct file_operations waitfd_fops = {
++	.release	= waitfd_release,
++	.poll		= waitfd_poll,
++	.read		= waitfd_read,
++	.llseek		= noop_llseek,
++};
++
++SYSCALL_DEFINE4(waitfd, int __maybe_unused, which, pid_t, upid, int, options,
++		int __maybe_unused, flags)
++{
++	int ufd;
++	struct waitfd_ctx *ctx;
++
++	/*
++	 * Options validation from kernel_wait4(), minus WNOWAIT, which is
++	 * only used by our polling implementation.  If WEXITED or WSTOPPED
++	 * are provided, silently remove them (for backward compatibility with
++	 * older callers).
++	 */
++	options &= ~(WEXITED | WSTOPPED);
++	if (options & ~(WNOHANG|WUNTRACED|WCONTINUED|
++			__WNOTHREAD|__WCLONE|__WALL))
++		return -EINVAL;
++
++	ctx = kmalloc(sizeof(*ctx), GFP_KERNEL);
++	if (!ctx)
++		return -ENOMEM;
++
++	ctx->options = options;
++	ctx->upid = upid;
++
++	ufd = anon_inode_getfd("[waitfd]", &waitfd_fops, ctx,
++			       O_RDWR | flags | ((options & WNOHANG) ?
++						 O_NONBLOCK | 0 : 0));
++	/*
++	 * Use the fd's nonblocking state from now on, since that can change.
++	 */
++	ctx->options &= ~WNOHANG;
++
++	if (ufd < 0)
++		kfree(ctx);
++
++	return ufd;
++}
+diff --git a/include/linux/poll.h b/include/linux/poll.h
+index 1cdc32b1f1b0..1c06718f39bc 100644
+--- a/include/linux/poll.h
++++ b/include/linux/poll.h
+@@ -34,7 +34,8 @@ struct poll_table_struct;
+ /* 
+  * structures and helpers for f_op->poll implementations
+  */
+-typedef void (*poll_queue_proc)(struct file *, wait_queue_head_t *, struct poll_table_struct *);
++typedef void (*poll_queue_proc)(struct file *, wait_queue_head_t *,
++	struct poll_table_struct *, unsigned long fixed_event);
+ 
+ /*
+  * Do not touch the structure directly, use the access functions
+@@ -48,7 +49,15 @@ typedef struct poll_table_struct {
+ static inline void poll_wait(struct file * filp, wait_queue_head_t * wait_address, poll_table *p)
+ {
+ 	if (p && p->_qproc && wait_address)
+-		p->_qproc(filp, wait_address, p);
++		p->_qproc(filp, wait_address, p, 0);
++}
++
++static inline void poll_wait_fixed(struct file *filp,
++	wait_queue_head_t *wait_address, poll_table *p,
++	unsigned long fixed_event)
++{
++	if (p && p->_qproc && wait_address)
++		p->_qproc(filp, wait_address, p, fixed_event);
+ }
+ 
+ /*
+@@ -93,6 +102,7 @@ static inline __poll_t vfs_poll(struct file *file, struct poll_table_struct *pt)
+ struct poll_table_entry {
+ 	struct file *filp;
+ 	__poll_t key;
++	unsigned long fixed_key;
+ 	wait_queue_entry_t wait;
+ 	wait_queue_head_t *wait_address;
+ };
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index b951a87da987..aee056362814 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -1423,5 +1423,8 @@ long ksys_old_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
+ 			    unsigned int nsops,
+ 			    const struct old_timespec32 __user *timeout);
++#ifdef CONFIG_DTRACE
++asmlinkage long sys_waitfd(int which, pid_t upid, int options, int flags);
++#endif
+ 
+ #endif
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index f4a01305d9a6..34903cf9b3b2 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -858,8 +858,11 @@ __SYSCALL(__NR_pidfd_getfd, sys_pidfd_getfd)
+ #define __NR_faccessat2 439
+ __SYSCALL(__NR_faccessat2, sys_faccessat2)
+ 
++#define __NR_waitfd 473
++__SYSCALL(__NR_waitfd, sys_waitfd)
++
+ #undef __NR_syscalls
+-#define __NR_syscalls 440
++#define __NR_syscalls 474
+ 
+ /*
+  * 32 bit systems traditionally used different
+diff --git a/init/Kconfig b/init/Kconfig
+index 4a47e0190539..c9f9cb3ddb12 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1521,6 +1521,22 @@ config EPOLL
+ 	  Disabling this option will cause the kernel to be built without
+ 	  support for epoll family of system calls.
+ 
++config WAITFD
++	bool "Enable waitfd() system call" if EXPERT
++	select ANON_INODES
++	default n
++	help
++	  Enable the waitfd() system call that allows receiving child state
++	  changes from a file descriptor.  This permits use of poll() to
++	  monitor waitpid() output simultaneously with other fd state changes,
++	  even if the waitpid() output is coming from thread-targetted sources
++	  such as ptrace().
++
++	  Note: this system call is not upstream: its syscall number is not
++	  finalized, so the call itself should only be used with caution.
++
++	  If unsure, say N.
++
+ config SIGNALFD
+ 	bool "Enable signalfd() system call" if EXPERT
+ 	default y
+diff --git a/kernel/exit.c b/kernel/exit.c
+index 727150f28103..35aa5362ae95 100644
+--- a/kernel/exit.c
++++ b/kernel/exit.c
+@@ -1591,7 +1591,10 @@ long kernel_wait4(pid_t upid, int __user *stat_addr, int options,
+ 	enum pid_type type;
+ 	long ret;
+ 
+-	if (options & ~(WNOHANG|WUNTRACED|WCONTINUED|
++	/*
++	 * As for wait4(), except that waitfd() additionally needs WNOWAIT.
++	 */
++	if (options & ~(WNOHANG|WNOWAIT|WUNTRACED|WCONTINUED|
+ 			__WNOTHREAD|__WCLONE|__WALL))
+ 		return -EINVAL;
+ 
+@@ -1630,7 +1633,13 @@ SYSCALL_DEFINE4(wait4, pid_t, upid, int __user *, stat_addr,
+ 		int, options, struct rusage __user *, ru)
+ {
+ 	struct rusage r;
+-	long err = kernel_wait4(upid, stat_addr, options, ru ? &r : NULL);
++	long err;
++
++	if (options & ~(WNOHANG|WUNTRACED|WCONTINUED|
++			__WNOTHREAD|__WCLONE|__WALL))
++		return -EINVAL;
++
++	err = kernel_wait4(upid, stat_addr, options, ru ? &r : NULL);
+ 
+ 	if (err > 0) {
+ 		if (ru && copy_to_user(ru, &r, sizeof(struct rusage)))
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index 3b69a560a7ac..2cdd1d180bb5 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -392,6 +392,7 @@ COND_SYSCALL(subpage_prot);
+  * include/uapi/asm-generic/unistd.h and wanted by >= 1 arch
+  */
+ 
++COND_SYSCALL(waitfd);
+ /* __ARCH_WANT_SYSCALL_NO_FLAGS */
+ COND_SYSCALL(epoll_create);
+ COND_SYSCALL(inotify_init);
+diff --git a/mm/memcontrol.c b/mm/memcontrol.c
+index 13f559af1ab6..34e3acd548dd 100644
+--- a/mm/memcontrol.c
++++ b/mm/memcontrol.c
+@@ -4552,7 +4552,7 @@ static int memcg_event_wake(wait_queue_entry_t *wait, unsigned mode,
+ }
+ 
+ static void memcg_event_ptable_queue_proc(struct file *file,
+-		wait_queue_head_t *wqh, poll_table *pt)
++		wait_queue_head_t *wqh, poll_table *pt, unsigned long unused)
+ {
+ 	struct mem_cgroup_event *event =
+ 		container_of(pt, struct mem_cgroup_event, pt);
+diff --git a/net/9p/trans_fd.c b/net/9p/trans_fd.c
+index 12ecacf0c55f..d2fc232edd64 100644
+--- a/net/9p/trans_fd.c
++++ b/net/9p/trans_fd.c
+@@ -545,7 +545,8 @@ static int p9_pollwake(wait_queue_entry_t *wait, unsigned int mode, int sync, vo
+  */
+ 
+ static void
+-p9_pollwait(struct file *filp, wait_queue_head_t *wait_address, poll_table *p)
++p9_pollwait(struct file *filp, wait_queue_head_t *wait_address, poll_table *p,
++	    unsigned long unused)
+ {
+ 	struct p9_conn *m = container_of(p, struct p9_conn, pt);
+ 	struct p9_poll_wait *pwait = NULL;
+diff --git a/tools/testing/selftests/waitfd/Makefile b/tools/testing/selftests/waitfd/Makefile
+new file mode 100644
+index 000000000000..f85c80b54f05
+--- /dev/null
++++ b/tools/testing/selftests/waitfd/Makefile
+@@ -0,0 +1,28 @@
++uname_M := $(shell uname -m 2>/dev/null || echo not)
++ARCH ?= $(shell echo $(uname_M) | sed -e s/i.86/i386/)
++ifeq ($(ARCH),i386)
++        ARCH := X86
++	CFLAGS := -DCONFIG_X86_32 -D__i386__
++endif
++ifeq ($(ARCH),x86_64)
++	ARCH := X86
++	CFLAGS := -DCONFIG_X86_64 -D__x86_64__
++endif
++
++CFLAGS += -I../../../../arch/x86/include/generated/
++CFLAGS += -I../../../../include/
++CFLAGS += -I../../../../usr/include/
++CFLAGS += -I../../../../arch/x86/include/
++
++all:
++ifeq ($(ARCH),X86)
++	gcc $(CFLAGS) waitfd.c -o waitfd
++else
++	echo "Not an x86 target, can't build waitfd selftest"
++endif
++
++run_tests: all
++	@./waitfd || echo "waitfd: [FAIL]"
++
++clean:
++	rm -fr ./waitfd
+diff --git a/tools/testing/selftests/waitfd/waitfd.c b/tools/testing/selftests/waitfd/waitfd.c
+new file mode 100644
+index 000000000000..2df60bbdbb35
+--- /dev/null
++++ b/tools/testing/selftests/waitfd/waitfd.c
+@@ -0,0 +1,116 @@
++// SPDX-License-Identifier: GPL-2.0
++/* waitfd testcase. */
++
++#define _GNU_SOURCE 1
++#include <linux/unistd.h>
++#include <sys/syscall.h>
++#include <sys/ptrace.h>
++#include <sys/types.h>
++#include <sys/wait.h>
++#include <errno.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <signal.h>
++#include <string.h>
++#include <poll.h>
++
++int waitfd(int which, pid_t upid, int options, int flags)
++{
++	return syscall(__NR_waitfd, which, upid, options, flags);
++}
++
++void sleeper(void)
++{
++	sleep(10);
++	exit(0);
++}
++
++int main (void)
++{
++	pid_t die_pid, ptrace_pid;
++	int die_fd, ptrace_fd;
++	int status;
++	struct pollfd pfd[2];
++	int procs_left = 2;
++
++	memset(pfd, 0, sizeof(pfd));
++
++	/*
++	 * Fork off two children, one of which waits for a ptrace().
++	 * Both just sleep after that.	Make sure we can use __WNOTHREAD,
++	 * __WALL, and WUNTRACED without getting an -EINVAL.
++	 */
++
++	die_pid = fork();
++
++	if (die_pid == 0)
++		sleeper();
++
++	ptrace_pid = fork();
++	if (ptrace_pid == 0) {
++		ptrace(PTRACE_TRACEME, 0, 0, 0);
++		sleeper();
++	}
++
++	die_fd = waitfd(P_PID, die_pid, 0, 0);
++	ptrace_fd = waitfd(P_PID, ptrace_pid, __WNOTHREAD | __WALL | WUNTRACED, 0);
++
++	if (die_fd < 0 || ptrace_fd < 0) {
++		perror("Cannot waitfd()");
++		exit(1);
++	}
++
++	pfd[0].fd = die_fd;
++	pfd[0].events = POLLIN;
++	pfd[1].fd = ptrace_fd;
++	pfd[1].events = POLLIN;
++
++	/*
++	 * Hit the ptrace PID with a signal
++	 */
++	kill(ptrace_pid, SIGABRT);
++
++	while (procs_left > 0) {
++		ssize_t bytes;
++
++		if (poll(pfd, 2, -1) < 0)
++			perror ("poll() failed");
++
++		if (pfd[0].revents != 0) {
++			bytes = read(die_fd, &status, sizeof(int));
++			if (bytes < sizeof(int)) {
++				fprintf(stderr, "Only read %zi bytes\n", bytes);
++				exit(1);
++			}
++
++			printf("die_fd returned %i via waitfd read: revents are %x\n",
++			       status, pfd[0].revents);
++			pfd[0].fd *= -1;
++			procs_left--;
++		}
++
++		if (pfd[1].revents != 0) {
++			pid_t check_pid;
++			status = 0;
++			check_pid = waitpid(ptrace_pid, &status, __WNOTHREAD |
++					    __WALL | WUNTRACED | WNOHANG);
++			if (check_pid < 0) {
++				fprintf(stderr, "waitpid() failed: %s\n",
++					strerror(errno));
++				exit(1);
++			}
++			if (check_pid != ptrace_pid) {
++				fprintf(stderr, "waitfd() said PID %i was ready, but waitpid() says it isn't: %i\n",
++				    ptrace_pid, check_pid);
++				exit(1);
++			}
++			printf("ptrace_fd returned status %i via waitpid; revents are %x\n",
++			       status, pfd[1].revents);
++			pfd[1].fd *= -1;
++			procs_left--;
++		}
++	}
++
++	return 0;
++}
+diff --git a/virt/kvm/eventfd.c b/virt/kvm/eventfd.c
+index ef7ed916ad4a..fa031b3c5765 100644
+--- a/virt/kvm/eventfd.c
++++ b/virt/kvm/eventfd.c
+@@ -232,7 +232,7 @@ irqfd_wakeup(wait_queue_entry_t *wait, unsigned mode, int sync, void *key)
+ 
+ static void
+ irqfd_ptable_queue_proc(struct file *file, wait_queue_head_t *wqh,
+-			poll_table *pt)
++			poll_table *pt, unsigned long unused)
+ {
+ 	struct kvm_kernel_irqfd *irqfd =
+ 		container_of(pt, struct kvm_kernel_irqfd, pt);
+-- 
+2.28.0
+

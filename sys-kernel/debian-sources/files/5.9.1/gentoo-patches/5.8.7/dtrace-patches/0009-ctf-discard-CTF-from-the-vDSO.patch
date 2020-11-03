@@ -1,0 +1,156 @@
+From 7459cc7b62f0556bf8b68f18204974514297891b Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Wed, 15 Apr 2020 17:39:08 +0100
+Subject: [PATCH 09/14] ctf: discard CTF from the vDSO
+
+The vDSO is meant to be no more than one page long: but CTF is getting
+left in it, making it much longer than that on all arches that include C
+code in the vDSO (which is most of them).  Amazingly, this doesn't cause
+instant disaster or indeed many visible problems at all: but it does
+cause GDB to infloop on opening anything and it is definitely both a
+mistake and a pointless waste of space, since the vDSO cannot contribute
+types to any running program.
+
+Exclude it on all appropriate arches.
+
+Orabug: 31194036
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Reviewed-by: Victor Erminpour <victor.erminpour@oracle.com>
+---
+ arch/arm/vdso/Makefile          | 4 ++++
+ arch/arm64/kernel/vdso/Makefile | 4 ++++
+ arch/mips/vdso/Makefile         | 4 ++++
+ arch/nds32/kernel/vdso/Makefile | 6 +++++-
+ arch/sparc/vdso/Makefile        | 4 ++++
+ arch/x86/entry/vdso/Makefile    | 8 ++++++++
+ arch/x86/um/vdso/Makefile       | 4 ++++
+ 7 files changed, 33 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/vdso/Makefile b/arch/arm/vdso/Makefile
+index d3c9f03e7e79..dc1c2c0b6a93 100644
+--- a/arch/arm/vdso/Makefile
++++ b/arch/arm/vdso/Makefile
+@@ -16,6 +16,10 @@ obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
+ ccflags-y := -fPIC -fno-common -fno-builtin -fno-stack-protector
+ ccflags-y += -DDISABLE_BRANCH_PROFILING -DBUILD_VDSO32
+ 
++ifdef CONFIG_CTF_USING_BINUTILS
++ccflags-y += -gt0
++endif
++
+ ldflags-$(CONFIG_CPU_ENDIAN_BE8) := --be8
+ ldflags-y := -Bsymbolic --no-undefined -soname=linux-vdso.so.1 \
+ 	    -z max-page-size=4096 -nostdlib -shared $(ldflags-y) \
+diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
+index 45d5cfe46429..c911329bddd9 100644
+--- a/arch/arm64/kernel/vdso/Makefile
++++ b/arch/arm64/kernel/vdso/Makefile
+@@ -37,6 +37,10 @@ UBSAN_SANITIZE			:= n
+ OBJECT_FILES_NON_STANDARD	:= y
+ KCOV_INSTRUMENT			:= n
+ 
++ifdef CONFIG_CTF_USING_BINUTILS
++KBUILD_CFLAGS += -gt0
++endif
++
+ CFLAGS_vgettimeofday.o = -O2 -mcmodel=tiny -fasynchronous-unwind-tables
+ 
+ ifneq ($(c-gettimeofday-y),)
+diff --git a/arch/mips/vdso/Makefile b/arch/mips/vdso/Makefile
+index 2e64c7600eea..ffaf08465b1d 100644
+--- a/arch/mips/vdso/Makefile
++++ b/arch/mips/vdso/Makefile
+@@ -40,6 +40,10 @@ cflags-vdso := $(ccflags-vdso) \
+ aflags-vdso := $(ccflags-vdso) \
+ 	-D__ASSEMBLY__ -Wa,-gdwarf-2
+ 
++ifdef CONFIG_CTF_USING_BINUTILS
++cflags-vdso += -gt0
++endif
++
+ ifneq ($(c-gettimeofday-y),)
+ CFLAGS_vgettimeofday.o = -include $(c-gettimeofday-y)
+ 
+diff --git a/arch/nds32/kernel/vdso/Makefile b/arch/nds32/kernel/vdso/Makefile
+index 7c3c1ccb196e..10fae2e72436 100644
+--- a/arch/nds32/kernel/vdso/Makefile
++++ b/arch/nds32/kernel/vdso/Makefile
+@@ -18,6 +18,10 @@ ccflags-y := -shared -fno-common -fno-builtin -nostdlib -fPIC -Wl,-shared -g \
+ # Disable gcov profiling for VDSO code
+ GCOV_PROFILE := n
+ 
++vdso-cflags :=
++ifdef CONFIG_CTF_USING_BINUTILS
++vdso-cflags += -gt0
++endif
+ 
+ obj-y += vdso.o
+ extra-y += vdso.lds
+@@ -66,7 +70,7 @@ quiet_cmd_vdsold = VDSOL   $@
+ quiet_cmd_vdsoas = VDSOA   $@
+       cmd_vdsoas = $(CC) $(a_flags) -c -o $@ $<
+ quiet_cmd_vdsocc = VDSOA   $@
+-      cmd_vdsocc = $(CC) $(c_flags) -c -o $@ $<
++      cmd_vdsocc = $(CC) $(c_flags) $(vdso-cflags) -c -o $@ $<
+ 
+ # Install commands for the unstripped file
+ quiet_cmd_vdso_install = INSTALL $@
+diff --git a/arch/sparc/vdso/Makefile b/arch/sparc/vdso/Makefile
+index 708cb6304c2d..510cc409da49 100644
+--- a/arch/sparc/vdso/Makefile
++++ b/arch/sparc/vdso/Makefile
+@@ -5,6 +5,10 @@
+ 
+ KBUILD_CFLAGS += $(DISABLE_LTO)
+ 
++ifdef CONFIG_CTF_USING_BINUTILS
++KBUILD_CFLAGS += -gt0
++endif
++
+ VDSO64-$(CONFIG_SPARC64)	:= y
+ VDSOCOMPAT-$(CONFIG_COMPAT)	:= y
+ 
+diff --git a/arch/x86/entry/vdso/Makefile b/arch/x86/entry/vdso/Makefile
+index 04e65f0698f6..7a34b72b79d7 100644
+--- a/arch/x86/entry/vdso/Makefile
++++ b/arch/x86/entry/vdso/Makefile
+@@ -17,6 +17,10 @@ UBSAN_SANITIZE			:= n
+ KCSAN_SANITIZE			:= n
+ OBJECT_FILES_NON_STANDARD	:= y
+ 
++ifdef CONFIG_CTF_USING_BINUTILS
++KBUILD_CFLAGS += -gt0
++endif
++
+ # Prevents link failures: __sanitizer_cov_trace_pc() is not linked in.
+ KCOV_INSTRUMENT		:= n
+ 
+@@ -162,6 +166,10 @@ ifneq ($(RETPOLINE_VDSO_CFLAGS),)
+ endif
+ endif
+ 
++ifdef CONFIG_CTF_USING_BINUTILS
++KBUILD_CFLAGS_32 += -gt0
++endif
++
+ $(obj)/vdso32.so.dbg: KBUILD_CFLAGS = $(KBUILD_CFLAGS_32)
+ 
+ $(obj)/vdso32.so.dbg: $(obj)/vdso32/vdso32.lds $(vobjs32) FORCE
+diff --git a/arch/x86/um/vdso/Makefile b/arch/x86/um/vdso/Makefile
+index 0caddd6acb22..19b6e3d12255 100644
+--- a/arch/x86/um/vdso/Makefile
++++ b/arch/x86/um/vdso/Makefile
+@@ -37,6 +37,10 @@ $(obj)/%.so: OBJCOPYFLAGS := -S
+ $(obj)/%.so: $(obj)/%.so.dbg FORCE
+ 	$(call if_changed,objcopy)
+ 
++ifdef CONFIG_CTF_USING_BINUTILS
++KBUILD_CFLAGS += -gt0
++endif
++
+ #
+ # Don't omit frame pointers for ease of userspace debugging, but do
+ # optimize sibling calls.
+-- 
+2.28.0
+

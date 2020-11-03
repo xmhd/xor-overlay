@@ -1,0 +1,25 @@
+From 1e815f23da6d46e722133b8a2a9952b9335f2422 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Thu, 4 May 2017 18:15:52 -0400
+Subject: [PATCH 018/106] stop hiding MODIFY_LDT_SYSCALL behind EXPERT
+
+---
+ arch/x86/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 3affdcce32e1..5dc8f2343adf 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2403,7 +2403,7 @@ config CMDLINE_OVERRIDE
+ 	  be set to 'N' under normal conditions.
+ 
+ config MODIFY_LDT_SYSCALL
+-	bool "Enable the LDT (local descriptor table)" if EXPERT
++	bool "Enable the LDT (local descriptor table)"
+ 	default y
+ 	help
+ 	  Linux can allow user programs to install a per-process x86
+-- 
+2.29.2
+

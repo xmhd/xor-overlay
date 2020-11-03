@@ -1,0 +1,1338 @@
+From cba6b6dbbff3d0f640b0a2a99b2623d69119c6a9 Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Thu, 25 Jul 2019 12:44:34 +0100
+Subject: [PATCH 05/14] ctf: toolchain-based CTF support
+
+This adds the option to use a new CTF deduplicator based on the libctf
+linking machinery.  Its deduplication is very bad at the moment but will
+improve, and compression removes much of the disk impact of this (though
+not the memory or performance impact on DTrace itself).  It also has the
+potential to be more reliable, produce much better type output and be
+much faster than dwarf2ctf in time.
+
+These intertwined changes consist of
+
+ - moving scripts/dwarf2ctf to scripts/ctf
+ - splitting the modules_thick iterator out of eu_simple.c, since
+   ctfarchive does not need the elfutils machinery or elfutils
+   dependency, and adjusting dwarf2ctf and scripts/kallsyms accordingly
+ - adjusting Makefile.modpost to invoke scripts/ctf/ctfarchive rather
+   than scripts/ctf/dwarf2ctf if GCC and the binutils toolchain are new
+   enough and the necessary libraries are installed (see previous
+   commit)
+ - when ctfarchive is in use, adjusting the module link to strip the
+   .ctf section out of finished modules into a .ko.ctf file alongside
+   the .ko: ctfarchive knows about this naming convention
+ - adjust vmlinux.lds to discard .ctf sections (since ctfarchive gets
+   vmlinux's .ctf sections out of the underlying modules, so it is a
+   waste of time doing type merging for vmlinux); adjust
+   linux-vmlinux.sh to adjust the linker script used for the first
+   (modpost) link to discard .ctf as well
+ - adding ctfarchive itself, which uses the ctf_link machinery to do the
+   type merging and the CU mapping and memb_name_changer machinery
+   therein to get the module names right
+
+When the deduplicator is rewritten, ctfarchive will need a single line
+changed: the link mode should become CTF_LINK_SHARE_DUPLICATED.
+
+[nca: the ctf_link API has changed a bit since the above was written,
+ but the changes are not major and should be easy to incorporate, and
+ will be incorporated before these changes have any effect in any case.]
+
+Orabug: 30544408
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Reviewed-by: Kris Van Hees <kris.van.hees@oracle.com>
+---
+ include/asm-generic/vmlinux.lds.h             |   1 +
+ scripts/Makefile                              |  10 +-
+ scripts/Makefile.modfinal                     |  41 ++-
+ scripts/ctf/.gitignore                        |   2 +
+ scripts/ctf/Makefile                          |  16 +
+ scripts/ctf/ctfarchive.c                      | 295 ++++++++++++++++++
+ scripts/{dwarf2ctf => ctf}/dwarf2ctf.c        |   3 +-
+ scripts/ctf/eu_simple.c                       | 170 ++++++++++
+ scripts/{ => ctf}/eu_simple.h                 |  30 --
+ scripts/{dwarf2ctf => ctf}/member.blacklist   |   0
+ .../eu_simple.c => ctf/modules_thick.c}       |   2 +-
+ scripts/ctf/modules_thick.h                   |   2 +
+ scripts/dwarf2ctf/.gitignore                  |   1 -
+ scripts/dwarf2ctf/Makefile                    |  11 -
+ scripts/kallsyms.c                            | 192 +-----------
+ scripts/link-vmlinux.sh                       |  14 +-
+ scripts/mod/modpost.c                         |   1 +
+ scripts/{eu_simple.c => modules_thick.c}      | 164 +---------
+ scripts/modules_thick.h                       |  48 +++
+ 19 files changed, 596 insertions(+), 407 deletions(-)
+ create mode 100644 scripts/ctf/.gitignore
+ create mode 100644 scripts/ctf/Makefile
+ create mode 100644 scripts/ctf/ctfarchive.c
+ rename scripts/{dwarf2ctf => ctf}/dwarf2ctf.c (99%)
+ create mode 100644 scripts/ctf/eu_simple.c
+ rename scripts/{ => ctf}/eu_simple.h (66%)
+ rename scripts/{dwarf2ctf => ctf}/member.blacklist (100%)
+ rename scripts/{dwarf2ctf/eu_simple.c => ctf/modules_thick.c} (56%)
+ create mode 100644 scripts/ctf/modules_thick.h
+ delete mode 100644 scripts/dwarf2ctf/.gitignore
+ delete mode 100644 scripts/dwarf2ctf/Makefile
+ rename scripts/{eu_simple.c => modules_thick.c} (57%)
+ create mode 100644 scripts/modules_thick.h
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 052e0f05a984..21b4942947e6 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -937,6 +937,7 @@
+ 	*(.discard)							\
+ 	*(.discard.*)							\
+ 	*(.modinfo)							\
++	*(.ctf)								\
+ 	}
+ 
+ /**
+diff --git a/scripts/Makefile b/scripts/Makefile
+index 9d3c7026cb45..6ef745576891 100644
+--- a/scripts/Makefile
++++ b/scripts/Makefile
+@@ -31,9 +31,17 @@ hostprogs := $(always-y) $(always-m)
+ # The following programs are only built on demand
+ hostprogs += unifdef
+ 
++kallsyms-objs	:= kallsyms.o
++ifeq ($(CONFIG_KALLMODSYMS),y)
++kallsyms-objs   += modules_thick.o
++
++HOSTCFLAGS_modules_thick.o := -I$(srctree)/scripts
++HOSTCFLAGS_kallsyms.o := -I$(srctree)/scripts
++endif
++
+ subdir-$(CONFIG_GCC_PLUGINS) += gcc-plugins
+ subdir-$(CONFIG_MODVERSIONS) += genksyms
+-subdir-$(CONFIG_CTF)         += dwarf2ctf
++subdir-$(CONFIG_CTF)         += ctf
+ subdir-$(CONFIG_SECURITY_SELINUX) += selinux
+ 
+ # Let clean descend into subdirs
+diff --git a/scripts/Makefile.modfinal b/scripts/Makefile.modfinal
+index abe9dcc72bc0..6448cd852be0 100644
+--- a/scripts/Makefile.modfinal
++++ b/scripts/Makefile.modfinal
+@@ -40,9 +40,10 @@ quiet_cmd_cc_o_c = CC [M]  $@
+ # Generate CTF for the entire kernel, or for the module alone if this is a
+ # build of an external module.
+ 
+-# These are overridden below for standalone modules only.
++# These are overridden below.
+ module-ctfs-modular-prereq =
+ module-ctfs-modular =
++separate-ctf :=
+ module-ctf-flags =
+ cmd_touch_ctf =
+ ctf-dir = ///.nonexistent
+@@ -50,22 +51,37 @@ cmd-touch-ctf = @:
+ 
+ ifdef CONFIG_CTF
+ 
+-# This is quite tricky.  If called for non-external-modules, dwarf2ctf needs to
+-# be told about all the built-in objects as well as all the external modules --
+-# but Makefile.modpost only knows about the latter.  So the toplevel makefile
+-# emits the names of the built-in objects into a temporary file, which is
+-# then catted and its contents used as prerequisites by this rule.
++# This is quite tricky.  If called for non-external-modules, the CTF machinery
++# needs to be told about all the built-in objects as well as all the external
++# modules -- but Makefile.modfinal only knows about the latter.  So the toplevel
++# makefile emits the names of the built-in objects into a temporary file, which
++# is then catted and its contents used as prerequisites by this rule.
+ #
+ # We write the names of the object files to be scanned for CTF content into a
+ # file, then use that, to avoid hitting command-line length limits.
+ 
++ifdef CONFIG_CTF_USING_BINUTILS
++CTF_ARCHIVE := scripts/ctf/ctfarchive
++CTF_ARCHIVE_STANDALONE := :
++else
++CTF_ARCHIVE := scripts/ctf/dwarf2ctf
++CTF_ARCHIVE_STANDALONE := scripts/ctf/dwarf2ctf
++endif
++
+ ifeq ($(KBUILD_EXTMOD),)
++ifdef CONFIG_CTF_USING_BINUTILS
++separate-ctf := t
++module-ctf-flags := --remove-section .ctf
++ctf-modules := $(shell find . -name '*.ko.ctf' -print)
++else
++ctf-modules := $(shell find . -name '*.ko' -print)
++endif
++ctf-dir :=
+ ctf-dir-mk :=
+ quiet_cmd_ctf = CTFA
+-      cmd_ctf = scripts/dwarf2ctf/dwarf2ctf vmlinux.ctfa $(srctree) objects.builtin modules_thick.builtin $(srctree)/scripts/dwarf2ctf/member.blacklist $(ctf-filelist)
++      cmd_ctf = $(CTF_ARCHIVE) vmlinux.ctfa $(srctree) objects.builtin modules_thick.builtin $(srctree)/scripts/ctf/member.blacklist $(ctf-filelist)
+ ctf-builtins := objects.builtin
+ ctf-builtins-prereq := $(ctf-builtins)
+- ctf-modules := $(shell find . -name '*.ko' -print)
+ ctf-filelist := .ctf.filelist
+ ctf-filelist-raw := .ctf.filelist.raw
+ ctf-stamp :=
+@@ -74,7 +90,7 @@ else
+ ctf-dir := $(KBUILD_EXTMOD)/.ctf
+ ctf-dir-mk := $(ctf-dir)
+ quiet_cmd_ctf = CTF
+-      cmd_ctf = scripts/dwarf2ctf/dwarf2ctf $(ctf-dir) -e $(ctf-filelist)
++      cmd_ctf = $(CTF_ARCHIVE_STANDALONE) $(ctf-dir) -e $(ctf-filelist)
+ ctf-builtins := ////.no-builtins
+ ctf-builtins-prereq :=
+ ctf-modules := $(modules:.ko=.o)
+@@ -122,6 +138,10 @@ vmlinux.ctfa: $(ctf-filelist)
+ 	$(call if_changed,ctf)
+ else
+ 
++# If libctf is in use, the toolchain has already added everything we need to
++# standalone object files, and we don't need to do anything.
++ifndef CONFIG_CTF_USING_BINUTILS
++
+ # The CTF depends on the output CTF file list, and that depends
+ # on the .o files for the modules
+ $(ctf-stamp): $(ctf-filelist)
+@@ -155,6 +175,8 @@ cmd_touch_ctf = @for name in $(filter $(ctf-dir)/%,$(module-ctfs-modular)); do \
+ 		    test -f $$name || dd if=/dev/zero of=$$name bs=1 count=1 2>/dev/null; \
+ 		done
+ 
++endif           # CONFIG_CTF_USING_BINUTILS
++
+ endif		# KBUILD_EXTMOD
+ 
+ endif		# !CONFIG_CTF
+@@ -168,6 +190,7 @@ quiet_cmd_ld_ko_o = LD [M]  $@
+ 		$(addprefix -T , $(KBUILD_LDS_MODULE))			\
+                  $(LDFLAGS_$(modname)) -o $@.tmp            		\
+ 		-o $@.tmp $(patsubst $(ctf-dir)/%,,$(filter %.o, $^)) && \
++	$(if $(separate-ctf), $(OBJCOPY) --only-section=.ctf $@.tmp $@.ctf, true) && \
+         $(OBJCOPY) $(module-ctf-flags) $@.tmp $@ && rm -f $@.tmp ;	\
+ 	$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
+ 
+diff --git a/scripts/ctf/.gitignore b/scripts/ctf/.gitignore
+new file mode 100644
+index 000000000000..1507d7884e18
+--- /dev/null
++++ b/scripts/ctf/.gitignore
+@@ -0,0 +1,2 @@
++dwarf2ctf
++ctfarchive
+diff --git a/scripts/ctf/Makefile b/scripts/ctf/Makefile
+new file mode 100644
+index 000000000000..eeebe00825b8
+--- /dev/null
++++ b/scripts/ctf/Makefile
+@@ -0,0 +1,16 @@
++ifdef CONFIG_CTF
++ifdef CONFIG_CTF_USING_BINUTILS
++hostprogs-y	:= ctfarchive
++ctfarchive-objs	:= ctfarchive.o modules_thick.o
++else
++hostprogs-y	:= dwarf2ctf
++dwarf2ctf-objs	:= dwarf2ctf.o eu_simple.o modules_thick.o
++endif
++
++HOSTCFLAGS_eu_simple.o := -I.
++HOSTCFLAGS_dwarf2ctf.o := $(shell pkg-config --cflags glib-2.0) -I.
++HOSTLDLIBS_dwarf2ctf := -ldtrace-ctf -lelf -ldw $(shell pkg-config --libs glib-2.0) -lz
++HOSTLDLIBS_ctfarchive := -lctf -lbfd -liberty -lz -ldl
++
++always		:= $(hostprogs-y)
++endif
+diff --git a/scripts/ctf/ctfarchive.c b/scripts/ctf/ctfarchive.c
+new file mode 100644
+index 000000000000..d97ece8d49db
+--- /dev/null
++++ b/scripts/ctf/ctfarchive.c
+@@ -0,0 +1,295 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * ctfmerge.c: Read in CTF extracted from generated object files from a
++ * specified directory and generate a CTF archive whose members are the
++ * deduplicated CTF derived from those object files, split up by kernel
++ * module.
++ *
++ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++#define _GNU_SOURCE 1
++#include <errno.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <ctf-api.h>
++#include "modules_thick.h"
++
++static ctf_file_t *output;
++
++/*
++ * Add a file to the link.
++ */
++static void add_to_link(const char *fn)
++{
++	ctf_archive_t *fp;
++	int err;
++
++	fp = ctf_open(fn, NULL, &err);
++	if (fp == NULL) {
++		/*
++		 * Having no CTF is normal for things like assembly output.
++		 */
++		if (err == ECTF_NOCTFDATA)
++			return;
++		fprintf(stderr, "Cannot open %s: %s\n", fn, ctf_errmsg(err));
++		exit(1);
++	}
++
++	if (ctf_link_add_ctf (output, fp, fn) < 0)
++	{
++		fprintf(stderr, "Cannot add CTF file %s: %s\n", fn,
++			ctf_errmsg(ctf_errno(output)));
++		exit(1);
++	}
++}
++
++/*
++ * Add a CU mapping to the link.
++ *
++ * CU mappings for built-in modules are added by suck_in_modules, below: here,
++ * we only want to add mappings for names ending in '.ko.ctf', i.e. external
++ * modules, which appear only in the filelist (since they are not built-in).
++ * The pathnames are stripped off because modules don't have any, and hyphens
++ * are translated into underscores.
++ */
++static void add_cu_mappings(const char *fn)
++{
++	const char *last_slash;
++	const char *modname = fn;
++	char *dynmodname = NULL;
++	char *dash;
++
++	last_slash = strrchr(modname, '/');
++	if (last_slash)
++		last_slash++;
++	else
++		last_slash = modname;
++	modname = last_slash;
++	if (strchr(modname, '-') != NULL)
++	{
++		dynmodname = strdup(last_slash);
++		dash = dynmodname;
++		while (dash != NULL) {
++			dash = strchr(dash, '-');
++			if (dash != NULL)
++				*dash = '_';
++		}
++		modname = dynmodname;
++	}
++
++	size_t n = strlen(modname);
++	if (strcmp(modname + n - strlen(".ko.ctf"), ".ko.ctf") == 0) {
++		n -= strlen (".ko.ctf");
++		char *mod = strndup(modname, n);
++		ctf_link_add_cu_mapping(output, fn, mod);
++		free (mod);
++	}
++	free(dynmodname);
++}
++
++/*
++ * Add the passed names as mappings to "vmlinux".
++ */
++static void add_builtins(const char *fn)
++{
++	if (ctf_link_add_cu_mapping(output, fn, "vmlinux") < 0)
++	{
++		fprintf(stderr, "Cannot add CTF CU mapping from %s to \"vmlinux\"\n",
++			ctf_errmsg(ctf_errno(output)));
++		exit(1);
++	}
++}
++
++/*
++ * Do something with a file, line by line.
++ */
++static void suck_in_lines(const char *filename, void (*func)(const char *line))
++{
++	FILE *f;
++	char *line = NULL;
++	size_t line_size = 0;
++
++	f = fopen(filename, "r");
++	if (f == NULL) {
++		fprintf(stderr, "Cannot open %s: %s\n", filename,
++			strerror(errno));
++		exit(1);
++	}
++
++	while (getline(&line, &line_size, f) >= 0) {
++		size_t len = strlen(line);
++
++		if (len == 0)
++			continue;
++
++		if (line[len-1] == '\n')
++			line[len-1] = '\0';
++
++		func (line);
++	}
++	free(line);
++
++	if (ferror(f)) {
++		fprintf(stderr, "Error reading from %s: %s\n", filename,
++			strerror(errno));
++		exit(1);
++	}
++
++	fclose(f);
++}
++
++/*
++ * Pull in modules_thick.builtin and turn it into CU mappings.
++ */
++static void suck_in_modules(const char *modules_thick_name)
++{
++	struct modules_thick_iter *i;
++	char *module_name = NULL;
++	char **paths;
++
++	i = modules_thick_iter_new(modules_thick_name);
++	if (i == NULL) {
++		fprintf(stderr, "Cannot iterate over builtin module file.\n");
++		exit(1);
++	}
++
++	while ((paths = modules_thick_iter_next(i, &module_name)) != NULL) {
++		size_t j;
++
++		for (j = 0; paths[j] != NULL; j++) {
++			if (ctf_link_add_cu_mapping(output, paths[j],
++						    module_name) < 0) {
++				fprintf(stderr, "Cannot add path -> module mapping for "
++					"%s -> %s: %s\n", paths[j], module_name,
++					ctf_errmsg(ctf_errno(output)));
++				exit(1);
++			}
++		}
++		free(paths);
++	}
++	free(module_name);
++	modules_thick_iter_free(i);
++}
++
++/*
++ * Strip the leading .ctf. off all the module names: transform the default name
++ * from _CTF_SECTION into shared_ctf, and chop any trailing .ctf off (since that
++ * derives from the intermediate file used to keep the CTF out of the final
++ * module).
++ */
++static char *transform_module_names (ctf_file_t *fp __attribute__((__unused__)),
++				     const char *name,
++				     void *arg __attribute__((__unused__)))
++{
++	if (strcmp(name, ".ctf") == 0)
++		return strdup("shared_ctf");
++
++	if (strncmp(name, ".ctf", 4) == 0) {
++		size_t n = strlen (name);
++		if (strcmp (name + n - 4, ".ctf") == 0)
++			n -= 4;
++		return strndup(name + 4, n - 4);
++	}
++	return NULL;
++}
++
++int main (int argc, char *argv[])
++{
++	int err;
++	const char *output_file;
++	unsigned char *file_data = NULL;
++	size_t file_size;
++	FILE *fp;
++
++	if (argc != 7) {
++		fprintf(stderr, "Syntax: ctfarchive output-file srcdir objects.builtin\n");
++		fprintf(stderr, "                   modules.builtin member.blacklist filelist\n");
++		fprintf(stderr, "\n\"srcdir\" and \"member_blacklist\" are unused and present only\n");
++		fprintf(stderr, "for compatibility.\n\n");
++		exit(1);
++	}
++
++	output_file = argv[1];
++
++	/*
++	 * First pull in the input files and add them to the link.
++	 */
++
++	output = ctf_create(&err);
++	if (!output) {
++		fprintf(stderr, "Cannot create output CTF archive: %s\n",
++			ctf_errmsg(err));
++		return 1;
++	}
++
++	suck_in_lines(argv[6], add_to_link);
++
++	/*
++	 * Make sure that, even if all their types are shared, all modules have
++	 * a ctf member that can be used as a child of the shared CTF.
++	 */
++	suck_in_lines(argv[6], add_cu_mappings);
++
++	/*
++	 * Then pull in the builtin objects list and add them as
++	 * mappings to "vmlinux".
++	 */
++
++	suck_in_lines(argv[3], add_builtins);
++
++	/*
++	 * Finally, pull in the object -> module mapping and add it
++	 * as appropriate mappings.
++	 */
++	suck_in_modules(argv[4]);
++
++	/*
++	 * Arrange to fix up the module names.
++	 */
++	ctf_link_set_memb_name_changer(output, transform_module_names, NULL);
++
++	/*
++	 * Do the link.  This link mode will change in future.
++	 */
++	if (ctf_link(output, CTF_LINK_SHARE_UNCONFLICTED) < 0)
++		goto ctf_err;
++
++	/*
++	 * Write the output.
++	 */
++
++	file_data = ctf_link_write(output, &file_size, 4096);
++	if (!file_data)
++		goto ctf_err;
++
++	fp = fopen(output_file, "w");
++	if (!fp)
++		goto err;
++
++	while ((err = fwrite(file_data, file_size, 1, fp)) == 0);
++	if (ferror(fp)) {
++		errno = ferror(fp);
++		goto err;
++	}
++	if (fclose(fp) < 0)
++		goto err;
++	free (file_data);
++
++	return 0;
++err:
++	free (file_data);
++	fprintf(stderr, "Cannot create output CTF archive: %s\n",
++		strerror(errno));
++	return 1;
++ctf_err:
++	fprintf(stderr, "Cannot create output CTF archive: %s\n",
++		ctf_errmsg(ctf_errno(output)));
++	return 1;
++}
+diff --git a/scripts/dwarf2ctf/dwarf2ctf.c b/scripts/ctf/dwarf2ctf.c
+similarity index 99%
+rename from scripts/dwarf2ctf/dwarf2ctf.c
+rename to scripts/ctf/dwarf2ctf.c
+index cd523c67014e..780a0beb1f1d 100644
+--- a/scripts/dwarf2ctf/dwarf2ctf.c
++++ b/scripts/ctf/dwarf2ctf.c
+@@ -33,7 +33,8 @@
+ #include <sys/ctf_api.h>
+ #include <glib.h>
+ 
+-#include <eu_simple.h>
++#include "eu_simple.h"
++#include "modules_thick.h"
+ 
+ #ifndef PATH_MAX
+ #define PATH_MAX 1024
+diff --git a/scripts/ctf/eu_simple.c b/scripts/ctf/eu_simple.c
+new file mode 100644
+index 000000000000..554440afa7d0
+--- /dev/null
++++ b/scripts/ctf/eu_simple.c
+@@ -0,0 +1,170 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Convenience wrappers for functions in elfutils.
++ *
++ * (C) 2014, 2019 Oracle, Inc.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++#include <stdlib.h>
++
++#include <elfutils/libdwfl.h>
++#include <elfutils/version.h>
++
++#include "eu_simple.h"
++
++#define __unused__ __attribute__((__unused__))
++
++/*
++ * A version of dwfl_report_elf() that compensates for parameter changes in
++ * newer elfutils.
++ */
++static Dwfl_Module *private_dwfl_report_elf(Dwfl *dwfl, const char *name,
++					    const char *file_name, int fd,
++					    GElf_Addr base)
++{
++#if _ELFUTILS_PREREQ(0,156)
++	return dwfl_report_elf(dwfl, name, file_name, fd, base, 0);
++#else
++	return dwfl_report_elf(dwfl, name, file_name, fd, base);
++#endif
++}
++
++/*
++ * Stub libdwfl callback, use only the ELF handle passed in.
++ */
++static int no_debuginfo(Dwfl_Module *mod __unused__,
++			void **userdata __unused__,
++			const char *modname __unused__,
++			Dwarf_Addr base __unused__,
++			const char *file_name __unused__,
++			const char *debuglink_file __unused__,
++			GElf_Word debuglink_crc __unused__,
++			char **debuginfo_file_name __unused__)
++{
++	return -1;
++}
++
++/*
++ * Wrap up dwfl_new() complexities.
++ */
++Dwfl *simple_dwfl_new(const char *file_name, Dwfl_Module **module)
++{
++	const char *err;
++
++	static Dwfl_Callbacks cb = {
++		.find_debuginfo = no_debuginfo,
++		.section_address = dwfl_offline_section_address
++	};
++	Dwfl *dwfl = dwfl_begin(&cb);
++	Dwfl_Module *mod;
++
++	if (dwfl == NULL) {
++		err = "initialize libdwfl";
++		goto fail;
++	}
++
++	mod = private_dwfl_report_elf(dwfl, "", file_name, -1, 0);
++	if (mod == NULL) {
++		err = "open object file with libdwfl";
++		goto fail;
++	}
++	if (module)
++		*module = mod;
++
++	if (dwfl_report_end(dwfl, NULL, NULL) != 0) {
++		err = "finish opening object file with libdwfl";
++		goto fail;
++	}
++
++	return dwfl;
++ fail:
++	fprintf(stderr, "Cannot %s for %s: %s\n", err, file_name,
++		dwfl_errmsg(dwfl_errno()));
++	exit(1);
++}
++
++/*
++ * A variant of simple_dwfl_new() that iterates over multiple object files.
++ * (Used for thin archives.)
++ *
++ * Takes ownership of the paths, until free.
++ */
++struct simple_dwfl_multi *
++simple_dwfl_new_multi(char **paths)
++{
++	struct simple_dwfl_multi *multi;
++
++	multi = malloc(sizeof(struct simple_dwfl_multi));
++	if (multi == NULL)
++		return NULL;
++
++	multi->paths = paths;
++	multi->i = -1;
++	multi->dwfl = NULL;
++	multi->last_die = NULL;
++
++	return multi;
++}
++
++/*
++ * A variant of dwfl_nextcu() that crosses file boundaries as needed,
++ * using the state in the simple_dwfl_multi.
++ */
++Dwarf_Die *
++simple_dwfl_nextcu(struct simple_dwfl_multi *multi)
++{
++	Dwarf_Addr junk;
++
++	/*
++	 * Switch object files as needed (and always, the first time).
++	 */
++
++	if (multi->i >= 0)
++		multi->last_die = dwfl_nextcu(multi->dwfl, multi->last_die,
++					      &junk);
++
++	while (multi->last_die == NULL) {
++		simple_dwfl_free(multi->dwfl);
++		if (multi->paths[++multi->i] == NULL) {
++			multi->i = -1;
++			multi->dwfl = NULL;
++			multi->last_die = NULL;
++			return NULL;
++		}
++
++		multi->dwfl = simple_dwfl_new(multi->paths[multi->i], NULL);
++		multi->last_die = dwfl_nextcu(multi->dwfl, multi->last_die,
++					      &junk);
++	}
++	return multi->last_die;
++}
++
++/*
++ * Free a simple_dwfl_new_multi: return its contained paths so the caller can
++ * free them again.  (They are not changed, so the caller can just hang on to
++ * them if preferred.)
++ */
++char **
++simple_dwfl_free_multi(struct simple_dwfl_multi *multi)
++{
++	char **paths = multi->paths;
++	simple_dwfl_free(multi->dwfl);
++	free(multi);
++	return paths;
++}
++
++/*
++ * The converse of simple_dwfl_new().
++ */
++void simple_dwfl_free(Dwfl *dwfl)
++{
++	if (dwfl != NULL) {
++		dwfl_report_end(dwfl, NULL, NULL);
++		dwfl_end(dwfl);
++	}
++}
+diff --git a/scripts/eu_simple.h b/scripts/ctf/eu_simple.h
+similarity index 66%
+rename from scripts/eu_simple.h
+rename to scripts/ctf/eu_simple.h
+index 8ef9f9655077..c402903e94f4 100644
+--- a/scripts/eu_simple.h
++++ b/scripts/ctf/eu_simple.h
+@@ -14,7 +14,6 @@
+ #ifndef _LINUX_EU_SIMPLE_H
+ #define _LINUX_EU_SIMPLE_H
+ 
+-#include <stdio.h>
+ #include <stddef.h>
+ #include <elfutils/libdwfl.h>
+ 
+@@ -59,33 +58,4 @@ char **simple_dwfl_free_multi(struct simple_dwfl_multi *multi);
+  */
+ void simple_dwfl_free(Dwfl *dwfl);
+ 
+-/*
+- * modules_thick.builtin iteration state.
+- */
+-struct modules_thick_iter {
+-	FILE *f;
+-	char *line;
+-	size_t line_size;
+-};
+-
+-/*
+- * Construct a modules_thick.builtin iterator.
+- */
+-struct modules_thick_iter *
+-modules_thick_iter_new(const char *modules_thick_file);
+-
+-/*
+- * Iterate, returning a new null-terminated array of object file names, and a
+- * new dynamically-allocated module name.  (The module name passed in is freed.)
+- *
+- * The array of object file names should be freed by the caller: the strings it
+- * points to are owned by the iterator, and should not be freed.
+- */
+-
+-char ** __attribute__((__nonnull__))
+-modules_thick_iter_next(struct modules_thick_iter *i, char **module_name);
+-
+-void
+-modules_thick_iter_free(struct modules_thick_iter *i);
+-
+ #endif
+diff --git a/scripts/dwarf2ctf/member.blacklist b/scripts/ctf/member.blacklist
+similarity index 100%
+rename from scripts/dwarf2ctf/member.blacklist
+rename to scripts/ctf/member.blacklist
+diff --git a/scripts/dwarf2ctf/eu_simple.c b/scripts/ctf/modules_thick.c
+similarity index 56%
+rename from scripts/dwarf2ctf/eu_simple.c
+rename to scripts/ctf/modules_thick.c
+index 49886e5e5411..21bcca94e168 100644
+--- a/scripts/dwarf2ctf/eu_simple.c
++++ b/scripts/ctf/modules_thick.c
+@@ -1,2 +1,2 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+-#include "../eu_simple.c"
++#include "../modules_thick.c"
+diff --git a/scripts/ctf/modules_thick.h b/scripts/ctf/modules_thick.h
+new file mode 100644
+index 000000000000..1c31f94e1850
+--- /dev/null
++++ b/scripts/ctf/modules_thick.h
+@@ -0,0 +1,2 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#include "../modules_thick.h"
+diff --git a/scripts/dwarf2ctf/.gitignore b/scripts/dwarf2ctf/.gitignore
+deleted file mode 100644
+index e37b47cf3028..000000000000
+--- a/scripts/dwarf2ctf/.gitignore
++++ /dev/null
+@@ -1 +0,0 @@
+-dwarf2ctf
+diff --git a/scripts/dwarf2ctf/Makefile b/scripts/dwarf2ctf/Makefile
+deleted file mode 100644
+index d908050a271f..000000000000
+--- a/scripts/dwarf2ctf/Makefile
++++ /dev/null
+@@ -1,11 +0,0 @@
+-ifdef CONFIG_CTF
+-hostprogs-y	:= dwarf2ctf
+-always		:= $(hostprogs-y)
+-
+-dwarf2ctf-objs  := dwarf2ctf.o eu_simple.o
+-
+-HOSTCFLAGS_eu_simple.o := -I$(srctree)/scripts
+-HOSTCFLAGS_dwarf2ctf.o := $(shell pkg-config --cflags glib-2.0) -I$(srctree)/scripts
+-
+-HOSTLDLIBS_dwarf2ctf := -ldtrace-ctf -lelf -ldw $(shell pkg-config --libs glib-2.0) -lz
+-endif
+diff --git a/scripts/kallsyms.c b/scripts/kallsyms.c
+index 57ef1007736d..16d124df1379 100644
+--- a/scripts/kallsyms.c
++++ b/scripts/kallsyms.c
+@@ -33,6 +33,7 @@
+ 
+ #ifdef CONFIG_KALLMODSYMS
+ #include <errno.h>
++#include <modules_thick.h>
+ #endif
+ 
+ #ifndef ARRAY_SIZE
+@@ -169,15 +170,6 @@ static unsigned int builtin_module_len;		/* number assigned */
+ static char **builtin_modules;			/* array of module names */
+ static unsigned int *builtin_module_offsets;	/* offset */
+ 
+-/*
+- * modules_thick.builtin iteration state.
+- */
+-struct modules_thick_iter {
+-	FILE *f;
+-	char *line;
+-	size_t line_size;
+-};
+-
+ /*
+  * An ordered list of address ranges and how they map to built-in modules.
+  */
+@@ -943,188 +935,6 @@ static void record_relative_base(void)
+ }
+ 
+ #ifdef CONFIG_KALLMODSYMS
+-/*
+- * Read a modules_thick.builtin file.
+- */
+-
+-/*
+- * Construct a modules_thick.builtin iterator.
+- */
+-static struct modules_thick_iter *
+-modules_thick_iter_new(const char *modules_thick_file)
+-{
+-	struct modules_thick_iter *i;
+-
+-	i = calloc(1, sizeof(struct modules_thick_iter));
+-	if (i == NULL)
+-		return NULL;
+-
+-	i->f = fopen(modules_thick_file, "r");
+-
+-	if (i->f == NULL) {
+-		fprintf(stderr, "Cannot open builtin module file %s: %s\n",
+-			modules_thick_file, strerror(errno));
+-		return NULL;
+-	}
+-
+-	return i;
+-}
+-
+-/*
+- * Iterate, returning a new null-terminated array of object file names, and a
+- * new dynamically-allocated module name.  (The module name passed in is freed.)
+- *
+- * The array of object file names should be freed by the caller: the strings it
+- * points to are owned by the iterator, and should not be freed.
+- */
+-static char ** __attribute__((__nonnull__))
+-modules_thick_iter_next(struct modules_thick_iter *i, char **module_name)
+-{
+-	size_t npaths = 1;
+-	char **module_paths;
+-	char *last_slash;
+-	char *last_dot;
+-	char *trailing_linefeed;
+-	char *object_name = i->line;
+-	char *dash;
+-	int composite = 0;
+-
+-	/*
+-	 * Read in all module entries, computing the suffixless, pathless name
+-	 * of the module and building the next arrayful of object file names for
+-	 * return.
+-	 *
+-	 * Modules can consist of multiple files: in this case, the portion
+-	 * before the colon is the path to the module (as before): the portion
+-	 * after the colon is a space-separated list of files that should be *
+-	 * considered part of this module.  In this case, the portion before the
+-	 * name is an "object file" that does not actually exist: it is merged
+-	 * into built-in.a without ever being written out.
+-	 *
+-	 * All module names have - translated to _, to match what is done to the
+-	 * names of the same things when built as modules.
+-	 */
+-
+-	/*
+-	 * Reinvocation of exhausted iterator. Return NULL, once.
+-	 */
+-retry:
+-	if (getline(&i->line, &i->line_size, i->f) < 0) {
+-		if (ferror(i->f)) {
+-			fprintf(stderr,
+-				"Error reading from modules_thick file: %s\n",
+-				strerror(errno));
+-			exit(1);
+-		}
+-		rewind(i->f);
+-		return NULL;
+-	}
+-
+-	if (i->line[0] == '\0')
+-		goto retry;
+-
+-	/*
+-	 * Slice the line in two at the colon, if any.  If there is anything
+-	 * past the ': ', this is a composite module.  (We allow for no colon
+-	 * for robustness, even though one should always be present.)
+-	 */
+-	if (strchr(i->line, ':') != NULL) {
+-		char *name_start;
+-
+-		object_name = strchr(i->line, ':');
+-		*object_name = '\0';
+-		object_name++;
+-		name_start = object_name + strspn(object_name, " \n");
+-		if (*name_start != '\0') {
+-			composite = 1;
+-			object_name = name_start;
+-		}
+-	}
+-
+-	/*
+-	 * Figure out the module name.
+-	 */
+-	last_slash = strrchr(i->line, '/');
+-	last_slash = (!last_slash) ? i->line :
+-		last_slash + 1;
+-	free(*module_name);
+-	*module_name = strdup(last_slash);
+-	dash = *module_name;
+-
+-	while (dash != NULL) {
+-		dash = strchr(dash, '-');
+-		if (dash != NULL)
+-			*dash = '_';
+-	}
+-
+-	last_dot = strrchr(*module_name, '.');
+-	if (last_dot != NULL)
+-		*last_dot = '\0';
+-
+-	trailing_linefeed = strchr(object_name, '\n');
+-	if (trailing_linefeed != NULL)
+-		*trailing_linefeed = '\0';
+-
+-	/*
+-	 * Multifile separator? Object file names explicitly stated:
+-	 * slice them up and shuffle them in.
+-	 *
+-	 * The array size may be an overestimate if any object file
+-	 * names start or end with spaces (very unlikely) but cannot be
+-	 * an underestimate.  (Check for it anyway.)
+-	 */
+-	if (composite) {
+-		char *one_object;
+-
+-		for (npaths = 0, one_object = object_name;
+-		     one_object != NULL;
+-		     npaths++, one_object = strchr(one_object + 1, ' '))
+-			;
+-	}
+-
+-	module_paths = malloc((npaths + 1) * sizeof(char *));
+-	if (!module_paths) {
+-		fprintf(stderr, "%s: out of memory on module %s\n", __func__,
+-			*module_name);
+-		exit(1);
+-	}
+-
+-	if (composite) {
+-		char *one_object;
+-		size_t i = 0;
+-
+-		while ((one_object = strsep(&object_name, " ")) != NULL) {
+-			if (i >= npaths) {
+-				fprintf(stderr, "%s: npaths overflow on module "
+-					"%s: this is a bug.\n", __func__,
+-					*module_name);
+-				exit(1);
+-			}
+-
+-			module_paths[i++] = one_object;
+-		}
+-	} else
+-		module_paths[0] = i->line;	/* untransformed module name */
+-
+-	module_paths[npaths] = NULL;
+-
+-	return module_paths;
+-}
+-
+-/*
+- * Free an iterator. Can be called while iteration is underway, so even
+- * state that is freed at the end of iteration must be freed here too.
+- */
+-static void
+-modules_thick_iter_free(struct modules_thick_iter *i)
+-{
+-	if (i == NULL)
+-		return;
+-	fclose(i->f);
+-	free(i->line);
+-	free(i);
+-}
+-
+ /*
+  * Expand the builtin modules list.
+  */
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 2a144d99baf6..26e6a1dfae3c 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -39,7 +39,9 @@ info()
+ 	fi
+ }
+ 
+-# Link of vmlinux.o used for section mismatch analysis
++# Link of vmlinux.o used for section mismatch analysis: we also strip the CTF
++# section out at this stage, since ctfarchive gets it from the underlying object
++# files  and linking it further is a waste of time.
+ # ${1} output file
+ modpost_link()
+ {
+@@ -52,7 +54,15 @@ modpost_link()
+ 		${KBUILD_VMLINUX_LIBS}				\
+ 		--end-group"
+ 
+-	${LD} ${KBUILD_LDFLAGS} -r -o ${1} ${objects}
++        ${LD} -r --verbose | awk '
++		BEGIN { discards = 0; p = 0; }
++		/^====/ { p = 1; next; }
++		p && /\.ctf/ { next; }
++		p && !discards && /DISCARD/ { sub(/\} *$/, " *(.ctf) }"); discards = 1 }
++                p && /^\}/ && !discards { print "  /DISCARD/ : { *(.ctf) }"; }
++		p { print $0; }' > .tmp.remove-ctf.lds
++	${LD} ${KBUILD_LDFLAGS} -T .tmp.remove-ctf.lds -r -o ${1} ${objects}
++        rm -f .tmp.remove-ctf.lds
+ }
+ 
+ objtool_link()
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index 69341b36f271..2e2dae693121 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -883,6 +883,7 @@ static const char *const section_white_list[] =
+ 	".debug*",
+ 	".cranges",		/* sh64 */
+ 	".zdebug*",		/* Compressed debug sections. */
++        ".ctf",			/* Type info */
+ 	".GCC.command.line",	/* record-gcc-switches */
+ 	".mdebug*",        /* alpha, score, mips etc. */
+ 	".pdr",            /* alpha, score, mips etc. */
+diff --git a/scripts/eu_simple.c b/scripts/modules_thick.c
+similarity index 57%
+rename from scripts/eu_simple.c
+rename to scripts/modules_thick.c
+index e2736f29d001..d40fbf572299 100644
+--- a/scripts/eu_simple.c
++++ b/scripts/modules_thick.c
+@@ -1,8 +1,8 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ /*
+- * Convenience wrappers for functions in elfutils.
++ * A simple modules_thick reader.
+  *
+- * (C) 2014, 2017 Oracle, Inc.  All rights reserved.
++ * (C) 2014, 2019 Oracle, Inc.  All rights reserved.
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+@@ -15,167 +15,11 @@
+ #include <stdlib.h>
+ #include <string.h>
+ 
+-#include <elfutils/libdwfl.h>
+-#include <elfutils/version.h>
+-
+-#include <eu_simple.h>
+-
+-#define __unused__ __attribute__((__unused__))
+-
+-/*
+- * A version of dwfl_report_elf() that compensates for parameter changes in
+- * newer elfutils.
+- */
+-static Dwfl_Module *private_dwfl_report_elf(Dwfl *dwfl, const char *name,
+-					    const char *file_name, int fd,
+-					    GElf_Addr base)
+-{
+-#if _ELFUTILS_PREREQ(0,156)
+-	return dwfl_report_elf(dwfl, name, file_name, fd, base, 0);
+-#else
+-	return dwfl_report_elf(dwfl, name, file_name, fd, base);
+-#endif
+-}
+-
+-/*
+- * Stub libdwfl callback, use only the ELF handle passed in.
+- */
+-static int no_debuginfo(Dwfl_Module *mod __unused__,
+-			void **userdata __unused__,
+-			const char *modname __unused__,
+-			Dwarf_Addr base __unused__,
+-			const char *file_name __unused__,
+-			const char *debuglink_file __unused__,
+-			GElf_Word debuglink_crc __unused__,
+-			char **debuginfo_file_name __unused__)
+-{
+-	return -1;
+-}
+-
+-/*
+- * Wrap up dwfl_new() complexities.
+- */
+-Dwfl *simple_dwfl_new(const char *file_name, Dwfl_Module **module)
+-{
+-	const char *err;
+-
+-	static Dwfl_Callbacks cb = {
+-		.find_debuginfo = no_debuginfo,
+-		.section_address = dwfl_offline_section_address
+-	};
+-	Dwfl *dwfl = dwfl_begin(&cb);
+-	Dwfl_Module *mod;
+-
+-	if (dwfl == NULL) {
+-		err = "initialize libdwfl";
+-		goto fail;
+-	}
+-
+-	mod = private_dwfl_report_elf(dwfl, "", file_name, -1, 0);
+-	if (mod == NULL) {
+-		err = "open object file with libdwfl";
+-		goto fail;
+-	}
+-	if (module)
+-		*module = mod;
+-
+-	if (dwfl_report_end(dwfl, NULL, NULL) != 0) {
+-		err = "finish opening object file with libdwfl";
+-		goto fail;
+-	}
+-
+-	return dwfl;
+- fail:
+-	fprintf(stderr, "Cannot %s for %s: %s\n", err, file_name,
+-		dwfl_errmsg(dwfl_errno()));
+-	exit(1);
+-}
+-
+-/*
+- * A variant of simple_dwfl_new() that iterates over multiple object files.
+- * (Used for thin archives.)
+- *
+- * Takes ownership of the paths, until free.
+- */
+-struct simple_dwfl_multi *
+-simple_dwfl_new_multi(char **paths)
+-{
+-	struct simple_dwfl_multi *multi;
+-
+-	multi = malloc(sizeof(struct simple_dwfl_multi));
+-	if (multi == NULL)
+-		return NULL;
+-
+-	multi->paths = paths;
+-	multi->i = -1;
+-	multi->dwfl = NULL;
+-	multi->last_die = NULL;
+-
+-	return multi;
+-}
+-
+-/*
+- * A variant of dwfl_nextcu() that crosses file boundaries as needed,
+- * using the state in the simple_dwfl_multi.
+- */
+-Dwarf_Die *
+-simple_dwfl_nextcu(struct simple_dwfl_multi *multi)
+-{
+-	Dwarf_Addr junk;
+-
+-	/*
+-	 * Switch object files as needed (and always, the first time).
+-	 */
+-
+-	if (multi->i >= 0)
+-		multi->last_die = dwfl_nextcu(multi->dwfl, multi->last_die,
+-					      &junk);
+-
+-	while (multi->last_die == NULL) {
+-		simple_dwfl_free(multi->dwfl);
+-		if (multi->paths[++multi->i] == NULL) {
+-			multi->i = -1;
+-			multi->dwfl = NULL;
+-			multi->last_die = NULL;
+-			return NULL;
+-		}
+-
+-		multi->dwfl = simple_dwfl_new(multi->paths[multi->i], NULL);
+-		multi->last_die = dwfl_nextcu(multi->dwfl, multi->last_die,
+-					      &junk);
+-	}
+-	return multi->last_die;
+-}
+-
+-/*
+- * Free a simple_dwfl_new_multi: return its contained paths so the caller can
+- * free them again.  (They are not changed, so the caller can just hang on to
+- * them if preferred.)
+- */
+-char **
+-simple_dwfl_free_multi(struct simple_dwfl_multi *multi)
+-{
+-	char **paths = multi->paths;
+-	simple_dwfl_free(multi->dwfl);
+-	free(multi);
+-	return paths;
+-}
+-
+-/*
+- * The converse of simple_dwfl_new().
+- */
+-void simple_dwfl_free(Dwfl *dwfl)
+-{
+-	if (dwfl != NULL) {
+-		dwfl_report_end(dwfl, NULL, NULL);
+-		dwfl_end(dwfl);
+-	}
+-}
+-
++#include "modules_thick.h"
+ 
+ /*
+  * Read a modules_thick.builtin file and translate it into a stream of
+- * arguments suitable for simple_dwfl_new_multi().
++ * name / module-name pairs.
+  */
+ 
+ /*
+diff --git a/scripts/modules_thick.h b/scripts/modules_thick.h
+new file mode 100644
+index 000000000000..fba8cd1bcc84
+--- /dev/null
++++ b/scripts/modules_thick.h
+@@ -0,0 +1,48 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * A simple modules_thick reader.
++ *
++ * (C) 2014, 2019 Oracle, Inc.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++#ifndef _LINUX_MODULES_THICK_H
++#define _LINUX_MODULES_THICK_H
++
++#include <stdio.h>
++#include <stddef.h>
++
++/*
++ * modules_thick.builtin iteration state.
++ */
++struct modules_thick_iter {
++	FILE *f;
++	char *line;
++	size_t line_size;
++};
++
++/*
++ * Construct a modules_thick.builtin iterator.
++ */
++struct modules_thick_iter *
++modules_thick_iter_new(const char *modules_thick_file);
++
++/*
++ * Iterate, returning a new null-terminated array of object file names, and a
++ * new dynamically-allocated module name.  (The module name passed in is freed.)
++ *
++ * The array of object file names should be freed by the caller: the strings it
++ * points to are owned by the iterator, and should not be freed.
++ */
++
++char ** __attribute__((__nonnull__))
++modules_thick_iter_next(struct modules_thick_iter *i, char **module_name);
++
++void
++modules_thick_iter_free(struct modules_thick_iter *i);
++
++#endif
+-- 
+2.28.0
+

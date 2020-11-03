@@ -1,0 +1,31 @@
+From fafd5b152580df5ed8e4d07bf9e81c5c187f418e Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Wed, 24 Jun 2020 21:35:26 +0100
+Subject: [PATCH 13/14] ctf: add *.ctf to .gitignore
+
+The new CTF machinery strips compiler-generated CTF out of kernel
+modules into files named *.ctf.  These are generated files: add
+them to .gitignore.
+
+Orabug: 31535036
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Reviewed-by: Jack Vogel <jack.vogel@oracle.com>
+---
+ .gitignore | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/.gitignore b/.gitignore
+index 74e0568c12f5..21bc0600a771 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -16,6 +16,7 @@
+ *.bin
+ *.bz2
+ *.c.[012]*.*
++*.ctf
+ *.dt.yaml
+ *.dtb
+ *.dtb.S
+-- 
+2.28.0
+

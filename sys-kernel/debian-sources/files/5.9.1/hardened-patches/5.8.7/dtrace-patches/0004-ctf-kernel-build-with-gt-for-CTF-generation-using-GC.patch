@@ -1,0 +1,96 @@
+From 8def933702bcb0260184a1e2f2b29c2d653457b6 Mon Sep 17 00:00:00 2001
+From: Indu Bhagat <indu.bhagat@oracle.com>
+Date: Mon, 22 Jul 2019 11:40:52 -0700
+Subject: [PATCH 04/14] ctf: kernel build with -gt for CTF generation using GCC
+ (sans ld atm)
+
+Add two new CONFIGs for a CTF enabled toolchain and a kernel build with
+-gt/-lctf respectively:
+  - new config HAVE_CTF_TOOLCHAIN which is set if the toolchain supports CTF
+    generation.
+  - new config CTF_USING_BINUTILS to control whether CTF generation is to be
+    done using the GNU Toolchain.  This config is unset by default.
+
+...
+CONFIG_HAVE_CTF_TOOLCHAIN=y
+CONFIG_CTF=y
+\# CONFIG_CTF_USING_BINUTILS is not set
+...
+
+Also, -gt is added to the compilation flags if the toolchain is CTF capable.
+The uptake of -lctf is not included in this patch.
+
+[nca: make CONFIG_HAVE_CTF_TOOLCHAIN check for binutils libs;
+      make CTF_USING_BINUTILS default]
+
+Orabug: 30544408
+Signed-off-by: Indu Bhagat <indu.bhagat@oracle.com>
+Reviewed-by: Nick Alcock <nick.alcock@oracle.com>
+---
+ Makefile     |  4 ++++
+ init/Kconfig |  6 ++++++
+ lib/Kconfig  | 11 ++++++++++-
+ 3 files changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index fb5e6df27702..a884546a84bb 100644
+--- a/Makefile
++++ b/Makefile
+@@ -741,6 +741,10 @@ else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+ KBUILD_CFLAGS += -Os
+ endif
+ 
++ifdef CONFIG_CTF_USING_BINUTILS
++KBUILD_CFLAGS	+= $(call cc-option,-gt)
++endif
++
+ # Tell gcc to never replace conditional load with a non-conditional one
+ KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
+ KBUILD_CFLAGS	+= $(call cc-option,-fno-allow-store-data-races)
+diff --git a/init/Kconfig b/init/Kconfig
+index c9f9cb3ddb12..d58f937e99ba 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -70,6 +70,12 @@ config TOOLS_SUPPORT_RELR
+ config CC_HAS_ASM_INLINE
+ 	def_bool $(success,echo 'void foo(void) { asm inline (""); }' | $(CC) -x c - -c -o /dev/null)
+ 
++config HAVE_CTF_TOOLCHAIN
++	def_bool $(cc-option,-gt) && $(ld-option,-lctf -lbfd -liberty -lz -ldl)
++	depends on CC_IS_GCC
++	help
++	  GCC and binutils support CTF generation.
++
+ config CONSTRUCTORS
+ 	bool
+ 	depends on !UML
+diff --git a/lib/Kconfig b/lib/Kconfig
+index 820df07a1f60..697ceb552181 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -585,12 +585,21 @@ config CTF
+         bool "Compact Type Format generation"
+         default y
+         select STRIP_ASM_SYMS
+-        depends on DEBUG_INFO && !DEBUG_INFO_REDUCED && !DEBUG_INFO_SPLIT && !DEBUG_INFO_DWARF4
++        depends on (HAVE_CTF_TOOLCHAIN || \
++			(DEBUG_INFO && !DEBUG_INFO_REDUCED && !DEBUG_INFO_SPLIT && \
++			!DEBUG_INFO_DWARF4))
+         help
+           Emit a compact, compressed description of the kernel's datatypes and
+           global variables into the vmlinux.ctfa archive (for in-tree modules)
+           or into .ctf sections in kernel modules (for out-of-tree modules).
+ 
++config CTF_USING_BINUTILS
++	bool "CTF generation using GNU Toolchain"
++	default y
++	depends on HAVE_CTF_TOOLCHAIN && CTF
++	help
++	  CTF generation in the kernel uses toolchain support.
++
+ config OID_REGISTRY
+ 	tristate
+ 	help
+-- 
+2.28.0
+
