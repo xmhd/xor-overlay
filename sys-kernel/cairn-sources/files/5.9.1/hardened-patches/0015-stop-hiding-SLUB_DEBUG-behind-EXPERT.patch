@@ -1,0 +1,26 @@
+From 34ddd7e5e75a2c117a0162561eb6a2e51559c0e2 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Sun, 14 May 2017 22:39:34 -0400
+Subject: [PATCH 015/106] stop hiding SLUB_DEBUG behind EXPERT
+
+It can make sense to disable this to reduce attack surface / complexity.
+---
+ init/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 8111ccd78008..adf8d50b9157 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1829,7 +1829,7 @@ config VM_EVENT_COUNTERS
+ 
+ config SLUB_DEBUG
+ 	default y
+-	bool "Enable SLUB debugging support" if EXPERT
++	bool "Enable SLUB debugging support"
+ 	depends on SLUB && SYSFS
+ 	help
+ 	  SLUB has extensive debug support features. Disabling these can
+-- 
+2.29.2
+

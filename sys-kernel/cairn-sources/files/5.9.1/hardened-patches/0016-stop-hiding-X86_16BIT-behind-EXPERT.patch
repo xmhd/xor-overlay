@@ -1,0 +1,25 @@
+From 5b98a2bea602ace254f92ef509aa0096159d058e Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Thu, 4 May 2017 18:11:31 -0400
+Subject: [PATCH 016/106] stop hiding X86_16BIT behind EXPERT
+
+---
+ arch/x86/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 7101ac64bb20..825fb54c9ed5 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1190,7 +1190,7 @@ config VM86
+ 	default X86_LEGACY_VM86
+ 
+ config X86_16BIT
+-	bool "Enable support for 16-bit segments" if EXPERT
++	bool "Enable support for 16-bit segments"
+ 	default y
+ 	depends on MODIFY_LDT_SYSCALL
+ 	help
+-- 
+2.29.2
+
