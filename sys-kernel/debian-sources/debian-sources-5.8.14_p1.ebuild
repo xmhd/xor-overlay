@@ -51,7 +51,7 @@ DEPEND="
 	zfs? ( sys-fs/zfs )
 "
 
-DEB_PV_BASE="5.9.1"
+DEB_PV_BASE="5.8.14"
 DEB_EXTRAVERSION="-1"
 EXTRAVERSION="_p1"
 TEMP_EXTRA_VERSION="debian"
@@ -190,9 +190,6 @@ HARDENED_PATCHES=(
     0101-add-CONFIG-for-unprivileged_userfaultfd.patch
     0102-slub-Extend-init_on_alloc-to-slab-caches-with-constr.patch
     0103-net-tcp-add-option-to-disable-TCP-simultaneous-conne.patch
-    0104-kconfig-select-DEBUG_FS_ALLOW_NONE-by-default-if-DEB.patch
-    0105-dccp-ccid-move-timers-to-struct-dccp_sock.patch
-    0106-Revert-dccp-don-t-free-ccid2_hc_tx_sock-struct-in-dc.patch
 )
 
 GENTOO_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/gentoo-patches/"
@@ -205,9 +202,9 @@ GENTOO_PATCHES=(
 #    1510_fs-enable-link-security-restrictions-by-default.patch
     2000_BT-Check-key-sizes-only-if-Secure-Simple-Pairing-enabled.patch
     2900_tmp513-Fix-build-issue-by-selecting-CONFIG_REG.patch
-    2910_TVP5150-Fix-build-issue-by-selecting-REGMAP-I2C.patch
     2920_sign-file-patch-for-libressl.patch
 #    4567_distro-Gentoo-Kconfig.patch
+#    5013_enable-cpu-optimizations-for-gcc10.patch
 )
 
 DTRACE_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/dtrace-patches"
@@ -235,10 +232,6 @@ eapply_hardened() {
 
 eapply_gentoo() {
 	eapply "${GENTOO_PATCHES_DIR}/${1}"
-}
-
-eapply_dtrace() {
-	eapply "${DTRACE_PATCHES_DIR}/${1}"
 }
 
 get_patch_list() {
@@ -316,13 +309,6 @@ src_prepare() {
     for my_patch in ${GENTOO_PATCHES[*]} ; do
         eapply_gentoo "${my_patch}"
     done
-
-    # optionally apply dtrace patches
-    if use dtrace; then
-        for my_patch in ${DTRACE_PATCHES[*]} ; do
-            eapply_dtrace "${my_patch}"
-        done
-    fi
 
 	# Restore export_kernel_fpu_functions for zfs
 	eapply "${FILESDIR}"/${DEB_PV_BASE}/export_kernel_fpu_functions_5_3.patch
