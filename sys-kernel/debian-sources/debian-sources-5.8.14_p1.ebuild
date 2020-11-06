@@ -10,7 +10,7 @@ HOMEPAGE="https://packages.debian.org/unstable/kernel/"
 LICENSE="GPL-2"
 KEYWORDS="x86 amd64 arm arm64"
 
-SLOT="${PF}"
+SLOT="${PV}"
 
 RESTRICT="binchecks strip mirror"
 
@@ -69,12 +69,7 @@ DEB_PV="${DEB_PV_BASE}${DEB_EXTRAVERSION}"
 KERNEL_ARCHIVE="linux_${DEB_PV_BASE}.orig.tar.xz"
 PATCH_ARCHIVE="linux_${DEB_PV}.debian.tar.xz"
 DEB_UPSTREAM="http://http.debian.net/debian/pool/main/l/linux"
-
 KCONFIG_UPSTREAM="https://salsa.debian.org/kernel-team/linux/-/raw/debian/${DEB_PV}/debian/config"
-
-KCONFIG_BASE=""
-KCONFIG_ARCH=""
-KCONFIG_KERNEL_ARCH=""
 
 SRC_URI="
 	$DEB_UPSTREAM/${KERNEL_ARCHIVE}
