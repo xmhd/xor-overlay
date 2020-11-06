@@ -77,7 +77,8 @@ SRC_URI="
 
 S="$WORKDIR/linux-${DEB_PV_BASE}"
 
-# TODO: manage HARDENED_PATCHES and GENTOO_PATCHES can be managed in a git repository and packed into tar balls per version.
+# TODO: manage HARDENED_PATCHES and GENTOO_PATCHES
+# can be managed in a git repository and packed into tar balls per version.
 
 HARDENED_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/hardened-patches/"
 
@@ -207,25 +208,6 @@ GENTOO_PATCHES=(
 #    5013_enable-cpu-optimizations-for-gcc10.patch
 )
 
-DTRACE_PATCHES_DIR="${FILESDIR}/${DEB_PV_BASE}/dtrace-patches"
-
-DTRACE_PATCHES=(
-    0001-kallsyms-new-proc-kallmodsyms-with-builtin-modules-a.patch
-    0002-ctf-generate-CTF-information-for-the-kernel.patch
-    0003-waitfd-new-syscall-implementing-waitpid-over-fds.patch
-    0004-ctf-kernel-build-with-gt-for-CTF-generation-using-GC.patch
-    0005-ctf-toolchain-based-CTF-support.patch
-    0006-kbuild-arm64-Set-objects.builtin-dependency-to-Image.patch
-    0007-ctf-adapt-to-the-new-CTF-linker-API.patch
-    0008-ctf-discard-CTF-sections-for-arches-not-using-DISCAR.patch
-    0009-ctf-discard-CTF-from-the-vDSO.patch
-    0010-ctf-fix-memory-leak-in-ctfarchive.patch
-    0011-ctf-adjust-to-upcoming-binutils-ctf_link_add_ctf-API.patch
-    0012-ctf-support-ld-ctf-variables-if-available.patch
-    0013-ctf-add-.ctf-to-.gitignore.patch
-    0014-waitfd-enable-by-default.patch
-)
-
 eapply_hardened() {
 	eapply "${HARDENED_PATCHES_DIR}/${1}"
 }
@@ -282,8 +264,6 @@ src_unpack() {
 }
 
 src_prepare() {
-
-	debug-print-function ${FUNCNAME} "${@}"
 
 	# punt the debian devs certificates
 	rm -rf "${S}"/debian/certs
@@ -498,8 +478,6 @@ src_configure() {
 
 	if use binary; then
 
-        debug-print-function ${FUNCNAME} "${@}"
-
         tc-export_build_env
         MAKEARGS=(
             V=1
@@ -534,15 +512,12 @@ src_configure() {
 src_compile() {
 
     if use binary; then
-        debug-print-function ${FUNCNAME} "${@}"
 
         emake O="${WORKDIR}"/build "${MAKEARGS[@]}" all || "kernel build failed"
     fi
 }
 
 src_install() {
-
-	debug-print-function ${FUNCNAME} "${@}"
 
     # TODO: Change to SANDBOX_WRITE=".." for installkernel writes
 	# Disable sandbox
