@@ -70,9 +70,31 @@ KERNEL_ARCHIVE="linux_${DEB_PV_BASE}.orig.tar.xz"
 PATCH_ARCHIVE="linux_${DEB_PV}.debian.tar.xz"
 DEB_UPSTREAM="http://http.debian.net/debian/pool/main/l/linux"
 
+KCONFIG_UPSTREAM="https://salsa.debian.org/kernel-team/linux/-/raw/debian/${DEB_PV}/debian/config"
+
+KCONFIG_BASE=""
+KCONFIG_ARCH=""
+KCONFIG_KERNEL_ARCH=""
+
 SRC_URI="
 	$DEB_UPSTREAM/${KERNEL_ARCHIVE}
 	$DEB_UPSTREAM/${PATCH_ARCHIVE}
+
+    ${KCONFIG_UPSTREAM}/config -> debian-kconfig-${PV}
+    x86? (
+        ${KCONFIG_UPSTREAM}/i386/config -> debian-kconfig-i386-${PV}
+        ${KCONFIG_UPSTREAM}/i386/config.686 -> debian-kconfig-i686-${PV}
+        ${KCONFIG_UPSTREAM}/i386/config.686-pae -> debian-kconfig-i686-pae-${PV}
+        ${KCONFIG_UPSTREAM}/kernelarch-x86/config -> debian-kconfig-kernelarch-x86-${PV}
+    )
+    amd64? (
+        ${KCONFIG_UPSTREAM}/amd64/config -> debian-kconfig-amd64-${PV}
+        ${KCONFIG_UPSTREAM}/kernelarch-x86/config -> debian-kconfig-kernelarch-x86-${PV}
+    )
+    arm64? (
+        ${KCONFIG_UPSTREAM}/arm64/config -> debian-kconfig-arm64-${PV}
+        ${KCONFIG_UPSTREAM}/kernelarch-arm/config -> debian-kconfig-kernelarch-arm-${PV}
+    )
 "
 
 S="$WORKDIR/linux-${DEB_PV_BASE}"
@@ -261,6 +283,9 @@ src_unpack() {
 
     # unpack the kernel patches
     unpack ${PATCH_ARCHIVE} || die "failed to unpack kernel patches"
+
+    # unpack the various kconfig files into a single file
+    cat "${DISTDIR}"/debian-kconfig-* >> "${WORKDIR}"/debian-kconfig-${PV} || die "failed to unpack kconfig"
 }
 
 src_prepare() {
@@ -272,6 +297,7 @@ src_prepare() {
 
     # apply debian patches
 	for debpatch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
+	    einfo "Applying Debian patches ..."
 		eapply -p1 "${WORKDIR}/debian/patches/${debpatch}"
 	done
 
@@ -302,31 +328,8 @@ src_prepare() {
     # copy the debian patches into the kernel sources work directory (config-extract requires this).
 	cp -a "${WORKDIR}"/debian "${S}"/debian
 
-    ### GENERATE CONFIG ###
-
-	local arch featureset subarch
-	featureset="standard"
-	if [[ ${REAL_ARCH} == x86 ]]; then
-		arch="i386"
-		subarch="686-pae"
-	elif [[ ${REAL_ARCH} == amd64 ]]; then
-		arch="amd64"
-		subarch="amd64"
-	elif [[ ${REAL_ARCH} == arm64 ]]; then
-		arch="arm64"
-		subarch="arm64"
-	else
-	    die "Architecture not handled in ebuild"
-	fi
-
-    # Copy 'config-extract' tool to the work directory
-	cp "${FILESDIR}"/config-extract . || die
-
-	# ... and make it executable
-	chmod +x config-extract || die
-
-	# ... and now extract the kernel config file!
-	./config-extract ${arch} ${featureset} ${subarch} || die
+    # copy the kconfig file into the kernel sources tree
+    cp "${WORKDIR}"/debian-kconfig-${PV} "${S}"/.config
 
     ### TWEAK CONFIG ###
 
@@ -339,10 +342,10 @@ src_prepare() {
     echo "CONFIG_IKCONFIG_PROC=y" >> .config
 
     if use custom-cflags; then
-            MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
-            if [ -n "$MARCH" ]; then
-                    sed -i -e 's/-mtune=generic/$MARCH/g' arch/x86/Makefile || die "Canna optimize this kernel anymore, captain!"
-            fi
+        MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
+        if [ -n "$MARCH" ]; then
+                sed -i -e 's/-mtune=generic/$MARCH/g' arch/x86/Makefile || die "Canna optimize this kernel anymore, captain!"
+        fi
     fi
 
     # only enable debugging symbols etc if USE=debug...
@@ -523,18 +526,23 @@ src_install() {
 	# Disable sandbox
 	export SANDBOX_ON=0
 
-	# copy sources into place:
+	# create sources directory if required
 	dodir /usr/src
+
+	# copy kernel sources into place
 	cp -a "${S}" "${D}"/usr/src/linux-${DEB_PV_BASE}${MODULE_EXT} || die "failed to install kernel sources"
+
+	# change to installed kernel sources directory
 	cd "${D}"/usr/src/linux-${DEB_PV_BASE}${MODULE_EXT}
 
 	# prepare for real-world use and 3rd-party module building:
 	make mrproper || die
-	cp "${T}"/.config .config || die
-	cp -a "${WORKDIR}"/debian debian || die
 
-	# if we didn't use genkernel, we're done. The kernel source tree is left in
-	# an unconfigured state - you can't compile 3rd-party modules against it yet.
+	# copy kconfig into place
+	cp "${T}"/.config .config || die
+
+	# if we didn't USE=binary - we're done.
+	# The kernel source tree is left in an unconfigured state - you can't compile 3rd-party modules against it yet.
 	if use binary; then
         make prepare || die
         make scripts || die
