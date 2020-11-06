@@ -14,7 +14,7 @@ SLOT="${PV}"
 
 RESTRICT="binchecks strip mirror"
 
-IUSE="binary btrfs clang custom-cflags debug dmraid dtrace ec2 firmware hardened iscsi libressl luks lvm mcelog mdadm microcode multipath nbd nfs plymouth selinux sign-modules symlink systemd wireguard zfs"
+IUSE="binary btrfs clang custom-cflags debug dmraid dtrace ec2 firmware hardened iscsi luks lvm mcelog mdadm microcode multipath nbd nfs plymouth selinux sign-modules symlink systemd wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -428,29 +428,19 @@ src_prepare() {
         # turn on options for signing modules.
         # first, remove existing configs and comments:
         echo 'CONFIG_MODULE_SIG=""' >> .config
+
         # now add our settings:
         echo 'CONFIG_MODULE_SIG=y' >> .config
         echo 'CONFIG_MODULE_SIG_FORCE=n' >> .config
         echo 'CONFIG_MODULE_SIG_ALL=n' >> .config
-        # LibreSSL currently (2.9.0) does not have CMS support, so is limited to SHA1.
-        # https://bugs.gentoo.org/706086
-        # https://bugzilla.kernel.org/show_bug.cgi?id=202159
-        if use libressl; then
-            echo 'CONFIG_MODULE_SIG_HASH="sha1"' >> .config
-        else
-            echo 'CONFIG_MODULE_SIG_HASH="sha512"' >> .config
-        fi
+        echo 'CONFIG_MODULE_SIG_HASH="sha512"' >> .config
         echo 'CONFIG_MODULE_SIG_KEY="${certs_dir}/signing_key.pem"' >> .config
         echo 'CONFIG_SYSTEM_TRUSTED_KEYRING=y' >> .config
         echo 'CONFIG_SYSTEM_EXTRA_CERTIFICATE=y' >> .config
         echo 'CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE="4096"' >> .config
+        echo "CONFIG_MODULE_SIG_SHA512=y" >> .config
 
-        # See above comment re: LibreSSL
-        if use libressl; then
-            echo "CONFIG_MODULE_SIG_SHA1=y" >> .config
-        else
-            echo "CONFIG_MODULE_SIG_SHA512=y" >> .config
-        fi
+        # print some info to warn user
         ewarn "This kernel will ALLOW non-signed modules to be loaded with a WARNING."
         ewarn "To enable strict enforcement, YOU MUST add module.sig_enforce=1 as a kernel boot"
         ewarn "parameter (to params in /etc/boot.conf, and re-run boot-update.)"
