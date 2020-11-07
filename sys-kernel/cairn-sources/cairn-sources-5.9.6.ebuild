@@ -258,9 +258,6 @@ src_unpack() {
     # unpack the kernel sources to ${WORKDIR}
     unpack ${KERNEL_ARCHIVE} || die "failed to unpack kernel sources"
 
-    # unpack the kernel patches
-    unpack ${PATCH_ARCHIVE} || die "failed to unpack kernel patches"
-
     # unpack the various kconfig files into a single file
     cat "${DISTDIR}"/debian-kconfig-* >> "${WORKDIR}"/debian-kconfig-${PV} || die "failed to unpack kconfig"
 }
