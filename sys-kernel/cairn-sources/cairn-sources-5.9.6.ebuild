@@ -90,7 +90,6 @@ HARDENED_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/hardened-patches/"
 # 0033-enable-protected_-symlinks-hardlinks-by-default.patch
 # 0058-security-perf-Allow-further-restriction-of-perf_even.patch
 # 0060-add-sysctl-to-disallow-unprivileged-CLONE_NEWUSER-by.patch
-# All of the above already provided by Debian patches.
 HARDENED_PATCHES=(
     0001-make-DEFAULT_MMAP_MIN_ADDR-match-LSM_MMAP_MIN_ADDR.patch
     0002-enable-HARDENED_USERCOPY-by-default.patch
@@ -205,7 +204,7 @@ HARDENED_PATCHES=(
 GENTOO_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/gentoo-patches/"
 
 # Gentoo Linux 'genpatches' patch set
-# 1510_fs-enable-link-security-restrctions-by-default.patch is already provided in debian patches
+# 1510_fs-enable-link-security-restrctions-by-default.patch is already provided in hardened patches
 # 4567_distro-Gentoo-Kconfiig TODO?
 GENTOO_PATCHES=(
     1500_XATTR_USER_PREFIX.patch
@@ -281,6 +280,10 @@ src_prepare() {
         eapply_gentoo "${my_patch}"
     done
 
+    if ! use hardened; then
+        eapply "${FILESDIR}"/${KERNEL_VERSION}/gentoo-patches/1510_fs-enable-link-security-restrictions-by-default.patch
+    fi
+
     # Cairn Linux patches are misc fix-ups
     einfo "Applying Cairn Linux patches ..."
 
@@ -292,9 +295,6 @@ src_prepare() {
 
     # todo: look at this, haven't seen it used in many cases.
     sed -i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
-
-    # copy the debian patches into the kernel sources work directory (config-extract requires this).
-	cp -a "${WORKDIR}"/debian "${S}"/debian
 
     # copy the kconfig file into the kernel sources tree
     cp "${WORKDIR}"/debian-kconfig-${PV} "${S}"/.config
