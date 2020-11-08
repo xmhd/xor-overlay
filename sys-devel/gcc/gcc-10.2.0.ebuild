@@ -87,8 +87,7 @@ SRC_URI="
 
 GENTOO_PATCHES_DIR="${FILESDIR}/gentoo-patches/${GCC_ARCHIVE_VER}/gentoo"
 
-# We disable a few of these as we set our own 'extra options' for hardening.
-# e.g. SSP, PIE, link_now, stack_clash_protection and so on.
+# Disable a few of these as they will be toggled by USE flag, i.e 01, 02, 03, 27 + 28.
 GENTOO_PATCHES=(
     #01_all_default-fortify-source.patch
     #02_all_default-warn-format-security.patch
@@ -134,14 +133,15 @@ GENTOO_PATCHES=(
 
 ALPINE_PATCHES_DIR="${FILESDIR}/alpine-patches/${GCC_ARCHIVE_VER}"
 
+# Disable a few of these as they will be toggled by USE flag, i.e 0003, 004, 0006 + 0007
 ALPINE_PATCHES=(
     0001-posix_memalign.patch
     0002-gcc-poison-system-directories.patch
-    0003-Turn-on-Wl-z-relro-z-now-by-default.patch
-    0004-Turn-on-D_FORTIFY_SOURCE-2-by-default-for-C-C-ObjC-O.patch
+#    0003-Turn-on-Wl-z-relro-z-now-by-default.patch
+#    0004-Turn-on-D_FORTIFY_SOURCE-2-by-default-for-C-C-ObjC-O.patch
     0005-On-linux-targets-pass-as-needed-by-default-to-the-li.patch
-    0006-Enable-Wformat-and-Wformat-security-by-default.patch
-    0007-Enable-Wtrampolines-by-default.patch
+#    0006-Enable-Wformat-and-Wformat-security-by-default.patch
+#    0007-Enable-Wtrampolines-by-default.patch
     0008-Disable-ssp-on-nostdlib-nodefaultlibs-and-ffreestand.patch
     0009-Ensure-that-msgfmt-doesn-t-encounter-problems-during.patch
     0010-Don-t-declare-asprintf-if-defined-as-a-macro.patch
@@ -156,7 +156,7 @@ ALPINE_PATCHES=(
     0019-build-fix-CXXFLAGS_FOR_BUILD-passing.patch
     0020-libstdc-futex-add-time64-compatibility.patch
     0021-add-fortify-headers-paths.patch
-    0022-Alpine-musl-package-provides-libssp_nonshared.a.-We-.patch
+#    0022-Alpine-musl-package-provides-libssp_nonshared.a.-We-.patch
     0023-DP-Use-push-state-pop-state-for-gold-as-well-when-li.patch
     0024-Pure-64-bit-MIPS.patch
     0025-use-pure-64-bit-configuration-where-appropriate.patch
@@ -599,26 +599,18 @@ src_prepare() {
 	if ! use vanilla; then
 
         # Gentoo Linux patches
-		if [ -n "$GENTOO_PATCHES_VER" ]; then
-			einfo "Applying Gentoo Linux patches ..."
-			for my_patch in ${GENTOO_PATCHES[*]} ; do
-				eapply "${GENTOO_PATCHES_DIR}/${my_patch}" || die "failed to apply Gentoo Linux patches"
-			done
-		fi
+        einfo "Applying Gentoo Linux patches ..."
+        for my_patch in ${GENTOO_PATCHES[*]} ; do
+            eapply "${GENTOO_PATCHES_DIR}/${my_patch}" || die "failed to apply Gentoo Linux patches"
+        done
 
 		# Alpine Linux patches
-		if [ -n "$ALPINE_PATCHES_VER" ]; then
-			einfo "Applying Alpine Linux patches ..."
-			for my_patch in ${GENTOO_PATCHES[*]} ; do
-				eapply "${ALPINE_PATCHES_DIR}/${my_patch}" || die "failed to apply Alpine Linux patches"
-			done
-		fi
-
-		# apply any musl specific patches
-        if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
-            eapply "${FILESDIR}"/musl-patches/10.2.0/gcc-pure64.patch
-            eapply "${FILESDIR}"/musl-patches/10.2.0/cpu_indicator.patch
-            eapply "${FILESDIR}"/musl-patches/10.2.0/posix_memalign.patch
+		# most of these are musl compatibility fixes, so hide it behind elibc_musl || cross*-musl*
+		if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
+            einfo "Applying Alpine Linux patches ..."
+            for my_patch in ${GENTOO_PATCHES[*]} ; do
+                eapply "${ALPINE_PATCHES_DIR}/${my_patch}" || die "failed to apply Alpine Linux patches"
+            done
         fi
 
         # === HARDENING ===
