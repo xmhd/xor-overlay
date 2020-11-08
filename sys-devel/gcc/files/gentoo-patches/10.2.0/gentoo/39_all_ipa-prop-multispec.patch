@@ -1,0 +1,150 @@
+https://gcc.gnu.org/PR96394
+https://bugs.gentoo.org/734006
+
+From 7f790f414ec38581b9bb033ab64e4ad12b9f8a4c Mon Sep 17 00:00:00 2001
+From: Martin Jambor <mjambor@suse.cz>
+Date: Thu, 1 Oct 2020 19:39:27 +0200
+Subject: [PATCH] ipa-prop: Fix multiple-target speculation resolution
+
+Hi,
+
+as the FIXME which this patch removes states, the current code does
+not work when a call with multiple speculative targets gets resolved
+through parameter tracking during inlining - it feeds the inliner an
+edge it has already dealt with.  The patch makes the code which should
+prevent it aware of the possibility that that speculation can have
+more than one target now.
+
+Bootstrapped and tested and LTO bootstrapped on x86_64-linux.  I did not
+try profiled LTO bootstrap because it fails even without the patch (even
+without Ada, just C, C++ and Fortran, at least commit 92f0d3d03a7 does).
+OK for trunk?
+
+Thanks,
+
+Martin
+
+gcc/ChangeLog:
+
+2020-09-30  Martin Jambor  <mjambor@suse.cz>
+
+	PR ipa/96394
+	* ipa-prop.c (update_indirect_edges_after_inlining): Do not add
+	resolved speculation edges to vector of new direct edges even in
+	presence of multiple speculative direct edges for a single call.
+
+gcc/testsuite/ChangeLog:
+
+2020-09-30  Martin Jambor  <mjambor@suse.cz>
+
+	PR ipa/96394
+	* gcc.dg/tree-prof/pr96394.c: New test.
+---
+ gcc/ipa-prop.c                           | 10 ++--
+ gcc/testsuite/gcc.dg/tree-prof/pr96394.c | 64 ++++++++++++++++++++++++
+ 2 files changed, 70 insertions(+), 4 deletions(-)
+ create mode 100644 gcc/testsuite/gcc.dg/tree-prof/pr96394.c
+
+diff --git a/gcc/ipa-prop.c b/gcc/ipa-prop.c
+index ea88fd3fd95..0ff04d344e1 100644
+--- a/gcc/ipa-prop.c
++++ b/gcc/ipa-prop.c
+@@ -3787,11 +3787,13 @@ update_indirect_edges_after_inlining (struct cgraph_edge *cs,
+ 
+       param_index = ici->param_index;
+       jfunc = ipa_get_ith_jump_func (top, param_index);
+-      cgraph_node *spec_target = NULL;
+ 
+-      /* FIXME: This may need updating for multiple calls.  */
++      auto_vec<cgraph_node *, 4> spec_targets;
+       if (ie->speculative)
+-	spec_target = ie->first_speculative_call_target ()->callee;
++	for (cgraph_edge *direct = ie->first_speculative_call_target ();
++	     direct;
++	     direct = direct->next_speculative_call_target ())
++	  spec_targets.safe_push (direct->callee);
+ 
+       if (!opt_for_fn (node->decl, flag_indirect_inlining))
+ 	new_direct_edge = NULL;
+@@ -3814,7 +3816,7 @@ update_indirect_edges_after_inlining (struct cgraph_edge *cs,
+ 
+       /* If speculation was removed, then we need to do nothing.  */
+       if (new_direct_edge && new_direct_edge != ie
+-	  && new_direct_edge->callee == spec_target)
++	  && spec_targets.contains (new_direct_edge->callee))
+ 	{
+ 	  new_direct_edge->indirect_inlining_edge = 1;
+ 	  top = IPA_EDGE_REF (cs);
+diff --git a/gcc/testsuite/gcc.dg/tree-prof/pr96394.c b/gcc/testsuite/gcc.dg/tree-prof/pr96394.c
+new file mode 100644
+index 00000000000..4280182a7c3
+--- /dev/null
++++ b/gcc/testsuite/gcc.dg/tree-prof/pr96394.c
+@@ -0,0 +1,64 @@
++/* PR ipa/96394 */
++/* { dg-options "-O2" } */
++
++typedef struct _entry {
++    int has_next;
++    int next_ix;
++    int count;
++} entry;
++
++extern entry table[];
++
++void *
++__attribute__((noipa))
++PyErr_Format(entry * e){ return 0; }
++
++void ae(entry *);
++int h(entry *);
++int ap(entry *);
++int ag(entry *);
++
++int ag(entry *j) {
++  if (j->has_next)
++    h(&table[j->next_ix]);
++  return 0;
++}
++static int ai(entry *j, int k(entry *), int l, int m) {
++  int am = 1;
++  int ab;
++
++  /* k is either 'h' or 'ap': 50%/50% */
++  ab = k(j);
++
++  /* loop never gets executed on real data */
++  for (; j->count >= 2; am += 2)
++    if (l) {
++      entry *i = &table[am + m];
++      PyErr_Format(i);
++    }
++  return ab;
++}
++void
++__attribute__((noipa))
++bug() {
++  h(table);
++  h(table);
++}
++int h(entry *j) { return ai(j, ap, 4, 5); }
++int ap(entry *j) { return ai(j, ag, 14, 4); }
++
++int main(void)
++{
++    bug();
++}
++
++entry table[2] = {
++    { .has_next = 1
++    , .next_ix  = 1
++    , .count    = 0
++    },
++    { .has_next = 0
++    , .next_ix  = 0
++    , .count    = 0
++    },
++};
+-- 
+2.28.0
+

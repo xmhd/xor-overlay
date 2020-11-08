@@ -1,0 +1,48 @@
+https://bugs.gentoo.org/746578
+https://gcc.gnu.org/PR97295
+
+From 508e2d88a4c512e8b8685cf5ba201ad48e6bb58d Mon Sep 17 00:00:00 2001
+From: Martin Liska <mliska@suse.cz>
+Date: Tue, 13 Oct 2020 16:44:47 +0200
+Subject: [PATCH] IPA: fix profile handling in IRA
+
+gcc/ChangeLog:
+
+	PR ipa/97295
+	* profile-count.c (profile_count::to_frequency): Move part of
+	gcc_assert to STATIC_ASSERT.
+	* regs.h (REG_FREQ_FROM_BB): Do not use count.to_frequency for
+	a function that does not have count_max initialized.
+---
+ gcc/profile-count.c | 4 ++--
+ gcc/regs.h          | 3 ++-
+ 2 files changed, 4 insertions(+), 3 deletions(-)
+
+--- a/gcc/profile-count.c
++++ b/gcc/profile-count.c
+@@ -270,8 +270,8 @@ profile_count::to_frequency (struct function *fun) const
+     return BB_FREQ_MAX;
+   if (*this == zero ())
+     return 0;
+-  gcc_assert (REG_BR_PROB_BASE == BB_FREQ_MAX
+-	      && fun->cfg->count_max.initialized_p ());
++  STATIC_ASSERT (REG_BR_PROB_BASE == BB_FREQ_MAX);
++  gcc_assert (fun->cfg->count_max.initialized_p ());
+   profile_probability prob = probability_in (fun->cfg->count_max);
+   if (!prob.initialized_p ())
+     return REG_BR_PROB_BASE;
+--- a/gcc/regs.h
++++ b/gcc/regs.h
+@@ -128,7 +128,8 @@ extern size_t reg_info_p_size;
+    or profile driven feedback is available and the function is never executed,
+    frequency is always equivalent.  Otherwise rescale the basic block
+    frequency.  */
+-#define REG_FREQ_FROM_BB(bb) (optimize_function_for_size_p (cfun)	      \
++#define REG_FREQ_FROM_BB(bb) ((optimize_function_for_size_p (cfun)	      \
++			       || !cfun->cfg->count_max.initialized_p ())     \
+ 			      ? REG_FREQ_MAX				      \
+ 			      : ((bb)->count.to_frequency (cfun)	      \
+ 				* REG_FREQ_MAX / BB_FREQ_MAX)		      \
+-- 
+2.28.0
+

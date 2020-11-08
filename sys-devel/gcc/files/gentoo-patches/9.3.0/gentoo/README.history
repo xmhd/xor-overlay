@@ -1,6 +1,8 @@
-4		TODO
+4		04 Nov 2020
 	+ 30_all_plugin-objdump.patch
 	U 11_all_extra-options.patch
+	+ 31_all_ipa-to_frequency.patch
+	+ 32_all_assume-aligned.patch
 
 3		29 May 2020
 	+ 29_all_libcpp-ar.patch

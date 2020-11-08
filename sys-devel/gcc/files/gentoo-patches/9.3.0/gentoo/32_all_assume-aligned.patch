@@ -1,0 +1,31 @@
+https://bugs.gentoo.org/750905
+https://gcc.gnu.org/PR94163
+
+From db3584552871c8caccdc22e97ea1573da9458253 Mon Sep 17 00:00:00 2001
+From: Richard Biener <rguenther@suse.de>
+Date: Fri, 13 Mar 2020 13:56:26 +0100
+Subject: [PATCH] tree-optimization/94163 constrain alignment set by PRE
+
+This avoids HWI -> unsigned truncation to end up with zero alignment
+which set_ptr_info_alignment ICEs on.
+
+2020-03-13  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/94163
+	* tree-ssa-pre.c (create_expression_by_pieces): Check
+	whether alignment would be zero.
+--- a/gcc/tree-ssa-pre.c
++++ b/gcc/tree-ssa-pre.c
+@@ -2810,7 +2810,8 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
+ 	      unsigned HOST_WIDE_INT hmisalign
+ 		= args.length () == 3 ? tree_to_uhwi (args[2]) : 0;
+ 	      if ((halign & (halign - 1)) == 0
+-		  && (hmisalign & ~(halign - 1)) == 0)
++		  && (hmisalign & ~(halign - 1)) == 0
++		  && (unsigned int)halign != 0)
+ 		set_ptr_info_alignment (get_ptr_info (forcedname),
+ 					halign, hmisalign);
+ 	    }
+-- 
+2.29.2
+

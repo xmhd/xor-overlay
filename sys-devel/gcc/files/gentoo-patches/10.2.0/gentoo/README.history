@@ -1,7 +1,11 @@
-3		TODO
+4		04 Nov 2020
+	+ 40_all_ipa-to_frequency.patch
+
+3		02 Oct 2020
 	U 28_all_EXTRA_OPTIONS-fstack-clash-protection.patch
 	+ 37_all_c-vector-init-PR96377.patch
 	+ 38_all_gcov-TOPN-PR96913.patch
+	+ 39_all_ipa-prop-multispec.patch
 
 2		23 Aug 2020
 	+ 33_all_lto-O0-mix-ICE-ipa-PR96291.patch

@@ -128,6 +128,8 @@ GENTOO_PATCHES=(
     36_all_ipa-fix-bit-CP-p2.patch
     37_all_c-vector-init-PR96377.patch
     38_all_gcov-TOPN-PR96913.patch
+    39_all_ipa-prop-multispec.patch
+    40_all_ipa-to_frequency.patch
 )
 
 # TODO: This is a WIP. GNAT_AMD64_BOOTSTRAP currently works, and is a dynamically linked glibc built gcc.
