@@ -2,14 +2,15 @@
 
 This overlay contains packages for software that:
 
-* aren't in the Gentoo/Funtoo repositories at all.
+* aren't yet packaged for Gentoo or it's derivatives.
 * aren't as up-to-date as I would like.
-* aren't maintained to a sufficient standard in the main repositories.
-* are missing critical features due to the maintainer not wishing to carry a minimal patchset.
-* does not have long-term-support releases (e.g. lxd, LibreOffice).
+* aren't maintained to a sufficient standard.
+* are missing features due to the maintainer not wishing to carry a minimal patchset.
+* does not have long-term-support releases (e.g. lxd).
+* require modification for being as compatible with musl as possible.
 * unsupported-ish upstream, but will be around in the enterprise for a long time to come yet (read: python2).
 
-This overlay will eventually (tm) provide users with the ability to create a DISA STIG compliant Gentoo/Funtoo Linux based system.
+This overlay will eventually (tm) provide users with the ability to create a DISA STIG compliant Gentoo Linux based system.
 And will also include software used for supporting hardware (printers, CAC keys, and so on) used within enterprise/government/DoD.
 
 ### Copyright ###
@@ -34,22 +35,19 @@ And will also include software used for supporting hardware (printers, CAC keys,
 * libsecret - Removed hard dependency on gnome-keyring and added USE flag to support multiple providers of FreeDesktop.org libsecret service (e.g. keepassx, gnome-keyring).
 * linux-sources - Added additional kernel sources to satisfy virtual/linux-sources dependency.
 * icecream - up-to-date releases.
-* Clang - some fixes with new CMAKE config options.
 * libcxx - Re-added libcxxrt as an alternative to libcxxabi.
-* OpenJDK - forked to add older OpenJDK versions and remove some java-pkg setup from ebuild as this overlay will not be building java files from source, rather installing the jar files to /usr/share/java.
-*           Only OpenJDK (or other JVM variants, e.g. GraalVM, Amazon Corretto, Azure Zulu) will benefit from being source built.
+* OpenJDK - forked to add older OpenJDK versions and add musl support.
 * debianutils - removed gentoo-installkernel stuff from ebuild as we use Debian' installkernel script.
 
 ### TLDR; Changelog for packages not in the main repositories ###
 
 * Ego - Configuration tool from Funtoo Linux by Daniel Robbins. Replaces eselect-profile from Gentoo Linux.
-* GCC - Re-written logic, further TODO.
+* GCC - Refactored logic which will all reside inside the ebuild rather than toolchain.eclass, so that additional patch sets can be easily added etc.
 * DTrace - tracer from Solaris & BSD, supported in Oracle Linux and now *too Linux.
 * Eclipse Java IDE (including enterprise edition).
 * Netbeans IDE - IDE formerly by Sun, now under Apache.
 * Various packages for CAC key support.
 * Various packages for PKCS11 support (including pam modules).
-* OpenRGB - Open source software for customising RGB LEDs on hardware.
 * MangoHUD - GUI overlay for displaying CPU + GPU temperatures, FPS etc during gaming.
 * PyWal - Match your terminal font colours to your wallpaper.
 
@@ -59,8 +57,7 @@ And will also include software used for supporting hardware (printers, CAC keys,
 
 ### TLDR; Changelog for eclasses not in the main repoositories ###
 
-* toolchain-enable - automatically set active gcc to the latest emerged gcc.
-* toolchain-gcc - WIP eclass to move as much gcc ebuild logic to eclass.
+* toolchain-enable - automatically set active gcc to the latest emerged gcc. TODO?
 
 ### TLDR; Changelog for profiles in this repository ###
 * Funtoo Linux styled profiles (flavors, mix-ins etc).
@@ -72,20 +69,18 @@ And will also include software used for supporting hardware (printers, CAC keys,
 * eudev supported as a first class citizen.
 * systemd supported for those who wish to use it.
 * S6, runit and other init systems not supported.
-* LibreSSL supported as a first class citizen.
+* LibreSSL supported-ish for those who wish to use it.
 * ZFS supported as a first class citizen.
 * Sane defaults for desktop/workstation users.
 * Link-time-optimization support.
-* Clang/LLVM as a system compiler support.
+* TODO: Clang/LLVM as a system compiler support.
 
 ### TODO: ###
 * Continue STIG work.
 * Toolchain work.
-* OpenJDK - legacy versions and removal of all from-source Java support as it's mostly broken and little to no gain building anything other than the JVM from source.
+* OpenJDK.
 * Profiles - continue expansion and further modularisation.
-* Cockpit - import from RHEL and add sysvinit+OpenRC support.
-* mdev/static-dev support???
-* Expand Clang/LLVM system compiler mix-in.
+* Expand Clang/LLVM system compiler work.
 * Expand on hardening features/defaults.
 * beadm - boot envrionment support for zfs users.
 * profit??
