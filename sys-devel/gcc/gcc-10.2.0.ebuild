@@ -89,9 +89,9 @@ GENTOO_PATCHES_DIR="${FILESDIR}/gentoo-patches/${GCC_ARCHIVE_VER}/gentoo"
 
 # Disable a few of these as they will be toggled by USE flag, i.e 01, 02, 03, 27 + 28.
 GENTOO_PATCHES=(
-    #01_all_default-fortify-source.patch
-    #02_all_default-warn-format-security.patch
-    #03_all_default-warn-trampolines.patch
+#    01_all_default-fortify-source.patch
+#    02_all_default-warn-format-security.patch
+#    03_all_default-warn-trampolines.patch
     04_all_nossp-on-nostdlib.patch
     05_all_alpha-mieee-default.patch
     06_all_ia64_note.GNU-stack.patch
@@ -134,6 +134,7 @@ GENTOO_PATCHES=(
 ALPINE_PATCHES_DIR="${FILESDIR}/alpine-patches/${GCC_ARCHIVE_VER}"
 
 # Disable a few of these as they will be toggled by USE flag, i.e 0003, 004, 0006 + 0007
+# TODO: investigate 0022
 ALPINE_PATCHES=(
     0001-posix_memalign.patch
     0002-gcc-poison-system-directories.patch
