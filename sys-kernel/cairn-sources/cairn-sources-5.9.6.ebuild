@@ -216,14 +216,6 @@ GENTOO_PATCHES=(
 #    4567_distro-Gentoo-Kconfig.patch
 )
 
-eapply_hardened() {
-	eapply "${HARDENED_PATCHES_DIR}/${1}"
-}
-
-eapply_gentoo() {
-	eapply "${GENTOO_PATCHES_DIR}/${1}"
-}
-
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
 	for subdir in $PF $P linux; do
@@ -270,14 +262,14 @@ src_prepare() {
         # apply hardening patches
         einfo "Applying hardening patches ..."
         for my_patch in ${HARDENED_PATCHES[*]} ; do
-            eapply_hardened "${my_patch}"
+            eapply "${HARDENED_PATCHES_DIR}/${my_patch}"
         done
     fi
 
     # apply gentoo patches
     einfo "Applying Gentoo Linux patches ..."
     for my_patch in ${GENTOO_PATCHES[*]} ; do
-        eapply_gentoo "${my_patch}"
+        eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
     done
 
     if ! use hardened; then
