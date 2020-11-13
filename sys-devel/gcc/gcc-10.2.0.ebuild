@@ -609,7 +609,7 @@ src_prepare() {
 		# most of these are musl compatibility fixes, so hide it behind elibc_musl || cross*-musl*
 		if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
             einfo "Applying Alpine Linux patches ..."
-            for my_patch in ${GENTOO_PATCHES[*]} ; do
+            for my_patch in ${ALPINE_PATCHES[*]} ; do
                 eapply "${ALPINE_PATCHES_DIR}/${my_patch}" || die "failed to apply Alpine Linux patches"
             done
         fi
