@@ -134,7 +134,7 @@ GENTOO_PATCHES=(
 ALPINE_PATCHES_DIR="${FILESDIR}/alpine-patches/${GCC_ARCHIVE_VER}"
 
 # Disable a few of these as they will be toggled by USE flag, i.e 0003, 004, 0006 + 0007
-# TODO: investigate 0022
+# TODO: investigate 0008, 0022
 ALPINE_PATCHES=(
     0001-posix_memalign.patch
     0002-gcc-poison-system-directories.patch
@@ -143,9 +143,9 @@ ALPINE_PATCHES=(
     0005-On-linux-targets-pass-as-needed-by-default-to-the-li.patch
 #    0006-Enable-Wformat-and-Wformat-security-by-default.patch
 #    0007-Enable-Wtrampolines-by-default.patch
-    0008-Disable-ssp-on-nostdlib-nodefaultlibs-and-ffreestand.patch
+#    0008-Disable-ssp-on-nostdlib-nodefaultlibs-and-ffreestand.patch
     0009-Ensure-that-msgfmt-doesn-t-encounter-problems-during.patch
-    0010-Don-t-declare-asprintf-if-defined-as-a-macro.patch
+#    0010-Don-t-declare-asprintf-if-defined-as-a-macro.patch
     0011-libiberty-copy-PIC-objects-during-build-process.patch
     0012-libitm-disable-FORTIFY.patch
     0013-libgcc_s.patch
@@ -154,7 +154,7 @@ ALPINE_PATCHES=(
     0016-dlang-update-zlib-binding.patch
     0017-dlang-fix-fcntl-on-mips-add-libucontext-dep.patch
     0018-ada-fix-shared-linking.patch
-    0019-build-fix-CXXFLAGS_FOR_BUILD-passing.patch
+#    0019-build-fix-CXXFLAGS_FOR_BUILD-passing.patch
     0020-libstdc-futex-add-time64-compatibility.patch
     0021-add-fortify-headers-paths.patch
 #    0022-Alpine-musl-package-provides-libssp_nonshared.a.-We-.patch
@@ -164,7 +164,7 @@ ALPINE_PATCHES=(
     0026-always-build-libgcc_eh.a.patch
     0027-ada-libgnarl-compatibility-for-musl.patch
     0028-ada-musl-support-fixes.patch
-    0029-c-Fix-bogus-vector-initialisation-error-PR96377.patch
+#    0029-c-Fix-bogus-vector-initialisation-error-PR96377.patch
     0030-rs6000-ICE-when-using-an-MMA-type-as-a-function-para.patch
     0031-gcc-go-Use-_off_t-type-instead-of-_loff_t.patch
     0032-gcc-go-Don-t-include-sys-user.h.patch
