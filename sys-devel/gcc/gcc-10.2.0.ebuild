@@ -638,7 +638,7 @@ src_prepare() {
         # =3 -strong
         # This ebuild defaults to -strong, and if USE=hardened then set it to -strong
         if use stack_protector_all; then
-            eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch" || die "failed to apply default -stack-protector-all patch"
+            eapply "${FILESDIR}/cairn-patches/${GCC_ARCHIVE_VER}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch" || die "failed to apply default -stack-protector-all patch"
             gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
         fi
 
@@ -649,13 +649,13 @@ src_prepare() {
 
         # Enable LINK_NOW by default
         if use link_now; then
-            eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/01_all_ENABLE_DEFAULT_LINK_NOW-z-now.patch" || die "failed to apply default LINK_NOW patch"
+            eapply "${FILESDIR}/cairn-patches/${GCC_ARCHIVE_VER}/01_all_ENABLE_DEFAULT_LINK_NOW-z-now.patch" || die "failed to apply default LINK_NOW patch"
             gcc_hard_flags+=" -DENABLE_DEFAULT_LINK_NOW "
         fi
 
 	    # Enable Stack Clash Protection by default
 	    if use stack_clash_protection; then
-	        eapply "${FILESDIR}/xor-patches/${GCC_ARCHIVE_VER}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch" || die "failed to apply default -stack-clash-protection patch"
+	        eapply "${FILESDIR}/cairn-patches/${GCC_ARCHIVE_VER}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch" || die "failed to apply default -stack-clash-protection patch"
 	        gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
 	    fi
 
