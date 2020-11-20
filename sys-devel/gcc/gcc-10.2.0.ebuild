@@ -20,7 +20,7 @@ FEATURES=${FEATURES/multilib-strict/}
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
-IUSE="$IUSE +system-bootstrap +system-gettext +system-zlib"
+IUSE="$IUSE +system-bootstrap"
 IUSE="$IUSE openmp altivec fixed-point graphite lto pch +quad generic_host" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +stack_protector_strong stack_protector_all" # Base hardening flags
@@ -46,15 +46,13 @@ BDEPEND="
 
 RDEPEND="
 	objc-gc? ( >=dev-libs/boehm-gc-7.6[${MULTILIB_USEDEP}] )
-    nls? (
-        system-gettext? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
-    )
+    nls? ( sys-devel/gettext[${MULTILIB_USEDEP}] )
 	>=dev-libs/gmp-4.3.2:0=
 	graphite? ( >=dev-libs/isl-0.14:0= )
 	virtual/libiconv[${MULTILIB_USEDEP}]
 	>=dev-libs/mpfr-2.4.2:0=
 	>=dev-libs/mpc-0.8.1:0=
-	system-zlib? ( sys-libs/zlib[${MULTILIB_USEDEP}] )
+	sys-libs/zlib[${MULTILIB_USEDEP}]
 	zstd? ( app-arch/zstd )
 "
 
@@ -72,7 +70,6 @@ REQUIRED_USE="
     go? ( cxx )
     objc++? ( cxx )
     fortran? ( quad )
-    multilib? ( system-zlib )
 "
 
 GCC_MAJOR="${PV%%.*}"
@@ -728,7 +725,8 @@ src_configure() {
         --enable-obsolete
         --disable-werror
         --enable-secureplt
-        $(use_with system-zlib)
+        --with-system-zlib
+
         --disable-libunwind-exceptions
     )
 
@@ -1183,12 +1181,10 @@ src_configure() {
     fi
 
 	if use nls ; then
-		confgcc+=( --enable-nls)
-        if use system-gettext; then
-            confgcc+=( --without-included-gettext )
-        else
-            confgcc+=( --with-included-gettext )
-        fi
+		confgcc+=(
+		    --enable-nls
+		    --without-included-gettext
+		)
 	else
 		confgcc+=( --disable-nls )
 	fi
