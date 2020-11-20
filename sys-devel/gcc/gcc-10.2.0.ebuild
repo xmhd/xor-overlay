@@ -63,7 +63,7 @@ DEPEND="
 "
 
 PDEPEND="
-    >=sys-devel/gcc-config-1.5
+    >=sys-devel/gcc-config-2.3
     >=sys-devel/libtool-2.4.3
 "
 
