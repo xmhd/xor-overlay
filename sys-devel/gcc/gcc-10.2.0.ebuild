@@ -35,8 +35,6 @@ BDEPEND="
     >=sys-devel/bison-1.875
     doc? ( >=app-doc/doxygen-1.7 )
     >=sys-devel/flex-2.5.4
-    elibc_glibc? ( >=sys-libs/glibc-2.8 )
-    elibc_musl? ( sys-libs/musl )
 	test? (
 	        >=dev-util/dejagnu-1.4.4
 	        >=sys-devel/autogen-5.5.4
@@ -70,6 +68,8 @@ REQUIRED_USE="
     go? ( cxx )
     objc++? ( cxx )
     fortran? ( quad )
+    ?? ( hardened vanilla )
+    ?? ( stack_protector_strong stack_protector_all )
 "
 
 GCC_MAJOR="${PV%%.*}"
@@ -236,10 +236,6 @@ gcc-abi-map() {
 	done
 }
 
-XGCC() {
-    get_make_var GCC_FOR_TARGET ;
-}
-
 # Grab a variable from the build system (taken from linux-info.eclass)
 get_make_var() {
         local var=$1 makefile=${2:-${WORKDIR}/build/Makefile}
@@ -320,39 +316,6 @@ tc_version_is_at_least() {
 is_multilib() {
 	tc_version_is_at_least 3 || return 1
 	use_if_iuse multilib
-}
-
-pkg_pretend() {
-
-    # Initial check
-    if use vanilla && use hardened; then
-        die "vanilla and hardened USE flags are incompatible - disable one of them."
-    fi
-
-    # Some features require C++, so check that requirement is met when the relevant USE flags are selected.
-    if ! use cxx; then
-        if use ada; then
-            die "Ada requires a C++ compiler, set USE=cxx to continue."
-        fi
-
-        if use go; then
-            die "Go requires a C++ compiler, set USE=cxx to continue."
-        fi
-
-        if use objc++; then
-            die "Obj-C++ requires a C++ compiler, set USE=cxx to continue."
-        fi
-    fi
-
-    if use elibc_musl && use multilib; then
-        die "multilib and musl are incompatible - disable one of them."
-    fi
-
-    if use stack_protector_strong && use stack_protector_all; then
-        die "stack_protector_strong and stack_protector_all are incompatible - disable one of them."
-    fi
-
-    # TODO: add ada compiler check here for gcc[ada,!bootstrap]
 }
 
 pkg_setup() {
