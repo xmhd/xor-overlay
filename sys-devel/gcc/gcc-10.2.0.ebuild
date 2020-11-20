@@ -492,8 +492,7 @@ src_unpack() {
     # unpack gcc sources
 	unpack $GCC_A
 
-    # Ada
-    # todo: check for gnat bins in installed gcc - if found, then skip unpacking the bootstrap compiler.
+    # logic for unpacking any required Ada bootstrap compilers when existing compiler isn't Ada compatible.
     if use ada && use bootstrap && ! is_crosscompile; then
 
         # create gnatboot directory
@@ -516,12 +515,15 @@ src_unpack() {
             arm64)
                 die "GNAT_ARM64_BOOTSTRAP support not yet implemented"
                 ;;
+            ppc)
+                die "GNAT_PPC_BOOTSTRAP support not yet implemented"
+                ;;
+            ppc64)
+                die "GNAT_PPC64_BOOTSTRAP support not yet implemented"
+                ;;
         esac
-
         # done
     fi
-
-
 }
 
 src_prepare() {
