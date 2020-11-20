@@ -225,7 +225,7 @@ gcc-abi-map() {
 	    map=("o32 32" "n32 n32" "n64 64")
 	    ;;
 	riscv*)
-	    map=("lp64d lp64d" "lp64 lp64")
+	    map=("lp64d lp64d" "lp64 lp64" "ilp32d ilp32d" "ilp32 ilp32")
 	    ;;
 	x86_64*)
 	    map=("amd64 m64" "x86 m32" "x32 mx32")
