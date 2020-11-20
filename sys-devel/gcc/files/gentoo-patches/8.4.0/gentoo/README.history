@@ -1,12 +1,13 @@
-3	TODO
+3		TODO
 	+ 31_all_plugin-objdump.patch
 	U 11_all_extra-options.patch
+	+ 32_all_assume-aligned.patch
 
-2	29 May 2020
+2		29 May 2020
 	+ 29_all_libcpp-ar.patch
 	+ 30_all_alignof-failure-PR90736.patch
 
-1	03 Mar 2020
+1		03 Mar 2020
 	+ 01_all_default-fortify-source.patch
 	+ 02_all_default-warn-format-security.patch
 	+ 03_all_default-warn-trampolines.patch
