@@ -1353,12 +1353,12 @@ create_gcc_env_entry() {
 	# conflicting ABIs by using the first one in the search path
     local ldpaths mosdirs mdir mosdir abi ldpath
     for abi in $(get_all_abis TARGET) ; do
-        mdir=$($(XGCC) $(get_abi_CFLAGS ${abi}) --print-multi-directory)
+        mdir=$($(get_make_var GCC_FOR_TARGET) $(get_abi_CFLAGS ${abi}) --print-multi-directory)
         ldpath=${LIBPATH}
         [[ ${mdir} != "." ]] && ldpath+="/${mdir}"
         ldpaths="${ldpath}${ldpaths:+:${ldpaths}}"
 
-        mosdir=$($(XGCC) $(get_abi_CFLAGS ${abi}) -print-multi-os-directory)
+        mosdir=$($(get_make_var GCC_FOR_TARGET) $(get_abi_CFLAGS ${abi}) -print-multi-os-directory)
         mosdirs="${mosdir}${mosdirs:+:${mosdirs}}"
     done
 
@@ -1411,12 +1411,12 @@ gcc_movelibs() {
 	# For all the libs that are built for CTARGET, move them into the
 	# compiler-specific CTARGET internal dir.
 	local x multiarg removedirs=""
-	for multiarg in $($(XGCC) -print-multi-lib) ; do
+	for multiarg in $($(get_make_var GCC_FOR_TARGET) -print-multi-lib) ; do
 		multiarg=${multiarg#*;}
 		multiarg=${multiarg//@/ -}
 
-		local OS_MULTIDIR=$($(XGCC) ${multiarg} --print-multi-os-directory)
-		local MULTIDIR=$($(XGCC) ${multiarg} --print-multi-directory)
+		local OS_MULTIDIR=$($(get_make_var GCC_FOR_TARGET) ${multiarg} --print-multi-os-directory)
+		local MULTIDIR=$($(get_make_var GCC_FOR_TARGET) ${multiarg} --print-multi-directory)
 		local TODIR="${D}${LIBPATH}"/${MULTIDIR}
 		local FROMDIR=
 
