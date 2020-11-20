@@ -484,7 +484,7 @@ pkg_setup() {
 	export BUILD_CONFIG
 
     # Now for GCC_TARGET... only perform a three stage and any additional bootstraps if != cross_compiler.
-	if ! is_crosscompile && use bootstrap; then
+	if ! is_crosscompile || ! tc-is-cross-compiler && use bootstrap; then
 	    if use pgo; then
 	        GCC_TARGET="profiledbootstrap-lean"
 	    else
