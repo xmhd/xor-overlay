@@ -895,15 +895,32 @@ src_configure() {
 
         # Handle bootstrapping cross-compiler and libc in lock-step
         if ! has_version ${CATEGORY}/${TARGET_LIBC}; then
-            # we are building with libc that is not installed:
+            # we are building with a libc that is not yet installed:
             # libquadmath requires a libc, Gentoo Linux bug #734820
-            confgcc+=( --disable-shared --disable-libatomic --disable-libquadmath --disable-threads --without-headers --disable-libstdcxx )
+            # Enable 128-bit 'long-double' for stage1-gcc. Gentoo Linux bug #738248
+            confgcc+=(
+                --disable-shared
+                --disable-libatomic
+                --disable-libquadmath
+                --disable-threads
+                --without-headers
+                --disable-libstdcxx
+                --with-long-double-128
+            )
         elif has_version "${CATEGORY}/${TARGET_LIBC}[headers-only]"; then
             # libc installed, but has USE="crosscompile_opts_headers-only" to only install headers:
-            confgcc+=( --disable-shared --disable-libatomic --with-sysroot=${PREFIX}/${CTARGET} --disable-libstdcxx )
+            confgcc+=(
+                --disable-shared
+                --disable-libatomic
+                --with-sysroot=${PREFIX}/${CTARGET}
+                --disable-libstdcxx
+            )
         else
             # libc is installed:
-            confgcc+=( --with-sysroot=${PREFIX}/${CTARGET} --enable-libstdcxx-time )
+            confgcc+=(
+                --with-sysroot=${PREFIX}/${CTARGET}
+                --enable-libstdcxx-time
+            )
         fi
 
     else
