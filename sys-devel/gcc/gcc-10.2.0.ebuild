@@ -860,7 +860,6 @@ src_configure() {
         if ! has_version ${CATEGORY}/${TARGET_LIBC}; then
             # we are building with a libc that is not yet installed:
             # libquadmath requires a libc, Gentoo Linux bug #734820
-            # Enable 128-bit 'long-double' for stage1-gcc. Gentoo Linux bug #738248
             confgcc+=(
                 --disable-shared
                 --disable-libatomic
@@ -868,8 +867,15 @@ src_configure() {
                 --disable-threads
                 --without-headers
                 --disable-libstdcxx
-                --with-long-double-128
             )
+            # By default gcc looks at glibc's headers to detect long-double support.
+            # This does not work for --disable-headers mode.
+            # >=glibc-2.4 is good enough for float128.
+            # This option appeared in gcc-4.2.
+            # Gentoo Linux bug # 738248
+            if [[ ${TARGET_LIBC} == glibc ]]; then
+                confgcc+=( --with-long-double-128 )
+            fi
         elif has_version "${CATEGORY}/${TARGET_LIBC}[headers-only]"; then
             # libc installed, but has USE="crosscompile_opts_headers-only" to only install headers:
             confgcc+=(
