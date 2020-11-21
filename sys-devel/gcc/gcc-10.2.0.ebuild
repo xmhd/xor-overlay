@@ -477,6 +477,12 @@ pkg_setup() {
 		    TARGET_LIBC=uclibc;;
 		avr*)
 		    TARGET_LIBC=avr-libc;;
+		x86_64-*-mingw*)
+		    TARGET_LIBC=mingw64-runtime;;
+		*-w64-mingw*)
+		    TARGET_LIBC=mingw64-runtime;;
+		*-cygwin)
+		    TARGET_LIBC=cygwin;;
 	esac
 
 	# TARGET_LIBC finished - export.
@@ -827,12 +833,12 @@ src_configure() {
         # Configure anything required by a particular TARGET_LIBC...
 
         # Todo
-        if [[ ${CTARGET} == dietlibc* ]]; then
+        if [[ ${TARGET_LIBC} == dietlibc* ]]; then
             confgcc+=( --disable-libstdcxx-time )
         fi
 
         # Todo
-        if [[ ${CTARGET} == uclibc* ]]; then
+        if [[ ${TARGET_LIBC} == uclibc* ]]; then
 		    # Enable shared library support only on targets that support it: Gentoo Linux bug #291870
 			if ! echo '#include <features.h>' | \
 			   $(tc-getCPP ${CTARGET}) -E -dD - 2>/dev/null | \
@@ -843,7 +849,7 @@ src_configure() {
         fi
 
         # Todo
-        if [[ ${CTARGET} == avr* ]]; then
+        if [[ ${TARGET_LIBC} == avr* ]]; then
             confgcc+=(
                 --disable-__cxa_atexit
                 --enable-shared
@@ -852,7 +858,7 @@ src_configure() {
         fi
 
         # Todo
-        if [[ ${CTARGET} == x86_64-*-mingw* ||  ${CTARGET} == *-w64-mingw* ]]; then
+        if [[ ${TARGET_LIBC} == x86_64-*-mingw* ||  ${TARGET_LIBC} == *-w64-mingw* ]]; then
             confgcc+=( --disable-threads --enable-shared )
         fi
 
