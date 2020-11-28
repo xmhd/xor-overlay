@@ -8,7 +8,7 @@ if [[ ${PV} == 9999 ]]; then
 	inherit git-r3
 	EGIT_REPO_URI="https://github.com/electrified/${PN}.git"
 else
-	EGIT_COMMIT="320a68e3cb2b64e9a7dfe87bb29a6e7befe211c2"
+	EGIT_COMMIT="d3b68dbd00b8d94f37d3b7a396e2b835266bd025"
 	SRC_URI="https://github.com/electrified/${PN}/archive/${EGIT_COMMIT}.tar.gz -> ${PN}-${EGIT_COMMIT}.tar.gz"
 	KEYWORDS="~amd64"
 	S="${WORKDIR}/${PN}-${EGIT_COMMIT}"
