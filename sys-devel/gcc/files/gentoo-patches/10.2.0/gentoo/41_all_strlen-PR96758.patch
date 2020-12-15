@@ -1,0 +1,95 @@
+https://bugs.gentoo.org/757792
+
+From 0dbfa88edafbe913a7a9099246041e0190aa3948 Mon Sep 17 00:00:00 2001
+From: Jakub Jelinek <jakub@redhat.com>
+Date: Tue, 25 Aug 2020 13:47:10 +0200
+Subject: [PATCH] strlen: Fix handle_builtin_string_cmp [PR96758]
+
+The following testcase is miscompiled, because handle_builtin_string_cmp
+sees a strncmp call with constant last argument 4, where one of the strings
+has an upper bound of 5 bytes (due to it being an array of that size) and
+the other has a known string length of 1 and the result is used only in
+equality comparison.
+It is folded into __builtin_strncmp_eq (str1, str2, 4), which is
+incorrect, because that means reading 4 bytes from both strings and
+comparing that.  When one of the strings has known strlen of 1, we want to
+compare just 2 bytes, not 4, as strncmp shouldn't compare any bytes beyond
+the null.
+So, the last argument to __builtin_strncmp_eq should be the minimum of the
+provided strncmp last argument and the known string length + 1 (assuming
+the other string has only a known upper bound due to array size).
+
+Besides that, I've noticed the code has been written with the intent to also
+support the case where we know exact string length of both strings (but not
+the string content, so we can't compute it at compile time).  In that case,
+both cstlen1 and cstlen2 are non-negative and both arysiz1 and arysiz2 are
+negative.  We wouldn't optimize that, cmpsiz would be either the strncmp
+last argument, or for strcmp the first string length, but varsiz would be
+-1 and thus cmpsiz would be never < varsiz.  The patch fixes it by using the
+correct length, in that case using the minimum of the two and for strncmp
+also the last argument.
+
+2020-08-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/96758
+	* tree-ssa-strlen.c (handle_builtin_string_cmp): If both cstlen1
+	and cstlen2 are set, set cmpsiz to their minimum, otherwise use the
+	one that is set.  If bound is used and smaller than cmpsiz, set cmpsiz
+	to bound.  If both cstlen1 and cstlen2 are set, perform the optimization.
+
+	* gcc.dg/strcmpopt_12.c: New test.
+
+(cherry picked from commit f982a6ec9b6d98f5f37114b1d7455c54ce5056b8)
+---
+ gcc/testsuite/gcc.dg/strcmpopt_12.c | 17 +++++++++++++++++
+ gcc/tree-ssa-strlen.c               | 10 +++++++++-
+ 2 files changed, 26 insertions(+), 1 deletion(-)
+ create mode 100644 gcc/testsuite/gcc.dg/strcmpopt_12.c
+
+diff --git a/gcc/testsuite/gcc.dg/strcmpopt_12.c b/gcc/testsuite/gcc.dg/strcmpopt_12.c
+new file mode 100644
+index 00000000000..d8077b62f7f
+--- /dev/null
++++ b/gcc/testsuite/gcc.dg/strcmpopt_12.c
+@@ -0,0 +1,17 @@
++/* PR tree-optimization/96758 */
++/* { dg-do run } */
++/* { dg-options "-O2" } */
++
++int v = 1;
++
++int
++main ()
++{
++  const char *s = v ? "a" : "b";
++  char x[5];
++  char y[5] = "a\0a";
++  __builtin_memcpy (x, y, sizeof (y));
++  if (__builtin_strncmp (x, s, 4) != 0)
++    __builtin_abort ();
++  return 0;
++}
+diff --git a/gcc/tree-ssa-strlen.c b/gcc/tree-ssa-strlen.c
+index 93d095e1896..b0874da5d1e 100644
+--- a/gcc/tree-ssa-strlen.c
++++ b/gcc/tree-ssa-strlen.c
+@@ -4485,7 +4485,15 @@ handle_builtin_string_cmp (gimple_stmt_iterator *gsi, const vr_values *rvals)
+     ++cstlen2;
+ 
+   /* The exact number of characters to compare.  */
+-  HOST_WIDE_INT cmpsiz = bound < 0 ? cstlen1 < 0 ? cstlen2 : cstlen1 : bound;
++  HOST_WIDE_INT cmpsiz;
++  if (cstlen1 >= 0 && cstlen2 >= 0)
++    cmpsiz = MIN (cstlen1, cstlen2);
++  else if (cstlen1 >= 0)
++    cmpsiz = cstlen1;
++  else
++    cmpsiz = cstlen2;
++  if (bound >= 0)
++    cmpsiz = MIN (cmpsiz, bound);
+   /* The size of the array in which the unknown string is stored.  */
+   HOST_WIDE_INT varsiz = arysiz1 < 0 ? arysiz2 : arysiz1;
+ 
+-- 
+2.29.2
+

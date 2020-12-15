@@ -126,6 +126,7 @@ GENTOO_PATCHES=(
     38_all_gcov-TOPN-PR96913.patch
     39_all_ipa-prop-multispec.patch
     40_all_ipa-to_frequency.patch
+	41_all_strlen-PR96758.patch
 )
 
 ALPINE_PATCHES_DIR="${FILESDIR}/alpine-patches/${GCC_ARCHIVE_VER}"
