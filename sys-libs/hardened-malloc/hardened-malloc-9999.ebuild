@@ -10,7 +10,7 @@ KEYWORDS="amd64 arm64"
 
 SLOT="0"
 
-IUSE="custom-cflags debug sanitize test"
+IUSE="custom-cflags default_malloc debug sanitize test"
 
 DEPEND="
     elibc_glibc? ( >=sys-libs/glibc-2.28 )
