@@ -31,8 +31,8 @@ behaving the same across arches under Linux.
  Request IEEE-conformant math library routines (OSF/1).
  
  mieee
--Target Report RejectNegative Mask(IEEE)
-+Target Report Mask(IEEE)
+-Target RejectNegative Mask(IEEE)
++Target Mask(IEEE)
  Emit IEEE-conformant code, without inexact exceptions.
  
  mieee-with-inexact
