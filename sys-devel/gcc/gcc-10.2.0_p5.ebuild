@@ -82,6 +82,8 @@ SRC_URI="
     https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}
 "
 
+S="${WORKDIR}/gcc-${GCC_ARCHIVE_VER}"
+
 GENTOO_PATCHES_DIR="${FILESDIR}/gentoo-patches/${GCC_ARCHIVE_VER}/gentoo"
 
 # Disable a few of these as they will be toggled by USE flag, i.e 01, 02, 03, 27 + 28.
@@ -360,7 +362,7 @@ pkg_setup() {
 	unset ADA_INCLUDE_PATH ADA_OBJECT_PATH
 
 	GCC_BRANCH_VER=${SLOT}
-	GCC_CONFIG_VER=${PV}
+	GCC_CONFIG_VER=${GCC_ARCHIVE_VER}
 
     # Capture -march, -mcpu, -mtune and -mfpu options to do some initial configuration and optionally pass to build later.
     MARCH="${MARCH:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-march="?([-_[:alnum:]]+).*/\1/p')}"
@@ -1254,7 +1256,7 @@ src_configure() {
 	# todo: force use of bash here? old gcc versions do not detect bash and re-exec itself.
 
     # finally run ./configure!
-	../gcc-${PV}/configure "${confgcc[@]}" || die "failed to run configure"
+	../gcc-${GCC_ARCHIVE_VER}/configure "${confgcc[@]}" || die "failed to run configure"
 
 	is_crosscompile && gcc_conf_cross_post
 }
@@ -1684,6 +1686,9 @@ src_install() {
 }
 
 pkg_postinst() {
+
+	do_gcc_config
+
 	if [[ ! ${ROOT%/} && -f ${EPREFIX}/usr/share/eselect/modules/compiler-shadow.eselect ]] ; then
 		eselect compiler-shadow update all
 	fi
@@ -1695,17 +1700,11 @@ pkg_postinst() {
 		rm -f "${EROOT%/}"/usr/sbin/fix_libtool_files.sh
 		rm -f "${EROOT%/}"/usr/share/gcc-data/fixlafiles.awk
 	fi
-
-	PATH="${BINPATH}:${PATH}"
-	export PATH
-	compiler_auto_enable ${PV} ${CTARGET}
 }
 
 pkg_postrm() {
 
-	PATH="${BINPATH}:${PATH}"
-	export PATH
-	compiler_auto_enable ${PV} ${CTARGET}
+	do_gcc_config
 
 	if [[ ! ${ROOT%/} && -f ${EPREFIX}/usr/share/eselect/modules/compiler-shadow.eselect ]] ; then
 		eselect compiler-shadow clean all
@@ -1726,4 +1725,80 @@ pkg_postrm() {
 	# Cleaning can be removed in June 2022.
 	rm -f "${EROOT%/}"/sbin/fix_libtool_files.sh
 	rm -f "${EROOT%/}"/usr/share/gcc-data/fixlafiles.awk
+}
+
+do_gcc_config() {
+	if ! should_we_gcc_config ; then
+		gcc-config --use-old --force
+		return 0
+	fi
+
+	local current_gcc_config target
+
+	current_gcc_config=$(gcc-config -c ${CTARGET} 2>/dev/null)
+	if [[ -n ${current_gcc_config} ]] ; then
+		local current_specs use_specs
+		# figure out which specs-specific config is active
+		current_specs=$(gcc-config -S ${current_gcc_config} | awk '{print $3}')
+		[[ -n ${current_specs} ]] && use_specs=-${current_specs}
+
+		if [[ -n ${use_specs} ]] && \
+		   [[ ! -e ${EROOT%/}/etc/env.d/gcc/${CTARGET}-${GCC_CONFIG_VER}${use_specs} ]]
+		then
+			ewarn "The currently selected specs-specific gcc config,"
+			ewarn "${current_specs}, doesn't exist anymore. This is usually"
+			ewarn "due to enabling/disabling hardened or switching to a version"
+			ewarn "of gcc that doesnt create multiple specs files. The default"
+			ewarn "config will be used, and the previous preference forgotten."
+			use_specs=""
+		fi
+
+		target="${CTARGET}-${GCC_CONFIG_VER}${use_specs}"
+	else
+		# The curent target is invalid.  Attempt to switch to a valid one.
+		# Blindly pick the latest version.  #529608
+		# TODO: Should update gcc-config to accept `-l ${CTARGET}` rather than
+		# doing a partial grep like this.
+		target=$(gcc-config -l 2>/dev/null | grep " ${CTARGET}-[0-9]" | tail -1 | awk '{print $2}')
+	fi
+
+	gcc-config "${target}"
+}
+
+should_we_gcc_config() {
+	# if the current config is invalid, we definitely want a new one
+	# Note: due to bash quirkiness, the following must not be 1 line
+	local curr_config
+	curr_config=$(gcc-config -c ${CTARGET} 2>&1) || return 0
+
+	# if the previously selected config has the same major.minor (branch) as
+	# the version we are installing, then it will probably be uninstalled
+	# for being in the same SLOT, make sure we run gcc-config.
+	local curr_config_ver=$(gcc-config -S ${curr_config} | awk '{print $2}')
+
+	local curr_branch_ver=$(ver_cut 1-2 ${curr_config_ver})
+
+	if [[ ${curr_branch_ver} == ${GCC_BRANCH_VER} ]] ; then
+		return 0
+	else
+		# if we're installing a genuinely different compiler version,
+		# we should probably tell the user -how- to switch to the new
+		# gcc version, since we're not going to do it for him/her.
+		# We don't want to switch from say gcc-3.3 to gcc-3.4 right in
+		# the middle of an emerge operation (like an 'emerge -e world'
+		# which could install multiple gcc versions).
+		# Only warn if we're installing a pkg as we might be called from
+		# the pkg_{pre,post}rm steps.  #446830
+		if [[ ${EBUILD_PHASE} == *"inst" ]] ; then
+			einfo "The current gcc config appears valid, so it will not be"
+			einfo "automatically switched for you.  If you would like to"
+			einfo "switch to the newly installed gcc version, do the"
+			einfo "following:"
+			echo
+			einfo "gcc-config ${CTARGET}-${GCC_CONFIG_VER}"
+			einfo "source /etc/profile"
+			echo
+		fi
+		return 1
+	fi
 }
