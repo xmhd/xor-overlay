@@ -1,4 +1,7 @@
-5		TODO
+6		29 Dec 2020
+	- 34_all_fundecl-ICE-PR95820.patch
+
+5		18 Dec 2020
 	+ 41_all_strlen-PR96758.patch
 
 4		04 Nov 2020

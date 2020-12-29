@@ -21,7 +21,7 @@ IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE +system-bootstrap"
-IUSE="$IUSE openmp altivec fixed-point graphite lto pch +quad generic_host" # Optimizations/features flags
+IUSE="$IUSE generic_host openmp altivec fixed-point graphite lto pch +quad" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +stack_protector_strong stack_protector_all" # Base hardening flags
 IUSE="$IUSE +fortify_source +link_now +pie vtv" # Extra hardening flags
@@ -121,7 +121,7 @@ GENTOO_PATCHES=(
     31_all_fno-delayed-branch.patch
     32_all_sparc_pie_TEXTREL.patch
     33_all_lto-O0-mix-ICE-ipa-PR96291.patch
-    34_all_fundecl-ICE-PR95820.patch
+#    34_all_fundecl-ICE-PR95820.patch
     35_all_ipa-fix-bit-CP.patch
     36_all_ipa-fix-bit-CP-p2.patch
     37_all_c-vector-init-PR96377.patch
@@ -371,11 +371,13 @@ pkg_setup() {
     MFPU="${MFPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mfpu="?([-_[:alnum:]]+).*/\1/p')}"
 
     # Print captured flags.
-    einfo "Got CFLAGS: ${CFLAGS}"
-    einfo "MARCH: ${MARCH}"
-    einfo "MCPU ${MCPU}"
-    einfo "MTUNE: ${MTUNE}"
-    einfo "MFPU: ${MFPU}"
+	echo
+	einfo "CFLAGS:          ${CFLAGS}"
+	einfo "MARCH:           ${MARCH}"
+	einfo "MCPU:            ${MCPU}"
+	einfo "MTUNE:           ${MTUNE}"
+	einfo "MFPU:            ${MFPU}"
+	echo
 
     # DOWNGRADE ARCH FLAGS?
 
@@ -1004,7 +1006,12 @@ src_configure() {
     fi
 
     if ! use generic_host; then
-        confgcc+="${MARCH:+ --with-arch=${MARCH}}${MCPU:+ --with-cpu=${MCPU}}${MTUNE:+ --with-tune=${MTUNE}}${MFPU:+ --with-fpu=${MFPU}}"
+        confgcc+=(
+            --with-arch=${MARCH}
+            --with-cpu=${MCPU}
+            --with-tune=${MTUNE}
+            --with-fpu=${MFPU}
+        )
     fi
 
 	local with_abi_map=()
