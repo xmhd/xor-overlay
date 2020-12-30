@@ -215,7 +215,6 @@ GENTOO_PATCHES=(
 #    1510_fs-enable-link-security-restrictions-by-default.patch
     2000_BT-Check-key-sizes-only-if-Secure-Simple-Pairing-enabled.patch
     2900_tmp513-Fix-build-issue-by-selecting-CONFIG_REG.patch
-    2910_TVP5150-Fix-build-issue-by-selecting-REGMAP-I2C.patch
     2920_sign-file-patch-for-libressl.patch
 #    4567_distro-Gentoo-Kconfig.patch
 )
