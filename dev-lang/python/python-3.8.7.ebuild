@@ -56,7 +56,6 @@ DEPEND="${RDEPEND}
 	virtual/pkgconfig
 	!sys-devel/gcc[libffi(-)]"
 RDEPEND+=" !build? ( app-misc/mime-types )"
-PDEPEND=">=app-eselect/eselect-python-20140125-r1"
 
 src_prepare() {
 	# Ensure that internal copies of expat, libffi and zlib are not used.
