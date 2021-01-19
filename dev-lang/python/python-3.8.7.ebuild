@@ -8,7 +8,7 @@ inherit autotools flag-o-matic multiprocessing pax-utils python-utils-r1 toolcha
 
 MY_P="Python-${PV}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-${PV}-r1"
+PATCHSET="python-gentoo-patches-3.8.6"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
