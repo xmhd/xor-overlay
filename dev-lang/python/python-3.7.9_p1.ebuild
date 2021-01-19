@@ -6,20 +6,21 @@ WANT_LIBTOOL="none"
 
 inherit autotools flag-o-matic multiprocessing pax-utils python-utils-r1 toolchain-funcs
 
-MY_P="Python-${PV}"
+MY_P="Python-${PV%%_*}"
+MY_PV="${PV%%_*}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-3.5.9"
+PATCHSET="python-gentoo-patches-${MY_PV}-r1"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
-SRC_URI="https://www.python.org/ftp/python/${PV}/${MY_P}.tar.xz
+SRC_URI="https://www.python.org/ftp/python/${MY_PV}/${MY_P}.tar.xz
 	https://dev.gentoo.org/~mgorny/dist/python/${PATCHSET}.tar.xz"
 S="${WORKDIR}/${MY_P}"
 
 LICENSE="PSF-2"
 SLOT="${PYVER}/${PYVER}m"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
-IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl test +threads tk wininst +xml"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sh ~sparc ~x86"
+IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl test threads tk wininst +xml"
 RESTRICT="!test? ( test )"
 
 # Do not add a dependency on dev-lang/python to this ebuild.
@@ -30,6 +31,7 @@ RESTRICT="!test? ( test )"
 RDEPEND="app-arch/bzip2:=
 	dev-libs/libffi:=
 	app-arch/xz-utils:=
+	sys-apps/util-linux:=
 	>=sys-libs/zlib-1.1.3:=
 	virtual/libcrypt:=
 	virtual/libintl
@@ -64,22 +66,11 @@ src_prepare() {
 
 	local PATCHES=(
 		"${WORKDIR}/${PATCHSET}"
-		"${FILESDIR}/test.support.unlink-ignore-PermissionError.patch"
-		"${FILESDIR}/python-3.5-CVE-2020-8492.patch"
 	)
 
 	default
 
 	sed -i -e "s:@@GENTOO_LIBDIR@@:$(get_libdir):g" \
-		configure.ac \
-		Lib/distutils/command/install.py \
-		Lib/distutils/sysconfig.py \
-		Lib/site.py \
-		Lib/sysconfig.py \
-		Lib/test/test_site.py \
-		Makefile.pre.in \
-		Modules/getpath.c \
-		Modules/Setup.dist \
 		setup.py || die "sed failed to replace @@GENTOO_LIBDIR@@"
 
 	# force correct number of jobs
@@ -132,14 +123,13 @@ src_configure() {
 	# Export CXX so it ends up in /usr/lib/python3.X/config/Makefile.
 	tc-export CXX
 
-	# The configure script fails to use pkg-config correctly.
-	# http://bugs.python.org/issue15506
-	export ac_cv_path_PKG_CONFIG=$(tc-getPKG_CONFIG)
-
 	# Set LDFLAGS so we link modules with -lpython3.2 correctly.
 	# Needed on FreeBSD unless Python 3.2 is already installed.
 	# Please query BSD team before removing this!
 	append-ldflags "-L."
+
+	# Fix implicit declarations on cross and prefix builds. Bug #674070.
+	use ncurses && append-cppflags -I"${ESYSROOT}"/usr/include/ncursesw
 
 	local dbmliborder
 	if use gdbm; then
@@ -152,10 +142,8 @@ src_configure() {
 		# a chance for users rebuilding python before glibc
 		ac_cv_header_stropts_h=no
 
-		--with-fpectl
 		--enable-shared
 		$(use_enable ipv6)
-		$(use_with threads)
 		$(use_enable pgo optimizations)
 		$(use_with lto)
 		--infodir='${prefix}/share/info'
@@ -254,7 +242,7 @@ src_test() {
 	done
 
 	elog "If you would like to run them, you may:"
-	elog "cd '${EPREFIX}/usr/$(get_libdir)/python${PYVER}/test'"
+	elog "cd '${EPREFIX}/usr/lib/python${PYVER}/test'"
 	elog "and run the tests separately."
 
 	if [[ ${result} -ne 0 ]]; then
@@ -263,7 +251,7 @@ src_test() {
 }
 
 src_install() {
-	local libdir=${ED}/usr/$(get_libdir)/python${PYVER}
+	local libdir=${ED}/usr/lib/python${PYVER}
 
 	emake DESTDIR="${D}" altinstall
 
@@ -301,7 +289,6 @@ src_install() {
 	use sqlite || rm -r "${libdir}/"{sqlite3,test/test_sqlite*} || die
 	use tk || rm -r "${ED}/usr/bin/idle${PYVER}" "${libdir}/"{idlelib,tkinter,test/test_tk*} || die
 
-	use threads || rm -r "${libdir}/multiprocessing" || die
 	use wininst || rm "${libdir}/distutils/command/"wininst-*.exe || die
 
 	dodoc Misc/{ACKS,HISTORY,NEWS}
@@ -325,47 +312,47 @@ src_install() {
 		"${ED}/etc/init.d/pydoc-${PYVER}" || die "sed failed"
 
 	# for python-exec
-	local vars=( EPYTHON PYTHON_SITEDIR PYTHON_SCRIPTDIR )
+	local -x EPYTHON=python${PYVER}
 
 	# if not using a cross-compiler, use the fresh binary
 	if ! tc-is-cross-compiler; then
 		local -x PYTHON=./python
 		local -x LD_LIBRARY_PATH=${LD_LIBRARY_PATH+${LD_LIBRARY_PATH}:}${PWD}
 	else
-		vars=( PYTHON "${vars[@]}" )
+		local -x PYTHON=${EPREFIX}/usr/bin/${EPYTHON}
 	fi
 
-	python_export "python${PYVER}" "${vars[@]}"
 	echo "EPYTHON='${EPYTHON}'" > epython.py || die
 	python_domodule epython.py
 
 	# python-exec wrapping support
 	local pymajor=${PYVER%.*}
-	mkdir -p "${D}${PYTHON_SCRIPTDIR}" || die
+	local scriptdir=${D}$(python_get_scriptdir)
+	mkdir -p "${scriptdir}" || die
 	# python and pythonX
 	ln -s "../../../bin/${abiver}" \
-		"${D}${PYTHON_SCRIPTDIR}/python${pymajor}" || die
-	ln -s "python${pymajor}" "${D}${PYTHON_SCRIPTDIR}/python" || die
+		"${scriptdir}/python${pymajor}" || die
+	ln -s "python${pymajor}" "${scriptdir}/python" || die
 	# python-config and pythonX-config
 	# note: we need to create a wrapper rather than symlinking it due
 	# to some random dirname(argv[0]) magic performed by python-config
-	cat > "${D}${PYTHON_SCRIPTDIR}/python${pymajor}-config" <<-EOF || die
+	cat > "${scriptdir}/python${pymajor}-config" <<-EOF || die
 		#!/bin/sh
 		exec "${abiver}-config" "\${@}"
 	EOF
-	chmod +x "${D}${PYTHON_SCRIPTDIR}/python${pymajor}-config" || die
+	chmod +x "${scriptdir}/python${pymajor}-config" || die
 	ln -s "python${pymajor}-config" \
-		"${D}${PYTHON_SCRIPTDIR}/python-config" || die
+		"${scriptdir}/python-config" || die
 	# 2to3, pydoc, pyvenv
 	ln -s "../../../bin/2to3-${PYVER}" \
-		"${D}${PYTHON_SCRIPTDIR}/2to3" || die
+		"${scriptdir}/2to3" || die
 	ln -s "../../../bin/pydoc${PYVER}" \
-		"${D}${PYTHON_SCRIPTDIR}/pydoc" || die
+		"${scriptdir}/pydoc" || die
 	ln -s "../../../bin/pyvenv-${PYVER}" \
-		"${D}${PYTHON_SCRIPTDIR}/pyvenv" || die
+		"${scriptdir}/pyvenv" || die
 	# idle
 	if use tk; then
 		ln -s "../../../bin/idle${PYVER}" \
-			"${D}${PYTHON_SCRIPTDIR}/idle" || die
+			"${scriptdir}/idle" || die
 	fi
 }

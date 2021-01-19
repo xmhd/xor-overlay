@@ -1,25 +1,26 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
 WANT_LIBTOOL="none"
 
-inherit autotools check-reqs flag-o-matic multiprocessing pax-utils python-utils-r1 toolchain-funcs
+inherit autotools flag-o-matic multiprocessing pax-utils python-utils-r1 toolchain-funcs
 
-MY_P="Python-${PV/_/}"
+MY_P="Python-${PV%%_*}"
+MY_PV="${PV%%_*}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-3.9.0rc1"
+PATCHSET="python-gentoo-patches-3.5.9"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
-SRC_URI="https://www.python.org/ftp/python/${PV%_*}/${MY_P}.tar.xz
+SRC_URI="https://www.python.org/ftp/python/${MY_PV}/${MY_P}.tar.xz
 	https://dev.gentoo.org/~mgorny/dist/python/${PATCHSET}.tar.xz"
 S="${WORKDIR}/${MY_P}"
 
 LICENSE="PSF-2"
-SLOT="${PYVER}"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sh ~sparc ~x86"
-IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl test threads tk wininst +xml"
+SLOT="${PYVER}/${PYVER}m"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
+IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl test +threads tk wininst +xml"
 RESTRICT="!test? ( test )"
 
 # Do not add a dependency on dev-lang/python to this ebuild.
@@ -30,7 +31,6 @@ RESTRICT="!test? ( test )"
 RDEPEND="app-arch/bzip2:=
 	dev-libs/libffi:=
 	app-arch/xz-utils:=
-	sys-apps/util-linux:=
 	>=sys-libs/zlib-1.1.3:=
 	virtual/libcrypt:=
 	virtual/libintl
@@ -57,17 +57,6 @@ DEPEND="${RDEPEND}
 	!sys-devel/gcc[libffi(-)]"
 RDEPEND+=" !build? ( app-misc/mime-types )"
 
-# large file tests involve a 2.5G file being copied (duplicated)
-CHECKREQS_DISK_BUILD=5500M
-
-pkg_pretend() {
-	use test && check-reqs_pkg_pretend
-}
-
-pkg_setup() {
-	use test && check-reqs_pkg_setup
-}
-
 src_prepare() {
 	# Ensure that internal copies of expat, libffi and zlib are not used.
 	rm -fr Modules/expat || die
@@ -76,17 +65,27 @@ src_prepare() {
 
 	local PATCHES=(
 		"${WORKDIR}/${PATCHSET}"
+		"${FILESDIR}/test.support.unlink-ignore-PermissionError.patch"
+		"${FILESDIR}/python-3.5-CVE-2020-8492.patch"
 	)
 
 	default
 
 	sed -i -e "s:@@GENTOO_LIBDIR@@:$(get_libdir):g" \
+		configure.ac \
+		Lib/distutils/command/install.py \
+		Lib/distutils/sysconfig.py \
+		Lib/site.py \
+		Lib/sysconfig.py \
+		Lib/test/test_site.py \
+		Makefile.pre.in \
+		Modules/getpath.c \
+		Modules/Setup.dist \
 		setup.py || die "sed failed to replace @@GENTOO_LIBDIR@@"
 
 	# force correct number of jobs
 	# https://bugs.gentoo.org/737660
 	local jobs=$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")
-	sed -i -e "s:-j0:-j${jobs}:" Makefile.pre.in || die
 	sed -i -e "/self\.parallel/s:True:${jobs}:" setup.py || die
 
 	eautoreconf
@@ -127,20 +126,21 @@ src_configure() {
 		use hardened && replace-flags -O3 -O2
 	fi
 
-	if is-flagq -flto || is-flagq '-flto=*'; then
-		append-cflags $(test-flags-CC -ffat-lto-objects)
-	fi
+        if is-flagq -flto || is-flagq '-flto=*'; then
+                append-cflags $(test-flags-CC -ffat-lto-objects)
+        fi
 
 	# Export CXX so it ends up in /usr/lib/python3.X/config/Makefile.
 	tc-export CXX
+
+	# The configure script fails to use pkg-config correctly.
+	# http://bugs.python.org/issue15506
+	export ac_cv_path_PKG_CONFIG=$(tc-getPKG_CONFIG)
 
 	# Set LDFLAGS so we link modules with -lpython3.2 correctly.
 	# Needed on FreeBSD unless Python 3.2 is already installed.
 	# Please query BSD team before removing this!
 	append-ldflags "-L."
-
-	# Fix implicit declarations on cross and prefix builds. Bug #674070.
-	use ncurses && append-cppflags -I"${ESYSROOT}"/usr/include/ncursesw
 
 	local dbmliborder
 	if use gdbm; then
@@ -153,8 +153,10 @@ src_configure() {
 		# a chance for users rebuilding python before glibc
 		ac_cv_header_stropts_h=no
 
+		--with-fpectl
 		--enable-shared
 		$(use_enable ipv6)
+		$(use_with threads)
 		$(use_enable pgo optimizations)
 		$(use_with lto)
 		--infodir='${prefix}/share/info'
@@ -183,11 +185,17 @@ src_configure() {
 }
 
 src_compile() {
+	if use pgo; then
+		# disable distcc and ccache
+		export DISTCC_HOSTS=""
+		export CCACHE_DISABLE=1
+	fi
+
 	# Ensure sed works as expected
 	# https://bugs.gentoo.org/594768
 	local -x LC_ALL=C
 
-	#The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
+	# The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
 
 	# extract the number of parallel jobs in MAKEOPTS
 	echo ${MAKEOPTS} | egrep -o '(\-j|\-\-jobs)(=?|[[:space:]]*)[[:digit:]]+' > /dev/null
@@ -247,7 +255,7 @@ src_test() {
 	done
 
 	elog "If you would like to run them, you may:"
-	elog "cd '${EPREFIX}/usr/lib/python${PYVER}/test'"
+	elog "cd '${EPREFIX}/usr/$(get_libdir)/python${PYVER}/test'"
 	elog "and run the tests separately."
 
 	if [[ ${result} -ne 0 ]]; then
@@ -256,7 +264,7 @@ src_test() {
 }
 
 src_install() {
-	local libdir=${ED}/usr/lib/python${PYVER}
+	local libdir=${ED}/usr/$(get_libdir)/python${PYVER}
 
 	emake DESTDIR="${D}" altinstall
 
@@ -294,6 +302,9 @@ src_install() {
 	use sqlite || rm -r "${libdir}/"{sqlite3,test/test_sqlite*} || die
 	use tk || rm -r "${ED}/usr/bin/idle${PYVER}" "${libdir}/"{idlelib,tkinter,test/test_tk*} || die
 
+	use threads || rm -r "${libdir}/multiprocessing" || die
+	use wininst || rm "${libdir}/distutils/command/"wininst-*.exe || die
+
 	dodoc Misc/{ACKS,HISTORY,NEWS}
 
 	if use examples; then
@@ -315,45 +326,47 @@ src_install() {
 		"${ED}/etc/init.d/pydoc-${PYVER}" || die "sed failed"
 
 	# for python-exec
-	local -x EPYTHON=python${PYVER}
+	local vars=( EPYTHON PYTHON_SITEDIR PYTHON_SCRIPTDIR )
 
 	# if not using a cross-compiler, use the fresh binary
 	if ! tc-is-cross-compiler; then
 		local -x PYTHON=./python
 		local -x LD_LIBRARY_PATH=${LD_LIBRARY_PATH+${LD_LIBRARY_PATH}:}${PWD}
 	else
-		local -x PYTHON=${EPREFIX}/usr/bin/${EPYTHON}
+		vars=( PYTHON "${vars[@]}" )
 	fi
 
+	python_export "python${PYVER}" "${vars[@]}"
 	echo "EPYTHON='${EPYTHON}'" > epython.py || die
 	python_domodule epython.py
 
 	# python-exec wrapping support
 	local pymajor=${PYVER%.*}
-	local scriptdir=${D}$(python_get_scriptdir)
-	mkdir -p "${scriptdir}" || die
+	mkdir -p "${D}${PYTHON_SCRIPTDIR}" || die
 	# python and pythonX
 	ln -s "../../../bin/${abiver}" \
-		"${scriptdir}/python${pymajor}" || die
-	ln -s "python${pymajor}" "${scriptdir}/python" || die
+		"${D}${PYTHON_SCRIPTDIR}/python${pymajor}" || die
+	ln -s "python${pymajor}" "${D}${PYTHON_SCRIPTDIR}/python" || die
 	# python-config and pythonX-config
 	# note: we need to create a wrapper rather than symlinking it due
 	# to some random dirname(argv[0]) magic performed by python-config
-	cat > "${scriptdir}/python${pymajor}-config" <<-EOF || die
+	cat > "${D}${PYTHON_SCRIPTDIR}/python${pymajor}-config" <<-EOF || die
 		#!/bin/sh
 		exec "${abiver}-config" "\${@}"
 	EOF
-	chmod +x "${scriptdir}/python${pymajor}-config" || die
+	chmod +x "${D}${PYTHON_SCRIPTDIR}/python${pymajor}-config" || die
 	ln -s "python${pymajor}-config" \
-		"${scriptdir}/python-config" || die
-	# 2to3, pydoc
+		"${D}${PYTHON_SCRIPTDIR}/python-config" || die
+	# 2to3, pydoc, pyvenv
 	ln -s "../../../bin/2to3-${PYVER}" \
-		"${scriptdir}/2to3" || die
+		"${D}${PYTHON_SCRIPTDIR}/2to3" || die
 	ln -s "../../../bin/pydoc${PYVER}" \
-		"${scriptdir}/pydoc" || die
+		"${D}${PYTHON_SCRIPTDIR}/pydoc" || die
+	ln -s "../../../bin/pyvenv-${PYVER}" \
+		"${D}${PYTHON_SCRIPTDIR}/pyvenv" || die
 	# idle
 	if use tk; then
 		ln -s "../../../bin/idle${PYVER}" \
-			"${scriptdir}/idle" || die
+			"${D}${PYTHON_SCRIPTDIR}/idle" || die
 	fi
 }
