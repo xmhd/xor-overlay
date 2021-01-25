@@ -203,7 +203,6 @@ HARDENED_PATCHES=(
     0110-net-tcp-add-option-to-disable-TCP-simultaneous-conne.patch
     0111-dccp-ccid-move-timers-to-struct-dccp_sock.patch
     0112-Revert-dccp-don-t-free-ccid2_hc_tx_sock-struct-in-dc.patch
-    0113-Linux-hardened-5.10.10-hardened1.patch
 )
 
 GENTOO_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/gentoo-patches/"
