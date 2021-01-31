@@ -57,9 +57,9 @@ ca:12345:ctrlaltdel:/sbin/shutdown -r now
 # Halt system on power failures
 pf:12345:powerwait:/sbin/halt
 
-# Used by /etc/init.d/xdm to control DM startup.
-# Read the comments in /etc/init.d/xdm for more
+# Used by /etc/init.d/display-manager to control DM startup.
+# Read the comments in /etc/init.d/display-manager for more
 # info. Do NOT remove, as this will start nothing
-# extra at boot if /etc/init.d/xdm is not added
+# extra at boot if /etc/init.d/display-manager is not added
 # to the "default" runlevel.
-x:a:once:/etc/X11/startDM.sh
+x:a:once:/usr/bin/startDM
