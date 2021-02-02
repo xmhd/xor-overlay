@@ -15,6 +15,7 @@ RDEPEND="
 	    sys-kernel/cairn-sources
 	    sys-kernel/debian-sources
 		sys-kernel/gentoo-sources
+		sys-kernel/dummy-sources
 		sys-kernel/vanilla-sources
 		sys-kernel/ck-sources
 		sys-kernel/git-sources
