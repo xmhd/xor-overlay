@@ -1,0 +1,208 @@
+From afc4f4480c3f45cc088ae887f06e0472e3846667 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Tue, 4 Jul 2017 01:41:11 -0400
+Subject: [PATCH 057/113] remove unused softirq_action callback parameter
+
+Extracted from PaX.
+---
+ block/blk-mq.c            |  2 +-
+ include/linux/interrupt.h |  4 ++--
+ kernel/rcu/tiny.c         |  2 +-
+ kernel/rcu/tree.c         |  2 +-
+ kernel/sched/fair.c       |  2 +-
+ kernel/softirq.c          | 15 +++++++--------
+ kernel/time/hrtimer.c     |  2 +-
+ kernel/time/timer.c       |  2 +-
+ lib/irq_poll.c            |  2 +-
+ net/core/dev.c            |  4 ++--
+ 10 files changed, 18 insertions(+), 19 deletions(-)
+
+diff --git a/block/blk-mq.c b/block/blk-mq.c
+index 2a1eff60c797..75a0077ea1a9 100644
+--- a/block/blk-mq.c
++++ b/block/blk-mq.c
+@@ -569,7 +569,7 @@ EXPORT_SYMBOL(blk_mq_end_request);
+  * Softirq action handler - move entries to local list and loop over them
+  * while passing them to the queue registered handler.
+  */
+-static __latent_entropy void blk_done_softirq(struct softirq_action *h)
++static __latent_entropy void blk_done_softirq(void)
+ {
+ 	struct list_head *cpu_list, local_list;
+ 
+diff --git a/include/linux/interrupt.h b/include/linux/interrupt.h
+index f03b78ae5f0a..4381b79f76cf 100644
+--- a/include/linux/interrupt.h
++++ b/include/linux/interrupt.h
+@@ -554,7 +554,7 @@ extern const char * const softirq_to_name[NR_SOFTIRQS];
+ 
+ struct softirq_action
+ {
+-	void	(*action)(struct softirq_action *);
++	void	(*action)(void);
+ };
+ 
+ asmlinkage void do_softirq(void);
+@@ -569,7 +569,7 @@ static inline void do_softirq_own_stack(void)
+ }
+ #endif
+ 
+-extern void __init open_softirq(int nr, void (*action)(struct softirq_action *));
++extern void __init open_softirq(int nr, void (*action)(void));
+ extern void softirq_init(void);
+ extern void __raise_softirq_irqoff(unsigned int nr);
+ 
+diff --git a/kernel/rcu/tiny.c b/kernel/rcu/tiny.c
+index aa897c3f2e92..d8976886fd68 100644
+--- a/kernel/rcu/tiny.c
++++ b/kernel/rcu/tiny.c
+@@ -101,7 +101,7 @@ static inline bool rcu_reclaim_tiny(struct rcu_head *head)
+ }
+ 
+ /* Invoke the RCU callbacks whose grace period has elapsed.  */
+-static __latent_entropy void rcu_process_callbacks(struct softirq_action *unused)
++static __latent_entropy void rcu_process_callbacks(void)
+ {
+ 	struct rcu_head *next, *list;
+ 	unsigned long flags;
+diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
+index 593df7edfe97..3285d81d8a26 100644
+--- a/kernel/rcu/tree.c
++++ b/kernel/rcu/tree.c
+@@ -2722,7 +2722,7 @@ static __latent_entropy void rcu_core(void)
+ 		queue_work_on(rdp->cpu, rcu_gp_wq, &rdp->strict_work);
+ }
+ 
+-static void rcu_core_si(struct softirq_action *h)
++static void rcu_core_si(void)
+ {
+ 	rcu_core();
+ }
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index ae7ceba8fd4f..d118be5f18b8 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -10628,7 +10628,7 @@ static int newidle_balance(struct rq *this_rq, struct rq_flags *rf)
+  * run_rebalance_domains is triggered when needed from the scheduler tick.
+  * Also triggered for nohz idle balancing (with nohz_balancing_kick set).
+  */
+-static __latent_entropy void run_rebalance_domains(struct softirq_action *h)
++static __latent_entropy void run_rebalance_domains(void)
+ {
+ 	struct rq *this_rq = this_rq();
+ 	enum cpu_idle_type idle = this_rq->idle_balance ?
+diff --git a/kernel/softirq.c b/kernel/softirq.c
+index 0595a8248c4a..3a21b22227c1 100644
+--- a/kernel/softirq.c
++++ b/kernel/softirq.c
+@@ -295,7 +295,7 @@ asmlinkage __visible void __softirq_entry __do_softirq(void)
+ 		kstat_incr_softirqs_this_cpu(vec_nr);
+ 
+ 		trace_softirq_entry(vec_nr);
+-		h->action(h);
++		h->action();
+ 		trace_softirq_exit(vec_nr);
+ 		if (unlikely(prev_count != preempt_count())) {
+ 			pr_err("huh, entered softirq %u %s %p with preempt_count %08x, exited with %08x?\n",
+@@ -486,7 +486,7 @@ void __raise_softirq_irqoff(unsigned int nr)
+ 	or_softirq_pending(1UL << nr);
+ }
+ 
+-void __init open_softirq(int nr, void (*action)(struct softirq_action *))
++void __init open_softirq(int nr, void (*action)(void))
+ {
+ 	softirq_vec[nr].action = action;
+ }
+@@ -532,8 +532,7 @@ void __tasklet_hi_schedule(struct tasklet_struct *t)
+ }
+ EXPORT_SYMBOL(__tasklet_hi_schedule);
+ 
+-static void tasklet_action_common(struct softirq_action *a,
+-				  struct tasklet_head *tl_head,
++static void tasklet_action_common(struct tasklet_head *tl_head,
+ 				  unsigned int softirq_nr)
+ {
+ 	struct tasklet_struct *list;
+@@ -573,14 +572,14 @@ static void tasklet_action_common(struct softirq_action *a,
+ 	}
+ }
+ 
+-static __latent_entropy void tasklet_action(struct softirq_action *a)
++static __latent_entropy void tasklet_action(void)
+ {
+-	tasklet_action_common(a, this_cpu_ptr(&tasklet_vec), TASKLET_SOFTIRQ);
++	tasklet_action_common(this_cpu_ptr(&tasklet_vec), TASKLET_SOFTIRQ);
+ }
+ 
+-static __latent_entropy void tasklet_hi_action(struct softirq_action *a)
++static __latent_entropy void tasklet_hi_action(void)
+ {
+-	tasklet_action_common(a, this_cpu_ptr(&tasklet_hi_vec), HI_SOFTIRQ);
++	tasklet_action_common(this_cpu_ptr(&tasklet_hi_vec), HI_SOFTIRQ);
+ }
+ 
+ void tasklet_setup(struct tasklet_struct *t,
+diff --git a/kernel/time/hrtimer.c b/kernel/time/hrtimer.c
+index 387b4bef7dd1..8fe28c28a906 100644
+--- a/kernel/time/hrtimer.c
++++ b/kernel/time/hrtimer.c
+@@ -1587,7 +1587,7 @@ static void __hrtimer_run_queues(struct hrtimer_cpu_base *cpu_base, ktime_t now,
+ 	}
+ }
+ 
+-static __latent_entropy void hrtimer_run_softirq(struct softirq_action *h)
++static __latent_entropy void hrtimer_run_softirq(void)
+ {
+ 	struct hrtimer_cpu_base *cpu_base = this_cpu_ptr(&hrtimer_bases);
+ 	unsigned long flags;
+diff --git a/kernel/time/timer.c b/kernel/time/timer.c
+index c3ad64fb9d8b..217bc49a3856 100644
+--- a/kernel/time/timer.c
++++ b/kernel/time/timer.c
+@@ -1753,7 +1753,7 @@ static inline void __run_timers(struct timer_base *base)
+ /*
+  * This function runs timers and the timer-tq in bottom half context.
+  */
+-static __latent_entropy void run_timer_softirq(struct softirq_action *h)
++static __latent_entropy void run_timer_softirq(void)
+ {
+ 	struct timer_base *base = this_cpu_ptr(&timer_bases[BASE_STD]);
+ 
+diff --git a/lib/irq_poll.c b/lib/irq_poll.c
+index 2f17b488d58e..b6e7996a0058 100644
+--- a/lib/irq_poll.c
++++ b/lib/irq_poll.c
+@@ -75,7 +75,7 @@ void irq_poll_complete(struct irq_poll *iop)
+ }
+ EXPORT_SYMBOL(irq_poll_complete);
+ 
+-static void __latent_entropy irq_poll_softirq(struct softirq_action *h)
++static void __latent_entropy irq_poll_softirq(void)
+ {
+ 	struct list_head *list = this_cpu_ptr(&blk_cpu_iopoll);
+ 	int rearm = 0, budget = irq_poll_budget;
+diff --git a/net/core/dev.c b/net/core/dev.c
+index 81e5d482c238..172fd10f4b01 100644
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -4856,7 +4856,7 @@ int netif_rx_any_context(struct sk_buff *skb)
+ }
+ EXPORT_SYMBOL(netif_rx_any_context);
+ 
+-static __latent_entropy void net_tx_action(struct softirq_action *h)
++static __latent_entropy void net_tx_action(void)
+ {
+ 	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
+ 
+@@ -6803,7 +6803,7 @@ static int napi_poll(struct napi_struct *n, struct list_head *repoll)
+ 	return work;
+ }
+ 
+-static __latent_entropy void net_rx_action(struct softirq_action *h)
++static __latent_entropy void net_rx_action(void)
+ {
+ 	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
+ 	unsigned long time_limit = jiffies +
+-- 
+2.30.0
+
