@@ -52,7 +52,7 @@ DEPEND="
 "
 
 # linux kernel upstream
-KERNEL_VERSION="5.10.12"
+KERNEL_VERSION="5.10.13"
 KERNEL_ARCHIVE="linux-${KERNEL_VERSION}.tar.xz"
 KERNEL_UPSTREAM="https://cdn.kernel.org/pub/linux/kernel/v5.x/${KERNEL_ARCHIVE}"
 KERNEL_EXTRAVERSION="-cairn"
