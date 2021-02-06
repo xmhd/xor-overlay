@@ -2,6 +2,8 @@
 
 EAPI=7
 
+inherit flag-o-matic toolchain-funcs
+
 HOMEPAGE="https://github.com/oracle/dtrace-utils"
 DESCRIPTION="DTrace userspace utilities"
 
@@ -13,17 +15,17 @@ SLOT="0"
 IUSE="test"
 
 DEPEND="
-    sys-devel/bison
-    sys-devel/flex
-    virtual/linux-sources[dtrace]
-    virtual/os-headers
+        sys-devel/bison
+        sys-devel/flex
+        virtual/linux-sources[dtrace]
+        virtual/os-headers
 "
 
 RDEPEND="
-    dev-libs/elfutils
-    dev-libs/libdtrace-ctf
-    net-libs/libpcap
-    sys-libs/zlib
+        dev-libs/elfutils
+        dev-libs/libdtrace-ctf
+        net-libs/libpcap
+        sys-libs/zlib
 "
 
 DTRACE_UTILS_VER="1.2.1"
@@ -38,5 +40,13 @@ src_unpack() {
 
         if ! use test ; then
             rm -rf ${WORKDIR}/${PN}-${PV}/test || die "failed to remove tests"
+        fi
+}
+
+src_configure() {
+
+        # work around gcc-10 defaulting to -fno-common
+        if ver_test $(gcc-fullversion) -ge 10 ; then
+                append-cflags -fcommon
         fi
 }
