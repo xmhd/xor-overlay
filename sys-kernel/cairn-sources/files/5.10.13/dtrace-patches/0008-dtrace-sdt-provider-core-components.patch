@@ -1,0 +1,3112 @@
+From 0bf2a2a85df13740247a26e7b217f39eda237b0c Mon Sep 17 00:00:00 2001
+From: Kris Van Hees <kris.van.hees@oracle.com>
+Date: Mon, 19 Nov 2018 22:03:10 +0000
+Subject: [PATCH 08/19] dtrace: sdt provider core components
+
+This implements the core (linked-in) machinery needed for SDT
+tracepoints:
+
+ - generate empty stub function calls __dtrace_probe_* for each probe
+   point and perf-event probe point, and record their section-relative
+   offset in tables in special symbols in the output; calls to
+   is-enabling probes (conditionals of the form
+   if (DTRACE_FOO_ENABLED(probe-name))) are translated as well
+ - similarly record the names and types of arguments to probes in
+   special sections
+ - parse both of these at load time, and substitute in nops over the top
+   of the stub functions, remembering their locations: is-enabled probes
+   get 0-returns patched over the top
+ - on probe enabling, patch invalid-operation traps over the top of
+   those stub functions; handle these by calling the probe, then return
+   as if the trap had never happened
+
+The provider module itself is added in the next commit.
+
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Signed-off-by: Kris Van Hees <kris.van.hees@oracle.com>
+Signed-off-by: Tomas Jedlicka <tomas.jedlicka@oracle.com>
+Signed-off-by: Eugene Loh <eugene.loh@oracle.com>
+Signed-off-by: David Mc Lean <david.mclean@oracle.com>
+Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
+---
+ .gitignore                                |   6 +
+ Makefile                                  |   1 +
+ arch/x86/dtrace/include/dtrace/sdt_arch.h |  28 ++
+ arch/x86/include/asm/dtrace_arch.h        |   8 +-
+ arch/x86/include/asm/dtrace_sdt_arch.h    |  11 +
+ arch/x86/include/asm/dtrace_util.h        |  13 +
+ arch/x86/include/asm/spinlock.h           |   1 +
+ arch/x86/include/asm/text-patching.h      |   1 +
+ arch/x86/kernel/alternative.c             |   2 +-
+ arch/x86/kernel/dtrace_sdt.c              |  76 +++
+ arch/x86/kernel/dtrace_util.c             | 214 +++++++-
+ arch/x86/kernel/vmlinux.lds.S             |   3 +-
+ include/asm-generic/vmlinux.lds.h         |  16 +
+ include/linux/dtrace_os.h                 |   3 +
+ include/linux/dtrace_sdt.h                |  32 ++
+ include/linux/module.h                    |   5 +
+ include/linux/sdt.h                       | 191 +++++++
+ include/linux/sdt_internal.h              | 276 ++++++++++
+ include/linux/tracepoint.h                |   8 +-
+ kernel/dtrace/Kconfig                     |  16 +
+ kernel/dtrace/Makefile                    |   3 +-
+ kernel/dtrace/dtrace_os.c                 |  83 +++
+ kernel/dtrace/dtrace_sdt_core.c           | 364 ++++++++++++++
+ kernel/module.c                           |  14 +
+ scripts/.gitignore                        |   1 +
+ scripts/Makefile                          |   6 +
+ scripts/Makefile.modfinal                 |  52 +-
+ scripts/dtrace_sdt.sh                     | 588 ++++++++++++++++++++++
+ scripts/kmodsdt.c                         | 410 +++++++++++++++
+ scripts/link-vmlinux.sh                   |  69 ++-
+ scripts/mod/modpost.c                     |  19 +-
+ 31 files changed, 2500 insertions(+), 20 deletions(-)
+ create mode 100644 arch/x86/dtrace/include/dtrace/sdt_arch.h
+ create mode 100644 arch/x86/include/asm/dtrace_sdt_arch.h
+ create mode 100644 arch/x86/kernel/dtrace_sdt.c
+ create mode 100644 include/linux/dtrace_sdt.h
+ create mode 100644 include/linux/sdt.h
+ create mode 100644 include/linux/sdt_internal.h
+ create mode 100644 kernel/dtrace/dtrace_sdt_core.c
+ create mode 100755 scripts/dtrace_sdt.sh
+ create mode 100644 scripts/kmodsdt.c
+
+diff --git a/.gitignore b/.gitignore
+index 1c10cd7ce033..13954b4624a9 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -158,3 +158,9 @@ x509.genkey
+ 
+ # Documentation toolchain
+ sphinx_*/
++#
++# Generated DTrace SDT files
++#
++*.sdtinfo.c
++*.sdtinfo.h
++*.sdtstub.S
+diff --git a/Makefile b/Makefile
+index 4b25be692ac1..e3f113b64681 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1883,6 +1883,7 @@ clean: $(clean-dirs)
+ 		-o -name '*.dtb' -o -name '*.dtb.S' -o -name '*.dt.yaml' \
+ 		-o -name '*.dwo' -o -name '*.lst' \
+ 		-o -name '*.su' -o -name '*.mod' \
++		-o -name '*.sdtinfo.c' -o -name '*.sdtinfo.h' -o -name '*.sdtstub.S' \
+ 		-o -name '.*.d' -o -name '.*.tmp' -o -name '*.mod.c' \
+ 		-o -name '*.lex.c' -o -name '*.tab.[ch]' \
+ 		-o -name '*.asn1.[ch]' \
+diff --git a/arch/x86/dtrace/include/dtrace/sdt_arch.h b/arch/x86/dtrace/include/dtrace/sdt_arch.h
+new file mode 100644
+index 000000000000..d8616b44079b
+--- /dev/null
++++ b/arch/x86/dtrace/include/dtrace/sdt_arch.h
+@@ -0,0 +1,28 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Dynamic Tracing for Linux - SDT Implementation defines
++ *
++ * Copyright (c) 2009, 2015, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++/*
++ * Note: The contents of this file are private to the implementation of the
++ * DTrace subsystem and are subject to change at any time without notice.
++ */
++
++#ifndef _X86_64_SDT_ARCH_H
++#define _X86_64_SDT_ARCH_H
++
++#define SDT_AFRAMES	4
++
++#endif /* _X86_64_SDT_ARCH_H */
+diff --git a/arch/x86/include/asm/dtrace_arch.h b/arch/x86/include/asm/dtrace_arch.h
+index 74e27f08a873..88beb8e4db0b 100644
+--- a/arch/x86/include/asm/dtrace_arch.h
++++ b/arch/x86/include/asm/dtrace_arch.h
+@@ -12,16 +12,22 @@
+ 
+ typedef uint8_t		asm_instr_t;
+ 
++#define ASM_CALL_SIZE			5
++
+ typedef int (*prov_exit_f)(void);
+ 
+ /*
+  * Structure to hold DTrace specific information about modules (including the
+  * core kernel module).  Note that each module (and the main kernel) already
+- * has one field that relates to probing:
++ * has three fields that relate to probing:
++ *	- sdt_probes: description of SDT probes in the module
++ *	- sdt_probec: number of SDT probes in the module
+  *	- pdata: pointer to a dtrace_module struct (for DTrace)
+  */
+ struct dtrace_module {
+ 	int             enabled_cnt;
++	size_t          sdt_probe_cnt;
++	size_t          fbt_probe_cnt;
+ 	prov_exit_f	prov_exit;	/* Called with module_mutex held */
+ };
+ 
+diff --git a/arch/x86/include/asm/dtrace_sdt_arch.h b/arch/x86/include/asm/dtrace_sdt_arch.h
+new file mode 100644
+index 000000000000..59f57cb489ab
+--- /dev/null
++++ b/arch/x86/include/asm/dtrace_sdt_arch.h
+@@ -0,0 +1,11 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++/* Copyright (C) 2016 Oracle, Inc. */
++
++#ifndef _X86_DTRACE_SDT_ARCH_H
++#define _X86_DTRACE_SDT_ARCH_H
++
++#define __DTRACE_SDT_ISENABLED_PROTO void
++#define __DTRACE_SDT_ISENABLED_ARGS
++
++#endif /* _X86_DTRACE_SDT_ARCH_H */
+diff --git a/arch/x86/include/asm/dtrace_util.h b/arch/x86/include/asm/dtrace_util.h
+index 4d9843bbc95b..ce28bf42a59d 100644
+--- a/arch/x86/include/asm/dtrace_util.h
++++ b/arch/x86/include/asm/dtrace_util.h
+@@ -6,11 +6,24 @@
+ #ifndef _X86_DTRACE_UTIL_H
+ #define _X86_DTRACE_UTIL_H
+ 
++#define DTRACE_INVOP_NOPS		0x0f	/* 5-byte NOP sequence */
++#define DTRACE_INVOP_MOV_RSP_RBP	0x48	/* mov %rsp, %rbp = 48 89 e5 */
++#define DTRACE_INVOP_PUSH_BP		0x55	/* push %rbp = 55 */
++#define DTRACE_INVOP_NOP		0x90	/* nop = 90 */
++#define DTRACE_INVOP_LEAVE		0xc9	/* leave = c9 */
++#define DTRACE_INVOP_RET		0xc3	/* ret = c3 */
++
+ #ifndef __ASSEMBLY__
+ 
+ #include <asm/dtrace_arch.h>
+ #include <asm/ptrace.h>
+ 
++extern int dtrace_invop_add(uint8_t (*func)(struct pt_regs *));
++extern void dtrace_invop_remove(uint8_t (*func)(struct pt_regs *));
++
++extern void dtrace_invop_enable(asm_instr_t *, asm_instr_t);
++extern void dtrace_invop_disable(asm_instr_t *, asm_instr_t);
++
+ #endif
+ 
+ #endif /* _X86_DTRACE_UTIL_H */
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index 5b6bc7016c22..79e017f90c60 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -9,6 +9,7 @@
+ #include <linux/compiler.h>
+ #include <asm/paravirt.h>
+ #include <asm/bitops.h>
++#include <linux/sdt.h>
+ 
+ /*
+  * Your basic SMP spinlocks, allowing only a single CPU anywhere
+diff --git a/arch/x86/include/asm/text-patching.h b/arch/x86/include/asm/text-patching.h
+index b7421780e4e9..127a59c41e6d 100644
+--- a/arch/x86/include/asm/text-patching.h
++++ b/arch/x86/include/asm/text-patching.h
+@@ -25,6 +25,7 @@ static inline void apply_paravirt(struct paravirt_patch_site *start,
+  */
+ #define POKE_MAX_OPCODE_SIZE	5
+ 
++extern void add_nops(void *insns, unsigned int len);
+ extern void text_poke_early(void *addr, const void *opcode, size_t len);
+ 
+ /*
+diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+index 2400ad62f330..389c3870ce48 100644
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -256,7 +256,7 @@ void __init arch_init_ideal_nops(void)
+ }
+ 
+ /* Use this to add nops to a buffer, then text_poke the whole buffer. */
+-static void __init_or_module add_nops(void *insns, unsigned int len)
++void __init_or_module add_nops(void *insns, unsigned int len)
+ {
+ 	while (len > 0) {
+ 		unsigned int noplen = len;
+diff --git a/arch/x86/kernel/dtrace_sdt.c b/arch/x86/kernel/dtrace_sdt.c
+new file mode 100644
+index 000000000000..31bb962573fb
+--- /dev/null
++++ b/arch/x86/kernel/dtrace_sdt.c
+@@ -0,0 +1,76 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:        dtrace_sdt.c
++ * DESCRIPTION: Dynamic Tracing: SDT registration code (arch-specific)
++ *
++ * Copyright (c) 2010, 2020, Oracle and/or its affiliates. All rights reserved.
++ */
++
++#include <linux/kernel.h>
++#include <linux/memory.h>
++#include <linux/module.h>
++#include <linux/dtrace_os.h>
++#include <linux/sdt.h>
++#include <linux/slab.h>
++#include <linux/sync_core.h>
++#include <linux/vmalloc.h>
++#include <asm/nmi.h>
++#include <asm/nops.h>
++#include <asm/dtrace_arch.h>
++#include <asm/text-patching.h>
++
++static uint8_t nops[ASM_CALL_SIZE];
++static uint8_t movs[ASM_CALL_SIZE];
++
++#define DT_OP_REX_RAX           0x48
++#define DT_OP_XOR_EAX_0         0x33
++#define DT_OP_XOR_EAX_1         0xc0
++
++/* This code is based on apply_alternatives and text_poke_early.  It needs to
++ * run before SMP is initialized in order to avoid SMP problems with patching
++ * code that might be accessed on another CPU.
++ */
++void __init_or_module dtrace_sdt_nop_multi(asm_instr_t **addrs,
++					   int *is_enabled, int cnt)
++{
++	int			i;
++	asm_instr_t		*addr;
++	unsigned long		flags;
++
++	stop_nmi();
++	local_irq_save(flags);
++
++	for (i = 0; i < cnt; i++) {
++		addr = addrs[i];
++		if (likely(!is_enabled[i]))
++			memcpy(addr, nops, sizeof(nops));
++		else
++			memcpy(addr, movs, sizeof(movs));
++	}
++
++	sync_core();
++	local_irq_restore(flags);
++	restart_nmi();
++}
++
++void __init dtrace_sdt_init_arch(void)
++{
++	/*
++	 * A little unusual, but potentially necessary.  While we could use a
++	 * single NOP sequence of length ASM_CALL_SIZE, we need to consider the
++	 * fact that when a SDT probe point is enabled, a single invalid opcode
++	 * is written on the first byte of this NOP sequence.  By using a
++	 * sequence of a 1-byte NOP, followed by a (ASM_CALL_SIZE - 1) byte NOP
++	 * sequence, we play it pretty safe.
++	 */
++	add_nops(nops, 1);
++	add_nops(nops + 1, ASM_CALL_SIZE - 1);
++
++	/*
++	 * Is-enabled probe points contain an "xor %rax, %rax" when disabled.
++	 */
++	movs[0] = DT_OP_REX_RAX;
++	movs[1] = DT_OP_XOR_EAX_0;
++	movs[2] = DT_OP_XOR_EAX_1;
++	add_nops(movs + 3, ASM_CALL_SIZE - 3);
++}
+diff --git a/arch/x86/kernel/dtrace_util.c b/arch/x86/kernel/dtrace_util.c
+index d3d552c062f7..f138fd62f555 100644
+--- a/arch/x86/kernel/dtrace_util.c
++++ b/arch/x86/kernel/dtrace_util.c
+@@ -61,6 +61,13 @@ void dtrace_handle_badaddr(struct pt_regs *regs)
+ 	dtrace_skip_instruction(regs);
+ }
+ 
++struct dtrace_invop_hdlr {
++	uint8_t				(*dtih_func)(struct pt_regs *);
++	struct dtrace_invop_hdlr	*dtih_next;
++};
++
++static struct dtrace_invop_hdlr	*dtrace_invop_hdlrs;
++
+ /*
+  * Trap notification handler.
+  */
+@@ -68,6 +75,7 @@ int dtrace_die_notifier(struct notifier_block *nb, unsigned long val,
+ 			void *args)
+ {
+ 	struct die_args		*dargs = args;
++	int			orig_trapnr = 0;
+ 
+ 	switch (val) {
+ 	case DIE_PAGE_FAULT: {
+@@ -79,12 +87,141 @@ int dtrace_die_notifier(struct notifier_block *nb, unsigned long val,
+ 		return NOTIFY_OK | NOTIFY_STOP_MASK;
+ 	}
+ 	case DIE_GPF: {
+-		if (!DTRACE_CPUFLAG_ISSET(CPU_DTRACE_NOFAULT))
++		/*
++		 * This gets messy...  For one, some versions of Xen deliver
++		 * the invalid opcode generated by the LOCK prefix (0xf0) as a
++		 * GP fault rather than a UD fault.  So, we need to figure out
++		 * whether the GP we're processing here is one of those
++		 * misreported faults.
++		 *
++		 * But, it is possible that the instruction that caused the
++		 * fault (0xf0) gets overwritten by a different CPU with the
++		 * original valid opcode before we get to look at it here,
++		 * which makes it kind of hard to recognize.
++		 *
++		 * So...  we're going to assume that a GP fault that gets
++		 * triggered for the LOCK prefix opcode (0xf0) *or* for an
++		 * opcode that can get overwritten with the LOCK prefix for
++		 * probing is actually a UD fault.
++		 *
++		 * If we are wrong, the handlers will simply see a fault that
++		 * isn't theirs, and return without consuming it.  And in that
++		 * case, the kernel will report a UD fault that may have been
++		 * a real GP fault...  Sorry.
++		 */
++		asm_instr_t	opc = *(asm_instr_t *)dargs->regs->ip;
++
++		if (opc != 0xf0 && opc != 0x55 && opc != 0xc3) {
++			if (!DTRACE_CPUFLAG_ISSET(CPU_DTRACE_NOFAULT))
++				return NOTIFY_DONE;
++
++			dtrace_handle_badaddr(dargs->regs);
++
++			return NOTIFY_OK | NOTIFY_STOP_MASK;
++		}
++
++		/*
++		 * ... and instead treat them as the SDT probe point traps that
++		 * they are.
++		 */
++		orig_trapnr = dargs->trapnr;
++		dargs->trapnr = 6;
++	}
++	/* fallthrough */
++	case DIE_TRAP: {
++		struct dtrace_invop_hdlr *hdlr;
++		int			 rval = 0;
++
++		if (dargs->trapnr != 6)
+ 			return NOTIFY_DONE;
+ 
+-		dtrace_handle_badaddr(dargs->regs);
++		for (hdlr = dtrace_invop_hdlrs; hdlr != NULL;
++		     hdlr = hdlr->dtih_next) {
++			rval = hdlr->dtih_func(dargs->regs);
++			if (rval != 0)
++				break;
++		}
+ 
+-		return NOTIFY_OK | NOTIFY_STOP_MASK;
++		switch (rval) {
++		case DTRACE_INVOP_NOPS:
++			/*
++			 * SDT probe points are encoded as either:
++			 *   - a 1-byte NOP followed by a multi-byte NOP
++			 *   - a multi-byte code sequence (to set AX to 0),
++			 *     followed by a multi-byte NOP
++			 * In both cases, the total length of the probe point
++			 * instruction is ASM_CALL_SITE bytes, so we can safely
++			 * skip that number of bytes here.
++			 */
++			dargs->regs->ip += ASM_CALL_SIZE;
++			return NOTIFY_OK | NOTIFY_STOP_MASK;
++		case DTRACE_INVOP_MOV_RSP_RBP:
++		case DTRACE_INVOP_NOP:
++		case DTRACE_INVOP_PUSH_BP:
++		case DTRACE_INVOP_RET:
++			return notifier_from_errno(-rval);
++		default:
++			/*
++			 * This must not have been a trap triggered from a
++			 * probe point.  Let someone else deal with it...
++			 *
++			 * If we got here because of a GPF that we thought
++			 * was a UD (due to a bug in some versions of Xen),
++			 * undo our change to dargs->trapnr.
++			 */
++			if (unlikely(orig_trapnr))
++				dargs->trapnr = orig_trapnr;
++
++			return NOTIFY_DONE;
++		}
++	}
++	case DIE_INT3: {
++		struct dtrace_invop_hdlr *hdlr;
++		int			 rval = 0;
++
++		/*
++		 * Let's assume that this is a DTrace probe firing, so we need
++		 * to adjust the IP (to be consistent with #UD processing) so
++		 * that it reflects the address of the #BP rather than the
++		 * following intruction.
++		 *
++		 * If it turns out that this was not DTrace related, we'll have
++		 * to reverse this adjustment.
++		 */
++		dargs->regs->ip--;
++		for (hdlr = dtrace_invop_hdlrs; hdlr != NULL;
++		     hdlr = hdlr->dtih_next) {
++			rval = hdlr->dtih_func(dargs->regs);
++			if (rval != 0)
++				break;
++		}
++
++		switch (rval) {
++		case DTRACE_INVOP_NOPS:
++			/*
++			 * SDT probe points are encoded as either:
++			 *   - a 1-byte NOP followed by a multi-byte NOP
++			 *   - a multi-byte code sequence (to set AX to 0),
++			 *     followed by a multi-byte NOP
++			 * In both cases, the total length of the probe point
++			 * instruction is ASM_CALL_SITE bytes, so we can safely
++			 * skip that number of bytes here.
++			 */
++			dargs->regs->ip += ASM_CALL_SIZE;
++			return NOTIFY_OK | NOTIFY_STOP_MASK;
++		case DTRACE_INVOP_MOV_RSP_RBP:
++		case DTRACE_INVOP_NOP:
++		case DTRACE_INVOP_PUSH_BP:
++		case DTRACE_INVOP_RET:
++			return notifier_from_errno(-rval);
++		default:
++			/*
++			 * This must not have been a trap triggered from a
++			 * probe point.  Re-adjust the instruction pointer
++			 * and let someone else deal with it...
++			 */
++			dargs->regs->ip++;
++		}
+ 	}
+ 	/* fallthrough */
+ 	default:
+@@ -92,6 +229,77 @@ int dtrace_die_notifier(struct notifier_block *nb, unsigned long val,
+ 	}
+ }
+ 
++/*
++ * Add an INVOP trap handler.
++ */
++int dtrace_invop_add(uint8_t (*func)(struct pt_regs *))
++{
++	struct dtrace_invop_hdlr	*hdlr;
++
++	hdlr = kmalloc(sizeof(struct dtrace_invop_hdlr), GFP_KERNEL);
++	if (hdlr == NULL) {
++		pr_warn("Failed to add invop handler: out of memory\n");
++		return -ENOMEM;
++	}
++
++	hdlr->dtih_func = func;
++	hdlr->dtih_next = dtrace_invop_hdlrs;
++	dtrace_invop_hdlrs = hdlr;
++
++	return 0;
++}
++EXPORT_SYMBOL(dtrace_invop_add);
++
++/*
++ * Remove an INVOP trap handler.
++ */
++void dtrace_invop_remove(uint8_t (*func)(struct pt_regs *))
++{
++	struct dtrace_invop_hdlr *hdlr = dtrace_invop_hdlrs, *prev = NULL;
++
++	for (;;) {
++		if (hdlr == NULL)
++			return;
++
++		if (hdlr->dtih_func == func)
++			break;
++
++		prev = hdlr;
++		hdlr = hdlr->dtih_next;
++	}
++
++	if (prev == NULL)
++		dtrace_invop_hdlrs = hdlr->dtih_next;
++	else
++		prev->dtih_next = hdlr->dtih_next;
++
++	kfree(hdlr);
++}
++EXPORT_SYMBOL(dtrace_invop_remove);
++
++/*
++ * Enable an INVOP-based probe, i.e. ensure that an INVOP trap is triggered at
++ * the specified address.
++ */
++void dtrace_invop_enable(asm_instr_t *addr, asm_instr_t opcode)
++{
++	mutex_lock(&text_mutex);
++	text_poke(addr, ((unsigned char []){opcode}), 1);
++	mutex_unlock(&text_mutex);
++}
++EXPORT_SYMBOL(dtrace_invop_enable);
++
++/*
++ * Disable an INVOP-based probe.
++ */
++void dtrace_invop_disable(asm_instr_t *addr, asm_instr_t opcode)
++{
++	mutex_lock(&text_mutex);
++	text_poke(addr, ((unsigned char []){opcode}), 1);
++	mutex_unlock(&text_mutex);
++}
++EXPORT_SYMBOL(dtrace_invop_disable);
++
+ static inline int dtrace_bad_address(void *addr)
+ {
+ 	unsigned long	dummy;
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index bf9e0adb5b7e..970b6cd011f6 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -473,7 +473,8 @@ INIT_PER_CPU(irq_stack_backing_store);
+ /*
+  * Build-time check on the image size:
+  */
+-. = ASSERT((_end - _text <= KERNEL_IMAGE_SIZE),
++. = ASSERT(((_end < _text) ? (_end < KERNEL_IMAGE_SIZE)
++			   : (_end - _text <= KERNEL_IMAGE_SIZE)),
+ 	   "kernel image bigger than KERNEL_IMAGE_SIZE");
+ 
+ #ifdef CONFIG_SMP
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index b2b3d81b1535..7d1517f97db2 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -214,6 +214,20 @@
+ #define ERROR_INJECT_WHITELIST()
+ #endif
+ 
++#ifdef CONFIG_DTRACE
++#define DTRACE_SDT_NAMES()	. = ALIGN(8);				\
++				__start_dtrace_sdt_names = .;		\
++				KEEP(*(_dtrace_sdt_names))		\
++				__stop_dtrace_sdt_names = .;
++#define DTRACE_SDT_ARGS()	. = ALIGN(8);				\
++				__start_dtrace_sdt_args = .;		\
++				KEEP(*(_dtrace_sdt_args))		\
++				__stop_dtrace_sdt_args = .;
++#else
++#define DTRACE_SDT_NAMES()
++#define DTRACE_SDT_ARGS()
++#endif
++
+ #ifdef CONFIG_EVENT_TRACING
+ #define FTRACE_EVENTS()	. = ALIGN(8);					\
+ 			__start_ftrace_events = .;			\
+@@ -721,6 +735,8 @@
+ 	FTRACE_EVENTS()							\
+ 	TRACE_SYSCALLS()						\
+ 	KPROBE_BLACKLIST()						\
++	DTRACE_SDT_NAMES()						\
++	DTRACE_SDT_ARGS()						\
+ 	ERROR_INJECT_WHITELIST()					\
+ 	MEM_DISCARD(init.rodata)					\
+ 	CLK_OF_TABLES()							\
+diff --git a/include/linux/dtrace_os.h b/include/linux/dtrace_os.h
+index 5bcd77e08a14..f2921ce039a7 100644
+--- a/include/linux/dtrace_os.h
++++ b/include/linux/dtrace_os.h
+@@ -25,6 +25,9 @@ extern void __init dtrace_os_init(void);
+ extern void __init dtrace_psinfo_os_init(void);
+ extern void __init dtrace_task_os_init(void);
+ 
++extern void *dtrace_alloc_text(struct module *, unsigned long);
++extern void dtrace_free_text(void *);
++
+ extern void dtrace_mod_pdata_alloc(struct module *);
+ extern void dtrace_mod_pdata_free(struct module *);
+ extern int dtrace_destroy_prov(struct module *);
+diff --git a/include/linux/dtrace_sdt.h b/include/linux/dtrace_sdt.h
+new file mode 100644
+index 000000000000..3a4d608bc3fa
+--- /dev/null
++++ b/include/linux/dtrace_sdt.h
+@@ -0,0 +1,32 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 2011, 2018, Oracle and/or its affiliates. All rights reserved.
++ */
++
++#ifndef _DTRACE_SDT_H_
++#define	_DTRACE_SDT_H_
++
++#ifdef CONFIG_DTRACE
++#include <linux/module.h>
++#include <asm/dtrace_arch.h>
++
++extern void __init dtrace_sdt_init(void);
++extern void __init dtrace_sdt_register(struct module *);
++extern void dtrace_sdt_register_module(struct module *,
++				       void *sdt_names_addr, size_t,
++				       void *sdt_args_addr, size_t);
++extern void dtrace_sdt_exit(void);
++
++/*
++ * Functions to be defined in arch/<arch>/kernel/dtrace_sdt.c
++ */
++extern void __init_or_module dtrace_sdt_nop_multi(asm_instr_t **, int *, int);
++
++#ifdef CONFIG_X86_64
++extern void __init dtrace_sdt_init_arch(void);
++#else
++#define	dtrace_sdt_init_arch()
++#endif /* CONFIG_X86_64 */
++
++#endif	/* CONFIG_DTRACE */
++#endif	/* _DTRACE_SDT_H_ */
+diff --git a/include/linux/module.h b/include/linux/module.h
+index 44915ed85337..7abbaeb5d659 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -30,6 +30,8 @@
+ #include <linux/percpu.h>
+ #include <asm/module.h>
+ 
++#include <linux/sdt.h>
++
+ /* Not Yet Implemented */
+ #define MODULE_SUPPORTED_DEVICE(name)
+ 
+@@ -513,8 +515,11 @@ struct module {
+ #endif
+ 
+ #ifdef CONFIG_DTRACE
++	struct sdt_probedesc *sdt_probes;
++	unsigned int sdt_probec;
+ 	void *pdata;
+ #endif
++
+ #ifdef CONFIG_MODULE_UNLOAD
+ 	/* What modules depend on me? */
+ 	struct list_head source_list;
+diff --git a/include/linux/sdt.h b/include/linux/sdt.h
+new file mode 100644
+index 000000000000..8efb63cff1ac
+--- /dev/null
++++ b/include/linux/sdt.h
+@@ -0,0 +1,191 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 2011, 2018, Oracle and/or its affiliates. All rights reserved.
++ */
++
++#ifndef _LINUX_SDT_H_
++#define	_LINUX_SDT_H_
++
++#include <linux/sdt_internal.h>
++
++#if IS_ENABLED(CONFIG_DT_SDT)
++
++#include <asm/dtrace_sdt_arch.h>
++#include <linux/stringify.h>
++
++#define	DTRACE_PROBE(name, ...)	{				\
++	extern int __dtrace_probe_##name(__DTRACE_TYPE_APPLY_DEFAULT(__DTRACE_UINTPTR_EACH, void, ## __VA_ARGS__)); \
++	(void)__dtrace_probe_##name(__DTRACE_ARG_APPLY(__DTRACE_UINTCAST_EACH, ## __VA_ARGS__)); \
++	asm volatile(".pushsection _dtrace_sdt_names, \"a\", @progbits\n" \
++		     ".ascii \"" __stringify(name) "\"\n"		\
++		     ".byte 0\n"					\
++		     ".popsection\n"					\
++		     ".pushsection _dtrace_sdt_args, \"a\", @progbits\n" \
++		     __DTRACE_TYPE_APPLY_NOCOMMA(__DTRACE_TYPE_EACH, ## __VA_ARGS__) \
++		     ".byte 0\n"					\
++		     ".popsection\n");					\
++}
++
++#define	DTRACE_PROBE_ENABLED(name)	unlikely(({			\
++	extern int __dtrace_isenabled_##name(__DTRACE_SDT_ISENABLED_PROTO); \
++	__dtrace_isenabled_##name(__DTRACE_SDT_ISENABLED_ARGS);		\
++}))
++
++#ifdef CONFIG_DT_SDT_PERF
++
++#define __DTRACE_UINTPTR_CAST_EACH(x) ({				\
++	union {								\
++		typeof((x)) __val;					\
++		unsigned char __c;					\
++		unsigned short __s;					\
++		unsigned int __i;					\
++		unsigned long __l;					\
++		unsigned long long __ll; } __u = { .__val = (x) };	\
++	__builtin_choose_expr(sizeof(__u.__val) == sizeof(__u.__c), __u.__c, \
++	__builtin_choose_expr(sizeof(__u.__val) == sizeof(__u.__s), __u.__s, \
++	__builtin_choose_expr(sizeof(__u.__val) == sizeof(__u.__i), __u.__i, \
++	__builtin_choose_expr(sizeof(__u.__val) == sizeof(__u.__l), __u.__l, \
++	__builtin_choose_expr(sizeof(__u.__val) == sizeof(__u.__ll), __u.__ll, \
++	(uintptr_t)&(__u.__val)))))); })
++
++#define DTRACE_PROBE_TRACEPOINT(name, ...) {				\
++	extern void __dtrace_probe___perf_##name(__DTRACE_APPLY(__DTRACE_UINTPTR_EACH, ## __VA_ARGS__)); \
++	__dtrace_probe___perf_##name(__DTRACE_APPLY(__DTRACE_UINTPTR_CAST_EACH, ## __VA_ARGS__));	\
++}
++
++#define DTRACE_PROTO_TRACEPOINT(name, ...) {				\
++	asm volatile(".pushsection _dtrace_sdt_names, \"a\", @progbits\n"\
++		     ".ascii \"" __stringify(__perf_##name) "\"\n"	\
++		     ".byte 0\n"					\
++		     ".popsection\n"					\
++		     ".pushsection _dtrace_sdt_args, \"a\", @progbits\n" \
++		     ".ascii \"" __stringify(__VA_ARGS__) "\"\n"	\
++		     ".byte 0\n"					\
++		     ".popsection\n");					\
++}
++#else
++
++#define DTRACE_PROBE_TRACEPOINT(name, ...)
++#define DTRACE_PROTO_TRACEPOINT(name, ...)
++
++#endif
++
++#else /* ! IS_ENABLED(CONFIG_DT_SDT) */
++
++/*
++ * This apparently redundant call serves to validate the DTRACE_PROBE has the
++ * right number of args even when dtrace is turned off.
++ */
++#define	DTRACE_PROBE(name, ...)						\
++	__DTRACE_DOUBLE_APPLY_NOCOMMA(__DTRACE_NONE, __DTRACE_NONE, ## __VA_ARGS__)	\
++	do { } while (0)
++#define	DTRACE_PROBE_ENABLED(name) 0
++#define DTRACE_PROBE_TRACEPOINT(name, ...)
++#define DTRACE_PROTO_TRACEPOINT(name, ...)
++
++#endif /* IS_ENABLED(CONFIG_DT_SDT) */
++
++#ifdef CONFIG_DTRACE
++
++struct sdt_probedesc {
++	char			*sdpd_name;	/* probe name */
++	char			*sdpd_func;	/* probe function */
++#ifndef __GENKSYMS__
++	const char		*sdpd_args;	/* arg string */
++#endif
++	unsigned long		sdpd_offset;	/* offset of call in text */
++	struct sdt_probedesc	*sdpd_next;	/* next static probe */
++};
++
++#endif /* CONFIG_DTRACE */
++
++#define	DTRACE_SCHED(name, ...)						\
++	DTRACE_PROBE(__sched_##name, ## __VA_ARGS__);
++
++#define	DTRACE_PROC(name, ...)						\
++	DTRACE_PROBE(__proc_##name, ## __VA_ARGS__);
++
++#define	DTRACE_IO(name, ...)						\
++	DTRACE_PROBE(__io_##name, ## __VA_ARGS__);
++
++#define	DTRACE_IO_ENABLED(name)						\
++	DTRACE_PROBE_ENABLED(__io_##name)
++
++#define	DTRACE_ISCSI(name, ...)						\
++	DTRACE_PROBE(__iscsi_##name, ## __VA_ARGS__);
++
++#define	DTRACE_NFSV3(name, ...)						\
++	DTRACE_PROBE(__nfsv3_##name, ## __VA_ARGS__);
++
++#define	DTRACE_NFSV4(name, ...)						\
++	DTRACE_PROBE(__nfsv4_##name, ## __VA_ARGS__);
++
++#define	DTRACE_SMB(name, ...)						\
++	DTRACE_PROBE(__smb_##name, ## __VA_ARGS__);
++
++/*
++ * These definitions are used at probe points to specify the traffic direction;
++ * this helps simplify argument translation.
++ */
++#define	DTRACE_NET_PROBE_OUTBOUND	0x0
++#define	DTRACE_NET_PROBE_INBOUND	0x1
++
++#define	DTRACE_IP(name, ...)						\
++	DTRACE_PROBE(__ip_##name, ## __VA_ARGS__);
++
++/*
++ * Default DTRACE_TCP() and DTRACE_UDP() provider definitions specify the
++ * probe point within an is-enabled predicate.  This is to avoid the overhead
++ * incurred during argument dereferencing (e.g. calls to ip_hdr(skb)), along
++ * with any conditional evaluation (which would require branching) when the
++ * probe is disabled.
++ *
++ * Because some TCP probe points require additional argument preparation,
++ * we also define the is-enabled predicate directly as
++ * DTRACE_TCP_ENABLED(probename) along with a probe point which does not
++ * the probe in an is-enabled predicate; this allows us to handle cases such
++ * as this:
++ *
++ * if (DTRACE_TCP_ENABLED(state__change)) {
++ *      ...argument preparation...
++ *      DTRACE_TCP_NOCHECK(state__change, ...);
++ * }
++ */
++
++#define	DTRACE_TCP(name, ...)						\
++	if (DTRACE_PROBE_ENABLED(__tcp_##name))				\
++		DTRACE_PROBE(__tcp_##name, ## __VA_ARGS__)
++#define	DTRACE_TCP_ENABLED(name)					\
++	DTRACE_PROBE_ENABLED(__tcp_##name)
++#define	DTRACE_TCP_NOCHECK(name, ...)					\
++	DTRACE_PROBE(__tcp_##name, ## __VA_ARGS__);
++
++#define	DTRACE_UDP(name, ...)						\
++	if (DTRACE_PROBE_ENABLED(__udp_##name))				\
++		DTRACE_PROBE(__udp_##name, ## __VA_ARGS__);
++
++#define	DTRACE_SYSEVENT(name, ...)					\
++	DTRACE_PROBE(__sysevent_##name, ## __VA_ARGS__);
++
++#define	DTRACE_XPV(name, ...)						\
++	DTRACE_PROBE(__xpv_##name, ## __VA_ARGS__);
++
++#define	DTRACE_FC(name, ...)						\
++	DTRACE_PROBE(__fc_##name, ## __VA_ARGS__);
++
++#define	DTRACE_SRP(name, ...)						\
++	DTRACE_PROBE(__srp_##name, ## __VA_ARGS__);
++
++#define	DTRACE_LOCKSTAT_ENABLED(name)					\
++	DTRACE_PROBE_ENABLED(__lockstat_##name)
++
++#define	DTRACE_LOCKSTAT(name, ...)					\
++	DTRACE_PROBE(__lockstat_##name, ## __VA_ARGS__)
++
++#define	DTRACE_LOCKSTAT_RW_WRITER	0
++#define	DTRACE_LOCKSTAT_RW_READER	1
++
++/* Needed for lockstat probes where we cannot include ktime.h */
++extern u64 dtrace_gethrtime_ns(void);
++
++#endif	/* _LINUX_SDT_H_ */
+diff --git a/include/linux/sdt_internal.h b/include/linux/sdt_internal.h
+new file mode 100644
+index 000000000000..b544f8e619cf
+--- /dev/null
++++ b/include/linux/sdt_internal.h
+@@ -0,0 +1,276 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Hide away all the terrible macro magic.
++ *
++ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
++ */
++
++#ifndef _LINUX_SDT_INTERNAL_H_
++#define _LINUX_SDT_INTERNAL_H_
++
++#include <linux/types.h>
++
++/*
++ * This counts the number of args.
++ */
++#define __DTRACE_NARGS_SEQ(dummy, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, \
++			   _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, \
++			   _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, \
++			   _31, _32, _33, _34, _35, _36, N, ...) N
++#define __DTRACE_NARGS(...)						\
++	__DTRACE_NARGS_SEQ(dummy, ##__VA_ARGS__, 36, 35, 34, 33, 32, 31, \
++			   30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20,	\
++			   19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9,	\
++			   8, 7, 6, 5, 4, 3, 2, 1, 0)
++
++/*
++ * This will let macros expand before concatting them.
++ */
++#define __DTRACE_PRIMITIVE_CAT(x, y) x ## y
++#define __DTRACE_CAT(x, y) __DTRACE_PRIMITIVE_CAT(x, y)
++
++#define __DTRACE_COMMA ,
++#define __DTRACE_NO_COMMA
++#define __DTRACE_NONE(x)
++
++/*
++ * This will call two macros on each argument-pair passed in (the first two args
++ * are the names of the macros to call).  Its TYPE and NAME variants will throw
++ * away the name and type arguments, respectively. __DTRACE_*_APPLY_NOCOMMA
++ * are like DTRACE_*_APPLY, but also omit the comma between arguments in the
++ * expansion of the macro.  DTRACE_TYPE_APPLY_DEFAULT lets you specify a default
++ * if no variadic args are provided.
++ */
++#define __DTRACE_DOUBLE_APPLY(type_macro, arg_macro, ...)		\
++	__DTRACE_CAT(__DTRACE_DOUBLE_APPLY_,				\
++		     __DTRACE_NARGS(__VA_ARGS__))(type_macro,		\
++						  arg_macro, __DTRACE_COMMA, \
++						  __DTRACE_COMMA, , ## __VA_ARGS__)
++#define __DTRACE_DOUBLE_APPLY_NOCOMMA(type_macro, arg_macro, ...)		\
++	__DTRACE_CAT(__DTRACE_DOUBLE_APPLY_,				\
++		     __DTRACE_NARGS(__VA_ARGS__))(type_macro,		\
++						  arg_macro, __DTRACE_NO_COMMA, \
++						  __DTRACE_NO_COMMA, , ## __VA_ARGS__)
++#define __DTRACE_TYPE_APPLY(type_macro, ...)				\
++	__DTRACE_CAT(__DTRACE_DOUBLE_APPLY_,				\
++		     __DTRACE_NARGS(__VA_ARGS__))(type_macro,		\
++						  __DTRACE_NONE, __DTRACE_NO_COMMA, \
++						  __DTRACE_COMMA, , ## __VA_ARGS__)
++#define __DTRACE_TYPE_APPLY_NOCOMMA(type_macro, ...)			\
++	__DTRACE_CAT(__DTRACE_DOUBLE_APPLY_,				\
++		     __DTRACE_NARGS(__VA_ARGS__))(type_macro,		\
++						  __DTRACE_NONE, __DTRACE_NO_COMMA, \
++						  __DTRACE_NO_COMMA, , ## __VA_ARGS__)
++#define __DTRACE_TYPE_APPLY_DEFAULT(type_macro, def, ...)		\
++	__DTRACE_CAT(__DTRACE_DOUBLE_APPLY_,				\
++		     __DTRACE_NARGS(__VA_ARGS__))(type_macro,		\
++						  __DTRACE_NONE, __DTRACE_NO_COMMA, \
++						  __DTRACE_COMMA, def, ## __VA_ARGS__)
++#define __DTRACE_ARG_APPLY(arg_macro, ...)				\
++	__DTRACE_CAT(__DTRACE_DOUBLE_APPLY_,				\
++		     __DTRACE_NARGS(__VA_ARGS__))(__DTRACE_NONE,	\
++						  arg_macro, __DTRACE_NO_COMMA,	\
++						  __DTRACE_COMMA, , ## __VA_ARGS__)
++#define __DTRACE_DOUBLE_APPLY_0(t, a, comma_t, comma_a, def) def
++#define __DTRACE_DOUBLE_APPLY_2(t, a, comma_t, comma_a, def, type1, arg1) \
++	t(type1) comma_t a(arg1)
++#define __DTRACE_DOUBLE_APPLY_4(t, a, comma_t, comma_a, def, type1, arg1, \
++				type2, arg2)				\
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2)
++#define __DTRACE_DOUBLE_APPLY_6(t, a, comma_t, comma_a, def, type1,	\
++				arg1, type2, arg2, type3, arg3)		\
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3)
++#define __DTRACE_DOUBLE_APPLY_8(t, a, comma_t, comma_a, def, type1, arg1, \
++				type2, arg2, type3, arg3, type4, arg4)	\
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4)
++#define __DTRACE_DOUBLE_APPLY_10(t, a, comma_t, comma_a, def, type1, arg1,\
++				 type2, arg2, type3, arg3, type4, arg4,	\
++				 type5, arg5)				\
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5)
++#define __DTRACE_DOUBLE_APPLY_12(t, a, comma_t, comma_a, def, type1,	\
++				 arg1, type2, arg2, type3, arg3, type4,	\
++				 arg4, type5, arg5, type6, arg6)	\
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6)
++#define __DTRACE_DOUBLE_APPLY_14(t, a, comma_t, comma_a, def, type1,	\
++				 arg1, type2, arg2, type3, arg3, type4,	\
++				 arg4, type5, arg5, type6, arg6, type7, \
++				 arg7)					\
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7)
++#define __DTRACE_DOUBLE_APPLY_16(t, a, comma_t, comma_a, def, type1,	\
++				 arg1, type2, arg2, type3, arg3, type4,	\
++				 arg4, type5, arg5, type6, arg6, type7,	\
++				 arg7, type8, arg8)			\
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7) comma_a t(type8) comma_t a(arg8)
++#define __DTRACE_DOUBLE_APPLY_18(t, a, comma_t, comma_a, def, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5, type6, arg6, type7, arg7, type8, arg8, type9, arg9) \
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7) comma_a t(type8) comma_t a(arg8) comma_a \
++	t(type9) comma_t a(arg9)
++#define __DTRACE_DOUBLE_APPLY_20(t, a, comma_t, comma_a, def, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5, type6, arg6, type7, arg7, type8, arg8, type9, arg9, typea, arga) \
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7) comma_a t(type8) comma_t a(arg8) comma_a \
++	t(type9) comma_t a(arg9) comma_a t(typea) comma_t a(arga)
++#define __DTRACE_DOUBLE_APPLY_22(t, a, comma_t, comma_a, def, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5, type6, arg6, type7, arg7, type8, arg8, type9, arg9, typea, arga, typeb, argb) \
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7) comma_a t(type8) comma_t a(arg8) comma_a \
++	t(type9) comma_t a(arg9) comma_a t(typea) comma_t a(arga) comma_a \
++	t(typeb) comma_t a(argb)
++#define __DTRACE_DOUBLE_APPLY_24(t, a, comma_t, comma_a, def, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5, type6, arg6, type7, arg7, type8, arg8, type9, arg9, typea, arga, typeb, argb, typec, argc) \
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7) comma_a t(type8) comma_t a(arg8) comma_a \
++	t(type9) comma_t a(arg9) comma_a t(typea) comma_t a(arga) comma_a \
++	t(typeb) comma_t a(argb) comma_a t(typec) comma_t a(argc)
++#define __DTRACE_DOUBLE_APPLY_26(t, a, comma_t, comma_a, def, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5, type6, arg6, type7, arg7, type8, arg8, type9, arg9, typea, arga, typeb, argb, typec, argc, typed, argd) \
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7) comma_a t(type8) comma_t a(arg8) comma_a \
++	t(type9) comma_t a(arg9) comma_a t(typea) comma_t a(arga) comma_a \
++	t(typeb) comma_t a(argb) comma_a t(typec) comma_t a(argc) comma_a \
++	t(typed) comma_t a(argd)
++#define __DTRACE_DOUBLE_APPLY_28(t, a, comma_t, comma_a, def, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5, type6, arg6, type7, arg7, type8, arg8, type9, arg9, typea, arga, typeb, argb, typec, argc, typed, argd, typee, arge) \
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7) comma_a t(type8) comma_t a(arg8) comma_a \
++	t(type9) comma_t a(arg9) comma_a t(typea) comma_t a(arga) comma_a \
++	t(typeb) comma_t a(argb) comma_a t(typec) comma_t a(argc) comma_a \
++	t(typed) comma_t a(argd) comma_a t(typee) comma_t a(arge)
++#define __DTRACE_DOUBLE_APPLY_30(t, a, comma_t, comma_a, def, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5, type6, arg6, type7, arg7, type8, arg8, type9, arg9, typea, arga, typeb, argb, typec, argc, typed, argd, typee, arge, typef, argf) \
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7) comma_a t(type8) comma_t a(arg8) comma_a \
++	t(type9) comma_t a(arg9) comma_a t(typea) comma_t a(arga) comma_a \
++	t(typeb) comma_t a(argb) comma_a t(typec) comma_t a(argc) comma_a \
++	t(typed) comma_t a(argd) comma_a t(typee) comma_t a(arge) comma_a \
++	t(typef) comma_t a(argf)
++#define __DTRACE_DOUBLE_APPLY_32(t, a, comma_t, comma_a, def, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5, type6, arg6, type7, arg7, type8, arg8, type9, arg9, typea, arga, typeb, argb, typec, argc, typed, argd, typee, arge, typef, argf, typeg, argg) \
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7) comma_a t(type8) comma_t a(arg8) comma_a \
++	t(type9) comma_t a(arg9) comma_a t(typea) comma_t a(arga) comma_a \
++	t(typeb) comma_t a(argb) comma_a t(typec) comma_t a(argc) comma_a \
++	t(typed) comma_t a(argd) comma_a t(typee) comma_t a(arge) comma_a \
++	t(typef) comma_t a(argf) comma_a t(typeg) comma_t a(argg)
++#define __DTRACE_DOUBLE_APPLY_34(t, a, comma_t, comma_a, def, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5, type6, arg6, type7, arg7, type8, arg8, type9, arg9, typea, arga, typeb, argb, typec, argc, typed, argd, typee, arge, typef, argf, typeg, argg, typeh, argh) \
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7) comma_a t(type8) comma_t a(arg8) comma_a \
++	t(type9) comma_t a(arg9) comma_a t(typea) comma_t a(arga) comma_a \
++	t(typeb) comma_t a(argb) comma_a t(typec) comma_t a(argc) comma_a \
++	t(typed) comma_t a(argd) comma_a t(typee) comma_t a(arge) comma_a \
++	t(typef) comma_t a(argf) comma_a t(typeg) comma_t a(argg) comma_a \
++	t(typeh) comma_t a(argh)
++#define __DTRACE_DOUBLE_APPLY_36(t, a, comma_t, comma_a, def, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5, type6, arg6, type7, arg7, type8, arg8, type9, arg9, typea, arga, typeb, argb, typec, argc, typed, argd, typee, arge, typef, argf, typeg, argg, typeh, argh, typei, argi) \
++	t(type1) comma_t a(arg1) comma_a t(type2) comma_t a(arg2) comma_a \
++	t(type3) comma_t a(arg3) comma_a t(type4) comma_t a(arg4) comma_a \
++	t(type5) comma_t a(arg5) comma_a t(type6) comma_t a(arg6) comma_a \
++	t(type7) comma_t a(arg7) comma_a t(type8) comma_t a(arg8) comma_a \
++	t(type9) comma_t a(arg9) comma_a t(typea) comma_t a(arga) comma_a \
++	t(typeb) comma_t a(argb) comma_a t(typec) comma_t a(argc) comma_a \
++	t(typed) comma_t a(argd) comma_a t(typee) comma_t a(arge) comma_a \
++	t(typef) comma_t a(argf) comma_a t(typeg) comma_t a(argg) comma_a \
++	t(typeh) comma_t a(argh) comma_a t(typei) comma_t a(argi)
++
++#define __DTRACE_DOUBLE_APPLY_ERROR Error: type specified without arg.
++#define __DTRACE_DOUBLE_APPLY_1 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_3 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_5 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_7 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_9 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_11 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_13 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_15 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_17 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_19 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_21 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_23 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_25 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_27 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_29 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_31 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_33 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_35 __DTRACE_DOUBLE_APPLY_ERROR
++#define __DTRACE_DOUBLE_APPLY_37 __DTRACE_DOUBLE_APPLY_ERROR
++
++#define __DTRACE_UINTPTR_EACH(x) uintptr_t
++
++#define __DTRACE_UINTCAST_EACH(x) (uintptr_t)(x)
++#define __DTRACE_TYPE_EACH(x) ".ascii \"" __stringify(x) ",\"\n"
++
++/*
++ * Convert everything to the appropriate integral type, unless too large to fit
++ * into any of them, in which case its address is taken instead.
++ */
++
++/*
++ * This will call a macro on each argument passed in, with optional default for
++ * zero args.
++ */
++#define __DTRACE_APPLY(macro, ...) __DTRACE_CAT(__DTRACE_APPLY_, __DTRACE_NARGS(__VA_ARGS__))(macro, , ## __VA_ARGS__)
++#define __DTRACE_APPLY_DEFAULT(macro, def, ...) __DTRACE_CAT(__DTRACE_APPLY_, __DTRACE_NARGS(__VA_ARGS__))(macro, def, ## __VA_ARGS__)
++#define __DTRACE_APPLY_0(m, def) def
++#define __DTRACE_APPLY_1(m, def, x1) m(x1)
++#define __DTRACE_APPLY_2(m, def, x1, x2) m(x1), m(x2)
++#define __DTRACE_APPLY_3(m, def, x1, x2, x3) m(x1), m(x2), m(x3)
++#define __DTRACE_APPLY_4(m, def, x1, x2, x3, x4) m(x1), m(x2), m(x3), m(x4)
++#define __DTRACE_APPLY_5(m, def, x1, x2, x3, x4, x5)			\
++	m(x1), m(x2), m(x3), m(x4), m(x5)
++#define __DTRACE_APPLY_6(m, def, x1, x2, x3, x4, x5, x6)		\
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6)
++#define __DTRACE_APPLY_7(m, def, x1, x2, x3, x4, x5, x6, x7)		\
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7)
++#define __DTRACE_APPLY_8(m, def, x1, x2, x3, x4, x5, x6, x7, x8)	\
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8)
++#define __DTRACE_APPLY_9(m, def, x1, x2, x3, x4, x5, x6, x7, x8, x9)	\
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8), m(x9)
++#define __DTRACE_APPLY_10(m, def, x1, x2, x3, x4, x5, x6, x7, x8, x9, xa) \
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8), m(x9), m(xa)
++#define __DTRACE_APPLY_11(m, def, x1, x2, x3, x4, x5, x6, x7, x8, x9, xa, xb) \
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8), m(x9), m(xa), \
++		m(xb)
++#define __DTRACE_APPLY_12(m, def, x1, x2, x3, x4, x5, x6, x7, x8, x9, xa, xb, xc) \
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8), m(x9), m(xa), \
++		m(xb), m(xc)
++#define __DTRACE_APPLY_13(m, def, x1, x2, x3, x4, x5, x6, x7, x8, x9, xa, xb, xc, xd) \
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8), m(x9), m(xa), \
++		m(xb), m(xc), m(xd)
++#define __DTRACE_APPLY_14(m, def, x1, x2, x3, x4, x5, x6, x7, x8, x9, xa, xb, xc, xd, xe) \
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8), m(x9), m(xa), \
++		m(xb), m(xc), m(xd), m(xe)
++#define __DTRACE_APPLY_15(m, def, x1, x2, x3, x4, x5, x6, x7, x8, x9, xa, xb, xc, xd, xe, xf) \
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8), m(x9), m(xa), \
++		m(xb), m(xc), m(xd), m(xe), m(xf)
++#define __DTRACE_APPLY_16(m, def, x1, x2, x3, x4, x5, x6, x7, x8, x9, xa, xb, xc, xd, xe, xf, xg) \
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8), m(x9), m(xa), \
++		m(xb), m(xc), m(xd), m(xe), m(xf), m(xg)
++#define __DTRACE_APPLY_17(m, def, x1, x2, x3, x4, x5, x6, x7, x8, x9, xa, xb, xc, xd, xe, xf, xg, xh) \
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8), m(x9), m(xa), \
++		m(xb), m(xc), m(xd), m(xe), m(xf), m(xg), m(xh)
++#define __DTRACE_APPLY_18(m, def, x1, x2, x3, x4, x5, x6, x7, x8, x9, xa, xb, xc, xd, xe, xf, xg, xh, xi) \
++	m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8), m(x9), m(xa), \
++		m(xb), m(xc), m(xd), m(xe), m(xf), m(xg), m(xh), m(xi)
++
++#endif	/* _LINUX_SDT_INTERNAL_H */
+diff --git a/include/linux/tracepoint.h b/include/linux/tracepoint.h
+index 0f21617f1a66..e847bbafd123 100644
+--- a/include/linux/tracepoint.h
++++ b/include/linux/tracepoint.h
+@@ -20,6 +20,7 @@
+ #include <linux/rcupdate.h>
+ #include <linux/tracepoint-defs.h>
+ #include <linux/static_call.h>
++#include <linux/sdt.h>
+ 
+ struct module;
+ struct tracepoint;
+@@ -237,6 +238,8 @@ static inline struct tracepoint *tracepoint_ptr_deref(tracepoint_ptr_t *p)
+ 	extern struct tracepoint __tracepoint_##name;			\
+ 	static inline void trace_##name(proto)				\
+ 	{								\
++		DTRACE_PROBE_TRACEPOINT(name, args);			\
++		DTRACE_PROTO_TRACEPOINT(name, proto);			\
+ 		if (static_key_false(&__tracepoint_##name.key))		\
+ 			__DO_TRACE(name,				\
+ 				TP_PROTO(data_proto),			\
+@@ -332,7 +335,10 @@ static inline struct tracepoint *tracepoint_ptr_deref(tracepoint_ptr_t *p)
+ #else /* !TRACEPOINTS_ENABLED */
+ #define __DECLARE_TRACE(name, proto, args, cond, data_proto, data_args) \
+ 	static inline void trace_##name(proto)				\
+-	{ }								\
++	{								\
++		DTRACE_PROBE_TRACEPOINT(name, args);			\
++		DTRACE_PROTO_TRACEPOINT(name, proto);			\
++	}								\
+ 	static inline void trace_##name##_rcuidle(proto)		\
+ 	{ }								\
+ 	static inline int						\
+diff --git a/kernel/dtrace/Kconfig b/kernel/dtrace/Kconfig
+index d04ca0ab7ac9..c1ec55d8750e 100644
+--- a/kernel/dtrace/Kconfig
++++ b/kernel/dtrace/Kconfig
+@@ -23,6 +23,22 @@ config DT_CORE
+ 
+ if DT_CORE
+ 
++config DT_SDT
++	tristate "Statically Defined Tracing"
++	default m
++	select KALLSYMS
++	help
++	  Statically defined tracepoints in the kernel.
++
++config DT_SDT_PERF
++	bool "DTrace perf-events Probes"
++	default y
++        depends on DT_SDT
++        select TRACEPOINTS
++	help
++	  Provides the perf provider, containing a DTrace probe for each
++	  perf-events tracepoint in the system.
++
+ config DT_SYSTRACE
+ 	tristate "System Call Tracing"
+ 	default m
+diff --git a/kernel/dtrace/Makefile b/kernel/dtrace/Makefile
+index 68fc3861e5d1..06329cbe52cb 100644
+--- a/kernel/dtrace/Makefile
++++ b/kernel/dtrace/Makefile
+@@ -4,10 +4,11 @@
+ 
+ DT_CORE_ARCH_OBJS		= $(addprefix ../../arch/$(SRCARCH)/kernel/, \
+ 				    dtrace_syscall.o dtrace_syscall_stubs.o \
+-				    dtrace_util.o)
++				    dtrace_sdt.o dtrace_util.o)
+ 
+ ifdef CONFIG_DT_CORE
+ obj-y				+= cyclic.o dtrace_os.o dtrace_cpu.o \
++				   dtrace_sdt_core.o \
+ 				   dtrace_task.o dtrace_psinfo.o \
+ 				   $(DT_CORE_ARCH_OBJS)
+ endif
+diff --git a/kernel/dtrace/dtrace_os.c b/kernel/dtrace/dtrace_os.c
+index d023f3913323..931cfd0d0fbf 100644
+--- a/kernel/dtrace/dtrace_os.c
++++ b/kernel/dtrace/dtrace_os.c
+@@ -19,6 +19,7 @@
+ #include <linux/binfmts.h>
+ #include <linux/dtrace_cpu.h>
+ #include <linux/dtrace_os.h>
++#include <linux/dtrace_sdt.h>
+ #include <linux/fs.h>
+ #include <linux/hardirq.h>
+ #include <linux/interrupt.h>
+@@ -66,6 +67,46 @@ void __init dtrace_os_init(void)
+ 	if (dtrace_pdata_cachep == NULL)
+ 		pr_debug("Can't allocate kmem cache for pdata\n");
+ 
++	/*
++	 * A little bit of magic...
++	 * We create a dummy module to represent the core Linux kernel.  The
++	 * only data we're interested in is the name, the SDT probe points data
++	 * (to be filled in by dtrace_sdt_register()), and the probe data.
++	 * DTrace uses an architecture-specific structure (hidden from us here)
++	 * to hold some data.
++	 */
++	dtrace_kmod = kmalloc(sizeof(struct module), GFP_KERNEL | __GFP_ZERO);
++	if (dtrace_kmod == NULL) {
++		pr_warn("%s: cannot allocate kernel pseudo-module\n",
++			__func__);
++		return;
++	}
++
++	strlcpy(dtrace_kmod->name, "vmlinux", MODULE_NAME_LEN);
++
++	/*
++	 * Some sizing info is required for kernel module. We are going to use
++	 * modules VA range for trampoline anyway so lets pretend a kernel has
++	 * no init section and VA range (0, MODULES_VADDR) is occupied by
++	 * kernel itself
++	 */
++#ifdef CONFIG_X86_64
++	dtrace_kmod->core_layout.base = (void *)__START_KERNEL_map;
++	dtrace_kmod->core_layout.size = KERNEL_IMAGE_SIZE;
++#elif defined(CONFIG_SPARC64)
++	/* Hardcoded see pgtable_64.h */
++	dtrace_kmod->core_layout.base = (void *)0x4000000;
++	dtrace_kmod->core_layout.size = 0x2000000;
++#endif
++
++	dtrace_kmod->state = MODULE_STATE_LIVE;
++	atomic_inc(&dtrace_kmod->refcnt);
++
++	dtrace_mod_pdata_alloc(dtrace_kmod);
++
++	INIT_LIST_HEAD(&dtrace_kmod->source_list);
++	INIT_LIST_HEAD(&dtrace_kmod->target_list);
++
+ 	/*
+ 	 * We need to set up a psinfo structure for PID 0 (swapper).
+ 	 */
+@@ -73,7 +114,49 @@ void __init dtrace_os_init(void)
+ 	dtrace_psinfo_os_init();
+ 	dtrace_task_init(&init_task);
+ 	dtrace_psinfo_alloc(&init_task);
++
++	dtrace_sdt_init();
++	dtrace_sdt_register(dtrace_kmod);
++}
++
++#define	MIN(a, b)	(((a) < (b)) ? (a) : (b))
++#define	MAX(a, b)	(((a) > (b)) ? (a) : (b))
++#define TRAMP_RANGE	0x80000000
++
++void *dtrace_alloc_text(struct module *mp, unsigned long size)
++{
++	unsigned long mp_start, mp_end;
++	unsigned long va_start, va_end;
++	void *trampoline;
++
++	/* module range */
++	mp_start = (unsigned long) mp->core_layout.base;
++	mp_end = mp_start + mp->core_layout.size;
++
++	if (mp->init_layout.size) {
++		mp_start = MIN(mp_start, (unsigned long)mp->init_layout.base);
++		mp_end = MAX(mp_end, (unsigned long)mp->init_layout.base +
++			     mp->init_layout.size);
++	}
++
++	/* get trampoline range */
++	va_end = MIN(mp_start + TRAMP_RANGE, MODULES_END);
++	va_start = (mp_end < TRAMP_RANGE) ? 0 : mp_end - TRAMP_RANGE;
++	va_start = MAX(va_start, MODULES_VADDR);
++
++	trampoline =  __vmalloc_node_range(size, 1, va_start, va_end,
++				    GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
++				    __builtin_return_address(0));
++
++	return trampoline;
++}
++EXPORT_SYMBOL(dtrace_alloc_text);
++
++void dtrace_free_text(void *ptr)
++{
++	return vfree(ptr);
+ }
++EXPORT_SYMBOL(dtrace_free_text);
+ 
+ /*
+  * MODULE SUPPORT FUNCTIONS
+diff --git a/kernel/dtrace/dtrace_sdt_core.c b/kernel/dtrace/dtrace_sdt_core.c
+new file mode 100644
+index 000000000000..90b86726f195
+--- /dev/null
++++ b/kernel/dtrace/dtrace_sdt_core.c
+@@ -0,0 +1,364 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:        dtrace_sdt_core.c
++ * DESCRIPTION: DTrace - SDT probes
++ *
++ * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/kernel.h>
++#include <linux/memory.h>
++#include <linux/module.h>
++#include <linux/dtrace_os.h>
++#include <linux/dtrace_sdt.h>
++#include <linux/jhash.h>
++#include <linux/sdt.h>
++#include <linux/slab.h>
++#include <linux/string.h>
++#include <linux/vmalloc.h>
++#include <asm-generic/bitsperlong.h>
++#include <asm-generic/sections.h>
++
++const char		*sdt_prefix = "__dtrace_probe_";
++int			dtrace_nosdt;
++
++/*
++ * Compiled-in SDT probe data.
++ */
++extern const unsigned long	dtrace_sdt_probes[];
++extern const char		dtrace_sdt_strings[];
++extern const unsigned long	dtrace_sdt_nprobes;
++
++/*
++ * Markers of core-kernel sdt_args and sdt_names sections.
++ */
++extern const char __start_dtrace_sdt_args[];
++extern const char __stop_dtrace_sdt_args[];
++extern const char __start_dtrace_sdt_names[];
++extern const char __stop_dtrace_sdt_names[];
++
++static int sdt_probe_set(struct sdt_probedesc *sdp, const char *name,
++			 const char *func, uintptr_t addr, asm_instr_t **paddr,
++			 struct sdt_probedesc *prv)
++{
++	sdp->sdpd_name = kstrdup(name, GFP_KERNEL);
++	if (sdp->sdpd_name == NULL) {
++		kfree(sdp);
++		return 1;
++	}
++
++	sdp->sdpd_func = kstrdup(func, GFP_KERNEL);
++	if (sdp->sdpd_func == NULL) {
++		kfree(sdp->sdpd_name);
++		kfree(sdp);
++		return 1;
++	}
++
++	sdp->sdpd_args = NULL;
++	sdp->sdpd_offset = addr;
++	sdp->sdpd_next = NULL;
++
++	*paddr = (asm_instr_t *)addr;
++
++	if (prv && strcmp(prv->sdpd_name, sdp->sdpd_name) == 0
++		&& strcmp(prv->sdpd_func, sdp->sdpd_func) == 0)
++		prv->sdpd_next = sdp;
++
++	return 0;
++}
++
++/*
++ * Transfer the SDT args section into the sdpd_args field left NULL above.
++ *
++ * The memory pointed to by args_start must have a lifetime at least as long as
++ * that pointed to by sdpd.
++ */
++void dtrace_sdt_stash_args(const char *module_name,
++			   struct sdt_probedesc *sdpd, size_t nprobes,
++			   const char *names_start, size_t names_len,
++			   const char *args_start, size_t args_len)
++{
++	struct probe_name_hashent_t {
++		const char *pnhe_name;
++		const char *pnhe_args;
++	} *args_by_name;
++	int i;
++	const char *namep, *argp;
++	size_t hashsize;
++
++	/*
++	 * We need to find the probes (and there may be many) in the sdpd
++	 * corresponding to the probe with that name in the argtype section.
++	 *
++	 * Build a hashtable mapping from probe name -> args string, ignoring
++	 * duplicate probe names except to check (in debugging mode) that they
++	 * have the same args string as the first.  Then cycle over the sdpd
++	 * looking up each probe in turn and pointing to the same place.
++	 *
++	 * We don't know how many entries there are in the table, but we do know
++	 * there cannot be more than nprobes (and are probably less).
++	 */
++
++	hashsize = nprobes * 4;			/* arbitrary expansion factor */
++	args_by_name = vzalloc(hashsize * sizeof(struct probe_name_hashent_t));
++	if (args_by_name == NULL) {
++		pr_warn("%s: cannot allocate hash for sdt args population\n",
++			__func__);
++		return;
++	}
++
++	namep = names_start;
++	argp = args_start;
++	while ((namep < names_start + names_len) &&
++	       (argp < args_start + args_len)) {
++
++		size_t l = strlen(namep);
++		u32 h = jhash(namep, l, 0) % hashsize;
++
++		while (args_by_name[h].pnhe_name != NULL &&
++		       strcmp(args_by_name[h].pnhe_name, namep) != 0) {
++			h++;
++			h %= hashsize;
++		}
++
++		if (args_by_name[h].pnhe_name == NULL) {
++			args_by_name[h].pnhe_name = namep;
++			args_by_name[h].pnhe_args = argp;
++		}
++#if defined(CONFIG_DT_DEBUG)
++		else if (strcmp(args_by_name[h].pnhe_name, namep) != 0)
++			pr_warn("%s: multiple distinct arg strings for probe "
++				"%s found: %s versus %s",
++				module_name, namep,
++				args_by_name[h].pnhe_args,
++				argp);
++#endif
++		namep += l + 1;
++		argp += strlen(argp) + 1;
++	}
++
++#if defined(CONFIG_DT_DEBUG)
++	if ((namep < names_start + names_len) || (argp < args_start + args_len))
++		pr_warn("%s: Not all SDT names or args consumed: %zi "
++		       "bytes of names and %zi of args left over. "
++			"Some arg types will be mis-assigned.\n", module_name,
++		       namep - (names_start + names_len),
++		       argp - (args_start + args_len));
++#endif
++
++	for (i = 0; i < nprobes; i++) {
++		size_t l = strlen(sdpd[i].sdpd_name);
++		u32 h = jhash(sdpd[i].sdpd_name, l, 0) % hashsize;
++
++		/*
++		 * Is-enabled probes have no arg string.
++		 */
++		if (sdpd[i].sdpd_name[0] == '?')
++			continue;
++
++		while (args_by_name[h].pnhe_name != NULL &&
++		       strcmp(sdpd[i].sdpd_name,
++			      args_by_name[h].pnhe_name) != 0) {
++			h++;
++			h %= hashsize;
++		}
++
++		if (args_by_name[h].pnhe_name == NULL) {
++			/*
++			 * No arg string. Peculiar: report in debugging mode.
++			 */
++#if defined(CONFIG_DT_DEBUG)
++			pr_warn("%s: probe %s has no arg string.\n",
++				module_name, sdpd[i].sdpd_name);
++#endif
++			continue;
++		}
++
++		sdpd[i].sdpd_args = args_by_name[h].pnhe_args;
++	}
++	vfree(args_by_name);
++}
++
++/*
++ * Register the SDT probes for the core kernel, i.e. SDT probes that reside in
++ * vmlinux.  For SDT probes in kernel modules, we use dtrace_mod_notifier().
++ */
++void __init dtrace_sdt_register(struct module *mp)
++{
++	int			i, cnt;
++	struct sdt_probedesc	*sdps;
++	asm_instr_t		**addrs;
++	int			*is_enabled;
++	void			*args;
++	size_t			args_len;
++
++	if (mp == NULL) {
++		pr_warn("%s: no module provided - nothing registered\n",
++			__func__);
++		return;
++	}
++
++	/*
++	 * Just in case we run into failures further on...
++	 */
++	mp->sdt_probes = NULL;
++	mp->sdt_probec = 0;
++
++	if (dtrace_sdt_nprobes == 0 || dtrace_nosdt)
++		return;
++
++	/*
++	 * Allocate the array of SDT probe descriptions to be registered in the
++	 * vmlinux pseudo-module.
++	 */
++	sdps = (struct sdt_probedesc *)vmalloc(dtrace_sdt_nprobes *
++					  sizeof(struct sdt_probedesc));
++	if (sdps == NULL) {
++		pr_warn("%s: cannot allocate SDT probe array\n", __func__);
++		return;
++	}
++
++	/*
++	 * Create a list of addresses (SDT probe locations) that need to be
++	 * patched with a NOP instruction (or instruction sequence), and another
++	 * array indicating whether each probe needs patching with an
++	 * arch-dependent false return instead.
++	 */
++	addrs = (asm_instr_t **)vmalloc(dtrace_sdt_nprobes *
++					sizeof(asm_instr_t *));
++	is_enabled = (int *)vmalloc(dtrace_sdt_nprobes * sizeof(int));
++	if ((addrs == NULL) || (is_enabled == NULL)) {
++		pr_warn("%s: cannot allocate SDT probe address/is-enabled "
++			"lists\n", __func__);
++		vfree(sdps);
++		vfree(addrs);
++		vfree(is_enabled);
++		return;
++	}
++
++	for (i = cnt = 0; i < dtrace_sdt_nprobes; i++) {
++		uintptr_t	addr, poff, foff;
++		const char	*fname = &dtrace_sdt_strings[foff];
++		const char	*pname;
++
++		addr = dtrace_sdt_probes[i * 3];	/* address */
++		poff = dtrace_sdt_probes[i * 3 + 1];	/* probe name offset */
++		foff = dtrace_sdt_probes[i * 3 + 2];	/* func name offset */
++		pname = &dtrace_sdt_strings[poff];
++		fname = &dtrace_sdt_strings[foff];
++
++		is_enabled[cnt] = (pname[0] == '?');
++
++		if (sdt_probe_set(&sdps[cnt], pname, fname, addr, &addrs[cnt],
++				  cnt > 0 ? &sdps[cnt - 1] : NULL))
++			pr_warn("%s: failed to add SDT probe %s for %s\n",
++				__func__, pname, fname);
++		else
++			cnt++;
++	}
++
++	mp->sdt_probes = sdps;
++	mp->sdt_probec = cnt;
++
++	dtrace_sdt_nop_multi(addrs, is_enabled, cnt);
++
++	/*
++	 * Allocate space for the array of arg types, and copy it in from the
++	 * (discardable) kernel section.  We will need to keep it.  (The
++	 * identically-ordered array of probe names is not needed after
++	 * initialization.)
++	 */
++	args_len = __stop_dtrace_sdt_args - __start_dtrace_sdt_args;
++	args = vmalloc(args_len);
++	if (args == NULL) {
++		pr_warn("%s: cannot allocate table of SDT arg types\n",
++			__func__);
++		goto end;
++	}
++
++	memcpy(args, __start_dtrace_sdt_args, args_len);
++
++	dtrace_sdt_stash_args("vmlinux", sdps, cnt,
++			      __start_dtrace_sdt_names,
++			      (__stop_dtrace_sdt_names - __start_dtrace_sdt_names),
++			      args, args_len);
++
++end:
++	vfree(addrs);
++	vfree(is_enabled);
++}
++
++static int __init nosdt(char *str)
++{
++	dtrace_nosdt = 1;
++
++	return 0;
++}
++
++early_param("nosdt", nosdt);
++
++void dtrace_sdt_register_module(struct module *mp,
++				void *sdt_names_addr, size_t sdt_names_len,
++				void *sdt_args_addr, size_t sdt_args_len)
++{
++	int			i, cnt;
++	struct sdt_probedesc	*sdp;
++	asm_instr_t		**addrs;
++	int			*is_enabled;
++
++	if (mp->sdt_probec == 0 || mp->sdt_probes == NULL)
++		return;
++
++	/*
++	 * Create a list of addresses (SDT probe locations) that need to be
++	 * patched with a NOP instruction (or instruction sequence).
++	 */
++	addrs = (asm_instr_t **)vmalloc(mp->sdt_probec *
++					sizeof(asm_instr_t *));
++	is_enabled = (int *)vmalloc(mp->sdt_probec * sizeof(int));
++	if ((addrs == NULL) || (is_enabled == NULL)) {
++		pr_warn("%s: cannot allocate SDT probe address list (%s)\n",
++			__func__, mp->name);
++		vfree(addrs);
++		vfree(is_enabled);
++		return;
++	}
++
++	for (i = cnt = 0, sdp = mp->sdt_probes; i < mp->sdt_probec;
++	     i++, sdp++) {
++		addrs[cnt] = (asm_instr_t *)sdp->sdpd_offset;
++		is_enabled[cnt++] = (sdp->sdpd_name[0] == '?');
++	}
++
++	dtrace_sdt_nop_multi(addrs, is_enabled, cnt);
++
++	dtrace_sdt_stash_args(mp->name, mp->sdt_probes, mp->sdt_probec,
++			      sdt_names_addr, sdt_names_len,
++			      sdt_args_addr, sdt_args_len);
++
++	vfree(addrs);
++	vfree(is_enabled);
++}
++
++void __init dtrace_sdt_init(void)
++{
++	dtrace_sdt_init_arch();
++}
++
++#if IS_ENABLED(CONFIG_DT_DT_PERF)
++void dtrace_sdt_perf(void)
++{
++	DTRACE_PROBE(measure);
++}
++EXPORT_SYMBOL(dtrace_sdt_perf);
++#endif
+diff --git a/kernel/module.c b/kernel/module.c
+index f4269dabc638..2f214881ae30 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -40,6 +40,7 @@
+ #include <linux/string.h>
+ #include <linux/mutex.h>
+ #include <linux/rculist.h>
++#include <linux/sdt.h>
+ #include <linux/uaccess.h>
+ #include <asm/cacheflush.h>
+ #include <linux/set_memory.h>
+@@ -47,6 +48,7 @@
+ #include <linux/license.h>
+ #include <asm/sections.h>
+ #include <linux/dtrace_os.h>
++#include <linux/dtrace_sdt.h>
+ #include <linux/tracepoint.h>
+ #include <linux/ftrace.h>
+ #include <linux/livepatch.h>
+@@ -3777,6 +3779,18 @@ static int complete_formation(struct module *mod, struct load_info *info)
+ {
+ 	int err;
+ 
++#ifdef CONFIG_DTRACE
++	void *sdt_args, *sdt_names;
++	unsigned int sdt_args_len, sdt_names_len;
++
++	sdt_names = section_objs(info, "_dtrace_sdt_names", 1,
++				 &sdt_names_len);
++	sdt_args = section_objs(info, "_dtrace_sdt_args", 1,
++				&sdt_args_len);
++	dtrace_sdt_register_module(mod, sdt_names, sdt_names_len,
++				   sdt_args, sdt_args_len);
++#endif
++
+ 	mutex_lock(&module_mutex);
+ 
+ 	/* Find duplicate symbols (must be called under lock). */
+diff --git a/scripts/.gitignore b/scripts/.gitignore
+index a6c11316c969..8458568004eb 100644
+--- a/scripts/.gitignore
++++ b/scripts/.gitignore
+@@ -9,3 +9,4 @@ extract-cert
+ sign-file
+ insert-sys-cert
+ /module.lds
++kmodsdt
+diff --git a/scripts/Makefile b/scripts/Makefile
+index efa1ff4dff95..509a73b6f269 100644
+--- a/scripts/Makefile
++++ b/scripts/Makefile
+@@ -11,6 +11,7 @@ hostprogs-always-$(CONFIG_ASN1)				+= asn1_compiler
+ hostprogs-always-$(CONFIG_MODULE_SIG_FORMAT)		+= sign-file
+ hostprogs-always-$(CONFIG_SYSTEM_TRUSTED_KEYRING)	+= extract-cert
+ hostprogs-always-$(CONFIG_SYSTEM_EXTRA_CERTIFICATE)	+= insert-sys-cert
++hostprogs-always-$(CONFIG_DTRACE)			+= kmodsdt
+ 
+ kallsyms-objs   := kallsyms.o
+ 
+@@ -36,6 +37,11 @@ HOSTCFLAGS_sorttable.o += -DUNWINDER_ORC_ENABLED
+ HOSTLDLIBS_sorttable = -lpthread
+ endif
+ 
++ifeq ($(CONFIG_DTRACE),y)
++HOSTCFLAGS_kmodsdt.o := -I$(srctree)/include/generated
++HOSTLDLIBS_kmodsdt := -lelf
++endif
++
+ # The following programs are only built on demand
+ hostprogs += unifdef
+ 
+diff --git a/scripts/Makefile.modfinal b/scripts/Makefile.modfinal
+index 920545d75da9..50c464f248ef 100644
+--- a/scripts/Makefile.modfinal
++++ b/scripts/Makefile.modfinal
+@@ -2,7 +2,7 @@
+ # ===========================================================================
+ # Module final link and CTF generation
+ # ===========================================================================
+-# 1) compile all <module>.mod.c files
++# 1) compute SDT offsets, generate SDT stubs, and compile all .mod.c files
+ # 2) for external modules, generate CTF for the module (there is an extra,
+ #    externally-invoked target that does this for the entire kernel but does
+ #    not invoke the rst of the module-building process)
+@@ -32,11 +32,52 @@ modname = $(notdir $(@:.mod.o=))
+ part-of-module = y
+ 
+ quiet_cmd_cc_o_c = CC [M]  $@
+-      cmd_cc_o_c = $(CC) $(c_flags) -c -o $@ $<
++      cmd_cc_o_c = $(CC) $(c_flags) -I$(dir $@) -c -o $@ $<
++
++quiet_cmd_as_o_S = AS      $@
++      cmd_as_o_S = $(CC) $(a_flags) -c -o $@ $<
++
++ifdef CONFIG_DTRACE
++
++sdtgen = $(srctree)/scripts/dtrace_sdt.sh
++
++quiet_cmd_sdtinfo = SDTINF  $@
++      cmd_sdtinfo = $(sdtgen) sdtinfo $@ $< kmod $(@:.c=.h)
++
++quiet_cmd_sdtstub = SDTSTB  $@
++      cmd_sdtstub = $(sdtgen) sdtstub $@ $<
++
++# We depend on the .mod.c file to ensure that modpost runs before sdtinfo.
++$(modules:.ko=.sdtinfo.c): %.sdtinfo.c: %.o %.mod.c
++	$(call cmd,sdtinfo)
++
++# We depend on the sdtinfo file because info generation rewrites the .o,
++# while sdtstubs reads it.
++$(modules:.ko=.sdtstub.S) : %.sdtstub.S: %.o %.sdtinfo.c
++	$(call cmd,sdtstub)
++
++%.sdtinfo.o : %.sdtinfo.c
++	$(call if_changed_dep,cc_o_c)
++
++%.mod.o: %.mod.c %.sdtinfo.c FORCE
++	$(call if_changed_dep,cc_o_c)
++
++$(modules:.ko=.sdtstub.o): %.sdtstub.o: %.sdtstub.S
++	$(call if_changed,as_o_S)
++
++module-sdt-modular-prereq = %.sdtstub.o
++sdtinfo-prereq = $(modules:.ko=.sdtinfo.c)
++
++else
+ 
+ %.mod.o: %.mod.c FORCE
+ 	$(call if_changed_dep,cc_o_c)
+ 
++module-sdt-modular-prereq =
++sdtinfo-prereq =
++
++endif
++
+ # Generate CTF for the entire kernel, or for the module alone if this is a
+ # build of an external module.
+ 
+@@ -95,7 +136,7 @@ $(1) $(wordlist 1,1024,$(2))
+ $(if $(word 1025,$(2)),$(call xargs,$(1),$(wordlist 1025,$(words $(2)),$(2))))
+ endef
+ 
+-$(ctf-filelist-raw): $(ctf-builtins-prereq) $(ctf-modules)
++$(ctf-filelist-raw): $(ctf-builtins-prereq) $(ctf-modules) | $(sdtinfo-prereq)
+ 	@rm -f $(ctf-filelist-raw);
+ 	@if [ -n "$(ctf-dir-mk)" ]; then \
+ 		mkdir -p "$(ctf-dir-mk)"; \
+@@ -123,7 +164,8 @@ vmlinux.ctfa: $(ctf-filelist)
+ else
+ 
+ # The CTF depends on the output CTF file list, and that depends
+-# on the .o files for the modules
++# on the .o files for the modules, and on the sdtinfo files, if any
++# (for the same reason that the sdtstub does).
+ $(ctf-stamp): $(ctf-filelist)
+ 	$(call if_changed,ctf)
+ 	@shopt -s nullglob; \
+@@ -170,7 +212,7 @@ quiet_cmd_ld_ko_o = LD [M]  $@
+         $(OBJCOPY) $(module-ctf-flags) $@.tmp $@ && rm -f $@.tmp ;	\
+ 	$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
+ 
+-$(modules): %.ko: %.o %.mod.o scripts/module.lds $(module-ctfs-modular-prereq) FORCE
++$(modules): %.ko: %.o %.mod.o %.sdtinfo.o scripts/module.lds $(module-sdt-modular-prereq) $(module-ctfs-modular-prereq) FORCE
+ 	$(call cmd_touch_ctf)
+ 	+$(call if_changed,ld_ko_o)
+ 
+diff --git a/scripts/dtrace_sdt.sh b/scripts/dtrace_sdt.sh
+new file mode 100755
+index 000000000000..2dd7ea1aebd8
+--- /dev/null
++++ b/scripts/dtrace_sdt.sh
+@@ -0,0 +1,588 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0
++
++LANG=C
++
++#
++# Syntax:
++#	dtrace_sdt.sh sdtstub <S-file> <o-file>+
++#		This is used to generate DTrace SDT probe stubs based on one
++#		or more object file(s).  The stubs are written to <S-file>.
++#	dtrace_sdt.sh sdtinfo <c-file> <o-file> kmod <h-file>
++#		This is used to generate DTrace SDT probe definitions for a
++#		kmod .o file.  The output is written to <c-file> and <h-file>.
++#	dtrace_sdt.sh sdtinfo <S-file> <l-file>
++#		This is used to generate DTrace SDT probe definitions for a
++#		linked kernel image file <l-file>.  The output is written to
++#		<S-file>.
++#
++
++opr="$1"
++shift
++if [ -z "$opr" ]; then
++    echo "ERROR: Missing operation" > /dev/stderr
++    exit 1
++fi
++
++tfn="$1"
++shift
++if [ -z "$tfn" ]; then
++    echo "ERROR: Missing target filename" > /dev/stderr
++    exit 1
++fi
++
++ofn="$1"
++tok="$2"
++
++if [ -z "$ofn" ]; then
++    echo "ERROR: Missing object file argument" > /dev/stderr
++    exit 1
++fi
++
++if [ "$opr" = "sdtstub" ]; then
++    ${NM} -u $* | grep -E '__dtrace_(probe|isenabled)_' | sort | uniq | \
++	gawk -v arch=${ARCH} \
++	       '{
++		    printf("\t.globl %s\n\t.type %s,@function\n%s:\n",
++			   $2, $2, $2);
++		    count++;
++		}
++
++		END {
++		    if (count) {
++			if (arch == "x86" || arch == "x86_64") {
++			    print "\txor %eax,%eax";
++			    print "\tretq";
++			} else if (arch == "sparc" || arch == "sparc64") {
++			    print "\tretl";
++			    print "\tnop";
++			} else if (arch == "arm" || arch == "arm64") {
++			    print "\tmov w0, #0x0";
++			    print "\tret";
++			}
++		    }
++		}' > $tfn
++    exit $?
++fi
++
++if [ "$opr" != "sdtinfo" ]; then
++    echo "ERROR: Invalid operation, should be sdtstub or sdtinfo" > /dev/stderr
++    exit 1
++fi
++
++if [ "$tok" = "kmod" ]; then
++    hfile="$3"
++
++    # Pre-process the object file to handle any local functions that contain
++    # SDT probes.
++    scripts/kmodsdt ${ofn}
++
++    # Output all function symbols in the symbol table of the object file.
++    # Subsequently, output all relocation records for DTrace SDT probes.  The
++    # probes are identified by either a __dtrace_probe_ or __dtrace_isenabled_
++    # prefix.
++    #
++    # We sort the output primarily based on the section, using the value (or
++    # offset) as secondary sort criterion  The overall result is that the
++    # output will be structured as a list of functions, and for any functions
++    # that contain DTrace SDT probes, relocation records will follow the
++    # function entry they are associated with.
++    #
++    # Relocations are reported by objdump per section, with a header line
++    # documenting the specific section being reported:
++    #	RELOCATION RECORDS FOR [<section>]:
++    # This is followed by a column header line, and a list of relocations.
++    # The relocations are listed with 3 tokens per line:
++    #	<offset> <type> <value>
++    #
++    # Three different types can show up in the output (all with 4 tokens):
++    #    <section> <offset> F <value>
++    #        Function within a section at a specific offset.
++    #        (See STAGE 3a below.)
++    #    <section> <offset> G <value>
++    #        Global alias for a local function within a section at a specific
++    #        offset.  A function can only have one alias, and there cannot be
++    #        an alias without its respective function.
++    #        (See STAGE 3a below.)
++    #    <section> <offset> R <value>
++    #        Relocation within a section at a specific offset.
++    #        (See STAGE 3b below.)
++    #
++    ${OBJDUMP} -tr ${ofn} | \
++    gawk '/^RELOC/ {
++	     sect = substr($4, 2, length($4) - 3);
++	     if (sect ~ /^\.(exit|init|meminit)\.text/)
++		 sect = 0;
++
++	     next;
++	 }
++
++	 sect && /__dtrace_probe_/ {
++	     $3 = substr($3, 16);
++	     sub(/[\-+].*$/, "", $3);
++	     print sect " " $1 " R " $3;
++	     next;
++	 }
++
++	 sect && /__dtrace_isenabled_/ {
++	     $3 = substr($3, 20);
++	     sub(/[\-+].*$/, "", $3);
++	     print sect " " $1 " R ?" $3;
++	     next;
++	 }
++
++	 /file format/ {
++	     next;
++	 }
++
++	 / F / {
++	     if ($4 ~ /^\.(exit|init|meminit)\.text/)
++		 next;
++
++	     if ($6 == ".hidden")
++		 print $4 " " $1 " G " $7;
++	     else
++		 print $4 " " $1 " F " $6;
++	 }' | \
++    sort -k1,2 | \
++    gawk -v arch=${ARCH} -v hfile=${hfile} \
++	'function subl(v0, v1, v0h, v0l, v1h, v1l, d, tmp) {
++             tmp = $0;
++             if (length(v0) > 8) {
++                 d = length(v0);
++                 v0h = strtonum("0x"substr(v0, 1, d - 8));
++                 v0l = strtonum("0x"substr(v0, d - 8 + 1));
++                 d = length(v1);
++                 v1h = strtonum("0x"substr(v1, 1, d - 8));
++                 v1l = strtonum("0x"substr(v1, d - 8 + 1));
++
++                 if (v0l >= v1l) {
++                     if (v0h >= v1h) {
++                         d = sprintf("%08x%08x", v0h - v1h, v0l - v1l);
++                     } else {
++                         printf "#error Invalid addresses: %s - %s\n", v0, v1 \
++				>"/dev/stderr";
++                         errc++;
++                     }
++                 } else {
++		     if (v0h > v1h) {
++			 v0h--;
++			 v0l += 4294967296;
++			 d = sprintf("%08x%08x", v0h - v1h, v0l - v1l);
++		     } else {
++			 printf "#error Invalid addresses: %s - %s\n", v0, v1 \
++				>"/dev/stderr";
++			 errc++;
++		     }
++                 }
++             } else {
++                 v0 = strtonum("0x"v0);
++                 v1 = strtonum("0x"v1);
++                 d = sprintf("%016x", v0 - v1);
++             }
++             $0 = tmp;
++
++             return d;
++         }
++
++	 BEGIN {
++	     print "#include <linux/sdt.h>";
++
++	     probec = 0;
++	 }
++
++	 #
++	 # Process a symbol table definition for a function in the object
++	 # file ($ofn).  As we pass through the symbol table, we record the
++	 # function name, address, and symbol table index or alias.  This
++	 # information is needed for any potential DTrace probes that may exist
++	 # in the function.  They will be listed in relocation records
++	 # subsequent to this function definition (and are processed in the
++	 # next action block).
++	 #
++	 NF == 4 && $3 == "F" {
++	     fname = $4;
++	     sub(/\..*$/, "", fname);
++	     alias = $4;
++	     faddr = $2;
++	     sub(/^0+/, "", faddr);
++
++	     next;
++	 }
++
++	 NF == 4 && $3 == "G" {
++	     alias = $4;
++
++	     next;
++	 }
++
++	 #
++	 # Process a relocation record associated with the preceding function.
++	 #
++	 # For kernel modules:
++	 # Convert the section offset into an offset in the function where the
++	 # DTrace probe is located, i.e. an offset from the start of the
++	 # function.  This will be resolved in an absolute address at runtime
++	 # when the module is loaded.
++	 #
++	 NF == 4 && $3 == "R" {
++	     sub(/^0+/, "", $2);
++
++	     addr = subl($2, faddr);
++
++	     if (arch == "x86" || arch == "x86_64")
++		 addr = subl(addr, 1);
++
++	     protom[alias] = 1;
++	     probev[probec] = sprintf("  {\042%s\042,  \042%s\042 /* %s */, 0 /* sdt_args string */, (uintptr_t)%s+0x%s },", $4, fname, $1, alias, addr);
++	     probec++;
++
++	     next;
++	 }
++
++	 END {
++	     for (alias in protom)
++		 printf "extern void %s(void);\n", alias;
++	     print "\nstruct sdt_probedesc\t_sdt_probes[] = {";
++	     for (i = 0; i < probec; i++)
++		 print probev[i];
++	     print "};\n";
++
++	     print "#define _sdt_probec\t" probec > hfile;
++	     print "extern struct sdt_probedesc _sdt_probes[];" >> hfile;
++
++	     exit(errc == 0 ? 0 : 1);
++	 }' > $tfn
++else
++    # For a linked kernel (with relocation data), the scope of the DTrace SDT
++    # probe discovery can be limited to CODE sections that are not included in
++    # the init or exit code sections.
++    #
++    # First the sections records are parsed to order to determine the base
++    # address for each relevant section.
++    #
++    # Subsequently, all function symbols that are located in the sections we
++    # care about are read from the symbol table of the linked kernel object.
++    # Each symbol is reported in the output stream with its section name,
++    # address, a token identifying it as a function (or alias), and its name.
++    #
++    # Finally, each relocation record from relevant sections that relates to
++    # SDT probes are written to the output stream with its section name,
++    # address, a token # identifying it as a relocation, and its name.  Probes
++    # are identified in the relocation records as symbols with either a
++    # __dtrace_probe_ or __dtrace_isenabled_ prefix.
++    #
++    # We sort the output based on the section name and address, ensuring that
++    # the output will be a list of functions, and each function record will be
++    # followed immediately by any DTrace SDT probe records that are used in
++    # that function.
++    #
++    # Three different record types can show up in the output (4 tokens each):
++    #    <section> <address> F <name>
++    #        Named function at a specific address.
++    #    <section> <address> G <name>
++    #        Global alias for a local function at a specific offset.  A
++    #        function can only have one alias, and there cannot be an alias
++    #        without its respective function.
++    #    <section> <address> R <value>
++    #        Relocation within a section at a specific address
++    #
++    ${OBJDUMP} -htr ${ofn} | \
++    gawk 'function addl(v0, v1, v0h, v0l, v1h, v1l, d, tmp) {
++	     tmp = $0;
++	     if (length(v0) > 8 || length(v1) > 8) {
++		 d = length(v0);
++		 v0h = strtonum("0x"substr(v0, 1, d - 8));
++		 v0l = strtonum("0x"substr(v0, d - 8 + 1));
++		 d = length(v1);
++		 v1h = strtonum("0x"substr(v1, 1, d - 8));
++		 v1l = strtonum("0x"substr(v1, d - 8 + 1));
++
++		 v0l += v1l;
++		 v0h += v1h;
++		 d = sprintf("%x", v0l);
++		 if (length(d) > 8) {
++		     v0h++;
++		     v0l -= 4294967296;
++		 }
++		 d = sprintf("%x", v0h);
++		 if (length(d) <= 8) {
++		     d = sprintf("%08x%08x", v0h, v0l);
++		 } else {
++		     printf "#error Invalid addresses: %s + %s\n", v0, v1 \
++			    >"/dev/stderr";
++		     errc++;
++		 }
++	     } else {
++		 v0 = strtonum("0x"v0);
++		 v1 = strtonum("0x"v1);
++		 d = sprintf("%016x", v0 + v1);
++	     }
++	     $0 = tmp;
++
++	     return d;
++	 }
++
++	 function subl(v0, v1, v0h, v0l, v1h, v1l, d, tmp) {
++             tmp = $0;
++             if (length(v0) > 8) {
++                 d = length(v0);
++                 v0h = strtonum("0x"substr(v0, 1, d - 8));
++                 v0l = strtonum("0x"substr(v0, d - 8 + 1));
++                 d = length(v1);
++                 v1h = strtonum("0x"substr(v1, 1, d - 8));
++                 v1l = strtonum("0x"substr(v1, d - 8 + 1));
++
++                 if (v0l >= v1l) {
++                     if (v0h >= v1h) {
++                         d = sprintf("%08x%08x", v0h - v1h, v0l - v1l);
++                     } else {
++                         printf "#error Invalid addresses: %s - %s\n", v0, v1 \
++				>"/dev/stderr";
++                         errc++;
++                     }
++                 } else {
++		     if (v0h > v1h) {
++			 v0h--;
++			 v0l += 4294967296;
++			 d = sprintf("%08x%08x", v0h - v1h, v0l - v1l);
++		     } else {
++			 printf "#error Invalid addresses: %s - %s\n", v0, v1 \
++				>"/dev/stderr";
++			 errc++;
++		     }
++                 }
++             } else {
++                 v0 = strtonum("0x"v0);
++                 v1 = strtonum("0x"v1);
++                 d = sprintf("%016x", v0 - v1);
++             }
++             $0 = tmp;
++
++             return d;
++         }
++
++	 NF == 7 && $2 !~ /^\.(exit|init|meminit)\.text/ {
++	     snam = $2;
++	     addr = $4;
++
++	     getline;
++	     if (/CODE/)
++		 base[snam] = addr;
++
++	     next;
++	 }
++
++	 NF == 5 && $2 == "g" && $NF == "_stext" {
++	     print ". " $1 " B _stext";
++	     next;
++	 }
++
++	 /^RELOC/ {
++	     snam = substr($4, 2, length($4) - 3);
++	     if (snam in base)
++		 in_reloc = 1;
++	     else
++		 in_reloc = 0;
++	     next;
++	 }
++
++	 in_reloc && /__dtrace_probe_/ {
++	     $3 = substr($3, 16);
++	     sub(/[\-+].*$/, "", $3);
++	     print snam " " addl(base[snam], $1) " R " $3;
++	     next;
++	 }
++
++	 in_reloc && /__dtrace_isenabled_/ {
++	     $3 = substr($3, 20);
++	     sub(/[\-+].*$/, "", $3);
++	     print snam " " addl(base[snam], $1) " R ?" $3;
++	     next;
++	 }
++
++	 / F / {
++	     if (!($4 in base))
++		 next;
++
++	     if ($6 == ".hidden")
++		 print $4 " " $1 " G " $7;
++	     else
++		 print $4 " " $1 " F " $6;
++	 }' | \
++    sort -k2 | \
++    gawk -v arch=${ARCH} \
++	'function subl(v0, v1, v0h, v0l, v1h, v1l, d, tmp) {
++             tmp = $0;
++             if (length(v0) > 8) {
++                 d = length(v0);
++                 v0h = strtonum("0x"substr(v0, 1, d - 8));
++                 v0l = strtonum("0x"substr(v0, d - 8 + 1));
++                 d = length(v1);
++                 v1h = strtonum("0x"substr(v1, 1, d - 8));
++                 v1l = strtonum("0x"substr(v1, d - 8 + 1));
++
++                 if (v0l >= v1l) {
++                     if (v0h >= v1h) {
++                         d = sprintf("%08x%08x", v0h - v1h, v0l - v1l);
++                     } else {
++                         printf "#error Invalid addresses: %x vs %x", v0, v1 \
++                                                                >"/dev/stderr";
++                         errc++;
++                     }
++                 } else {
++                     printf "#error Invalid addresses: %x vs %x", v0, v1 \
++                                                                >"/dev/stderr";
++                     errc++;
++                 }
++             } else {
++                 v0 = strtonum("0x"v0);
++                 v1 = strtonum("0x"v1);
++                 d = sprintf("%016x", v0 - v1);
++             }
++             $0 = tmp;
++
++             return d;
++         }
++
++	 function map_string(str, off) {
++	     if (str in strmap)
++		 off = strmap[str];
++	     else {
++		 off = strsz;
++		 strmap[str] = strsz;
++		 strv[strc++] = str;
++		 strsz += length(str) + 1;
++	     }
++
++	     return off;
++	 }
++
++	 BEGIN {
++	     print "#include <asm/types.h>";
++	     print "#if BITS_PER_LONG == 64";
++	     print "# define PTR .quad";
++	     if (arch == "aarch64")
++		 print "# define ALGN .align 3";
++	     else
++		 print "# define ALGN .align 8";
++	     print "#else";
++	     print "# define PTR .long";
++	     if (arch == "aarch64")
++		 print "# define ALGN .align 2";
++	     else
++		 print "# define ALGN .align 4";
++	     print "#endif";
++
++	     print "\t.section .rodata, \042a\042";
++	     print "";
++
++	     print ".globl dtrace_sdt_probes";
++	     print "\tALGN";
++	     print "dtrace_sdt_probes:";
++
++	     probec = 0;
++	     stroff = 0;
++	     strc = 0;
++	 }
++
++
++	 #
++	 # Record the _stext address so probe locations can be expressed
++	 # relative to that address.
++	 #
++	 NF == 4 && $1 == "." && $4 == "_stext" {
++	     stext = $2;
++	     next;
++	 }
++
++	 #
++	 # Process a symbol table definition for a function in the .text
++	 # section of the kernel image.  We record the function name and
++	 # the address, and pre-populate the alias name with the function
++	 # name.
++	 #
++	 # We also compare the address of the current symbol to the last
++	 # recorded address, and if they are the same, we do not increment
++	 # the function count.
++	 #
++	 NF == 4 && $3 == "F" {
++	     faddr = $2;
++	     fname = $4;
++	     sub(/\..*$/, "", fname);
++	     alias = $4;
++
++	     if ($2 != prev)
++		 funcc++;
++	     prev = $2;
++
++	     next;
++	 }
++
++	 #
++	 # When we encounter an alias symbol, we record the name.
++	 #
++	 NF == 4 && $3 == "G" {
++	     alias = $4;
++
++	     next;
++	 }
++
++	 #
++	 # Process a relocation record associated with the preceding function.
++	 #
++	 # The address was resolved earlier, so we can simply generate the
++	 # numeric information for the SDT probe information record.  The
++	 # text information (probe name and function name) are stored.  This
++	 # allows us to weed out duplicates, and it is necessary because the
++	 # data blob with all the strings will be written to output later.
++	 #
++	 NF == 4 && $3 == "R" {
++	     sub(/^0+/, "", $2);
++
++	     addr = subl($2, stext);
++
++	     #
++	     # On x86, relocations point to the 2nd byte of a call instruction
++	     # so we need to adjust the address.
++	     #
++	     if (arch == "x86" || arch == "x86_64")
++		 addr = subl(addr, 1);
++
++	     print "/*";
++	     print " * " $1 " " faddr " F " fname;
++	     print " * " $0;
++	     print " */";
++	     printf "\tPTR\t_stext + 0x%s\n", addr;
++	     printf "\tPTR\t%d\n", map_string($4);
++	     printf "\tPTR\t%d\n", map_string(fname);
++
++	     probec++;
++
++	     next;
++	 }
++
++	 END {
++	     print "";
++	     print ".globl dtrace_sdt_strings";
++	     print "\tALGN";
++	     print "dtrace_sdt_strings:";
++
++
++	     for (i = 0; i < strc; i++)
++		 printf "\t.asciz\t\042%s\042\n", strv[i];
++
++	     print "";
++	     print ".globl dtrace_sdt_nprobes";
++	     print ".globl dtrace_fbt_nfuncs";
++	     print "\tALGN";
++	     print "dtrace_sdt_nprobes:";
++	     printf "\tPTR\t%d\n", probec;
++	     print "dtrace_fbt_nfuncs:";
++	     printf "\tPTR\t%d\n", funcc;
++
++	     exit(errc == 0 ? 0 : 1);
++	 }' > $tfn
++fi
++
++exit $?
+diff --git a/scripts/kmodsdt.c b/scripts/kmodsdt.c
+new file mode 100644
+index 000000000000..1e35794467d7
+--- /dev/null
++++ b/scripts/kmodsdt.c
+@@ -0,0 +1,410 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright 2016 Oracle, Inc.  All rights reserved.
++ * Use is subject to license terms.
++ */
++
++#include "../include/generated/autoconf.h"
++
++#define	ELF_TARGET_ALL
++#include <elf.h>
++#include <gelf.h>
++
++#include <sys/types.h>
++
++#include <unistd.h>
++#include <string.h>
++#include <limits.h>
++#include <stddef.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include <fcntl.h>
++#include <errno.h>
++#include <assert.h>
++
++typedef struct symtbl {
++	struct symtbl *next;
++	void *strtab;
++	void *symtab;
++} symtbl_t;
++
++static int
++dt_elf_symtab_lookup(Elf_Data *data_sym, int nsym, uintptr_t addr, uint32_t shn,
++		     GElf_Sym *sym)
++{
++	int i, ret = -1;
++	GElf_Sym s;
++
++	for (i = 0; i < nsym && gelf_getsym(data_sym, i, sym) != NULL; i++) {
++		if (GELF_ST_TYPE(sym->st_info) == STT_FUNC &&
++		    shn == sym->st_shndx &&
++		    sym->st_value <= addr &&
++		    addr < sym->st_value + sym->st_size) {
++			if (GELF_ST_BIND(sym->st_info) == STB_GLOBAL)
++				return i;
++
++			ret = i;
++			s = *sym;
++		}
++	}
++
++	if (ret >= 0)
++		*sym = s;
++	return ret;
++}
++
++static int
++process_obj(const char *obj)
++{
++	static const char dt_ppref[] = "__dtrace_probe_";
++	static const char dt_spref[] = "__dta_";
++	int fd, i, sidx, mod = 0;
++	Elf *elf = NULL;
++	GElf_Ehdr ehdr;
++	Elf_Scn *scn_rel, *scn_sym, *scn_str;
++	Elf_Data *data_rel, *data_sym, *data_str;
++	GElf_Shdr shdr_rel, shdr_sym, shdr_str;
++	GElf_Sym rsym, fsym, dsym;
++	GElf_Rela rela;
++	char *p, *r, *f, *a;
++	uint32_t eclass, emachine1, emachine2;
++	size_t symsize, nsym, nstr, isym, istr, osym, len;
++	symtbl_t *pair, *bufs = NULL;
++	char **alttab;
++	const char *elferrstr = "no error";
++
++	fd = open(obj, O_RDWR);
++	if (fd == -1) {
++		fprintf(stderr, "failed to open %s: %s\n", obj,
++			strerror(errno));
++		return 1;
++	}
++
++	if (elf_version(EV_CURRENT) == EV_NONE) {
++		fprintf(stderr, "ELF library version too old\n");
++		return 1;
++	}
++
++	elf = elf_begin(fd, ELF_C_RDWR, NULL);
++	if (elf == NULL) {
++		fprintf(stderr, "failed to process %s: %s\n", obj,
++			elf_errmsg(elf_errno()));
++		return 1;
++	}
++
++	switch (elf_kind(elf)) {
++	case ELF_K_ELF:
++		break;
++	case ELF_K_AR:
++		fprintf(stderr, "archives are not permitted; %s\n", obj);
++		return 1;
++	default:
++		fprintf(stderr, "invalid file type: %s\n", obj);
++		return 1;
++	}
++
++	if (gelf_getehdr(elf, &ehdr) == NULL) {
++		fprintf(stderr, "corrupt file: %s\n", obj);
++		return 1;
++	}
++
++#ifdef CONFIG_64BIT
++	eclass = ELFCLASS64;
++# if defined(__sparc)
++	emachine1 = emachine2 = EM_SPARCV9;
++# elif defined(__i386) || defined(__amd64)
++	emachine1 = emachine2 = EM_X86_64;
++# elif defined(__aarch64__)
++	emachine1 = emachine2 = EM_AARCH64;
++# endif
++	symsize = sizeof(Elf64_Sym);
++#else
++	eclass = ELFCLASS32;
++# if defined(__sparc)
++	emachine1 = EM_SPARC;
++	emachine2 = EM_SPARC32PLUS;
++# elif defined(__i386) || defined(__amd64)
++	emachine1 = emachine2 = EM_386;
++# elif defined(__arm__)
++	emachine1 = emachine2 = EM_ARM;
++# endif
++	symsize = sizeof(Elf32_Sym);
++#endif
++
++	if (ehdr.e_ident[EI_CLASS] != eclass) {
++		fprintf(stderr, "incorrect ELF class for %s: %d "
++			"(expected %d)\n", obj, ehdr.e_ident[EI_CLASS],
++			eclass);
++		return 1;
++	}
++	if (ehdr.e_machine != emachine1 && ehdr.e_machine != emachine2) {
++		fprintf(stderr, "incorrect ELF machine type for %s: %d "
++			"(expected %d or %d)\n",
++			obj, ehdr.e_machine, emachine1, emachine2);
++		return 1;
++	}
++
++	scn_rel = NULL;
++	while ((scn_rel = elf_nextscn(elf, scn_rel)) != NULL) {
++		if (gelf_getshdr(scn_rel, &shdr_rel) == NULL) {
++			elferrstr = "failed to get section header";
++			goto elf_err;
++		}
++
++		/*
++		 * Skip any non-relocation sections.
++		 */
++		if (shdr_rel.sh_type != SHT_RELA && shdr_rel.sh_type != SHT_REL)
++			continue;
++
++		data_rel = elf_getdata(scn_rel, NULL);
++		if (data_rel == NULL) {
++			elferrstr = "failed to get relocation data";
++			goto elf_err;
++		}
++
++		/*
++		 * Grab the section, section header and section data for the
++		 * symbol table that this relocation section references.
++		 */
++		scn_sym = elf_getscn(elf, shdr_rel.sh_link);
++		if (scn_sym == NULL ||
++		    gelf_getshdr(scn_sym, &shdr_sym) == NULL ||
++		    (data_sym = elf_getdata(scn_sym, NULL)) == NULL) {
++			elferrstr = "failed to get symbol table";
++			goto elf_err;
++		}
++
++		/*
++		 * Ditto for that symbol table's string table.
++		 */
++		scn_str = elf_getscn(elf, shdr_sym.sh_link);
++		if (scn_str == NULL ||
++		    gelf_getshdr(scn_str, &shdr_str) == NULL ||
++		    (data_str = elf_getdata(scn_str, NULL)) == NULL) {
++			elferrstr = "failed to get string table";
++			goto elf_err;
++		}
++
++		/*
++		 * We're looking for relocations to symbols matching this form:
++		 *
++		 *   __dtrace_probe_<probe>
++		 *
++		 * If the function containing the probe is locally scoped
++		 * (static), we create an alias.  The alias, a new symbol,
++		 * will be global (so that it can be referenced from sdtinfo
++		 * entries) and hidden (so that it is converted to a local
++		 * symbol at link time). Such aliases have this form:
++		 *
++		 *   __dta_<function>_<symindex>
++		 *
++		 * The <symindex> is appended to ensure that aliases are unique
++		 * because they are referenced in global scope.  Two local
++		 * functions with identical names need to be distrinct at the
++		 * level of the aliases.
++		 *
++		 * We take a first pass through all the relocations to
++		 * populate our string table and count the number of extra
++		 * symbols we'll require.  Note that the <function> is
++		 * sanitized to ensure that it is a valid C identifier, i.e.
++		 * any periods in the name are converted to underscores.
++		 */
++		isym = osym = data_sym->d_size / symsize;
++		istr = data_str->d_size;
++
++		/*
++		 * Allocate the alias table to be the exact same size as the
++		 * symtab.  If an alias is required for a specific symbol, its
++		 * corresponding entry in this alias table will contain the
++		 * alias name.  Otherwise, the entry will be NULL.
++		 */
++		alttab = (char **)calloc(isym, sizeof(char *));
++
++		nsym = 0;
++		nstr = 0;
++
++		for (i = 0; i < shdr_rel.sh_size / shdr_rel.sh_entsize; i++) {
++			if (shdr_rel.sh_type == SHT_RELA) {
++				if (gelf_getrela(data_rel, i, &rela) == NULL)
++					continue;
++			} else {
++				GElf_Rel rel;
++
++				if (gelf_getrel(data_rel, i, &rel) == NULL)
++					continue;
++				rela.r_offset = rel.r_offset;
++				rela.r_info = rel.r_info;
++				rela.r_addend = 0;
++			}
++
++			if (gelf_getsym(data_sym, GELF_R_SYM(rela.r_info),
++					&rsym) == NULL) {
++				elferrstr = "relocation symbol not found";
++				goto elf_err;
++			}
++
++			assert(rsym.st_name < data_str->d_size);
++
++			r = (char *)data_str->d_buf + rsym.st_name;
++			if (strncmp(r, dt_ppref, sizeof(dt_ppref) - 1) != 0)
++				continue;
++
++			sidx = dt_elf_symtab_lookup(data_sym, isym,
++						    rela.r_offset,
++						    shdr_rel.sh_info, &fsym);
++			if (sidx < 0) {
++				fprintf(stderr, "relocation %x not in "
++					"function\n", i);
++				goto err;
++			}
++
++			assert(fsym.st_name < data_str->d_size);
++			assert(GELF_ST_TYPE(fsym.st_info) == STT_FUNC);
++
++			if (GELF_ST_BIND(fsym.st_info) != STB_LOCAL)
++				continue;
++
++			f = (char *)data_str->d_buf + fsym.st_name;
++
++			if (alttab[sidx] != NULL)
++				continue;
++
++			len = snprintf(NULL, 0, "%s%s_%d", dt_spref, f, sidx)
++			      + 1;
++			a = malloc(len);
++			assert(a != NULL);
++			nstr += snprintf(a, len, "%s%s_%d", dt_spref, f, sidx)
++				 + 1;
++			for (p = a; *p != '\0'; p++) {
++				if (*p == '.')
++					*p = '_';
++			}
++			alttab[sidx] = a;
++			nsym++;
++		}
++
++		if (!nsym) {
++			free(alttab);
++			continue;
++		}
++
++		pair = malloc(sizeof(symtbl_t));
++		if (pair == NULL) {
++			fprintf(stderr, "failed to alloc new symtbl\n");
++			goto err;
++		}
++		pair->strtab = malloc(data_str->d_size + nstr);
++		if (pair->strtab == NULL) {
++			fprintf(stderr, "failed to alloc new symtbl->strtab\n");
++			free(pair);
++			goto err;
++		}
++		pair->symtab = malloc(data_sym->d_size + nsym * symsize);
++		if (pair->symtab == NULL) {
++			fprintf(stderr, "failed to alloc new symtbl->symtab\n");
++			free(pair->strtab);
++			free(pair);
++			goto err;
++		}
++
++		pair->next = bufs;
++		bufs = pair;
++
++		memcpy(pair->strtab, data_str->d_buf, data_str->d_size);
++		data_str->d_buf = pair->strtab;
++		data_str->d_size += nstr;
++		elf_flagdata(data_str, ELF_C_SET, ELF_F_DIRTY);
++		shdr_str.sh_size += nstr;
++		gelf_update_shdr(scn_str, &shdr_str);
++
++		memcpy(pair->symtab, data_sym->d_buf, data_sym->d_size);
++		data_sym->d_buf = pair->symtab;
++		data_sym->d_size += nsym * symsize;
++		elf_flagdata(data_sym, ELF_C_SET, ELF_F_DIRTY);
++		shdr_sym.sh_size += nsym * symsize;
++		gelf_update_shdr(scn_sym, &shdr_sym);
++
++		nsym += isym;
++
++		/*
++		 * Now that the tables have been allocated, add the aliases as
++		 * described above.  Since we already know the symtab index of
++		 * the symbol that the alias refers to, we can simply run down
++		 * the alttab and add alias for any non-NULL entries.
++		 */
++		for (i = 1; i < osym; i++) {
++			if (alttab[i] == NULL)
++				continue;
++
++			if (gelf_getsym(data_sym, i, &fsym) == NULL) {
++				fprintf(stderr, "failed to get symbol %d: %s\n",
++					i, elf_errmsg(elf_errno()));
++				goto err;
++			}
++
++			assert(GELF_ST_TYPE(fsym.st_info) == STT_FUNC);
++			assert(GELF_ST_BIND(fsym.st_info) == STB_LOCAL);
++			/*
++			 * Add the alias as a new symbol to the symtab.
++			 */
++			dsym = fsym;
++			dsym.st_name = istr;
++			dsym.st_info = GELF_ST_INFO(STB_GLOBAL, STT_FUNC);
++			dsym.st_other = ELF64_ST_VISIBILITY(STV_HIDDEN);
++
++			len = strlen(alttab[i]) + 1;
++			assert(istr + len <= data_str->d_size);
++			a = (char *)data_str->d_buf + istr;
++			memcpy(a, alttab[i], len);
++
++			gelf_update_sym(data_sym, isym, &dsym);
++			istr += len;
++			isym++;
++
++			assert(isym <= nsym);
++
++			mod = 1;
++
++			free(alttab[i]);
++		}
++
++		free(alttab);
++	}
++
++	if (mod && elf_update(elf, ELF_C_WRITE) == -1) {
++		elferrstr = "Failed to update ELF object";
++		goto elf_err;
++	}
++
++	elf_end(elf);
++	close(fd);
++
++	while ((pair = bufs) != NULL) {
++		bufs = pair->next;
++		free(pair->strtab);
++		free(pair->symtab);
++		free(pair);
++	}
++
++	return 0;
++
++elf_err:
++	fprintf(stderr, "%s: %s\n", elferrstr, elf_errmsg(elf_errno()));
++err:
++	fprintf(stderr, "an error was encountered while processing %s\n", obj);
++	return 1;
++}
++
++int
++main(int argc, char *argv[])
++{
++	int i;
++
++	for (i = 1; i < argc; i++) {
++		if (process_obj(argv[i]))
++			exit(1);
++	}
++
++	exit(0);
++}
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index bc533252fa3c..0b2f3bb60936 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -43,6 +43,34 @@ info()
+ 	fi
+ }
+ 
++# Generate the SDT probe point stubs object file
++# ${1} output file
++sdtstub()
++{
++	info SDTSTB ${1}
++	${srctree}/scripts/dtrace_sdt.sh sdtstub .tmp_sdtstub.S \
++		${KBUILD_VMLINUX_OBJS}
++
++	local aflags="${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL}               \
++		      ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
++
++	${CC} ${aflags} -c -o ${1} .tmp_sdtstub.S
++}
++
++# Generate the SDT probe info for kernel image ${1}
++# ${2} output file
++sdtinfo()
++{
++	info SDTINF ${2}
++
++	${srctree}/scripts/dtrace_sdt.sh sdtinfo .tmp_sdtinfo.S ${1}
++
++	local aflags="${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL}               \
++		      ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
++
++	${CC} ${aflags} -c -o ${2} .tmp_sdtinfo.S
++}
++
+ # Link of vmlinux.o used for section mismatch analysis
+ # ${1} output file
+ modpost_link()
+@@ -84,17 +112,20 @@ objtool_link()
+ 
+ # Link of vmlinux
+ # ${1} - output file
+-# ${2}, ${3}, ... - optional extra .o files
++# ${2} - optional extra ld flag(s)
++# ${3}, ${4}, ... - optional extra .o files
+ vmlinux_link()
+ {
+ 	local lds="${objtree}/${KBUILD_LDS}"
+ 	local output=${1}
++	local flags="${2}"
+ 	local objects
+ 	local strip_debug
+ 
+ 	info LD ${output}
+ 
+-	# skip output file argument
++	# skip output file and flags arguments
++	shift
+ 	shift
+ 
+ 	# The kallsyms linking does not need debug symbols included.
+@@ -114,7 +145,7 @@ vmlinux_link()
+ 
+ 		${LD} ${KBUILD_LDFLAGS} ${LDFLAGS_vmlinux}	\
+ 			${strip_debug#-Wl,}			\
+-			-o ${output}				\
++			${flags} -o ${output}			\
+ 			-T ${lds} ${objects}
+ 	else
+ 		objects="-Wl,--whole-archive			\
+@@ -128,7 +159,7 @@ vmlinux_link()
+ 
+ 		${CC} ${CFLAGS_vmlinux}				\
+ 			${strip_debug}				\
+-			-o ${output}				\
++			${flags} -o ${output}			\
+ 			-Wl,-T,${lds}				\
+ 			${objects}				\
+ 			-lutil -lrt -lpthread
+@@ -219,7 +250,7 @@ kallsyms_step()
+ 	kallsymso=${kallsyms_vmlinux}.o
+ 	kallsyms_S=${kallsyms_vmlinux}.S
+ 
+-	vmlinux_link ${kallsyms_vmlinux} "${kallsymso_prev}" ${btf_vmlinux_bin_o}
++	vmlinux_link ${kallsyms_vmlinux} "${2:-}" "${kallsymso_prev}" ${btf_vmlinux_bin_o} ${sdtstubo} ${sdtinfoo}
+ 	kallsyms ${kallsyms_vmlinux} ${kallsyms_S}
+ 
+ 	info AS ${kallsyms_S}
+@@ -245,6 +276,8 @@ cleanup()
+ {
+ 	rm -f .btf.*
+ 	rm -f .tmp_System.map
++	rm -f .tmp_sdtstub.*
++	rm -f .tmp_sdtinfo.*
+ 	rm -f .tmp_vmlinux*
+ 	rm -f System.map
+ 	rm -f vmlinux
+@@ -293,6 +326,14 @@ fi;
+ # final build of init/
+ ${MAKE} -f "${srctree}/scripts/Makefile.build" obj=init need-builtin=1
+ 
++sdtstubo=""
++sdtinfoo=""
++if [ -n "${CONFIG_DTRACE}" ]; then
++	sdtstubo=.tmp_sdtstub.o
++	sdtinfoo=.tmp_sdtinfo.o
++	sdtstub ${sdtstubo}
++fi
++
+ #link vmlinux.o
+ info LD vmlinux.o
+ modpost_link vmlinux.o
+@@ -346,7 +387,23 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
+ 	# a)  Verify that the System.map from vmlinux matches the map from
+ 	#     ${kallsymso}.
+ 
++	# step 1
++	if [ -n "${CONFIG_DTRACE}" ]; then
++		sdtinfo vmlinux.o ${sdtinfoo}
++	fi
++
+ 	kallsyms_step 1
++
++	if [ -n "${CONFIG_DTRACE}" ]; then
++		if [ -n "${CONFIG_ARM64}" ]; then
++			kallsyms_step 1
++		else
++			kallsyms_step 1 -r
++		fi
++		sdtinfo ${kallsyms_vmlinux} ${sdtinfoo} vmlinux.o
++	fi
++
++	# step 2
+ 	kallsyms_step 2
+ 
+ 	# step 3
+@@ -358,7 +415,7 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
+ 	fi
+ fi
+ 
+-vmlinux_link vmlinux "${kallsymso}" ${btf_vmlinux_bin_o}
++vmlinux_link vmlinux "" "${kallsymso}" ${btf_vmlinux_bin_o} ${sdtstubo} ${sdtinfoo}
+ 
+ # fill in BTF IDs
+ if [ -n "${CONFIG_DEBUG_INFO_BTF}" -a -n "${CONFIG_BPF}" ]; then
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index f882ce0d9327..ceeb69afc209 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -2183,7 +2183,9 @@ static int check_exports(struct module *mod)
+ 		const char *basename;
+ 		exp = find_symbol(s->name);
+ 		if (!exp || exp->module == mod) {
+-			if (have_vmlinux && !s->weak) {
++			if (have_vmlinux && !s->weak &&
++			    !strstarts(s->name, "__dtrace_probe_") &&
++			    !strstarts(s->name, "__dtrace_isenabled_")) {
+ 				modpost_log(warn_unresolved ? LOG_WARN : LOG_ERROR,
+ 					    "\"%s\" [%s.ko] undefined!\n",
+ 					    s->name, mod->name);
+@@ -2238,6 +2240,13 @@ static int check_modname_len(struct module *mod)
+  **/
+ static void add_header(struct buffer *b, struct module *mod)
+ {
++	const char *modname;
++
++	modname = strrchr(mod->name, '/');
++	if (modname != NULL)
++		modname++;
++	else
++		modname = mod->name;
+ 	buf_printf(b, "#include <linux/module.h>\n");
+ 	/*
+ 	 * Include build-salt.h after module.h in order to
+@@ -2248,6 +2257,10 @@ static void add_header(struct buffer *b, struct module *mod)
+ 	buf_printf(b, "#include <linux/vermagic.h>\n");
+ 	buf_printf(b, "#include <linux/compiler.h>\n");
+ 	buf_printf(b, "\n");
++	buf_printf(b, "#ifdef CONFIG_DTRACE\n");
++	buf_printf(b, "# include \"%s.sdtinfo.h\"\n", modname);
++	buf_printf(b, "#endif\n");
++	buf_printf(b, "\n");
+ 	buf_printf(b, "BUILD_SALT;\n");
+ 	buf_printf(b, "\n");
+ 	buf_printf(b, "MODULE_INFO(vermagic, VERMAGIC_STRING);\n");
+@@ -2263,6 +2276,10 @@ static void add_header(struct buffer *b, struct module *mod)
+ 			      "\t.exit = cleanup_module,\n"
+ 			      "#endif\n");
+ 	buf_printf(b, "\t.arch = MODULE_ARCH_INIT,\n");
++	buf_printf(b, "#ifdef CONFIG_DTRACE\n");
++	buf_printf(b, "\t.sdt_probes = _sdt_probes,\n");
++	buf_printf(b, "\t.sdt_probec = _sdt_probec,\n");
++	buf_printf(b, "#endif\n");
+ 	buf_printf(b, "};\n");
+ }
+ 
+-- 
+2.30.0
+
