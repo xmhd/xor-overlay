@@ -14,8 +14,10 @@ IUSE="dtrace firmware"
 
 RDEPEND="
 	dtrace? (
-	    sys-kernel/cairn-sources[dtrace]
-	    sys-kernel/dummy-sources
+	    || (
+	        sys-kernel/cairn-sources[dtrace]
+	        sys-kernel/dummy-sources
+	    )
 	)
 	firmware? ( sys-kernel/linux-firmware )
 	|| (
