@@ -99,7 +99,7 @@ Signed-off-by: Tomas Jedlicka <tomas.jedlicka@oracle.com>
  create mode 100755 scripts/move-if-change
 
 diff --git a/.gitignore b/.gitignore
-index d01cda8e1177..1c10cd7ce033 100644
+index d01cda8e11779a2fa3e3333fd176e2e77e02fd21..1c10cd7ce03399a97367d56dbefd66dea1823859 100644
 --- a/.gitignore
 +++ b/.gitignore
 @@ -48,6 +48,8 @@
@@ -120,7 +120,7 @@ index d01cda8e1177..1c10cd7ce033 100644
  /vmlinuz
  /System.map
 diff --git a/Documentation/dontdiff b/Documentation/dontdiff
-index e361fc95ca29..a763d0fb892e 100644
+index e361fc95ca293d80434ee0cdfae309046c17d612..a763d0fb892edf3e0cfddc1670f52963eaad5a36 100644
 --- a/Documentation/dontdiff
 +++ b/Documentation/dontdiff
 @@ -181,6 +181,7 @@ modpost
@@ -133,7 +133,7 @@ index e361fc95ca29..a763d0fb892e 100644
  nconf
 diff --git a/Documentation/dwarf2ctf b/Documentation/dwarf2ctf
 new file mode 100644
-index 000000000000..5cc445fbd227
+index 0000000000000000000000000000000000000000..5cc445fbd227cbea527b593b2f16775430ee5f52
 --- /dev/null
 +++ b/Documentation/dwarf2ctf
 @@ -0,0 +1,1054 @@
@@ -1192,7 +1192,7 @@ index 000000000000..5cc445fbd227
 +module_to_ctf_file hash, writing out every CTF file into a new suitably-named
 +file via zlib's compressed file I/O functions.
 diff --git a/Documentation/kbuild/kconfig.rst b/Documentation/kbuild/kconfig.rst
-index dce6801d66c9..a9a855f894b3 100644
+index dce6801d66c9b5e575ad9c4b4e8a557181bf7e8f..a9a855f894b3fad08f7ef89fff31fd7c626819eb 100644
 --- a/Documentation/kbuild/kconfig.rst
 +++ b/Documentation/kbuild/kconfig.rst
 @@ -154,6 +154,11 @@ KCONFIG_AUTOCONFIG
@@ -1208,7 +1208,7 @@ index dce6801d66c9..a9a855f894b3 100644
  ------------------
  This environment variable can be set to specify the path & name of the
 diff --git a/Documentation/process/changes.rst b/Documentation/process/changes.rst
-index dac17711dc11..1bce2aab4109 100644
+index dac17711dc1123c5996c5468086168a8c55f126a..1bce2aab4109241ecfd4fd48ca57506256dea101 100644
 --- a/Documentation/process/changes.rst
 +++ b/Documentation/process/changes.rst
 @@ -56,9 +56,14 @@ iptables               1.4.2            iptables -V
@@ -1259,7 +1259,7 @@ index dac17711dc11..1bce2aab4109 100644
  ****************
  
 diff --git a/Makefile b/Makefile
-index a6b2e64bcf6c..e94e5bfc9c4f 100644
+index a6b2e64bcf6c786be1bb38ff9b593c7c3f838e0a..e94e5bfc9c4f5d9c64c08c83d877c2c9394bc2c7 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1166,7 +1166,7 @@ cmd_link-vmlinux =                                                 \
@@ -1384,7 +1384,7 @@ index a6b2e64bcf6c..e94e5bfc9c4f 100644
  
  # Generate tags for editors
 diff --git a/lib/Kconfig b/lib/Kconfig
-index b46a9fd122c8..e2906daac926 100644
+index b46a9fd122c81acabd888e8b250e78be4f575ef6..e2906daac926dc0b9f5342b37d521670015d7841 100644
 --- a/lib/Kconfig
 +++ b/lib/Kconfig
 @@ -582,6 +582,18 @@ config DIMLIB
@@ -1407,7 +1407,7 @@ index b46a9fd122c8..e2906daac926 100644
  config OID_REGISTRY
  	tristate
 diff --git a/scripts/Kbuild.include b/scripts/Kbuild.include
-index 08e011175b4c..d3c6f0f56e65 100644
+index 08e011175b4c879852a2cc203ea0b2ccf4ce8cfc..d3c6f0f56e6538b4383dea122f4f3ab687f5938b 100644
 --- a/scripts/Kbuild.include
 +++ b/scripts/Kbuild.include
 @@ -157,6 +157,12 @@ ld-ifversion = $(shell [ $(ld-version) $(1) $(2) ] && echo $(3) || echo $(4))
@@ -1424,7 +1424,7 @@ index 08e011175b4c..d3c6f0f56e65 100644
  # Shorthand for $(Q)$(MAKE) -f scripts/Makefile.dtbinst obj=
  # Usage:
 diff --git a/scripts/Makefile b/scripts/Makefile
-index b5418ec587fb..041bcf48cc5c 100644
+index b5418ec587fbd2cd6ca6896b8868b93f12e59ef3..041bcf48cc5c7613d072cf50eae142a21d31153e 100644
 --- a/scripts/Makefile
 +++ b/scripts/Makefile
 @@ -34,6 +34,7 @@ targets += module.lds
@@ -1437,7 +1437,7 @@ index b5418ec587fb..041bcf48cc5c 100644
  # Let clean descend into subdirs
 diff --git a/scripts/Makefile.modbuiltin b/scripts/Makefile.modbuiltin
 new file mode 100644
-index 000000000000..f2c085e8640f
+index 0000000000000000000000000000000000000000..f2c085e8640fbe9d245fb91713c31379f10bcb59
 --- /dev/null
 +++ b/scripts/Makefile.modbuiltin
 @@ -0,0 +1,60 @@
@@ -1502,7 +1502,7 @@ index 000000000000..f2c085e8640f
 +
 +.PHONY: $(PHONY)
 diff --git a/scripts/Makefile.modfinal b/scripts/Makefile.modfinal
-index ae01baf96f4e..920545d75da9 100644
+index ae01baf96f4e8038583d994df2348a0b53b8a565..920545d75da9b3248ef47ff1cdc81c981d3637ba 100644
 --- a/scripts/Makefile.modfinal
 +++ b/scripts/Makefile.modfinal
 @@ -1,11 +1,21 @@
@@ -1674,14 +1674,14 @@ index ae01baf96f4e..920545d75da9 100644
  targets += $(modules) $(modules:.ko=.mod.o)
 diff --git a/scripts/dwarf2ctf/.gitignore b/scripts/dwarf2ctf/.gitignore
 new file mode 100644
-index 000000000000..e37b47cf3028
+index 0000000000000000000000000000000000000000..e37b47cf30280844fdb1c4bcfa512fa854f3636c
 --- /dev/null
 +++ b/scripts/dwarf2ctf/.gitignore
 @@ -0,0 +1 @@
 +dwarf2ctf
 diff --git a/scripts/dwarf2ctf/Makefile b/scripts/dwarf2ctf/Makefile
 new file mode 100644
-index 000000000000..2b40419add31
+index 0000000000000000000000000000000000000000..2b40419add316fd20f7171b4b9415ca8550cd50a
 --- /dev/null
 +++ b/scripts/dwarf2ctf/Makefile
 @@ -0,0 +1,10 @@
@@ -1697,7 +1697,7 @@ index 000000000000..2b40419add31
 +endif
 diff --git a/scripts/dwarf2ctf/dwarf2ctf.c b/scripts/dwarf2ctf/dwarf2ctf.c
 new file mode 100644
-index 000000000000..ecd430174442
+index 0000000000000000000000000000000000000000..ecd430174442c7882236de086d5d9160ac1974e9
 --- /dev/null
 +++ b/scripts/dwarf2ctf/dwarf2ctf.c
 @@ -0,0 +1,4962 @@
@@ -6665,7 +6665,7 @@ index 000000000000..ecd430174442
 +}
 diff --git a/scripts/dwarf2ctf/eu_simple.c b/scripts/dwarf2ctf/eu_simple.c
 new file mode 100644
-index 000000000000..49886e5e5411
+index 0000000000000000000000000000000000000000..49886e5e541105ff517694db0ed3f00a096d16ae
 --- /dev/null
 +++ b/scripts/dwarf2ctf/eu_simple.c
 @@ -0,0 +1,2 @@
@@ -6673,14 +6673,14 @@ index 000000000000..49886e5e5411
 +#include "../eu_simple.c"
 diff --git a/scripts/dwarf2ctf/member.blacklist b/scripts/dwarf2ctf/member.blacklist
 new file mode 100644
-index 000000000000..85122def7b5f
+index 0000000000000000000000000000000000000000..85122def7b5f652881aa6588c407f91abf641017
 --- /dev/null
 +++ b/scripts/dwarf2ctf/member.blacklist
 @@ -0,0 +1 @@
 +include/linux/netfilter/ipset/ip_set_ahash.h:ip_set_hash.next
 diff --git a/scripts/eu_simple.c b/scripts/eu_simple.c
 new file mode 100644
-index 000000000000..e2736f29d001
+index 0000000000000000000000000000000000000000..e2736f29d00113912534c07cae6b41d97ffe8db0
 --- /dev/null
 +++ b/scripts/eu_simple.c
 @@ -0,0 +1,356 @@
@@ -7042,7 +7042,7 @@ index 000000000000..e2736f29d001
 +}
 diff --git a/scripts/eu_simple.h b/scripts/eu_simple.h
 new file mode 100644
-index 000000000000..8ef9f9655077
+index 0000000000000000000000000000000000000000..8ef9f96550772495c219d24136e75bcaf26aa62c
 --- /dev/null
 +++ b/scripts/eu_simple.h
 @@ -0,0 +1,91 @@
@@ -7138,7 +7138,7 @@ index 000000000000..8ef9f9655077
 +
 +#endif
 diff --git a/scripts/kconfig/confdata.c b/scripts/kconfig/confdata.c
-index a39d93e3c6ae..12445a834698 100644
+index a39d93e3c6ae8d34f617b835d8ebcf5900cbad89..12445a834698db42be674f907f2e82422d8eb8e2 100644
 --- a/scripts/kconfig/confdata.c
 +++ b/scripts/kconfig/confdata.c
 @@ -710,6 +710,25 @@ static struct conf_printer header_printer_cb =
@@ -7230,7 +7230,7 @@ index a39d93e3c6ae..12445a834698 100644
  	/*
 diff --git a/scripts/move-if-change b/scripts/move-if-change
 new file mode 100755
-index 000000000000..eb745af5d972
+index 0000000000000000000000000000000000000000..eb745af5d972bd147b0e8bc9e3be643dde25e91e
 --- /dev/null
 +++ b/scripts/move-if-change
 @@ -0,0 +1,8 @@
@@ -7243,7 +7243,7 @@ index 000000000000..eb745af5d972
 +  mv -f "$1" "$2"
 +fi
 diff --git a/scripts/package/mkspec b/scripts/package/mkspec
-index 7c477ca7dc98..e9ff22c6fb4c 100755
+index 7c477ca7dc9826a0d4bd63e332b4d5959894836a..e9ff22c6fb4c7c7082767c7c9b164e94735ea1e7 100755
 --- a/scripts/package/mkspec
 +++ b/scripts/package/mkspec
 @@ -27,6 +27,13 @@ if grep -q CONFIG_DRM=y .config; then
@@ -7293,5 +7293,5 @@ index 7c477ca7dc98..e9ff22c6fb4c 100755
  	%install
  	mkdir -p %{buildroot}/boot
 -- 
-2.30.0
+2.30.1
 

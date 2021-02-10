@@ -30,7 +30,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100644 dtrace/sdt_mod.c
 
 diff --git a/arch/x86/dtrace/Makefile.arch b/arch/x86/dtrace/Makefile.arch
-index ffb9ef4d1722..8492eaee426d 100644
+index ffb9ef4d1722b673511418c5744067ac501d49c5..8492eaee426d1ba7a25769ff3c95d1dc828f69ae 100644
 --- a/arch/x86/dtrace/Makefile.arch
 +++ b/arch/x86/dtrace/Makefile.arch
 @@ -7,5 +7,7 @@ DTARCHDIR = ../arch/x86/dtrace
@@ -43,7 +43,7 @@ index ffb9ef4d1722..8492eaee426d 100644
 +sdt-y		+= $(addprefix $(DTARCHDIR)/, $(sdt-obj))
 diff --git a/arch/x86/dtrace/sdt_x86_64.c b/arch/x86/dtrace/sdt_x86_64.c
 new file mode 100644
-index 000000000000..e686634ff410
+index 0000000000000000000000000000000000000000..e686634ff410372a83d3dd63d5041b4943f0412d
 --- /dev/null
 +++ b/arch/x86/dtrace/sdt_x86_64.c
 @@ -0,0 +1,126 @@
@@ -174,7 +174,7 @@ index 000000000000..e686634ff410
 +	dtrace_invop_remove(sdt_invop);
 +}
 diff --git a/dtrace/Makefile b/dtrace/Makefile
-index b91bc69d3802..126d4985967a 100644
+index b91bc69d38020d8c872483f894349f02a8eb58e6..126d4985967a2478ea2df97ab42eb384e6fe14d2 100644
 --- a/dtrace/Makefile
 +++ b/dtrace/Makefile
 @@ -3,6 +3,7 @@
@@ -194,7 +194,7 @@ index b91bc69d3802..126d4985967a 100644
  dt_test-y			:= dt_test_mod.o dt_test_dev.o
  
 diff --git a/dtrace/dt_test_dev.c b/dtrace/dt_test_dev.c
-index 8e1f5bab8a12..b720d8091787 100644
+index 8e1f5bab8a128bdc29a345e422467e6e9d294cf0..b720d8091787df618cdff877b63da2cc80a52836 100644
 --- a/dtrace/dt_test_dev.c
 +++ b/dtrace/dt_test_dev.c
 @@ -131,6 +131,39 @@ static long dt_test_ioctl(struct file *file,
@@ -238,7 +238,7 @@ index 8e1f5bab8a12..b720d8091787 100644
  }
  
 diff --git a/dtrace/dt_test_mod.c b/dtrace/dt_test_mod.c
-index d8af71665a37..a86c8bc02ae9 100644
+index d8af71665a37ad3157f1bf9d2ce14cb0a23f7508..a86c8bc02ae9627c62ea083a60b9c0f5aac403ea 100644
 --- a/dtrace/dt_test_mod.c
 +++ b/dtrace/dt_test_mod.c
 @@ -50,3 +50,8 @@ static struct dtrace_pops dt_test_pops = {
@@ -252,7 +252,7 @@ index d8af71665a37..a86c8bc02ae9 100644
 +}
 diff --git a/dtrace/sdt_dev.c b/dtrace/sdt_dev.c
 new file mode 100644
-index 000000000000..78457dad8773
+index 0000000000000000000000000000000000000000..78457dad87736694dc591a04498e36c61fbb4661
 --- /dev/null
 +++ b/dtrace/sdt_dev.c
 @@ -0,0 +1,562 @@
@@ -820,7 +820,7 @@ index 000000000000..78457dad8773
 +}
 diff --git a/dtrace/sdt_impl.h b/dtrace/sdt_impl.h
 new file mode 100644
-index 000000000000..e5b7f4f80270
+index 0000000000000000000000000000000000000000..e5b7f4f802706a9eb0fcdd3b9958a7e29d9ae055
 --- /dev/null
 +++ b/dtrace/sdt_impl.h
 @@ -0,0 +1,87 @@
@@ -913,7 +913,7 @@ index 000000000000..e5b7f4f80270
 +#endif /* _SDT_IMPL_H_ */
 diff --git a/dtrace/sdt_mod.c b/dtrace/sdt_mod.c
 new file mode 100644
-index 000000000000..1de9e72396aa
+index 0000000000000000000000000000000000000000..1de9e72396aa001e567b05f57e2c83df602b34d2
 --- /dev/null
 +++ b/dtrace/sdt_mod.c
 @@ -0,0 +1,154 @@
@@ -1072,5 +1072,5 @@ index 000000000000..1de9e72396aa
 +
 +DT_MULTI_PROVIDER_MODULE(sdt, sdt_providers)
 -- 
-2.30.0
+2.30.1
 

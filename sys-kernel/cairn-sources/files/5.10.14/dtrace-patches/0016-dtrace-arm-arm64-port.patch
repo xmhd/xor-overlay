@@ -74,7 +74,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100755 scripts/dtrace_sdt_arm64.sh
 
 diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index a6b5b7ef40ae..72a0be5f1717 100644
+index a6b5b7ef40aea08f036e58d2684f87f378773644..72a0be5f171780292bc9e668b839f15b95860eb6 100644
 --- a/arch/arm64/Kconfig
 +++ b/arch/arm64/Kconfig
 @@ -323,6 +323,9 @@ config PGTABLE_LEVELS
@@ -89,7 +89,7 @@ index a6b5b7ef40ae..72a0be5f1717 100644
  
 diff --git a/arch/arm64/dtrace/Makefile.arch b/arch/arm64/dtrace/Makefile.arch
 new file mode 100644
-index 000000000000..393b5cea3f7c
+index 0000000000000000000000000000000000000000..393b5cea3f7c0af4eb0bb280d1e65b4c468c1f3c
 --- /dev/null
 +++ b/arch/arm64/dtrace/Makefile.arch
 @@ -0,0 +1,17 @@
@@ -112,7 +112,7 @@ index 000000000000..393b5cea3f7c
 +sdt-y		+= $(addprefix $(DTARCHDIR)/, $(sdt-obj))
 diff --git a/arch/arm64/dtrace/dtrace_asm_arm64.S b/arch/arm64/dtrace/dtrace_asm_arm64.S
 new file mode 100644
-index 000000000000..d0f7bad5fb0b
+index 0000000000000000000000000000000000000000..d0f7bad5fb0bc687a1eca65a99582f36834995ce
 --- /dev/null
 +++ b/arch/arm64/dtrace/dtrace_asm_arm64.S
 @@ -0,0 +1,51 @@
@@ -169,7 +169,7 @@ index 000000000000..d0f7bad5fb0b
 +SYM_CODE_END(dtrace_fuword64_nocheck)
 diff --git a/arch/arm64/dtrace/dtrace_isa_arm64.c b/arch/arm64/dtrace/dtrace_isa_arm64.c
 new file mode 100644
-index 000000000000..2eb530149c5b
+index 0000000000000000000000000000000000000000..2eb530149c5b4176b776d673bd3441e8afed8767
 --- /dev/null
 +++ b/arch/arm64/dtrace/dtrace_isa_arm64.c
 @@ -0,0 +1,164 @@
@@ -339,7 +339,7 @@ index 000000000000..2eb530149c5b
 +}
 diff --git a/arch/arm64/dtrace/fasttrap_arm64.c b/arch/arm64/dtrace/fasttrap_arm64.c
 new file mode 100644
-index 000000000000..cc970a11412c
+index 0000000000000000000000000000000000000000..cc970a11412c7934a10ce6fc7453b1ce132bdcea
 --- /dev/null
 +++ b/arch/arm64/dtrace/fasttrap_arm64.c
 @@ -0,0 +1,282 @@
@@ -627,7 +627,7 @@ index 000000000000..cc970a11412c
 +}
 diff --git a/arch/arm64/dtrace/fbt_arm64.c b/arch/arm64/dtrace/fbt_arm64.c
 new file mode 100644
-index 000000000000..be9dcaf8db28
+index 0000000000000000000000000000000000000000..be9dcaf8db28aceb80cb82805407d041c4edced5
 --- /dev/null
 +++ b/arch/arm64/dtrace/fbt_arm64.c
 @@ -0,0 +1,152 @@
@@ -785,7 +785,7 @@ index 000000000000..be9dcaf8db28
 +}
 diff --git a/arch/arm64/dtrace/include/dtrace/fasttrap_arch.h b/arch/arm64/dtrace/include/dtrace/fasttrap_arch.h
 new file mode 100644
-index 000000000000..d5ffa6e711db
+index 0000000000000000000000000000000000000000..d5ffa6e711dbd015e7958fbf2288afc0b72f50fe
 --- /dev/null
 +++ b/arch/arm64/dtrace/include/dtrace/fasttrap_arch.h
 @@ -0,0 +1,30 @@
@@ -821,7 +821,7 @@ index 000000000000..d5ffa6e711db
 +#endif /* _ARM64_FASTTRAP_ARCH_H */
 diff --git a/arch/arm64/dtrace/include/dtrace/fbt_arch.h b/arch/arm64/dtrace/include/dtrace/fbt_arch.h
 new file mode 100644
-index 000000000000..ed1cd785b3ba
+index 0000000000000000000000000000000000000000..ed1cd785b3ba277a966ae9c6a15faf17be1a77a7
 --- /dev/null
 +++ b/arch/arm64/dtrace/include/dtrace/fbt_arch.h
 @@ -0,0 +1,53 @@
@@ -880,7 +880,7 @@ index 000000000000..ed1cd785b3ba
 +#endif /* _ARM64_FBT_ARCH_H */
 diff --git a/arch/arm64/dtrace/include/dtrace/sdt_arch.h b/arch/arm64/dtrace/include/dtrace/sdt_arch.h
 new file mode 100644
-index 000000000000..237922a77495
+index 0000000000000000000000000000000000000000..237922a77495d960081082c20666afdad3ee569e
 --- /dev/null
 +++ b/arch/arm64/dtrace/include/dtrace/sdt_arch.h
 @@ -0,0 +1,28 @@
@@ -914,7 +914,7 @@ index 000000000000..237922a77495
 +#endif /* _ARM64_SDT_ARCH_H */
 diff --git a/arch/arm64/dtrace/sdt_arm64.c b/arch/arm64/dtrace/sdt_arm64.c
 new file mode 100644
-index 000000000000..ba25824e413e
+index 0000000000000000000000000000000000000000..ba25824e413ecc22280bcc5aa8e4fa70bad2555f
 --- /dev/null
 +++ b/arch/arm64/dtrace/sdt_arm64.c
 @@ -0,0 +1,122 @@
@@ -1041,7 +1041,7 @@ index 000000000000..ba25824e413e
 +	return val;
 +}
 diff --git a/arch/arm64/include/asm/brk-imm.h b/arch/arm64/include/asm/brk-imm.h
-index ec7720dbe2c8..405cfb7da5ea 100644
+index ec7720dbe2c801bc44344d7893cfc510fed7d0d7..405cfb7da5ea39f0bb2ed4a2208fb512ed9129df 100644
 --- a/arch/arm64/include/asm/brk-imm.h
 +++ b/arch/arm64/include/asm/brk-imm.h
 @@ -11,6 +11,9 @@
@@ -1065,7 +1065,7 @@ index ec7720dbe2c8..405cfb7da5ea 100644
  #define KGDB_DYN_DBG_BRK_IMM		0x400
  #define KGDB_COMPILED_DBG_BRK_IMM	0x401
 diff --git a/arch/arm64/include/asm/cpu.h b/arch/arm64/include/asm/cpu.h
-index 7faae6ff3ab4..496e8df36b56 100644
+index 7faae6ff3ab4d5c27896305d609494cdb13d54e6..496e8df36b56d85a7616b38a56797ee83500c0dd 100644
 --- a/arch/arm64/include/asm/cpu.h
 +++ b/arch/arm64/include/asm/cpu.h
 @@ -60,6 +60,7 @@ struct cpuinfo_arm64 {
@@ -1077,7 +1077,7 @@ index 7faae6ff3ab4..496e8df36b56 100644
  void cpuinfo_store_cpu(void);
  void __init cpuinfo_store_boot_cpu(void);
 diff --git a/arch/arm64/include/asm/debug-monitors.h b/arch/arm64/include/asm/debug-monitors.h
-index 657c921fd784..030756b7e008 100644
+index 657c921fd784a7c12a0e45d814c6bc089f9ca0ec..030756b7e008e52e0e5d8a5ea82521a23ae7045a 100644
 --- a/arch/arm64/include/asm/debug-monitors.h
 +++ b/arch/arm64/include/asm/debug-monitors.h
 @@ -56,6 +56,10 @@
@@ -1093,7 +1093,7 @@ index 657c921fd784..030756b7e008 100644
  #define DBG_ESR_EVT_BKPT	0x4
 diff --git a/arch/arm64/include/asm/dtrace_arch.h b/arch/arm64/include/asm/dtrace_arch.h
 new file mode 100644
-index 000000000000..89f883e20aa7
+index 0000000000000000000000000000000000000000..89f883e20aa7a4ff816bbd5be125c3afd98ab5ee
 --- /dev/null
 +++ b/arch/arm64/include/asm/dtrace_arch.h
 @@ -0,0 +1,31 @@
@@ -1130,7 +1130,7 @@ index 000000000000..89f883e20aa7
 +#endif /* _ASM_ARM64_DTRACE_ARCH_H */
 diff --git a/arch/arm64/include/asm/dtrace_cpuinfo.h b/arch/arm64/include/asm/dtrace_cpuinfo.h
 new file mode 100644
-index 000000000000..4e0ab793c92c
+index 0000000000000000000000000000000000000000..4e0ab793c92cd1e757c06754744ce799d14ed72c
 --- /dev/null
 +++ b/arch/arm64/include/asm/dtrace_cpuinfo.h
 @@ -0,0 +1,13 @@
@@ -1149,7 +1149,7 @@ index 000000000000..4e0ab793c92c
 +#endif /* _ASM_ARM64_DTRACE_CPUINFO_H_ */
 diff --git a/arch/arm64/include/asm/dtrace_sdt_arch.h b/arch/arm64/include/asm/dtrace_sdt_arch.h
 new file mode 100644
-index 000000000000..b93a03c215b3
+index 0000000000000000000000000000000000000000..b93a03c215b3f19c6a0ad70353c404bf0a9f1b20
 --- /dev/null
 +++ b/arch/arm64/include/asm/dtrace_sdt_arch.h
 @@ -0,0 +1,15 @@
@@ -1170,7 +1170,7 @@ index 000000000000..b93a03c215b3
 +#endif /* _ASM_ARM64_DTRACE_SDT_ARCH_H */
 diff --git a/arch/arm64/include/asm/dtrace_syscall.h b/arch/arm64/include/asm/dtrace_syscall.h
 new file mode 100644
-index 000000000000..402826562478
+index 0000000000000000000000000000000000000000..402826562478213976f122510d4082af23028fd3
 --- /dev/null
 +++ b/arch/arm64/include/asm/dtrace_syscall.h
 @@ -0,0 +1,3 @@
@@ -1179,7 +1179,7 @@ index 000000000000..402826562478
 + */
 diff --git a/arch/arm64/include/asm/dtrace_syscall_types.h b/arch/arm64/include/asm/dtrace_syscall_types.h
 new file mode 100644
-index 000000000000..88e6eca6e169
+index 0000000000000000000000000000000000000000..88e6eca6e169fb6b1b82aec04a57adc7ac2bdb6b
 --- /dev/null
 +++ b/arch/arm64/include/asm/dtrace_syscall_types.h
 @@ -0,0 +1,11 @@
@@ -1196,7 +1196,7 @@ index 000000000000..88e6eca6e169
 +#define DTRACE_SYSCALL_WRAP_PREFIX "__arm64_"
 diff --git a/arch/arm64/include/asm/dtrace_util.h b/arch/arm64/include/asm/dtrace_util.h
 new file mode 100644
-index 000000000000..003bd34524d6
+index 0000000000000000000000000000000000000000..003bd34524d6351d1d9ae569c5703b127e9e6814
 --- /dev/null
 +++ b/arch/arm64/include/asm/dtrace_util.h
 @@ -0,0 +1,14 @@
@@ -1216,7 +1216,7 @@ index 000000000000..003bd34524d6
 +#endif /* _ASM_ARM64_DTRACE_UTIL_H */
 diff --git a/arch/arm64/include/asm/kdebug.h b/arch/arm64/include/asm/kdebug.h
 new file mode 100644
-index 000000000000..66c884086d04
+index 0000000000000000000000000000000000000000..66c884086d0458ba15ef8f59f0dd50c4b130a52b
 --- /dev/null
 +++ b/arch/arm64/include/asm/kdebug.h
 @@ -0,0 +1,11 @@
@@ -1232,7 +1232,7 @@ index 000000000000..66c884086d04
 +
 +#endif /* _ARM64_KDEBUG_H */
 diff --git a/arch/arm64/include/asm/syscall.h b/arch/arm64/include/asm/syscall.h
-index cfc0672013f6..1ab1fc22cb8b 100644
+index cfc0672013f672aaf77a18b1c2f3a7a5e692266e..1ab1fc22cb8bde23107e4de85419ece0cb66dc48 100644
 --- a/arch/arm64/include/asm/syscall.h
 +++ b/arch/arm64/include/asm/syscall.h
 @@ -11,7 +11,13 @@
@@ -1252,7 +1252,7 @@ index cfc0672013f6..1ab1fc22cb8b 100644
  extern const syscall_fn_t compat_sys_call_table[];
 diff --git a/arch/arm64/kernel/dtrace_fbt.c b/arch/arm64/kernel/dtrace_fbt.c
 new file mode 100644
-index 000000000000..3761e8aa4550
+index 0000000000000000000000000000000000000000..3761e8aa4550e163e29373d3ce1d3b4f4802f79d
 --- /dev/null
 +++ b/arch/arm64/kernel/dtrace_fbt.c
 @@ -0,0 +1,187 @@
@@ -1445,7 +1445,7 @@ index 000000000000..3761e8aa4550
 +EXPORT_SYMBOL(dtrace_fbt_init);
 diff --git a/arch/arm64/kernel/dtrace_sdt.c b/arch/arm64/kernel/dtrace_sdt.c
 new file mode 100644
-index 000000000000..d5a6a9d398b3
+index 0000000000000000000000000000000000000000..d5a6a9d398b3b9a36711a2417dc82324db332ed5
 --- /dev/null
 +++ b/arch/arm64/kernel/dtrace_sdt.c
 @@ -0,0 +1,25 @@
@@ -1476,7 +1476,7 @@ index 000000000000..d5a6a9d398b3
 +}
 diff --git a/arch/arm64/kernel/dtrace_syscall.c b/arch/arm64/kernel/dtrace_syscall.c
 new file mode 100644
-index 000000000000..73730e42f3b8
+index 0000000000000000000000000000000000000000..73730e42f3b8d1ac9d492a5746beb46c43ccc01f
 --- /dev/null
 +++ b/arch/arm64/kernel/dtrace_syscall.c
 @@ -0,0 +1,89 @@
@@ -1571,10 +1571,10 @@ index 000000000000..73730e42f3b8
 +EXPORT_SYMBOL(dtrace_syscalls_init);
 diff --git a/arch/arm64/kernel/dtrace_syscall_stubs.S b/arch/arm64/kernel/dtrace_syscall_stubs.S
 new file mode 100644
-index 000000000000..e69de29bb2d1
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/arch/arm64/kernel/dtrace_util.c b/arch/arm64/kernel/dtrace_util.c
 new file mode 100644
-index 000000000000..8142cf0459c2
+index 0000000000000000000000000000000000000000..8142cf0459c28781f3b7ad981ac470e4425941fc
 --- /dev/null
 +++ b/arch/arm64/kernel/dtrace_util.c
 @@ -0,0 +1,292 @@
@@ -1871,7 +1871,7 @@ index 000000000000..8142cf0459c2
 +{
 +}
 diff --git a/arch/arm64/kernel/entry-common.c b/arch/arm64/kernel/entry-common.c
-index 70e0a7591245..b4f8280d9ce3 100644
+index 70e0a7591245d6a1cc1ec07c3e13a3d8e10f95e7..b4f8280d9ce322099393bde54afd382f9f412560 100644
 --- a/arch/arm64/kernel/entry-common.c
 +++ b/arch/arm64/kernel/entry-common.c
 @@ -199,8 +199,7 @@ static void noinstr el1_fpac(struct pt_regs *regs, unsigned long esr)
@@ -1901,7 +1901,7 @@ index 70e0a7591245..b4f8280d9ce3 100644
  
  asmlinkage void noinstr enter_from_user_mode(void)
 diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
-index d72c818b019c..6ac1846a645e 100644
+index d72c818b019ca7530569fd810f356ad426f0cdf1..6ac1846a645e428f5d1ab629ca91b8b471ee36de 100644
 --- a/arch/arm64/kernel/entry.S
 +++ b/arch/arm64/kernel/entry.S
 @@ -28,6 +28,7 @@
@@ -1995,7 +1995,7 @@ index d72c818b019c..6ac1846a645e 100644
  	.align	6
 diff --git a/arch/arm64/kernel/fbt_blacklist.h b/arch/arm64/kernel/fbt_blacklist.h
 new file mode 100644
-index 000000000000..7ad327515c8f
+index 0000000000000000000000000000000000000000..7ad327515c8f9e2b35097f44fa4d1f0bcf76aaa2
 --- /dev/null
 +++ b/arch/arm64/kernel/fbt_blacklist.h
 @@ -0,0 +1,91 @@
@@ -2091,7 +2091,7 @@ index 000000000000..7ad327515c8f
 +BL_DENTRY(void *, radix_tree_descend)
 +BL_DENTRY(void *, is_sibling_entry)
 diff --git a/arch/arm64/kernel/probes/uprobes.c b/arch/arm64/kernel/probes/uprobes.c
-index a412d8edbcd2..49482af77b9f 100644
+index a412d8edbcd24428150a16e93ae059d45817b355..49482af77b9f2d698cffc8c1cd8a64c128aa271a 100644
 --- a/arch/arm64/kernel/probes/uprobes.c
 +++ b/arch/arm64/kernel/probes/uprobes.c
 @@ -179,7 +179,8 @@ static int uprobe_single_step_handler(struct pt_regs *regs,
@@ -2105,7 +2105,7 @@ index a412d8edbcd2..49482af77b9f 100644
  		return DBG_HOOK_HANDLED;
  
 diff --git a/arch/arm64/kernel/sys.c b/arch/arm64/kernel/sys.c
-index d5ffaaab31a7..4563f0a4d0db 100644
+index d5ffaaab31a7d1ed433e8e7bf01ae1f52848cd22..4563f0a4d0db806c52c29c80ff7eb47f75d35b04 100644
 --- a/arch/arm64/kernel/sys.c
 +++ b/arch/arm64/kernel/sys.c
 @@ -55,7 +55,7 @@ asmlinkage long __arm64_sys_ni_syscall(const struct pt_regs *__unused)
@@ -2118,7 +2118,7 @@ index d5ffaaab31a7..4563f0a4d0db 100644
  #include <asm/unistd.h>
  };
 diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-index 795d224f184f..d2725a8ac9f3 100644
+index 795d224f184ff2ce63d8427f5e70d4a9a89fd4ef..d2725a8ac9f321e4f551b907e6cacbbddc88bcd3 100644
 --- a/arch/arm64/mm/fault.c
 +++ b/arch/arm64/mm/fault.c
 @@ -14,6 +14,7 @@
@@ -2161,7 +2161,7 @@ index 795d224f184f..d2725a8ac9f3 100644
  	/*
  	 * If we're in an interrupt or have no user context, we must not take
 diff --git a/include/linux/uprobes.h b/include/linux/uprobes.h
-index f46e0ca0169c..b27885982066 100644
+index f46e0ca0169c722b4d5b749b2c1b0b04ab79c380..b278859820665f0fbe0509e27582fd1de41332e1 100644
 --- a/include/linux/uprobes.h
 +++ b/include/linux/uprobes.h
 @@ -124,6 +124,7 @@ extern void uprobe_copy_process(struct task_struct *t, unsigned long flags);
@@ -2173,7 +2173,7 @@ index f46e0ca0169c..b27885982066 100644
  extern bool arch_uprobe_skip_sstep(struct arch_uprobe *aup, struct pt_regs *regs);
  extern void uprobe_clear_state(struct mm_struct *mm);
 diff --git a/kernel/events/uprobes.c b/kernel/events/uprobes.c
-index 00b0358739ab..5a7a1c019870 100644
+index 00b0358739ab3b6b66b780e20f3374bbef4d4d34..5a7a1c0198708f54175fe6de9d3fb12d0146a3c7 100644
 --- a/kernel/events/uprobes.c
 +++ b/kernel/events/uprobes.c
 @@ -1845,6 +1845,16 @@ static unsigned long get_trampoline_vaddr(void)
@@ -2195,7 +2195,7 @@ index 00b0358739ab..5a7a1c019870 100644
  {
 diff --git a/scripts/dtrace_sdt_arm64.sh b/scripts/dtrace_sdt_arm64.sh
 new file mode 100755
-index 000000000000..a8fdc4ae0bc4
+index 0000000000000000000000000000000000000000..a8fdc4ae0bc440e2ad9ad3a09f804a2ea9fd21c6
 --- /dev/null
 +++ b/scripts/dtrace_sdt_arm64.sh
 @@ -0,0 +1,425 @@
@@ -2625,7 +2625,7 @@ index 000000000000..a8fdc4ae0bc4
 +
 +exit $?
 diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index 0b2f3bb60936..aa4c70504d8c 100755
+index 0b2f3bb60936f81449de21f296bdaddd466c9569..aa4c70504d8c36a523d11a668c7e0c9cb5b36458 100755
 --- a/scripts/link-vmlinux.sh
 +++ b/scripts/link-vmlinux.sh
 @@ -63,7 +63,12 @@ sdtinfo()
@@ -2663,5 +2663,5 @@ index 0b2f3bb60936..aa4c70504d8c 100755
  		sdtinfo ${kallsyms_vmlinux} ${sdtinfoo} vmlinux.o
  	fi
 -- 
-2.30.0
+2.30.1
 

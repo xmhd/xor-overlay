@@ -300,11 +300,13 @@ src_prepare() {
         eapply "${GENTOO_PATCHES_DIR}/${my_patch}" || die "failed to apply Gentoo Linux patches"
     done
 
-    # apply DTrace patches
-    einfo "Applying DTrace patches ..."
-    for my_patch in ${DTRACE_PATCHES[*]} ; do
-        eapply "${DTRACE_PATCHES_DIR}/${my_patch}" || die "failed to apply DTrace patches"
-    done
+    if use dtrace ; then
+        # apply DTrace patches
+        einfo "Applying DTrace patches ..."
+        for my_patch in ${DTRACE_PATCHES[*]} ; do
+            eapply "${DTRACE_PATCHES_DIR}/${my_patch}" || die "failed to apply DTrace patches"
+        done
+    fi
 
     if ! use hardened; then
         eapply "${FILESDIR}"/${KERNEL_VERSION}/gentoo-patches/1510_fs-enable-link-security-restrictions-by-default.patch
@@ -356,6 +358,7 @@ src_prepare() {
         echo "CONFIG_DT_DT_PERF=m" >> .config
         echo "CONFIG_DT_DEBUG=n" >> .config
         echo "CONFIG_WAITFD=y" >> .config
+        echo "CONFIG_DEBUG_INFO=y" >> .config
     fi
 
     # these options should already be set, but are a hard dependency for ec2, so we ensure they are set if USE=ec2

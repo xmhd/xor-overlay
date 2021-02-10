@@ -87,7 +87,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100644 dtrace/dtrace_util.c
 
 diff --git a/Makefile b/Makefile
-index fb9393fa10f0..4b25be692ac1 100644
+index fb9393fa10f082c29ab717aefcc812e34f8caf9d..4b25be692ac15ae9f6eb52c4a5f135da70598b05 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -651,6 +651,7 @@ drivers-y	:= drivers/ sound/
@@ -100,7 +100,7 @@ index fb9393fa10f0..4b25be692ac1 100644
  # The all: target is the default when no target is given on the
 diff --git a/arch/x86/dtrace/Makefile.arch b/arch/x86/dtrace/Makefile.arch
 new file mode 100644
-index 000000000000..ffb9ef4d1722
+index 0000000000000000000000000000000000000000..ffb9ef4d1722b673511418c5744067ac501d49c5
 --- /dev/null
 +++ b/arch/x86/dtrace/Makefile.arch
 @@ -0,0 +1,11 @@
@@ -117,7 +117,7 @@ index 000000000000..ffb9ef4d1722
 +dtrace-y	+= $(addprefix $(DTARCHDIR)/, $(dtrace-obj))
 diff --git a/arch/x86/dtrace/dtrace_asm_x86_64.S b/arch/x86/dtrace/dtrace_asm_x86_64.S
 new file mode 100644
-index 000000000000..46d3fe1b9703
+index 0000000000000000000000000000000000000000..46d3fe1b9703f05126686ad81c00d8d76fa10cf2
 --- /dev/null
 +++ b/arch/x86/dtrace/dtrace_asm_x86_64.S
 @@ -0,0 +1,228 @@
@@ -351,7 +351,7 @@ index 000000000000..46d3fe1b9703
 +#endif	/* __i386__ */
 diff --git a/arch/x86/dtrace/dtrace_isa_x86_64.c b/arch/x86/dtrace/dtrace_isa_x86_64.c
 new file mode 100644
-index 000000000000..5accadc9f121
+index 0000000000000000000000000000000000000000..5accadc9f121ccc9d6fc2fb63488f711a9a878d2
 --- /dev/null
 +++ b/arch/x86/dtrace/dtrace_isa_x86_64.c
 @@ -0,0 +1,228 @@
@@ -585,7 +585,7 @@ index 000000000000..5accadc9f121
 +}
 diff --git a/dtrace/Makefile b/dtrace/Makefile
 new file mode 100644
-index 000000000000..36a4b97b922c
+index 0000000000000000000000000000000000000000..36a4b97b922c4d2baecb0679e41b2d384f56a5b5
 --- /dev/null
 +++ b/dtrace/Makefile
 @@ -0,0 +1,19 @@
@@ -610,7 +610,7 @@ index 000000000000..36a4b97b922c
 +-include arch/$(SRCARCH)/dtrace/Makefile.arch
 diff --git a/dtrace/ctf_api.h b/dtrace/ctf_api.h
 new file mode 100644
-index 000000000000..e09bafc676f4
+index 0000000000000000000000000000000000000000..e09bafc676f4407c1228b3ac473de15c997e2cf6
 --- /dev/null
 +++ b/dtrace/ctf_api.h
 @@ -0,0 +1,33 @@
@@ -649,7 +649,7 @@ index 000000000000..e09bafc676f4
 +#endif /* __CTF_API_H_ */
 diff --git a/dtrace/dt_test.h b/dtrace/dt_test.h
 new file mode 100644
-index 000000000000..6efe4656001b
+index 0000000000000000000000000000000000000000..6efe4656001b387b424fa4e4cd7aca4c2a323f50
 --- /dev/null
 +++ b/dtrace/dt_test.h
 @@ -0,0 +1,30 @@
@@ -685,7 +685,7 @@ index 000000000000..6efe4656001b
 +#endif /* _DT_TEST_H_ */
 diff --git a/dtrace/dt_test_dev.c b/dtrace/dt_test_dev.c
 new file mode 100644
-index 000000000000..8e1f5bab8a12
+index 0000000000000000000000000000000000000000..8e1f5bab8a128bdc29a345e422467e6e9d294cf0
 --- /dev/null
 +++ b/dtrace/dt_test_dev.c
 @@ -0,0 +1,176 @@
@@ -867,7 +867,7 @@ index 000000000000..8e1f5bab8a12
 +}
 diff --git a/dtrace/dt_test_mod.c b/dtrace/dt_test_mod.c
 new file mode 100644
-index 000000000000..d8af71665a37
+index 0000000000000000000000000000000000000000..d8af71665a37ad3157f1bf9d2ce14cb0a23f7508
 --- /dev/null
 +++ b/dtrace/dt_test_mod.c
 @@ -0,0 +1,52 @@
@@ -925,7 +925,7 @@ index 000000000000..d8af71665a37
 +DT_PROVIDER_MODULE(dt_test, DTRACE_PRIV_USER)
 diff --git a/dtrace/dtrace.h b/dtrace/dtrace.h
 new file mode 100644
-index 000000000000..f632b910ac30
+index 0000000000000000000000000000000000000000..f632b910ac30b60a4584ea87a5087e4bba4060fc
 --- /dev/null
 +++ b/dtrace/dtrace.h
 @@ -0,0 +1,35 @@
@@ -966,7 +966,7 @@ index 000000000000..f632b910ac30
 +#endif /* _DTRACE_H_ */
 diff --git a/dtrace/dtrace_actdesc.c b/dtrace/dtrace_actdesc.c
 new file mode 100644
-index 000000000000..fada47a6e5eb
+index 0000000000000000000000000000000000000000..fada47a6e5eb08ebf47d7905eeb8dfab3bb36941
 --- /dev/null
 +++ b/dtrace/dtrace_actdesc.c
 @@ -0,0 +1,91 @@
@@ -1063,7 +1063,7 @@ index 000000000000..fada47a6e5eb
 +}
 diff --git a/dtrace/dtrace_anon.c b/dtrace/dtrace_anon.c
 new file mode 100644
-index 000000000000..80d0d9c1a9fd
+index 0000000000000000000000000000000000000000..80d0d9c1a9fd1f515a2aa5ec22d648f7f7f1a46c
 --- /dev/null
 +++ b/dtrace/dtrace_anon.c
 @@ -0,0 +1,144 @@
@@ -1213,7 +1213,7 @@ index 000000000000..80d0d9c1a9fd
 +}
 diff --git a/dtrace/dtrace_buffer.c b/dtrace/dtrace_buffer.c
 new file mode 100644
-index 000000000000..9e7faebc51b7
+index 0000000000000000000000000000000000000000..9e7faebc51b7002fd286579d94770a958e44e972
 --- /dev/null
 +++ b/dtrace/dtrace_buffer.c
 @@ -0,0 +1,490 @@
@@ -1709,7 +1709,7 @@ index 000000000000..9e7faebc51b7
 +}
 diff --git a/dtrace/dtrace_debug.h b/dtrace/dtrace_debug.h
 new file mode 100644
-index 000000000000..a55fd1a0436f
+index 0000000000000000000000000000000000000000..a55fd1a0436fdfd60e05290ea5ae0e3986bfc66c
 --- /dev/null
 +++ b/dtrace/dtrace_debug.h
 @@ -0,0 +1,118 @@
@@ -1833,7 +1833,7 @@ index 000000000000..a55fd1a0436f
 +#endif /* _DTRACE_DEBUG_H_ */
 diff --git a/dtrace/dtrace_dev.c b/dtrace/dtrace_dev.c
 new file mode 100644
-index 000000000000..0e52c936b9e0
+index 0000000000000000000000000000000000000000..0e52c936b9e03bdf56d2a11e41528ed9b461af66
 --- /dev/null
 +++ b/dtrace/dtrace_dev.c
 @@ -0,0 +1,1599 @@
@@ -3438,7 +3438,7 @@ index 000000000000..0e52c936b9e0
 +}
 diff --git a/dtrace/dtrace_dev.h b/dtrace/dtrace_dev.h
 new file mode 100644
-index 000000000000..11ae2deb17a1
+index 0000000000000000000000000000000000000000..11ae2deb17a15ac27c95b021f95455417b3c15e4
 --- /dev/null
 +++ b/dtrace/dtrace_dev.h
 @@ -0,0 +1,35 @@
@@ -3479,7 +3479,7 @@ index 000000000000..11ae2deb17a1
 +#endif /* _DTRACE_DEV_H_ */
 diff --git a/dtrace/dtrace_dif.c b/dtrace/dtrace_dif.c
 new file mode 100644
-index 000000000000..ae7f01b4ed9b
+index 0000000000000000000000000000000000000000..ae7f01b4ed9b76ea957dbfe080e1ac8fda995329
 --- /dev/null
 +++ b/dtrace/dtrace_dif.c
 @@ -0,0 +1,4905 @@
@@ -8390,7 +8390,7 @@ index 000000000000..ae7f01b4ed9b
 +}
 diff --git a/dtrace/dtrace_dof.c b/dtrace/dtrace_dof.c
 new file mode 100644
-index 000000000000..85ff9b21a205
+index 0000000000000000000000000000000000000000..85ff9b21a205b6c3f87ed5290117ebaefa45a3da
 --- /dev/null
 +++ b/dtrace/dtrace_dof.c
 @@ -0,0 +1,2504 @@
@@ -10900,7 +10900,7 @@ index 000000000000..85ff9b21a205
 +}
 diff --git a/dtrace/dtrace_ecb.c b/dtrace/dtrace_ecb.c
 new file mode 100644
-index 000000000000..cc04d1a14661
+index 0000000000000000000000000000000000000000..cc04d1a14661b08694a09a3d741523d9380b0dd2
 --- /dev/null
 +++ b/dtrace/dtrace_ecb.c
 @@ -0,0 +1,936 @@
@@ -11842,7 +11842,7 @@ index 000000000000..cc04d1a14661
 +}
 diff --git a/dtrace/dtrace_enable.c b/dtrace/dtrace_enable.c
 new file mode 100644
-index 000000000000..72f30149cb9c
+index 0000000000000000000000000000000000000000..72f30149cb9c6c7bad2d1f38303399bafdc86170
 --- /dev/null
 +++ b/dtrace/dtrace_enable.c
 @@ -0,0 +1,449 @@
@@ -12297,7 +12297,7 @@ index 000000000000..72f30149cb9c
 +}
 diff --git a/dtrace/dtrace_fmt.c b/dtrace/dtrace_fmt.c
 new file mode 100644
-index 000000000000..78fcc8e6efb8
+index 0000000000000000000000000000000000000000..78fcc8e6efb88cc156945e5d66182b1c455152e4
 --- /dev/null
 +++ b/dtrace/dtrace_fmt.c
 @@ -0,0 +1,104 @@
@@ -12407,7 +12407,7 @@ index 000000000000..78fcc8e6efb8
 +}
 diff --git a/dtrace/dtrace_hash.c b/dtrace/dtrace_hash.c
 new file mode 100644
-index 000000000000..0773c60e7897
+index 0000000000000000000000000000000000000000..0773c60e7897ce9cbc8efaa25f54f7181d86be02
 --- /dev/null
 +++ b/dtrace/dtrace_hash.c
 @@ -0,0 +1,266 @@
@@ -12679,7 +12679,7 @@ index 000000000000..0773c60e7897
 +}
 diff --git a/dtrace/dtrace_isa.c b/dtrace/dtrace_isa.c
 new file mode 100644
-index 000000000000..f84ce1cd52cc
+index 0000000000000000000000000000000000000000..f84ce1cd52cc82e6af9e6048c870865c7ec312ff
 --- /dev/null
 +++ b/dtrace/dtrace_isa.c
 @@ -0,0 +1,361 @@
@@ -13046,7 +13046,7 @@ index 000000000000..f84ce1cd52cc
 +}
 diff --git a/dtrace/dtrace_match.c b/dtrace/dtrace_match.c
 new file mode 100644
-index 000000000000..a63e3f8be1cd
+index 0000000000000000000000000000000000000000..a63e3f8be1cde0114bfc7f78e6df6f278ed81a40
 --- /dev/null
 +++ b/dtrace/dtrace_match.c
 @@ -0,0 +1,364 @@
@@ -13416,7 +13416,7 @@ index 000000000000..a63e3f8be1cd
 +}
 diff --git a/dtrace/dtrace_mod.c b/dtrace/dtrace_mod.c
 new file mode 100644
-index 000000000000..4da08c3cd816
+index 0000000000000000000000000000000000000000..4da08c3cd816b751242765e8f680480b84ea29e7
 --- /dev/null
 +++ b/dtrace/dtrace_mod.c
 @@ -0,0 +1,45 @@
@@ -13467,7 +13467,7 @@ index 000000000000..4da08c3cd816
 +module_exit(dtrace_exit);
 diff --git a/dtrace/dtrace_predicate.c b/dtrace/dtrace_predicate.c
 new file mode 100644
-index 000000000000..004a1c542c76
+index 0000000000000000000000000000000000000000..004a1c542c760f16631b54cbf105b3f37acc13e1
 --- /dev/null
 +++ b/dtrace/dtrace_predicate.c
 @@ -0,0 +1,80 @@
@@ -13553,7 +13553,7 @@ index 000000000000..004a1c542c76
 +}
 diff --git a/dtrace/dtrace_priv.c b/dtrace/dtrace_priv.c
 new file mode 100644
-index 000000000000..f50133de572d
+index 0000000000000000000000000000000000000000..f50133de572df2be7c34b162124cfc05ac0b39d5
 --- /dev/null
 +++ b/dtrace/dtrace_priv.c
 @@ -0,0 +1,120 @@
@@ -13679,7 +13679,7 @@ index 000000000000..f50133de572d
 +}
 diff --git a/dtrace/dtrace_probe.c b/dtrace/dtrace_probe.c
 new file mode 100644
-index 000000000000..8e2e04cb9c13
+index 0000000000000000000000000000000000000000..8e2e04cb9c1358edc46cd70b6855967b663868f5
 --- /dev/null
 +++ b/dtrace/dtrace_probe.c
 @@ -0,0 +1,1542 @@
@@ -15227,7 +15227,7 @@ index 000000000000..8e2e04cb9c13
 +}
 diff --git a/dtrace/dtrace_probe_ctx.c b/dtrace/dtrace_probe_ctx.c
 new file mode 100644
-index 000000000000..f04b5b269222
+index 0000000000000000000000000000000000000000..f04b5b26922291955285a8aba7a3f6cb6ca6c512
 --- /dev/null
 +++ b/dtrace/dtrace_probe_ctx.c
 @@ -0,0 +1,659 @@
@@ -15892,7 +15892,7 @@ index 000000000000..f04b5b269222
 +}
 diff --git a/dtrace/dtrace_ptofapi.c b/dtrace/dtrace_ptofapi.c
 new file mode 100644
-index 000000000000..c42a8471879c
+index 0000000000000000000000000000000000000000..c42a8471879cc0ea532ad19adf9ea66b20c9183e
 --- /dev/null
 +++ b/dtrace/dtrace_ptofapi.c
 @@ -0,0 +1,649 @@
@@ -16547,7 +16547,7 @@ index 000000000000..c42a8471879c
 +EXPORT_SYMBOL(dtrace_meta_unregister);
 diff --git a/dtrace/dtrace_spec.c b/dtrace/dtrace_spec.c
 new file mode 100644
-index 000000000000..4ca9bb7a6427
+index 0000000000000000000000000000000000000000..4ca9bb7a6427468d8a1fcf5d5b3aec00107200ac
 --- /dev/null
 +++ b/dtrace/dtrace_spec.c
 @@ -0,0 +1,434 @@
@@ -16987,7 +16987,7 @@ index 000000000000..4ca9bb7a6427
 +}
 diff --git a/dtrace/dtrace_state.c b/dtrace/dtrace_state.c
 new file mode 100644
-index 000000000000..7fb696e8f1a9
+index 0000000000000000000000000000000000000000..7fb696e8f1a9d80fe98643c183018a1b4633911e
 --- /dev/null
 +++ b/dtrace/dtrace_state.c
 @@ -0,0 +1,1108 @@
@@ -18101,7 +18101,7 @@ index 000000000000..7fb696e8f1a9
 +}
 diff --git a/dtrace/dtrace_util.c b/dtrace/dtrace_util.c
 new file mode 100644
-index 000000000000..76fdf2bd8b41
+index 0000000000000000000000000000000000000000..76fdf2bd8b41d069de795b655ce1ea475aad81a2
 --- /dev/null
 +++ b/dtrace/dtrace_util.c
 @@ -0,0 +1,282 @@
@@ -18388,5 +18388,5 @@ index 000000000000..76fdf2bd8b41
 +}
 +
 -- 
-2.30.0
+2.30.1
 

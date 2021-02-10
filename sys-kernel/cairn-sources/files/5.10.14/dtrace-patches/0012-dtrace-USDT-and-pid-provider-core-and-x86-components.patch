@@ -24,7 +24,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  4 files changed, 320 insertions(+)
 
 diff --git a/include/linux/dtrace_os.h b/include/linux/dtrace_os.h
-index f2921ce039a7..836825b1c7be 100644
+index f2921ce039a76dd29f93c8183073b8d750681fe6..836825b1c7beb5418b6b6a78f0e4036e025706a5 100644
 --- a/include/linux/dtrace_os.h
 +++ b/include/linux/dtrace_os.h
 @@ -14,6 +14,9 @@
@@ -67,7 +67,7 @@ index f2921ce039a7..836825b1c7be 100644
  
  /*
 diff --git a/kernel/dtrace/Kconfig b/kernel/dtrace/Kconfig
-index 7b88206fe835..6bf6620981cd 100644
+index 7b88206fe835fa14bb10484b658ce514d642112a..6bf6620981cd14bcc64cd0f7f71b499e478ea31e 100644
 --- a/kernel/dtrace/Kconfig
 +++ b/kernel/dtrace/Kconfig
 @@ -23,6 +23,16 @@ config DT_CORE
@@ -88,7 +88,7 @@ index 7b88206fe835..6bf6620981cd 100644
  	tristate "Profile Interrupt Tracing"
  	default m
 diff --git a/kernel/dtrace/dtrace_os.c b/kernel/dtrace/dtrace_os.c
-index 931cfd0d0fbf..874e097b84fd 100644
+index 931cfd0d0fbfc05c7670f4c01f1cfef140dbf408..874e097b84fd4b517cdb1e867a4b9d9ff2504078 100644
 --- a/kernel/dtrace/dtrace_os.c
 +++ b/kernel/dtrace/dtrace_os.c
 @@ -40,6 +40,10 @@
@@ -375,7 +375,7 @@ index 931cfd0d0fbf..874e097b84fd 100644
 +EXPORT_SYMBOL(dtrace_tracepoint_disable);
 +#endif /* CONFIG_DT_FASTTRAP || CONFIG_DT_FASTTRAP_MODULE */
 diff --git a/kernel/dtrace/dtrace_task.c b/kernel/dtrace/dtrace_task.c
-index 02bcc6b7e0a2..8bae6e79c7f1 100644
+index 02bcc6b7e0a26a04f61448ac6c8d5653344b6f40..8bae6e79c7f1e854d6e9f77481e16a3c3b107270 100644
 --- a/kernel/dtrace/dtrace_task.c
 +++ b/kernel/dtrace/dtrace_task.c
 @@ -22,6 +22,14 @@
@@ -408,5 +408,5 @@ index 02bcc6b7e0a2..8bae6e79c7f1 100644
  	psinfo = tsk->dt_task->dt_psinfo;
  	if (psinfo != NULL) {
 -- 
-2.30.0
+2.30.1
 

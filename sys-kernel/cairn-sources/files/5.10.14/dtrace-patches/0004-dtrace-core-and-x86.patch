@@ -163,7 +163,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100644 scripts/coccinelle/dtrace/typedef-elision.cocci
 
 diff --git a/Makefile b/Makefile
-index c21d2a09c9ca..fb9393fa10f0 100644
+index c21d2a09c9ca1419369295c2d29535e37135e6a4..fb9393fa10f082c29ab717aefcc812e34f8caf9d 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1106,15 +1106,15 @@ core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/
@@ -194,7 +194,7 @@ index c21d2a09c9ca..fb9393fa10f0 100644
  export KBUILD_VMLINUX_OBJS KBUILD_VMLINUX_LIBS
  export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmlinux.lds
 diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 3a5ecb1039bf..372e81191f8e 100644
+index 3a5ecb1039bfb8e9033f56d404ba9db20a2beddd..372e81191f8e42e6deba09586db9d81cd03b80fe 100644
 --- a/arch/x86/Kconfig
 +++ b/arch/x86/Kconfig
 @@ -371,6 +371,9 @@ config PGTABLE_LEVELS
@@ -209,7 +209,7 @@ index 3a5ecb1039bf..372e81191f8e 100644
  	default $(success,$(srctree)/scripts/gcc-x86_64-has-stack-protector.sh $(CC)) if 64BIT
 diff --git a/arch/x86/include/asm/dtrace_arch.h b/arch/x86/include/asm/dtrace_arch.h
 new file mode 100644
-index 000000000000..74e27f08a873
+index 0000000000000000000000000000000000000000..74e27f08a873c9cd3ed329d911e8e18505ae5b62
 --- /dev/null
 +++ b/arch/x86/include/asm/dtrace_arch.h
 @@ -0,0 +1,28 @@
@@ -243,7 +243,7 @@ index 000000000000..74e27f08a873
 +#endif /* _X86_DTRACE_ARCH_H */
 diff --git a/arch/x86/include/asm/dtrace_cpuinfo.h b/arch/x86/include/asm/dtrace_cpuinfo.h
 new file mode 100644
-index 000000000000..47024e169ec4
+index 0000000000000000000000000000000000000000..47024e169ec4f93eeea38a6c03922e3385d9e282
 --- /dev/null
 +++ b/arch/x86/include/asm/dtrace_cpuinfo.h
 @@ -0,0 +1,14 @@
@@ -263,7 +263,7 @@ index 000000000000..47024e169ec4
 +#endif /* _ASM_X86_DTRACE_CPUINFO_H_ */
 diff --git a/arch/x86/include/asm/dtrace_util.h b/arch/x86/include/asm/dtrace_util.h
 new file mode 100644
-index 000000000000..4d9843bbc95b
+index 0000000000000000000000000000000000000000..4d9843bbc95b92dcc3c20d4aa1d2b762b7376d91
 --- /dev/null
 +++ b/arch/x86/include/asm/dtrace_util.h
 @@ -0,0 +1,16 @@
@@ -285,7 +285,7 @@ index 000000000000..4d9843bbc95b
 +#endif /* _X86_DTRACE_UTIL_H */
 diff --git a/arch/x86/kernel/dtrace_util.c b/arch/x86/kernel/dtrace_util.c
 new file mode 100644
-index 000000000000..d3d552c062f7
+index 0000000000000000000000000000000000000000..d3d552c062f7ea425567cdb867b31f65d0242cac
 --- /dev/null
 +++ b/arch/x86/kernel/dtrace_util.c
 @@ -0,0 +1,244 @@
@@ -534,7 +534,7 @@ index 000000000000..d3d552c062f7
 +{
 +}
 diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 82bf37a5c9ec..5b16183100d0 100644
+index 82bf37a5c9eccadcc3a9b0ba875d6bdb2d5df1eb..5b16183100d07fb85d26163b11694097b774a751 100644
 --- a/arch/x86/mm/fault.c
 +++ b/arch/x86/mm/fault.c
 @@ -18,6 +18,7 @@
@@ -599,13 +599,14 @@ index 82bf37a5c9ec..5b16183100d0 100644
  	 * Reserved bits are never expected to be set on
  	 * entries in the user portion of the page tables.
 diff --git a/fs/exec.c b/fs/exec.c
-index ca89e0e3ef10..4340b2803004 100644
+index ca89e0e3ef10f19ee0ba7243c52fa7ff130900cf..4340b28030047552a40dfa962e08d994d3f33278 100644
 --- a/fs/exec.c
 +++ b/fs/exec.c
 @@ -64,6 +64,7 @@
  #include <linux/compat.h>
  #include <linux/vmalloc.h>
  #include <linux/io_uring.h>
+ #include <linux/random.h>
 +#include <linux/dtrace_os.h>
  
  #include <linux/uaccess.h>
@@ -622,7 +623,7 @@ index ca89e0e3ef10..4340b2803004 100644
  	current->in_execve = 0;
  	rseq_execve(current);
 diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index 3aefde23dcea..addbb3c7d953 100644
+index 3aefde23dceab8b87d54f8c7e4493dc1a2b54eeb..addbb3c7d953ead4e88a98c609cebc4c6a245bc2 100644
 --- a/include/asm-generic/qrwlock.h
 +++ b/include/asm-generic/qrwlock.h
 @@ -30,6 +30,26 @@
@@ -665,7 +666,7 @@ index 3aefde23dcea..addbb3c7d953 100644
  #define arch_read_trylock(l)	queued_read_trylock(l)
 diff --git a/include/dtrace/dtrace_impl.h b/include/dtrace/dtrace_impl.h
 new file mode 100644
-index 000000000000..2420103c765c
+index 0000000000000000000000000000000000000000..2420103c765cefec965a7dac2b03e50ac8b37f02
 --- /dev/null
 +++ b/include/dtrace/dtrace_impl.h
 @@ -0,0 +1,1236 @@
@@ -1907,7 +1908,7 @@ index 000000000000..2420103c765c
 +#endif /* _LINUX_DTRACE_IMPL_H */
 diff --git a/include/dtrace/dtrace_impl_defines.h b/include/dtrace/dtrace_impl_defines.h
 new file mode 100644
-index 000000000000..19b57f6188a0
+index 0000000000000000000000000000000000000000..19b57f6188a0515cb63765bae20d9cf376dc4a21
 --- /dev/null
 +++ b/include/dtrace/dtrace_impl_defines.h
 @@ -0,0 +1,173 @@
@@ -2086,7 +2087,7 @@ index 000000000000..19b57f6188a0
 +#endif /* _LINUX_DTRACE_IMPL_DEFINES_H */
 diff --git a/include/dtrace/provider.h b/include/dtrace/provider.h
 new file mode 100644
-index 000000000000..9eeb147f0363
+index 0000000000000000000000000000000000000000..9eeb147f03639207768d212cd1ef8e8b00325105
 --- /dev/null
 +++ b/include/dtrace/provider.h
 @@ -0,0 +1,971 @@
@@ -3063,7 +3064,7 @@ index 000000000000..9eeb147f0363
 +#endif /* _DTRACE_PROVIDER_H */
 diff --git a/include/dtrace/provider_defines.h b/include/dtrace/provider_defines.h
 new file mode 100644
-index 000000000000..104514e1261b
+index 0000000000000000000000000000000000000000..104514e1261be3e7803e84f6276b01d42186b67f
 --- /dev/null
 +++ b/include/dtrace/provider_defines.h
 @@ -0,0 +1,41 @@
@@ -3110,7 +3111,7 @@ index 000000000000..104514e1261b
 +#endif /* _DTRACE_PROVIDER_DEFINES_H */
 diff --git a/include/dtrace/types.h b/include/dtrace/types.h
 new file mode 100644
-index 000000000000..7f8d0d7efcc7
+index 0000000000000000000000000000000000000000..7f8d0d7efcc7b9552d75935233572c4de8fe0532
 --- /dev/null
 +++ b/include/dtrace/types.h
 @@ -0,0 +1,131 @@
@@ -3246,7 +3247,7 @@ index 000000000000..7f8d0d7efcc7
 +
 +#endif /* _DTRACE_TYPES_H */
 diff --git a/include/linux/cpuhotplug.h b/include/linux/cpuhotplug.h
-index bc56287a1ed1..25e7b8778b71 100644
+index bc56287a1ed1395059df7236e6bacdcb2af5d72c..25e7b8778b714ab95962bbe2b5e8b76ecae6bcbc 100644
 --- a/include/linux/cpuhotplug.h
 +++ b/include/linux/cpuhotplug.h
 @@ -107,6 +107,7 @@ enum cpuhp_state {
@@ -3259,7 +3260,7 @@ index bc56287a1ed1..25e7b8778b71 100644
  	CPUHP_AP_PERF_X86_AMD_IBS_STARTING,
 diff --git a/include/linux/cyclic.h b/include/linux/cyclic.h
 new file mode 100644
-index 000000000000..12ab85dc185b
+index 0000000000000000000000000000000000000000..12ab85dc185b556ba71f0993937bcb00413dcbfe
 --- /dev/null
 +++ b/include/linux/cyclic.h
 @@ -0,0 +1,49 @@
@@ -3314,7 +3315,7 @@ index 000000000000..12ab85dc185b
 +#endif /* _CYCLIC_H_ */
 diff --git a/include/linux/dtrace/cpu_defines.h b/include/linux/dtrace/cpu_defines.h
 new file mode 100644
-index 000000000000..c8719378da80
+index 0000000000000000000000000000000000000000..c8719378da80dd9293e92abe4713ab395b3b6db1
 --- /dev/null
 +++ b/include/linux/dtrace/cpu_defines.h
 @@ -0,0 +1,61 @@
@@ -3381,7 +3382,7 @@ index 000000000000..c8719378da80
 +#endif /* _LINUX_DTRACE_CPU_DEFINES_H_ */
 diff --git a/include/linux/dtrace_cpu.h b/include/linux/dtrace_cpu.h
 new file mode 100644
-index 000000000000..6b3dc7219f49
+index 0000000000000000000000000000000000000000..6b3dc7219f49d3bbadcb16a6939c1a98d520ecf2
 --- /dev/null
 +++ b/include/linux/dtrace_cpu.h
 @@ -0,0 +1,53 @@
@@ -3440,7 +3441,7 @@ index 000000000000..6b3dc7219f49
 +#endif /* _LINUX_DTRACE_CPU_H_ */
 diff --git a/include/linux/dtrace_cpu_defines.h b/include/linux/dtrace_cpu_defines.h
 new file mode 100644
-index 000000000000..f5866a6e95b8
+index 0000000000000000000000000000000000000000..f5866a6e95b8e4a0e39efb926aa4357842112b0e
 --- /dev/null
 +++ b/include/linux/dtrace_cpu_defines.h
 @@ -0,0 +1,2 @@
@@ -3448,7 +3449,7 @@ index 000000000000..f5866a6e95b8
 +#include <linux/dtrace/cpu_defines.h>
 diff --git a/include/linux/dtrace_os.h b/include/linux/dtrace_os.h
 new file mode 100644
-index 000000000000..5bcd77e08a14
+index 0000000000000000000000000000000000000000..5bcd77e08a14e8502cbadb53004dbbeb711dc953
 --- /dev/null
 +++ b/include/linux/dtrace_os.h
 @@ -0,0 +1,120 @@
@@ -3574,7 +3575,7 @@ index 000000000000..5bcd77e08a14
 +#endif /* _LINUX_DTRACE_OS_H_ */
 diff --git a/include/linux/dtrace_psinfo.h b/include/linux/dtrace_psinfo.h
 new file mode 100644
-index 000000000000..53a9c317a8a3
+index 0000000000000000000000000000000000000000..53a9c317a8a34f84927868b339904047cdf98ef1
 --- /dev/null
 +++ b/include/linux/dtrace_psinfo.h
 @@ -0,0 +1,59 @@
@@ -3639,7 +3640,7 @@ index 000000000000..53a9c317a8a3
 +#endif /* _LINUX_DTRACE_PSINFO_H_ */
 diff --git a/include/linux/dtrace_task.h b/include/linux/dtrace_task.h
 new file mode 100644
-index 000000000000..ce7111223788
+index 0000000000000000000000000000000000000000..ce7111223788a8b7d0c43e96a8da6ef042263b61
 --- /dev/null
 +++ b/include/linux/dtrace_task.h
 @@ -0,0 +1,38 @@
@@ -3683,7 +3684,7 @@ index 000000000000..ce7111223788
 +#endif /* _LINUX_DTRACE_TASK_H_ */
 diff --git a/include/linux/dtrace_task_impl.h b/include/linux/dtrace_task_impl.h
 new file mode 100644
-index 000000000000..2f76b475c2f8
+index 0000000000000000000000000000000000000000..2f76b475c2f88822c5e5e69bab1f17364ae81a3e
 --- /dev/null
 +++ b/include/linux/dtrace_task_impl.h
 @@ -0,0 +1,28 @@
@@ -3717,7 +3718,7 @@ index 000000000000..2f76b475c2f8
 +
 diff --git a/include/linux/dtrace_types.h b/include/linux/dtrace_types.h
 new file mode 100644
-index 000000000000..4484dc58e188
+index 0000000000000000000000000000000000000000..4484dc58e188c0c5ffe0495b8dc351405b3f945f
 --- /dev/null
 +++ b/include/linux/dtrace_types.h
 @@ -0,0 +1,13 @@
@@ -3735,7 +3736,7 @@ index 000000000000..4484dc58e188
 +
 +#endif /* _DTRACE_TYPES_H_ */
 diff --git a/include/linux/ktime.h b/include/linux/ktime.h
-index a12b5523cc18..ba226005fd2a 100644
+index a12b5523cc18e699fea0f36ca49b65dbfdfeb015..ba226005fd2ad641b70163e2d5f49753b64760d0 100644
 --- a/include/linux/ktime.h
 +++ b/include/linux/ktime.h
 @@ -156,6 +156,14 @@ static inline s64 ktime_divns(const ktime_t kt, s64 div)
@@ -3754,7 +3755,7 @@ index a12b5523cc18..ba226005fd2a 100644
  {
  	return ktime_divns(kt, NSEC_PER_USEC);
 diff --git a/include/linux/module.h b/include/linux/module.h
-index d44fe50d7c7f..44915ed85337 100644
+index d44fe50d7c7fec29c95e8b07865201410216d9d3..44915ed85337f8ef9931afaee5b78f9961ac112e 100644
 --- a/include/linux/module.h
 +++ b/include/linux/module.h
 @@ -512,6 +512,9 @@ struct module {
@@ -3768,7 +3769,7 @@ index d44fe50d7c7f..44915ed85337 100644
  	/* What modules depend on me? */
  	struct list_head source_list;
 diff --git a/include/linux/mutex.h b/include/linux/mutex.h
-index dcd185cbfe79..bb18028db361 100644
+index dcd185cbfe793b6f9d325dfabd6db87297d32383..bb18028db361585e6ed56b1b90853c006282e727 100644
 --- a/include/linux/mutex.h
 +++ b/include/linux/mutex.h
 @@ -20,6 +20,10 @@
@@ -3800,7 +3801,7 @@ index dcd185cbfe79..bb18028db361 100644
 +
  #endif /* __LINUX_MUTEX_H */
 diff --git a/include/linux/rwlock.h b/include/linux/rwlock.h
-index 3dcd617e65ae..a7e72774f17e 100644
+index 3dcd617e65ae902316399b0717f0dc0e834b355c..a7e72774f17eb9040d7ba0ac26c8efcf10f69087 100644
 --- a/include/linux/rwlock.h
 +++ b/include/linux/rwlock.h
 @@ -59,6 +59,13 @@ do {								\
@@ -3818,7 +3819,7 @@ index 3dcd617e65ae..a7e72774f17e 100644
   * Define the various rw_lock methods.  Note we define these
   * regardless of whether CONFIG_SMP or CONFIG_PREEMPT are set. The various
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 76cd21fa5501..0be45d979989 100644
+index 76cd21fa55016e5e8ab7a09cec3d1516a18f5998..0be45d97998922eea294cb95dc269a761fda79fb 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -34,6 +34,7 @@
@@ -3840,7 +3841,7 @@ index 76cd21fa5501..0be45d979989 100644
  	struct uprobe_task		*utask;
  #endif
 diff --git a/include/linux/spinlock_up.h b/include/linux/spinlock_up.h
-index 0ac9112c1bbe..cfd00c13f2aa 100644
+index 0ac9112c1bbe3287658057098c37a67bc818c559..cfd00c13f2aa1bc08f6b7c8b79449edbdf0681b2 100644
 --- a/include/linux/spinlock_up.h
 +++ b/include/linux/spinlock_up.h
 @@ -69,4 +69,9 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
@@ -3855,7 +3856,7 @@ index 0ac9112c1bbe..cfd00c13f2aa 100644
  #endif /* __LINUX_SPINLOCK_UP_H */
 diff --git a/include/uapi/linux/dtrace/Kbuild b/include/uapi/linux/dtrace/Kbuild
 new file mode 100644
-index 000000000000..0cb5b941b72b
+index 0000000000000000000000000000000000000000..0cb5b941b72b292cd03a0df30844aa9e35c5d768
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/Kbuild
 @@ -0,0 +1,35 @@
@@ -3896,7 +3897,7 @@ index 000000000000..0cb5b941b72b
 +header-y += universal.h
 diff --git a/include/uapi/linux/dtrace/actions.h b/include/uapi/linux/dtrace/actions.h
 new file mode 100644
-index 000000000000..9b47343271ba
+index 0000000000000000000000000000000000000000..9b47343271babcf501645d2b3c86b130987f13a1
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/actions.h
 @@ -0,0 +1,14 @@
@@ -3916,7 +3917,7 @@ index 000000000000..9b47343271ba
 +#endif /* _LINUX_DTRACE_ACTIONS_H */
 diff --git a/include/uapi/linux/dtrace/actions_defines.h b/include/uapi/linux/dtrace/actions_defines.h
 new file mode 100644
-index 000000000000..4512c291f58a
+index 0000000000000000000000000000000000000000..4512c291f58a75d05fc97567137ead42092c8454
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/actions_defines.h
 @@ -0,0 +1,181 @@
@@ -4103,7 +4104,7 @@ index 000000000000..4512c291f58a
 +#endif /* _LINUX_DTRACE_ACTIONS_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/arg.h b/include/uapi/linux/dtrace/arg.h
 new file mode 100644
-index 000000000000..4a9099a816e6
+index 0000000000000000000000000000000000000000..4a9099a816e6d3576cd93eb5bccb4f2de98907c2
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/arg.h
 @@ -0,0 +1,42 @@
@@ -4151,7 +4152,7 @@ index 000000000000..4a9099a816e6
 +#endif /* _LINUX_DTRACE_ARG_H */
 diff --git a/include/uapi/linux/dtrace/arg_defines.h b/include/uapi/linux/dtrace/arg_defines.h
 new file mode 100644
-index 000000000000..72862cd1b8e6
+index 0000000000000000000000000000000000000000..72862cd1b8e6dccee6803955deb15f8d897187e4
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/arg_defines.h
 @@ -0,0 +1,21 @@
@@ -4178,7 +4179,7 @@ index 000000000000..72862cd1b8e6
 +#endif /* _LINUX_DTRACE_ARG_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/buffer.h b/include/uapi/linux/dtrace/buffer.h
 new file mode 100644
-index 000000000000..9bbbc4f1f14b
+index 0000000000000000000000000000000000000000..9bbbc4f1f14bb3835e2fefbe432fd32e8f527090
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/buffer.h
 @@ -0,0 +1,43 @@
@@ -4227,7 +4228,7 @@ index 000000000000..9bbbc4f1f14b
 +#endif /* _LINUX_DTRACE_BUFFER_H */
 diff --git a/include/uapi/linux/dtrace/buffer_defines.h b/include/uapi/linux/dtrace/buffer_defines.h
 new file mode 100644
-index 000000000000..16c3c193618a
+index 0000000000000000000000000000000000000000..16c3c193618ac9fd1bed0439244f2645761df388
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/buffer_defines.h
 @@ -0,0 +1,21 @@
@@ -4254,7 +4255,7 @@ index 000000000000..16c3c193618a
 +#endif /* _LINUX_DTRACE_BUFFER_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/conf.h b/include/uapi/linux/dtrace/conf.h
 new file mode 100644
-index 000000000000..95b201958f4c
+index 0000000000000000000000000000000000000000..95b201958f4c046fa3c03bc5a1a3776a366588d1
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/conf.h
 @@ -0,0 +1,35 @@
@@ -4295,7 +4296,7 @@ index 000000000000..95b201958f4c
 +#endif /* _LINUX_DTRACE_CONF_H */
 diff --git a/include/uapi/linux/dtrace/conf_defines.h b/include/uapi/linux/dtrace/conf_defines.h
 new file mode 100644
-index 000000000000..5c4a1cb5d37c
+index 0000000000000000000000000000000000000000..5c4a1cb5d37c944574b25f4f5f8a8eb5068d9bd5
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/conf_defines.h
 @@ -0,0 +1,21 @@
@@ -4322,7 +4323,7 @@ index 000000000000..5c4a1cb5d37c
 +#endif /* _LINUX_DTRACE_CONF_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/cpu_defines.h b/include/uapi/linux/dtrace/cpu_defines.h
 new file mode 100644
-index 000000000000..a1cd3e410ccc
+index 0000000000000000000000000000000000000000..a1cd3e410ccc24befea3becaf3049be8180b66b8
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/cpu_defines.h
 @@ -0,0 +1,17 @@
@@ -4345,7 +4346,7 @@ index 000000000000..a1cd3e410ccc
 +#endif /* _LINUX_DTRACE_CPU_DEFINES_H_ */
 diff --git a/include/uapi/linux/dtrace/dif.h b/include/uapi/linux/dtrace/dif.h
 new file mode 100644
-index 000000000000..92daea17a1f1
+index 0000000000000000000000000000000000000000..92daea17a1f149551b0495b31ee07a8525d50fb8
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/dif.h
 @@ -0,0 +1,60 @@
@@ -4411,7 +4412,7 @@ index 000000000000..92daea17a1f1
 +#endif /* _LINUX_DTRACE_DIF_H */
 diff --git a/include/uapi/linux/dtrace/dif_defines.h b/include/uapi/linux/dtrace/dif_defines.h
 new file mode 100644
-index 000000000000..80b913f097a2
+index 0000000000000000000000000000000000000000..80b913f097a22ed174acd574a727ebee68be4fd4
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/dif_defines.h
 @@ -0,0 +1,288 @@
@@ -4705,7 +4706,7 @@ index 000000000000..80b913f097a2
 +#endif /* _LINUX_DTRACE_DIF_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/difo.h b/include/uapi/linux/dtrace/difo.h
 new file mode 100644
-index 000000000000..6e9efd7f0a43
+index 0000000000000000000000000000000000000000..6e9efd7f0a43047a7f5e1804c7192f888d9adef8
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/difo.h
 @@ -0,0 +1,57 @@
@@ -4768,7 +4769,7 @@ index 000000000000..6e9efd7f0a43
 +#endif /* _LINUX_DTRACE_DIFO_H */
 diff --git a/include/uapi/linux/dtrace/difo_defines.h b/include/uapi/linux/dtrace/difo_defines.h
 new file mode 100644
-index 000000000000..fdd25f2b7691
+index 0000000000000000000000000000000000000000..fdd25f2b76913c41a3306a19d600a7bdd9513099
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/difo_defines.h
 @@ -0,0 +1,21 @@
@@ -4795,7 +4796,7 @@ index 000000000000..fdd25f2b7691
 +#endif /* _LINUX_DTRACE_DIFO_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/dof.h b/include/uapi/linux/dtrace/dof.h
 new file mode 100644
-index 000000000000..54c6ca710443
+index 0000000000000000000000000000000000000000..54c6ca71044368b77d0352c04f5dbe7b0aa4c8dd
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/dof.h
 @@ -0,0 +1,196 @@
@@ -4997,7 +4998,7 @@ index 000000000000..54c6ca710443
 +#endif /* _LINUX_DTRACE_DOF_H */
 diff --git a/include/uapi/linux/dtrace/dof_defines.h b/include/uapi/linux/dtrace/dof_defines.h
 new file mode 100644
-index 000000000000..5357d5e099cc
+index 0000000000000000000000000000000000000000..5357d5e099cc21a88ca60ccd7616f6e0a4764cc2
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/dof_defines.h
 @@ -0,0 +1,192 @@
@@ -5195,7 +5196,7 @@ index 000000000000..5357d5e099cc
 +#endif /* _LINUX_DTRACE_DOF_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/dtrace.h b/include/uapi/linux/dtrace/dtrace.h
 new file mode 100644
-index 000000000000..0ee9d35876ef
+index 0000000000000000000000000000000000000000..0ee9d35876ef5db0c5231c780735681434917e40
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/dtrace.h
 @@ -0,0 +1,33 @@
@@ -5234,7 +5235,7 @@ index 000000000000..0ee9d35876ef
 +#endif /* _LINUX_DTRACE_H_ */
 diff --git a/include/uapi/linux/dtrace/enabling.h b/include/uapi/linux/dtrace/enabling.h
 new file mode 100644
-index 000000000000..8aac2ab9ea8d
+index 0000000000000000000000000000000000000000..8aac2ab9ea8daa3ddeae345584eb85b21b6418df
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/enabling.h
 @@ -0,0 +1,76 @@
@@ -5316,7 +5317,7 @@ index 000000000000..8aac2ab9ea8d
 +#endif /* _LINUX_DTRACE_ENABLING_H */
 diff --git a/include/uapi/linux/dtrace/enabling_defines.h b/include/uapi/linux/dtrace/enabling_defines.h
 new file mode 100644
-index 000000000000..221c3efca015
+index 0000000000000000000000000000000000000000..221c3efca015cb0737648eaa345d4910e57bb485
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/enabling_defines.h
 @@ -0,0 +1,25 @@
@@ -5347,7 +5348,7 @@ index 000000000000..221c3efca015
 +#endif /* _LINUX_DTRACE_ENABLING_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/fasttrap.h b/include/uapi/linux/dtrace/fasttrap.h
 new file mode 100644
-index 000000000000..4dbf1a2a35cd
+index 0000000000000000000000000000000000000000..4dbf1a2a35cd6f9a6b3f1ad86eaa2c67bb516ea6
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/fasttrap.h
 @@ -0,0 +1,56 @@
@@ -5409,7 +5410,7 @@ index 000000000000..4dbf1a2a35cd
 +#endif /* _LINUX_DTRACE_FASTTRAP_H */
 diff --git a/include/uapi/linux/dtrace/fasttrap_defines.h b/include/uapi/linux/dtrace/fasttrap_defines.h
 new file mode 100644
-index 000000000000..4bb07564e1c4
+index 0000000000000000000000000000000000000000..4bb07564e1c454f617fc8afb786decf84910612b
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/fasttrap_defines.h
 @@ -0,0 +1,25 @@
@@ -5440,7 +5441,7 @@ index 000000000000..4bb07564e1c4
 +#endif /* _LINUX_DTRACE_FASTTRAP_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/fasttrap_ioctl.h b/include/uapi/linux/dtrace/fasttrap_ioctl.h
 new file mode 100644
-index 000000000000..b5a8b0731fb6
+index 0000000000000000000000000000000000000000..b5a8b0731fb67cf2155c83dada7a5b09547d937b
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/fasttrap_ioctl.h
 @@ -0,0 +1,19 @@
@@ -5465,7 +5466,7 @@ index 000000000000..b5a8b0731fb6
 +#endif /* _LINUX_DTRACE_FASTTRAP_IOCTL_H_ */
 diff --git a/include/uapi/linux/dtrace/faults.h b/include/uapi/linux/dtrace/faults.h
 new file mode 100644
-index 000000000000..afa2ae548fa6
+index 0000000000000000000000000000000000000000..afa2ae548fa6952b30fb4c6fc19e4d1436392908
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/faults.h
 @@ -0,0 +1,20 @@
@@ -5491,7 +5492,7 @@ index 000000000000..afa2ae548fa6
 +#endif /* _LINUX_DTRACE_FAULTS_H */
 diff --git a/include/uapi/linux/dtrace/faults_defines.h b/include/uapi/linux/dtrace/faults_defines.h
 new file mode 100644
-index 000000000000..d225f2e847e4
+index 0000000000000000000000000000000000000000..d225f2e847e4f9359c11ceaf736cbd6ae3de3474
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/faults_defines.h
 @@ -0,0 +1,39 @@
@@ -5536,7 +5537,7 @@ index 000000000000..d225f2e847e4
 +#endif /* _LINUX_DTRACE_FAULTS_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/helpers.h b/include/uapi/linux/dtrace/helpers.h
 new file mode 100644
-index 000000000000..553f23994881
+index 0000000000000000000000000000000000000000..553f2399488120b20e37bbeee269ad2276977c6f
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/helpers.h
 @@ -0,0 +1,101 @@
@@ -5643,7 +5644,7 @@ index 000000000000..553f23994881
 +#endif /* _LINUX_DTRACE_HELPERS_H */
 diff --git a/include/uapi/linux/dtrace/helpers_defines.h b/include/uapi/linux/dtrace/helpers_defines.h
 new file mode 100644
-index 000000000000..8bf52f058001
+index 0000000000000000000000000000000000000000..8bf52f05800199eac66a99187b007f9d48785484
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/helpers_defines.h
 @@ -0,0 +1,21 @@
@@ -5670,7 +5671,7 @@ index 000000000000..8bf52f058001
 +#endif /* _LINUX_DTRACE_HELPERS_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/ioctl.h b/include/uapi/linux/dtrace/ioctl.h
 new file mode 100644
-index 000000000000..ef2476af2629
+index 0000000000000000000000000000000000000000..ef2476af2629166d7b0acd66c5d87d039c49f636
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/ioctl.h
 @@ -0,0 +1,47 @@
@@ -5723,7 +5724,7 @@ index 000000000000..ef2476af2629
 +#endif /* _LINUX_DTRACE_IOCTL_H */
 diff --git a/include/uapi/linux/dtrace/metadesc.h b/include/uapi/linux/dtrace/metadesc.h
 new file mode 100644
-index 000000000000..a6b3d82b2c97
+index 0000000000000000000000000000000000000000..a6b3d82b2c97b4cb1da600362ac1b6d09f8963fd
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/metadesc.h
 @@ -0,0 +1,81 @@
@@ -5810,7 +5811,7 @@ index 000000000000..a6b3d82b2c97
 +#endif /* _LINUX_DTRACE_METADESC_H */
 diff --git a/include/uapi/linux/dtrace/metadesc_defines.h b/include/uapi/linux/dtrace/metadesc_defines.h
 new file mode 100644
-index 000000000000..b27cc28822c8
+index 0000000000000000000000000000000000000000..b27cc28822c87fc50c8419633cf8b57c6bea98c1
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/metadesc_defines.h
 @@ -0,0 +1,24 @@
@@ -5840,7 +5841,7 @@ index 000000000000..b27cc28822c8
 +#endif /* _LINUX_DTRACE_METADESC_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/options.h b/include/uapi/linux/dtrace/options.h
 new file mode 100644
-index 000000000000..0a652ca2a148
+index 0000000000000000000000000000000000000000..0a652ca2a1485689b06fbc250d0521c08027d52a
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/options.h
 @@ -0,0 +1,20 @@
@@ -5866,7 +5867,7 @@ index 000000000000..0a652ca2a148
 +#endif /* _LINUX_DTRACE_OPTIONS_H */
 diff --git a/include/uapi/linux/dtrace/options_defines.h b/include/uapi/linux/dtrace/options_defines.h
 new file mode 100644
-index 000000000000..26009c84437e
+index 0000000000000000000000000000000000000000..26009c84437e7ba3459b0e35f38ccc2a99862f7d
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/options_defines.h
 @@ -0,0 +1,72 @@
@@ -5944,7 +5945,7 @@ index 000000000000..26009c84437e
 +#endif /* _LINUX_DTRACE_OPTIONS_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/stability.h b/include/uapi/linux/dtrace/stability.h
 new file mode 100644
-index 000000000000..380effdab291
+index 0000000000000000000000000000000000000000..380effdab2916dd2ab0bff8c9b73d1f624476cd0
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/stability.h
 @@ -0,0 +1,52 @@
@@ -6002,7 +6003,7 @@ index 000000000000..380effdab291
 +#endif /* _LINUX_DTRACE_STABILITY_H */
 diff --git a/include/uapi/linux/dtrace/stability_defines.h b/include/uapi/linux/dtrace/stability_defines.h
 new file mode 100644
-index 000000000000..ca58c5c03c2b
+index 0000000000000000000000000000000000000000..ca58c5c03c2b5456fd9bf89d713b063df0de1f37
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/stability_defines.h
 @@ -0,0 +1,53 @@
@@ -6061,7 +6062,7 @@ index 000000000000..ca58c5c03c2b
 +#endif /* _LINUX_DTRACE_STABILITY_DEFINES_H */
 diff --git a/include/uapi/linux/dtrace/status.h b/include/uapi/linux/dtrace/status.h
 new file mode 100644
-index 000000000000..dc324199f170
+index 0000000000000000000000000000000000000000..dc324199f170381f3ff661228143751a200669ca
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/status.h
 @@ -0,0 +1,50 @@
@@ -6117,7 +6118,7 @@ index 000000000000..dc324199f170
 +#endif /* _LINUX_DTRACE_STATUS_H */
 diff --git a/include/uapi/linux/dtrace/universal.h b/include/uapi/linux/dtrace/universal.h
 new file mode 100644
-index 000000000000..5c2f3f838fef
+index 0000000000000000000000000000000000000000..5c2f3f838fef435bf44cd0d4581900f1446fef12
 --- /dev/null
 +++ b/include/uapi/linux/dtrace/universal.h
 @@ -0,0 +1,47 @@
@@ -6169,7 +6170,7 @@ index 000000000000..5c2f3f838fef
 +
 +#endif /* _LINUX_DTRACE_UNIVERSAL_H_ */
 diff --git a/init/Kconfig b/init/Kconfig
-index 5a86bbbf43e0..0f1b919272da 100644
+index 5a86bbbf43e052f9092da824536c8e223c4a4329..0f1b919272daaa02ac0b40632641e5e0079721de 100644
 --- a/init/Kconfig
 +++ b/init/Kconfig
 @@ -2052,6 +2052,8 @@ config PROFILING
@@ -6182,7 +6183,7 @@ index 5a86bbbf43e0..0f1b919272da 100644
  # Place an empty function call at each tracepoint site. Can be
  # dynamically changed for a probe function.
 diff --git a/init/main.c b/init/main.c
-index 9d964511fe0c..f510b7af38c2 100644
+index 9d964511fe0c2d9e8e0d3e8178fd237690415ce9..f510b7af38c20bca171a3d146781f99d37e8936a 100644
 --- a/init/main.c
 +++ b/init/main.c
 @@ -98,6 +98,8 @@
@@ -6217,7 +6218,7 @@ index 9d964511fe0c..f510b7af38c2 100644
  	do_pre_smp_initcalls();
  	lockup_detector_init();
 diff --git a/kernel/Makefile b/kernel/Makefile
-index 6c9f19911be0..498cb12d89c6 100644
+index 6c9f19911be03e526e29389811fda6247656a253..498cb12d89c6f57f44dd7e48f025f0176dfcbe44 100644
 --- a/kernel/Makefile
 +++ b/kernel/Makefile
 @@ -121,6 +121,7 @@ obj-$(CONFIG_TORTURE_TEST) += torture.o
@@ -6230,7 +6231,7 @@ index 6c9f19911be0..498cb12d89c6 100644
  
 diff --git a/kernel/dtrace/Kconfig b/kernel/dtrace/Kconfig
 new file mode 100644
-index 000000000000..854e4411343f
+index 0000000000000000000000000000000000000000..854e4411343f9f7c773bf7fd54349fa46e6de5cb
 --- /dev/null
 +++ b/kernel/dtrace/Kconfig
 @@ -0,0 +1,54 @@
@@ -6290,7 +6291,7 @@ index 000000000000..854e4411343f
 +endif   #DTRACE
 diff --git a/kernel/dtrace/Makefile b/kernel/dtrace/Makefile
 new file mode 100644
-index 000000000000..872785327c3d
+index 0000000000000000000000000000000000000000..872785327c3d8d9f1ec0e5555b86fd470e9d1fc2
 --- /dev/null
 +++ b/kernel/dtrace/Makefile
 @@ -0,0 +1,12 @@
@@ -6308,7 +6309,7 @@ index 000000000000..872785327c3d
 +endif
 diff --git a/kernel/dtrace/cyclic.c b/kernel/dtrace/cyclic.c
 new file mode 100644
-index 000000000000..6497ceee3782
+index 0000000000000000000000000000000000000000..6497ceee378235267ca65c492f8a7e2656b34d5b
 --- /dev/null
 +++ b/kernel/dtrace/cyclic.c
 @@ -0,0 +1,526 @@
@@ -6840,7 +6841,7 @@ index 000000000000..6497ceee3782
 +module_init(cyclic_init);
 diff --git a/kernel/dtrace/dtrace_cpu.c b/kernel/dtrace/dtrace_cpu.c
 new file mode 100644
-index 000000000000..1bc6e3bb4ce0
+index 0000000000000000000000000000000000000000..1bc6e3bb4ce01141e5c94a52766f0553793e49c0
 --- /dev/null
 +++ b/kernel/dtrace/dtrace_cpu.c
 @@ -0,0 +1,61 @@
@@ -6907,7 +6908,7 @@ index 000000000000..1bc6e3bb4ce0
 +}
 diff --git a/kernel/dtrace/dtrace_os.c b/kernel/dtrace/dtrace_os.c
 new file mode 100644
-index 000000000000..d023f3913323
+index 0000000000000000000000000000000000000000..d023f3913323b42678aee5a7467a4b39c378c8cc
 --- /dev/null
 +++ b/kernel/dtrace/dtrace_os.c
 @@ -0,0 +1,332 @@
@@ -7245,7 +7246,7 @@ index 000000000000..d023f3913323
 +EXPORT_SYMBOL(dtrace_disable);
 diff --git a/kernel/dtrace/dtrace_psinfo.c b/kernel/dtrace/dtrace_psinfo.c
 new file mode 100644
-index 000000000000..bb5f6fc2ce63
+index 0000000000000000000000000000000000000000..bb5f6fc2ce63a487a5ade3a022c51fc15e3e42ae
 --- /dev/null
 +++ b/kernel/dtrace/dtrace_psinfo.c
 @@ -0,0 +1,212 @@
@@ -7463,7 +7464,7 @@ index 000000000000..bb5f6fc2ce63
 +}
 diff --git a/kernel/dtrace/dtrace_task.c b/kernel/dtrace/dtrace_task.c
 new file mode 100644
-index 000000000000..02bcc6b7e0a2
+index 0000000000000000000000000000000000000000..02bcc6b7e0a26a04f61448ac6c8d5653344b6f40
 --- /dev/null
 +++ b/kernel/dtrace/dtrace_task.c
 @@ -0,0 +1,237 @@
@@ -7705,7 +7706,7 @@ index 000000000000..02bcc6b7e0a2
 +}
 +
 diff --git a/kernel/exit.c b/kernel/exit.c
-index 5c5859a9ba75..da498c5f029c 100644
+index 5c5859a9ba75afff23fcdffcb01eef159724c6df..da498c5f029c20d162f8665cee6cd49c6de9a06c 100644
 --- a/kernel/exit.c
 +++ b/kernel/exit.c
 @@ -64,6 +64,7 @@
@@ -7727,7 +7728,7 @@ index 5c5859a9ba75..da498c5f029c 100644
  
  	if (group_dead)
 diff --git a/kernel/fork.c b/kernel/fork.c
-index c675fdbd3dce..0d8a2b12fd90 100644
+index c675fdbd3dce1377480c4a70a496e5d1680d88ea..0d8a2b12fd90565fccba06804f9c0a58cbc6a064 100644
 --- a/kernel/fork.c
 +++ b/kernel/fork.c
 @@ -96,6 +96,7 @@
@@ -7782,7 +7783,7 @@ index c675fdbd3dce..0d8a2b12fd90 100644
  	sched_post_fork(p);
  	cgroup_post_fork(p, args);
 diff --git a/kernel/module.c b/kernel/module.c
-index 9e471dbedc83..f4269dabc638 100644
+index 9e471dbedc83a1a080612bf4f4ffabf09f3b8aa8..f4269dabc63837a9055eeed1bab211e30422413e 100644
 --- a/kernel/module.c
 +++ b/kernel/module.c
 @@ -46,6 +46,7 @@
@@ -7835,7 +7836,7 @@ index 9e471dbedc83..f4269dabc638 100644
  	err = complete_formation(mod, info);
  	if (err)
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 77aa0e788b9b..db893818f3ea 100644
+index 77aa0e788b9b76b9cd13ac3a0bda6fa9e9b0a1b2..db893818f3ea5d645ae2418906acd27889722a65 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -13,6 +13,7 @@
@@ -7870,7 +7871,7 @@ index 77aa0e788b9b..db893818f3ea 100644
  
  	set_load_weight(&init_task, false);
 diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
-index c122176c627e..f917e368e4f8 100644
+index c122176c627ec3223cfb1bbcbacf585071bf2579..f917e368e4f88fefafc62b38edfaf7ec6527aa59 100644
 --- a/kernel/sched/sched.h
 +++ b/kernel/sched/sched.h
 @@ -345,6 +345,7 @@ extern bool dl_cpu_busy(unsigned int cpu);
@@ -7892,7 +7893,7 @@ index c122176c627e..f917e368e4f8 100644
  
  #ifdef CONFIG_FAIR_GROUP_SCHED
 diff --git a/kernel/time/timekeeping.c b/kernel/time/timekeeping.c
-index 6858a31364b6..b74807546fba 100644
+index 6858a31364b6456f036bbf38da4d0eca89ec3aaf..b74807546fba4907b7e054111882f6d3fa18f2ae 100644
 --- a/kernel/time/timekeeping.c
 +++ b/kernel/time/timekeeping.c
 @@ -22,6 +22,7 @@
@@ -7913,7 +7914,7 @@ index 6858a31364b6..b74807546fba 100644
  	tk->tkr_mono.base_real = tk->tkr_mono.base + tk->offs_real;
 diff --git a/scripts/coccinelle/dtrace/enum-elision.cocci b/scripts/coccinelle/dtrace/enum-elision.cocci
 new file mode 100644
-index 000000000000..77a5b33bd166
+index 0000000000000000000000000000000000000000..77a5b33bd1661d7bf024afd82c29bec9e1c9a751
 --- /dev/null
 +++ b/scripts/coccinelle/dtrace/enum-elision.cocci
 @@ -0,0 +1,29 @@
@@ -7948,7 +7949,7 @@ index 000000000000..77a5b33bd166
 ++ const enum E
 diff --git a/scripts/coccinelle/dtrace/typedef-elision.cocci b/scripts/coccinelle/dtrace/typedef-elision.cocci
 new file mode 100644
-index 000000000000..bc4caf375b60
+index 0000000000000000000000000000000000000000..bc4caf375b607b624b9c566bf1a2e471e463f01e
 --- /dev/null
 +++ b/scripts/coccinelle/dtrace/typedef-elision.cocci
 @@ -0,0 +1,83 @@
@@ -8036,7 +8037,7 @@ index 000000000000..bc4caf375b60
 +- dt_fbt_bl_entry_t
 ++ struct dt_fbt_bl_entry
 diff --git a/scripts/package/mkspec b/scripts/package/mkspec
-index e9ff22c6fb4c..cba5be72adb9 100755
+index e9ff22c6fb4c7c7082767c7c9b164e94735ea1e7..cba5be72adb926cb6a96fb9d8d497a362e6080b9 100755
 --- a/scripts/package/mkspec
 +++ b/scripts/package/mkspec
 @@ -150,6 +150,7 @@ $M	%exclude /lib/modules/$KERNELRELEASE/source
@@ -8048,5 +8049,5 @@ index e9ff22c6fb4c..cba5be72adb9 100755
  $S$M	%files devel
  $S$M	%defattr (-, root, root)
 -- 
-2.30.0
+2.30.1
 

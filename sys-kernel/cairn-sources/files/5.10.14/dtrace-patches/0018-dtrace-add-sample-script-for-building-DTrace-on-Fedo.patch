@@ -11,7 +11,7 @@ Signed-off-by: Eugene Loh <eugene.loh@oracle.com>
 
 diff --git a/samples/dtrace/DTrace-on-Fedora.sh b/samples/dtrace/DTrace-on-Fedora.sh
 new file mode 100755
-index 000000000000..3857027381a5
+index 0000000000000000000000000000000000000000..3857027381a54e17a12245e5e511ca3c096ee6d8
 --- /dev/null
 +++ b/samples/dtrace/DTrace-on-Fedora.sh
 @@ -0,0 +1,221 @@
@@ -237,5 +237,5 @@ index 000000000000..3857027381a5
 +# https://docs.oracle.com/cd/E52668_01/E38608/html/index.html
 +
 -- 
-2.30.0
+2.30.1
 

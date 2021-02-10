@@ -32,7 +32,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100644 include/linux/dtrace_syscall.h
 
 diff --git a/arch/x86/entry/syscall_32.c b/arch/x86/entry/syscall_32.c
-index 86eb0d89d46f..66381ebd6a9f 100644
+index 86eb0d89d46fa5244b766272bc5d0fd6411588a3..66381ebd6a9f4628416dd40be15ccfa230b1c15a 100644
 --- a/arch/x86/entry/syscall_32.c
 +++ b/arch/x86/entry/syscall_32.c
 @@ -15,7 +15,11 @@
@@ -48,7 +48,7 @@ index 86eb0d89d46f..66381ebd6a9f 100644
  	 * Smells like a compiler bug -- it doesn't work
  	 * when the & below is removed.
 diff --git a/arch/x86/entry/syscall_64.c b/arch/x86/entry/syscall_64.c
-index 1594ec72bcbb..42587831ef04 100644
+index 1594ec72bcbb7183512f087acd29160443802683..42587831ef04e801399cf58e1068212d2d15e53e 100644
 --- a/arch/x86/entry/syscall_64.c
 +++ b/arch/x86/entry/syscall_64.c
 @@ -17,7 +17,11 @@
@@ -65,7 +65,7 @@ index 1594ec72bcbb..42587831ef04 100644
  	 * when the & below is removed.
 diff --git a/arch/x86/include/asm/dtrace_syscall.h b/arch/x86/include/asm/dtrace_syscall.h
 new file mode 100644
-index 000000000000..402826562478
+index 0000000000000000000000000000000000000000..402826562478213976f122510d4082af23028fd3
 --- /dev/null
 +++ b/arch/x86/include/asm/dtrace_syscall.h
 @@ -0,0 +1,3 @@
@@ -74,7 +74,7 @@ index 000000000000..402826562478
 + */
 diff --git a/arch/x86/include/asm/dtrace_syscall_types.h b/arch/x86/include/asm/dtrace_syscall_types.h
 new file mode 100644
-index 000000000000..2b3ee563ad14
+index 0000000000000000000000000000000000000000..2b3ee563ad143daab95cc6256e02e12ce15a4436
 --- /dev/null
 +++ b/arch/x86/include/asm/dtrace_syscall_types.h
 @@ -0,0 +1,11 @@
@@ -90,7 +90,7 @@ index 000000000000..2b3ee563ad14
 +
 +#define DTRACE_SYSCALL_WRAP_PREFIX "__x64_"
 diff --git a/arch/x86/include/asm/syscall.h b/arch/x86/include/asm/syscall.h
-index 7cbf733d11af..3d1bce850b74 100644
+index 7cbf733d11afd9fe150cbd8676065821a928d9ad..3d1bce850b7494381a2127bf526eab11ff7e5029 100644
 --- a/arch/x86/include/asm/syscall.h
 +++ b/arch/x86/include/asm/syscall.h
 @@ -17,15 +17,23 @@
@@ -119,7 +119,7 @@ index 7cbf733d11af..3d1bce850b74 100644
  extern const sys_call_ptr_t x32_sys_call_table[];
 diff --git a/arch/x86/kernel/dtrace_syscall.c b/arch/x86/kernel/dtrace_syscall.c
 new file mode 100644
-index 000000000000..3328710e7050
+index 0000000000000000000000000000000000000000..3328710e7050714930851dc2bf3e5b1a2de32f5b
 --- /dev/null
 +++ b/arch/x86/kernel/dtrace_syscall.c
 @@ -0,0 +1,97 @@
@@ -222,10 +222,10 @@ index 000000000000..3328710e7050
 +EXPORT_SYMBOL(dtrace_syscalls_init);
 diff --git a/arch/x86/kernel/dtrace_syscall_stubs.S b/arch/x86/kernel/dtrace_syscall_stubs.S
 new file mode 100644
-index 000000000000..e69de29bb2d1
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/include/linux/dtrace_syscall.h b/include/linux/dtrace_syscall.h
 new file mode 100644
-index 000000000000..7f9e351f3783
+index 0000000000000000000000000000000000000000..7f9e351f3783ec92d36c6984233723f95cdbcaa7
 --- /dev/null
 +++ b/include/linux/dtrace_syscall.h
 @@ -0,0 +1,60 @@
@@ -290,7 +290,7 @@ index 000000000000..7f9e351f3783
 +
 +#endif /* _LINUX_DTRACE_SYSCALL_H_ */
 diff --git a/kernel/dtrace/Kconfig b/kernel/dtrace/Kconfig
-index 854e4411343f..d04ca0ab7ac9 100644
+index 854e4411343f9f7c773bf7fd54349fa46e6de5cb..d04ca0ab7ac9c14f4450927423b30784311a3cbd 100644
 --- a/kernel/dtrace/Kconfig
 +++ b/kernel/dtrace/Kconfig
 @@ -23,6 +23,15 @@ config DT_CORE
@@ -310,7 +310,7 @@ index 854e4411343f..d04ca0ab7ac9 100644
  	tristate "DTrace Test Probe"
  	default m
 diff --git a/kernel/dtrace/Makefile b/kernel/dtrace/Makefile
-index 872785327c3d..68fc3861e5d1 100644
+index 872785327c3d8d9f1ec0e5555b86fd470e9d1fc2..68fc3861e5d1175006494f12758ff1f0304d10fa 100644
 --- a/kernel/dtrace/Makefile
 +++ b/kernel/dtrace/Makefile
 @@ -3,6 +3,7 @@
@@ -322,5 +322,5 @@ index 872785327c3d..68fc3861e5d1 100644
  
  ifdef CONFIG_DT_CORE
 -- 
-2.30.0
+2.30.1
 

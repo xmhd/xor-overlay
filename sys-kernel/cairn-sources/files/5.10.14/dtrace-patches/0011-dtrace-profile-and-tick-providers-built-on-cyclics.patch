@@ -24,7 +24,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100644 dtrace/profile_mod.c
 
 diff --git a/dtrace/Makefile b/dtrace/Makefile
-index 126d4985967a..5e6fb362a4e9 100644
+index 126d4985967a2478ea2df97ab42eb384e6fe14d2..5e6fb362a4e96afbcef906dc7eae12c6c6ad5b04 100644
 --- a/dtrace/Makefile
 +++ b/dtrace/Makefile
 @@ -3,6 +3,7 @@
@@ -45,7 +45,7 @@ index 126d4985967a..5e6fb362a4e9 100644
  dt_test-y			:= dt_test_mod.o dt_test_dev.o
 diff --git a/dtrace/profile.h b/dtrace/profile.h
 new file mode 100644
-index 000000000000..713886d1d8e8
+index 0000000000000000000000000000000000000000..713886d1d8e826fef100cb929ecb54d9a9f5a07c
 --- /dev/null
 +++ b/dtrace/profile.h
 @@ -0,0 +1,32 @@
@@ -83,7 +83,7 @@ index 000000000000..713886d1d8e8
 +#endif /* _PROFILE_H_ */
 diff --git a/dtrace/profile_dev.c b/dtrace/profile_dev.c
 new file mode 100644
-index 000000000000..ce7261fcc911
+index 0000000000000000000000000000000000000000..ce7261fcc911fd4589502e4b170a0b3e3e97dc99
 --- /dev/null
 +++ b/dtrace/profile_dev.c
 @@ -0,0 +1,491 @@
@@ -580,7 +580,7 @@ index 000000000000..ce7261fcc911
 +}
 diff --git a/dtrace/profile_mod.c b/dtrace/profile_mod.c
 new file mode 100644
-index 000000000000..1fb54a29e57e
+index 0000000000000000000000000000000000000000..1fb54a29e57ed642de6cc86615294dbf85557234
 --- /dev/null
 +++ b/dtrace/profile_mod.c
 @@ -0,0 +1,52 @@
@@ -637,5 +637,5 @@ index 000000000000..1fb54a29e57e
 +
 +DT_PROVIDER_MODULE(profile, DTRACE_PRIV_KERNEL | DTRACE_PRIV_USER)
 -- 
-2.30.0
+2.30.1
 

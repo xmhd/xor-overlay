@@ -16,7 +16,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  1 file changed, 12 insertions(+)
 
 diff --git a/kernel/dtrace/Kconfig b/kernel/dtrace/Kconfig
-index c1ec55d8750e..7b88206fe835 100644
+index c1ec55d8750edfbaf55ab9431b7c822b3dd2afae..7b88206fe835fa14bb10484b658ce514d642112a 100644
 --- a/kernel/dtrace/Kconfig
 +++ b/kernel/dtrace/Kconfig
 @@ -23,6 +23,12 @@ config DT_CORE
@@ -46,5 +46,5 @@ index c1ec55d8750e..7b88206fe835 100644
  	bool "DTrace debugging"
  	default m
 -- 
-2.30.0
+2.30.1
 

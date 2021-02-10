@@ -23,7 +23,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100644 dtrace/systrace_mod.c
 
 diff --git a/dtrace/Makefile b/dtrace/Makefile
-index 36a4b97b922c..b91bc69d3802 100644
+index 36a4b97b922c4d2baecb0679e41b2d384f56a5b5..b91bc69d38020d8c872483f894349f02a8eb58e6 100644
 --- a/dtrace/Makefile
 +++ b/dtrace/Makefile
 @@ -3,6 +3,7 @@
@@ -44,7 +44,7 @@ index 36a4b97b922c..b91bc69d3802 100644
  -include arch/$(SRCARCH)/dtrace/Makefile.arch
 diff --git a/dtrace/systrace.h b/dtrace/systrace.h
 new file mode 100644
-index 000000000000..832bc613b966
+index 0000000000000000000000000000000000000000..832bc613b966c5ecaf53f8c4b602306ccc955d73
 --- /dev/null
 +++ b/dtrace/systrace.h
 @@ -0,0 +1,33 @@
@@ -83,7 +83,7 @@ index 000000000000..832bc613b966
 +#endif /* _SYSTRACE_H_ */
 diff --git a/dtrace/systrace_dev.c b/dtrace/systrace_dev.c
 new file mode 100644
-index 000000000000..2ff3ba4329a5
+index 0000000000000000000000000000000000000000..2ff3ba4329a524ba9ad2687da2e83260475b37da
 --- /dev/null
 +++ b/dtrace/systrace_dev.c
 @@ -0,0 +1,224 @@
@@ -313,7 +313,7 @@ index 000000000000..2ff3ba4329a5
 +}
 diff --git a/dtrace/systrace_mod.c b/dtrace/systrace_mod.c
 new file mode 100644
-index 000000000000..d286f7d9d47a
+index 0000000000000000000000000000000000000000..d286f7d9d47aba259de63da3b0391a4f0075906c
 --- /dev/null
 +++ b/dtrace/systrace_mod.c
 @@ -0,0 +1,52 @@
@@ -370,5 +370,5 @@ index 000000000000..d286f7d9d47a
 +
 +DT_PROVIDER_MODULE(syscall, DTRACE_PRIV_USER)
 -- 
-2.30.0
+2.30.1
 

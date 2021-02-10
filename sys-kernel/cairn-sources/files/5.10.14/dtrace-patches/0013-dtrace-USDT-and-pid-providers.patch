@@ -34,7 +34,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100644 dtrace/fasttrap_mod.c
 
 diff --git a/arch/x86/dtrace/Makefile.arch b/arch/x86/dtrace/Makefile.arch
-index 8492eaee426d..e4655557e06a 100644
+index 8492eaee426d1ba7a25769ff3c95d1dc828f69ae..e4655557e06ad7524677b9f3b0909f248d5a1c8b 100644
 --- a/arch/x86/dtrace/Makefile.arch
 +++ b/arch/x86/dtrace/Makefile.arch
 @@ -7,7 +7,9 @@ DTARCHDIR = ../arch/x86/dtrace
@@ -49,7 +49,7 @@ index 8492eaee426d..e4655557e06a 100644
  sdt-y		+= $(addprefix $(DTARCHDIR)/, $(sdt-obj))
 diff --git a/arch/x86/dtrace/fasttrap_x86_64.c b/arch/x86/dtrace/fasttrap_x86_64.c
 new file mode 100644
-index 000000000000..012b2a50a46a
+index 0000000000000000000000000000000000000000..012b2a50a46ab7570c1a94cbf294ffd65463099f
 --- /dev/null
 +++ b/arch/x86/dtrace/fasttrap_x86_64.c
 @@ -0,0 +1,364 @@
@@ -419,7 +419,7 @@ index 000000000000..012b2a50a46a
 +
 diff --git a/arch/x86/dtrace/include/dtrace/fasttrap_arch.h b/arch/x86/dtrace/include/dtrace/fasttrap_arch.h
 new file mode 100644
-index 000000000000..abbe9cb2bf38
+index 0000000000000000000000000000000000000000..abbe9cb2bf3852a540d2f1c535f3154285201e98
 --- /dev/null
 +++ b/arch/x86/dtrace/include/dtrace/fasttrap_arch.h
 @@ -0,0 +1,29 @@
@@ -453,7 +453,7 @@ index 000000000000..abbe9cb2bf38
 +
 +#endif /* _X86_64_FASTTRAP_ARCH_H */
 diff --git a/dtrace/Makefile b/dtrace/Makefile
-index 5e6fb362a4e9..c7e3fc512a6c 100644
+index 5e6fb362a4e96afbcef906dc7eae12c6c6ad5b04..c7e3fc512a6c7cdc40f9e3343e3cd98bec674b68 100644
 --- a/dtrace/Makefile
 +++ b/dtrace/Makefile
 @@ -3,6 +3,7 @@
@@ -474,7 +474,7 @@ index 5e6fb362a4e9..c7e3fc512a6c 100644
  systrace-y			:= systrace_mod.o systrace_dev.o
 diff --git a/dtrace/fasttrap_dev.c b/dtrace/fasttrap_dev.c
 new file mode 100644
-index 000000000000..f48581e00f4b
+index 0000000000000000000000000000000000000000..f48581e00f4bceb55118a8ecf083044741100e4b
 --- /dev/null
 +++ b/dtrace/fasttrap_dev.c
 @@ -0,0 +1,1986 @@
@@ -2466,7 +2466,7 @@ index 000000000000..f48581e00f4b
 +}
 diff --git a/dtrace/fasttrap_impl.h b/dtrace/fasttrap_impl.h
 new file mode 100644
-index 000000000000..cd2c4a28871e
+index 0000000000000000000000000000000000000000..cd2c4a28871eff171e5171860d600dd27e9404d7
 --- /dev/null
 +++ b/dtrace/fasttrap_impl.h
 @@ -0,0 +1,172 @@
@@ -2644,7 +2644,7 @@ index 000000000000..cd2c4a28871e
 +#endif /* _FASTTRAP_IMPL_H_ */
 diff --git a/dtrace/fasttrap_mod.c b/dtrace/fasttrap_mod.c
 new file mode 100644
-index 000000000000..e9bd0eb065f1
+index 0000000000000000000000000000000000000000..e9bd0eb065f1aeea9b771abc05c07838de42d701
 --- /dev/null
 +++ b/dtrace/fasttrap_mod.c
 @@ -0,0 +1,38 @@
@@ -2687,5 +2687,5 @@ index 000000000000..e9bd0eb065f1
 +
 +DT_META_PROVIDER_MODULE(fasttrap)
 -- 
-2.30.0
+2.30.1
 

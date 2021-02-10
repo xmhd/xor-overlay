@@ -61,7 +61,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100644 kernel/dtrace/dtrace_fbt_core.c
 
 diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index cad08703c4ad..689b45e5b0c4 100644
+index cad08703c4ad774f2e473f0dcc71b53cdb579a68..689b45e5b0c4f6c28c9b141d51a8921239b0810f 100644
 --- a/arch/x86/entry/entry_64.S
 +++ b/arch/x86/entry/entry_64.S
 @@ -38,7 +38,7 @@
@@ -220,7 +220,7 @@ index cad08703c4ad..689b45e5b0c4 100644
   * Runs on exception stack.  Xen PV does not go through this path at all,
   * so we can use real assembly here.
 diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-index 6375967a8244..e22347681c03 100644
+index 6375967a8244dc4e6777d8ff95de1be33ea77e06..e22347681c03b49c07eaf0b7a55cfb9b3d1e709b 100644
 --- a/arch/x86/hyperv/hv_init.c
 +++ b/arch/x86/hyperv/hv_init.c
 @@ -161,6 +161,7 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_hyperv_reenlightenment)
@@ -232,7 +232,7 @@ index 6375967a8244..e22347681c03 100644
  
  void set_hv_tscchange_cb(void (*cb)(void))
 diff --git a/arch/x86/include/asm/idtentry.h b/arch/x86/include/asm/idtentry.h
-index b2442eb0ac2f..2222870fb7ab 100644
+index b2442eb0ac2f8010bdae488a715be6e67d012b0e..2222870fb7ab975d17e1085ba3e8d27e803b38fd 100644
 --- a/arch/x86/include/asm/idtentry.h
 +++ b/arch/x86/include/asm/idtentry.h
 @@ -32,7 +32,7 @@ void idtentry_exit_nmi(struct pt_regs *regs, bool irq_state);
@@ -467,7 +467,7 @@ index b2442eb0ac2f..2222870fb7ab 100644
  #endif	/* !CONFIG_X86_64 */
  
 diff --git a/arch/x86/include/asm/irq_stack.h b/arch/x86/include/asm/irq_stack.h
-index 775816965c6a..04f91986cee3 100644
+index 775816965c6ae098f249dcf83c61d131da0ced9a..04f91986cee35b4ec140ce12ab24a2141024b0f7 100644
 --- a/arch/x86/include/asm/irq_stack.h
 +++ b/arch/x86/include/asm/irq_stack.h
 @@ -12,11 +12,11 @@ static __always_inline bool irqstack_active(void)
@@ -547,7 +547,7 @@ index 775816965c6a..04f91986cee3 100644
  
  static __always_inline void
 diff --git a/arch/x86/kernel/apic/apic.c b/arch/x86/kernel/apic/apic.c
-index 113f6ca7b828..06bd0bf3ae5a 100644
+index 113f6ca7b82849fd18271f3661b78b479accc2e6..06bd0bf3ae5a49a53fdc80ca52c762d95b8434ff 100644
 --- a/arch/x86/kernel/apic/apic.c
 +++ b/arch/x86/kernel/apic/apic.c
 @@ -1098,6 +1098,7 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_apic_timer_interrupt)
@@ -581,7 +581,7 @@ index 113f6ca7b828..06bd0bf3ae5a 100644
  
  /**
 diff --git a/arch/x86/kernel/apic/vector.c b/arch/x86/kernel/apic/vector.c
-index 758bbf25ef74..a841e833f267 100644
+index 758bbf25ef748f2d4560eb146af6be2bc65831e1..a841e833f2672f1575f03fa603d684a23f6ede1f 100644
 --- a/arch/x86/kernel/apic/vector.c
 +++ b/arch/x86/kernel/apic/vector.c
 @@ -887,6 +887,7 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_irq_move_cleanup)
@@ -593,7 +593,7 @@ index 758bbf25ef74..a841e833f267 100644
  
  static void __send_cleanup_vector(struct apic_chip_data *apicd)
 diff --git a/arch/x86/kernel/cpu/acrn.c b/arch/x86/kernel/cpu/acrn.c
-index 0b2c03943ac6..b17c61c16e99 100644
+index 0b2c03943ac6b31fea3d742e5db5b379f70018c7..b17c61c16e993886527b6dc60d967daec62dd377 100644
 --- a/arch/x86/kernel/cpu/acrn.c
 +++ b/arch/x86/kernel/cpu/acrn.c
 @@ -53,6 +53,7 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_acrn_hv_callback)
@@ -605,7 +605,7 @@ index 0b2c03943ac6..b17c61c16e99 100644
  
  const __initconst struct hypervisor_x86 x86_hyper_acrn = {
 diff --git a/arch/x86/kernel/cpu/mce/amd.c b/arch/x86/kernel/cpu/mce/amd.c
-index 0c6b02dd744c..8126b080d488 100644
+index 0c6b02dd744c1424c3235035aab439d2f1d0d1b8..8126b080d4888e1e0125c0d3af35ace8e6f5635a 100644
 --- a/arch/x86/kernel/cpu/mce/amd.c
 +++ b/arch/x86/kernel/cpu/mce/amd.c
 @@ -928,6 +928,7 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_deferred_error)
@@ -617,7 +617,7 @@ index 0c6b02dd744c..8126b080d488 100644
  
  /*
 diff --git a/arch/x86/kernel/cpu/mce/core.c b/arch/x86/kernel/cpu/mce/core.c
-index 311688202ea5..e94cf10e05f7 100644
+index 311688202ea51b5104a8c9391503c6db2f9a5a9a..e94cf10e05f7012142b0e8d10ca22a4ecfa98bc6 100644
 --- a/arch/x86/kernel/cpu/mce/core.c
 +++ b/arch/x86/kernel/cpu/mce/core.c
 @@ -2030,6 +2030,7 @@ DEFINE_IDTENTRY_MCE(exc_machine_check)
@@ -645,7 +645,7 @@ index 311688202ea5..e94cf10e05f7 100644
  #endif
  
 diff --git a/arch/x86/kernel/cpu/mce/therm_throt.c b/arch/x86/kernel/cpu/mce/therm_throt.c
-index a7cd2d203ced..8e86a3baf32e 100644
+index a7cd2d203ceda64ebd711be273b97249921f1edf..8e86a3baf32e9bf9d4ebd84ade9cb8da2c24816e 100644
 --- a/arch/x86/kernel/cpu/mce/therm_throt.c
 +++ b/arch/x86/kernel/cpu/mce/therm_throt.c
 @@ -621,6 +621,7 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_thermal)
@@ -657,7 +657,7 @@ index a7cd2d203ced..8e86a3baf32e 100644
  
  /* Thermal monitoring depends on APIC, ACPI and clock modulation */
 diff --git a/arch/x86/kernel/cpu/mce/threshold.c b/arch/x86/kernel/cpu/mce/threshold.c
-index 6a059a035021..fa361a5b297a 100644
+index 6a059a035021d87a1e0dcd342663a365ed7a2ad3..fa361a5b297ac8f04a0811935268aa2fea1a91e3 100644
 --- a/arch/x86/kernel/cpu/mce/threshold.c
 +++ b/arch/x86/kernel/cpu/mce/threshold.c
 @@ -28,4 +28,5 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_threshold)
@@ -667,7 +667,7 @@ index 6a059a035021..fa361a5b297a 100644
 +	return 0;
  }
 diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
-index 6cc50ab07bde..5146b1f713e0 100644
+index 6cc50ab07bded72e50ff6900d5f150ac37eea6da..5146b1f713e0b39ae7635ec6a617cdaac3f4027d 100644
 --- a/arch/x86/kernel/cpu/mshyperv.c
 +++ b/arch/x86/kernel/cpu/mshyperv.c
 @@ -53,6 +53,7 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_hyperv_callback)
@@ -688,7 +688,7 @@ index 6cc50ab07bde..5146b1f713e0 100644
  int hv_setup_stimer0_irq(int *irq, int *vector, void (*handler)(void))
 diff --git a/arch/x86/kernel/dtrace_fbt.c b/arch/x86/kernel/dtrace_fbt.c
 new file mode 100644
-index 000000000000..52ff3f49d101
+index 0000000000000000000000000000000000000000..52ff3f49d101cdcfc0bf58acbfd3e121f914ca8f
 --- /dev/null
 +++ b/arch/x86/kernel/dtrace_fbt.c
 @@ -0,0 +1,177 @@
@@ -871,7 +871,7 @@ index 000000000000..52ff3f49d101
 +EXPORT_SYMBOL(dtrace_fbt_init);
 diff --git a/arch/x86/kernel/fbt_blacklist.h b/arch/x86/kernel/fbt_blacklist.h
 new file mode 100644
-index 000000000000..2e1ce2a90c86
+index 0000000000000000000000000000000000000000..2e1ce2a90c86ca041e89ab83fcf51dfd77e433f6
 --- /dev/null
 +++ b/arch/x86/kernel/fbt_blacklist.h
 @@ -0,0 +1,95 @@
@@ -971,7 +971,7 @@ index 000000000000..2e1ce2a90c86
 +BL_DENTRY(void *, radix_tree_descend)
 +BL_DENTRY(void *, is_sibling_entry)
 diff --git a/arch/x86/kernel/irq.c b/arch/x86/kernel/irq.c
-index c5dd50369e2f..b80211006fb2 100644
+index c5dd50369e2f3394bc483b8744ace94eaaea552b..b80211006fb2e13b0f8f0dbdab93f9868025e1d3 100644
 --- a/arch/x86/kernel/irq.c
 +++ b/arch/x86/kernel/irq.c
 @@ -260,6 +260,7 @@ DEFINE_IDTENTRY_IRQ(common_interrupt)
@@ -1015,7 +1015,7 @@ index c5dd50369e2f..b80211006fb2 100644
  #endif
  
 diff --git a/arch/x86/kernel/irq_work.c b/arch/x86/kernel/irq_work.c
-index 890d4778cd35..ac74998e2faa 100644
+index 890d4778cd352c69866464001e5ee16f414bf621..ac74998e2faa3a587d46dce272f678a3524fd74e 100644
 --- a/arch/x86/kernel/irq_work.c
 +++ b/arch/x86/kernel/irq_work.c
 @@ -21,6 +21,7 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_irq_work)
@@ -1027,7 +1027,7 @@ index 890d4778cd35..ac74998e2faa 100644
  
  void arch_irq_work_raise(void)
 diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
-index 7f57ede3cb8e..07ea0a6336e9 100644
+index 7f57ede3cb8e73b3fc3eb0586c1337d7c2658254..07ea0a6336e9e5a668f546810b69af4096181234 100644
 --- a/arch/x86/kernel/kvm.c
 +++ b/arch/x86/kernel/kvm.c
 @@ -285,6 +285,7 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_kvm_asyncpf_interrupt)
@@ -1039,7 +1039,7 @@ index 7f57ede3cb8e..07ea0a6336e9 100644
  
  static void __init paravirt_ops_setup(void)
 diff --git a/arch/x86/kernel/nmi.c b/arch/x86/kernel/nmi.c
-index 4bc77aaf1303..c3c8eec1a597 100644
+index 4bc77aaf1303974753bc8ea87c678357e61325d5..c3c8eec1a597aab3320e2daa514ff60edaf51b51 100644
 --- a/arch/x86/kernel/nmi.c
 +++ b/arch/x86/kernel/nmi.c
 @@ -484,11 +484,11 @@ DEFINE_IDTENTRY_RAW(exc_nmi)
@@ -1065,7 +1065,7 @@ index 4bc77aaf1303..c3c8eec1a597 100644
  
  void stop_nmi(void)
 diff --git a/arch/x86/kernel/sev-es.c b/arch/x86/kernel/sev-es.c
-index 84c1821819af..536e85e4932d 100644
+index 84c1821819afb8fb3da3b09b8d429930bd1d4da3..536e85e4932dd53d460a6ae3558c5f4d21b6f1e3 100644
 --- a/arch/x86/kernel/sev-es.c
 +++ b/arch/x86/kernel/sev-es.c
 @@ -1260,7 +1260,7 @@ DEFINE_IDTENTRY_VC_SAFE_STACK(exc_vmm_communication)
@@ -1103,7 +1103,7 @@ index 84c1821819af..536e85e4932d 100644
  
  bool __init handle_vc_boot_ghcb(struct pt_regs *regs)
 diff --git a/arch/x86/kernel/smp.c b/arch/x86/kernel/smp.c
-index eff4ce3b10da..2b3046a5b07e 100644
+index eff4ce3b10da7185cb770e35b6006516e72830db..2b3046a5b07e11d23e88bd6280d6a0480ddfe15f 100644
 --- a/arch/x86/kernel/smp.c
 +++ b/arch/x86/kernel/smp.c
 @@ -136,6 +136,7 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_reboot)
@@ -1139,7 +1139,7 @@ index eff4ce3b10da..2b3046a5b07e 100644
  
  static int __init nonmi_ipi_setup(char *str)
 diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index 170c94ec0068..39f2ab128cc7 100644
+index 170c94ec00685de0348f39e8f1087f9e7f119fed..39f2ab128cc7b39083c457985910f824a27805c7 100644
 --- a/arch/x86/kernel/traps.c
 +++ b/arch/x86/kernel/traps.c
 @@ -166,17 +166,20 @@ do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
@@ -1466,7 +1466,7 @@ index 170c94ec0068..39f2ab128cc7 100644
  #endif
  
 diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 5b16183100d0..d5b9734946c3 100644
+index 5b16183100d07fb85d26163b11694097b774a751..d5b9734946c3b77b3451f338a37f6602cee67447 100644
 --- a/arch/x86/mm/fault.c
 +++ b/arch/x86/mm/fault.c
 @@ -1493,7 +1493,7 @@ DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_fault)
@@ -1485,7 +1485,7 @@ index 5b16183100d0..d5b9734946c3 100644
 +	return 0;
  }
 diff --git a/arch/x86/xen/enlighten_hvm.c b/arch/x86/xen/enlighten_hvm.c
-index ec50b7423a4c..1c4b08f2dc3b 100644
+index ec50b7423a4c8609118f3f6f1ee67aa9dd238b31..1c4b08f2dc3b43619359fa72b708f87d89b9609c 100644
 --- a/arch/x86/xen/enlighten_hvm.c
 +++ b/arch/x86/xen/enlighten_hvm.c
 @@ -129,6 +129,7 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_xen_hvm_callback)
@@ -1497,7 +1497,7 @@ index ec50b7423a4c..1c4b08f2dc3b 100644
  
  #ifdef CONFIG_KEXEC_CORE
 diff --git a/arch/x86/xen/enlighten_pv.c b/arch/x86/xen/enlighten_pv.c
-index 4409306364dc..080702bf757b 100644
+index 4409306364dc3cd5c774ee190efe83a6079a9cc2..080702bf757bb1d9de12d1670a8f6a6a4e140ea8 100644
 --- a/arch/x86/xen/enlighten_pv.c
 +++ b/arch/x86/xen/enlighten_pv.c
 @@ -563,12 +563,12 @@ static void xen_write_ldt_entry(struct desc_struct *dt, int entrynum,
@@ -1529,7 +1529,7 @@ index 4409306364dc..080702bf757b 100644
  struct trap_array_entry {
 diff --git a/include/linux/dtrace_fbt.h b/include/linux/dtrace_fbt.h
 new file mode 100644
-index 000000000000..d11e273cee31
+index 0000000000000000000000000000000000000000..d11e273cee317949ba85e954e4c0ead42e52b115
 --- /dev/null
 +++ b/include/linux/dtrace_fbt.h
 @@ -0,0 +1,48 @@
@@ -1582,7 +1582,7 @@ index 000000000000..d11e273cee31
 +
 +#endif /* _LINUX_DTRACE_FBT_H */
 diff --git a/kernel/dtrace/Kconfig b/kernel/dtrace/Kconfig
-index 6bf6620981cd..1f070e49c69f 100644
+index 6bf6620981cd14bcc64cd0f7f71b499e478ea31e..1f070e49c69f107cfa4c940ae47ab3a72622f8f7 100644
 --- a/kernel/dtrace/Kconfig
 +++ b/kernel/dtrace/Kconfig
 @@ -55,6 +55,13 @@ config DT_SDT_PERF
@@ -1600,7 +1600,7 @@ index 6bf6620981cd..1f070e49c69f 100644
  	tristate "System Call Tracing"
  	default m
 diff --git a/kernel/dtrace/Makefile b/kernel/dtrace/Makefile
-index 06329cbe52cb..0e5fb34b7b47 100644
+index 06329cbe52cbfbd96c23e6838fc99e53cc5ec5d6..0e5fb34b7b478af215c24a57003c3988ee7a43fa 100644
 --- a/kernel/dtrace/Makefile
 +++ b/kernel/dtrace/Makefile
 @@ -4,11 +4,11 @@
@@ -1619,7 +1619,7 @@ index 06329cbe52cb..0e5fb34b7b47 100644
  endif
 diff --git a/kernel/dtrace/dtrace_fbt_core.c b/kernel/dtrace/dtrace_fbt_core.c
 new file mode 100644
-index 000000000000..67182a3b13fc
+index 0000000000000000000000000000000000000000..67182a3b13fcd9cd0b6c81167ae502bbde181f4a
 --- /dev/null
 +++ b/kernel/dtrace/dtrace_fbt_core.c
 @@ -0,0 +1,125 @@
@@ -1749,7 +1749,7 @@ index 000000000000..67182a3b13fc
 +	return entry->dfbe_name;
 +}
 diff --git a/kernel/dtrace/dtrace_os.c b/kernel/dtrace/dtrace_os.c
-index 874e097b84fd..bb5650cf72eb 100644
+index 874e097b84fd4b517cdb1e867a4b9d9ff2504078..bb5650cf72ebf9177d7e2d87eabf3d849e60cd76 100644
 --- a/kernel/dtrace/dtrace_os.c
 +++ b/kernel/dtrace/dtrace_os.c
 @@ -18,6 +18,7 @@
@@ -1769,7 +1769,7 @@ index 874e097b84fd..bb5650cf72eb 100644
  	atomic_inc(&dtrace_kmod->refcnt);
  
 diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index 41fdbb7953c6..b702c7c484e7 100644
+index 41fdbb7953c60f878049b2a5807abb4aecf95320..b702c7c484e7710d2b8501f75cd83a0fb3f7775d 100644
 --- a/kernel/kprobes.c
 +++ b/kernel/kprobes.c
 @@ -38,6 +38,10 @@
@@ -1795,5 +1795,5 @@ index 41fdbb7953c6..b702c7c484e7 100644
  	if (!ent)
  		return -ENOMEM;
 -- 
-2.30.0
+2.30.1
 

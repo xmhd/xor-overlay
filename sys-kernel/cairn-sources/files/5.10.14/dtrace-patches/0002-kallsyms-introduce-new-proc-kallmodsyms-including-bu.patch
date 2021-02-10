@@ -70,7 +70,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  9 files changed, 466 insertions(+), 74 deletions(-)
 
 diff --git a/Makefile b/Makefile
-index e94e5bfc9c4f..c21d2a09c9ca 100644
+index e94e5bfc9c4f5d9c64c08c83d877c2c9394bc2c7..c21d2a09c9ca1419369295c2d29535e37135e6a4 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1406,7 +1406,7 @@ modules.order: $(subdir-modorder) FORCE
@@ -83,7 +83,7 @@ index e94e5bfc9c4f..c21d2a09c9ca 100644
  # We need to force everything to be built, since we need the .o files below.
  KBUILD_BUILTIN := 1
 diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
-index 481273f0c72d..1246b75f5c57 100644
+index 481273f0c72d4256979ee0ba2b02a4b9629f4497..1246b75f5c5798177cb18d100c2faa60399ef5a9 100644
 --- a/include/linux/kallsyms.h
 +++ b/include/linux/kallsyms.h
 @@ -8,6 +8,7 @@
@@ -129,7 +129,7 @@ index 481273f0c72d..1246b75f5c57 100644
  
  static inline unsigned long kallsyms_lookup_name(const char *name)
 diff --git a/include/linux/module.h b/include/linux/module.h
-index 6264617bab4d..d44fe50d7c7f 100644
+index 6264617bab4d46c542f86803a860d5a0a51c6214..d44fe50d7c7fec29c95e8b07865201410216d9d3 100644
 --- a/include/linux/module.h
 +++ b/include/linux/module.h
 @@ -599,7 +599,8 @@ struct symsearch {
@@ -154,7 +154,7 @@ index 6264617bab4d..d44fe50d7c7f 100644
  	return -ERANGE;
  }
 diff --git a/init/Kconfig b/init/Kconfig
-index 0872a5a2e759..05d377ccc0e0 100644
+index 0872a5a2e7590c0ade132f624af8d6e39de61544..05d377ccc0e08c27391242886bbd8904a17b4ef4 100644
 --- a/init/Kconfig
 +++ b/init/Kconfig
 @@ -1472,6 +1472,16 @@ config POSIX_TIMERS
@@ -175,7 +175,7 @@ index 0872a5a2e759..05d377ccc0e0 100644
  	default y
  	bool "Enable support for printk" if EXPERT
 diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
-index fe9de067771c..7371f8f9cf74 100644
+index fe9de067771c34eb89d021df40579c38d8974298..7371f8f9cf74cba744f525f78dffb0175bece48d 100644
 --- a/kernel/kallsyms.c
 +++ b/kernel/kallsyms.c
 @@ -33,6 +33,7 @@
@@ -523,7 +523,7 @@ index fe9de067771c..7371f8f9cf74 100644
  }
  device_initcall(kallsyms_init);
 diff --git a/kernel/module.c b/kernel/module.c
-index e20499309b2a..9e471dbedc83 100644
+index e20499309b2af6aca7cafcf95962b94065d4fe83..9e471dbedc83a1a080612bf4f4ffabf09f3b8aa8 100644
 --- a/kernel/module.c
 +++ b/kernel/module.c
 @@ -4241,7 +4241,8 @@ int lookup_module_symbol_attrs(unsigned long addr, unsigned long *size,
@@ -545,7 +545,7 @@ index e20499309b2a..9e471dbedc83 100644
  			return 0;
  		}
 diff --git a/scripts/Makefile b/scripts/Makefile
-index 041bcf48cc5c..efa1ff4dff95 100644
+index 041bcf48cc5c7613d072cf50eae142a21d31153e..efa1ff4dff951222a8c98326c29f2146d7e4c587 100644
 --- a/scripts/Makefile
 +++ b/scripts/Makefile
 @@ -12,6 +12,16 @@ hostprogs-always-$(CONFIG_MODULE_SIG_FORMAT)		+= sign-file
@@ -566,7 +566,7 @@ index 041bcf48cc5c..efa1ff4dff95 100644
  HOSTCFLAGS_asn1_compiler.o = -I$(srctree)/include
  HOSTLDLIBS_sign-file = -lcrypto
 diff --git a/scripts/kallsyms.c b/scripts/kallsyms.c
-index 7ecd2ccba531..884ac793bdf4 100644
+index 7ecd2ccba531bb4c46a01b4ecad7ea8078f29027..884ac793bdf417a34060a95f4239034680e09ea9 100644
 --- a/scripts/kallsyms.c
 +++ b/scripts/kallsyms.c
 @@ -5,7 +5,10 @@
@@ -991,7 +991,7 @@ index 7ecd2ccba531..884ac793bdf4 100644
  	shrink_table();
  	if (absolute_percpu)
 diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index 6eded325c837..bc533252fa3c 100755
+index 6eded325c8378c8cff94c379a180060c0b154ec4..bc533252fa3c39482a870654036caf3897946123 100755
 --- a/scripts/link-vmlinux.sh
 +++ b/scripts/link-vmlinux.sh
 @@ -109,6 +109,7 @@ vmlinux_link()
@@ -1046,5 +1046,5 @@ index 6eded325c837..bc533252fa3c 100755
  
  # Perform one step in kallsyms generation, including temporary linking of
 -- 
-2.30.0
+2.30.1
 

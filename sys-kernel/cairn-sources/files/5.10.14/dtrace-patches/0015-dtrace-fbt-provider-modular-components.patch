@@ -27,7 +27,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100644 dtrace/fbt_mod.c
 
 diff --git a/arch/x86/dtrace/Makefile.arch b/arch/x86/dtrace/Makefile.arch
-index e4655557e06a..906fa8c7e17c 100644
+index e4655557e06ad7524677b9f3b0909f248d5a1c8b..906fa8c7e17c02958fa19a5e33d043a92109c4fa 100644
 --- a/arch/x86/dtrace/Makefile.arch
 +++ b/arch/x86/dtrace/Makefile.arch
 @@ -8,8 +8,10 @@ ccflags-y	+= -I$(srctree)/arch/x86/dtrace/include -Idtrace
@@ -43,7 +43,7 @@ index e4655557e06a..906fa8c7e17c 100644
  sdt-y		+= $(addprefix $(DTARCHDIR)/, $(sdt-obj))
 diff --git a/arch/x86/dtrace/fbt_x86_64.c b/arch/x86/dtrace/fbt_x86_64.c
 new file mode 100644
-index 000000000000..a8a05292be7e
+index 0000000000000000000000000000000000000000..a8a05292be7e1f876d0971c133db9436f31a5eab
 --- /dev/null
 +++ b/arch/x86/dtrace/fbt_x86_64.c
 @@ -0,0 +1,156 @@
@@ -205,7 +205,7 @@ index 000000000000..a8a05292be7e
 +}
 diff --git a/arch/x86/dtrace/include/dtrace/fbt_arch.h b/arch/x86/dtrace/include/dtrace/fbt_arch.h
 new file mode 100644
-index 000000000000..7e90b2b75bba
+index 0000000000000000000000000000000000000000..7e90b2b75bba0c2d45aab458af7d9f7e8e923d06
 --- /dev/null
 +++ b/arch/x86/dtrace/include/dtrace/fbt_arch.h
 @@ -0,0 +1,42 @@
@@ -252,7 +252,7 @@ index 000000000000..7e90b2b75bba
 +
 +#endif /* _X86_64_FBT_ARCH_H */
 diff --git a/dtrace/Makefile b/dtrace/Makefile
-index c7e3fc512a6c..35b8b098123f 100644
+index c7e3fc512a6c7cdc40f9e3343e3cd98bec674b68..35b8b098123ff254e99c3962d1c1854202c7f623 100644
 --- a/dtrace/Makefile
 +++ b/dtrace/Makefile
 @@ -4,6 +4,7 @@
@@ -273,7 +273,7 @@ index c7e3fc512a6c..35b8b098123f 100644
  systrace-y			:= systrace_mod.o systrace_dev.o
 diff --git a/dtrace/fbt_dev.c b/dtrace/fbt_dev.c
 new file mode 100644
-index 000000000000..281fd749aae7
+index 0000000000000000000000000000000000000000..281fd749aae7951b09fc2a44e5c2110eec33bc66
 --- /dev/null
 +++ b/dtrace/fbt_dev.c
 @@ -0,0 +1,281 @@
@@ -560,7 +560,7 @@ index 000000000000..281fd749aae7
 +}
 diff --git a/dtrace/fbt_impl.h b/dtrace/fbt_impl.h
 new file mode 100644
-index 000000000000..85f83e704988
+index 0000000000000000000000000000000000000000..85f83e704988c952ab3552ac06d74982fbf34657
 --- /dev/null
 +++ b/dtrace/fbt_impl.h
 @@ -0,0 +1,52 @@
@@ -618,7 +618,7 @@ index 000000000000..85f83e704988
 +#endif /* _FBT_H_ */
 diff --git a/dtrace/fbt_mod.c b/dtrace/fbt_mod.c
 new file mode 100644
-index 000000000000..3da13d71809d
+index 0000000000000000000000000000000000000000..3da13d71809dcaa907c4473e38047aea1c9f877d
 --- /dev/null
 +++ b/dtrace/fbt_mod.c
 @@ -0,0 +1,56 @@
@@ -679,5 +679,5 @@ index 000000000000..3da13d71809d
 +
 +DT_PROVIDER_MODULE(fbt, DTRACE_PRIV_KERNEL)
 -- 
-2.30.0
+2.30.1
 

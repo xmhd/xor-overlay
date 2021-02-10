@@ -72,7 +72,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100644 scripts/kmodsdt.c
 
 diff --git a/.gitignore b/.gitignore
-index 1c10cd7ce033..13954b4624a9 100644
+index 1c10cd7ce03399a97367d56dbefd66dea1823859..13954b4624a9009197acbd538f654dbdf54affde 100644
 --- a/.gitignore
 +++ b/.gitignore
 @@ -158,3 +158,9 @@ x509.genkey
@@ -86,7 +86,7 @@ index 1c10cd7ce033..13954b4624a9 100644
 +*.sdtinfo.h
 +*.sdtstub.S
 diff --git a/Makefile b/Makefile
-index 4b25be692ac1..e3f113b64681 100644
+index 4b25be692ac15ae9f6eb52c4a5f135da70598b05..e3f113b646818a2250cb6a14203b12e3b38ce26c 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1883,6 +1883,7 @@ clean: $(clean-dirs)
@@ -99,7 +99,7 @@ index 4b25be692ac1..e3f113b64681 100644
  		-o -name '*.asn1.[ch]' \
 diff --git a/arch/x86/dtrace/include/dtrace/sdt_arch.h b/arch/x86/dtrace/include/dtrace/sdt_arch.h
 new file mode 100644
-index 000000000000..d8616b44079b
+index 0000000000000000000000000000000000000000..d8616b44079b57f41466cea603ecc7b9be0d13e6
 --- /dev/null
 +++ b/arch/x86/dtrace/include/dtrace/sdt_arch.h
 @@ -0,0 +1,28 @@
@@ -132,7 +132,7 @@ index 000000000000..d8616b44079b
 +
 +#endif /* _X86_64_SDT_ARCH_H */
 diff --git a/arch/x86/include/asm/dtrace_arch.h b/arch/x86/include/asm/dtrace_arch.h
-index 74e27f08a873..88beb8e4db0b 100644
+index 74e27f08a873c9cd3ed329d911e8e18505ae5b62..88beb8e4db0b545085974560a9383a703bb5a790 100644
 --- a/arch/x86/include/asm/dtrace_arch.h
 +++ b/arch/x86/include/asm/dtrace_arch.h
 @@ -12,16 +12,22 @@
@@ -161,7 +161,7 @@ index 74e27f08a873..88beb8e4db0b 100644
  
 diff --git a/arch/x86/include/asm/dtrace_sdt_arch.h b/arch/x86/include/asm/dtrace_sdt_arch.h
 new file mode 100644
-index 000000000000..59f57cb489ab
+index 0000000000000000000000000000000000000000..59f57cb489abd5499bdf3a1ab5961181623aa789
 --- /dev/null
 +++ b/arch/x86/include/asm/dtrace_sdt_arch.h
 @@ -0,0 +1,11 @@
@@ -177,7 +177,7 @@ index 000000000000..59f57cb489ab
 +
 +#endif /* _X86_DTRACE_SDT_ARCH_H */
 diff --git a/arch/x86/include/asm/dtrace_util.h b/arch/x86/include/asm/dtrace_util.h
-index 4d9843bbc95b..ce28bf42a59d 100644
+index 4d9843bbc95b92dcc3c20d4aa1d2b762b7376d91..ce28bf42a59daeeb9070a42c37e98cb5519ad814 100644
 --- a/arch/x86/include/asm/dtrace_util.h
 +++ b/arch/x86/include/asm/dtrace_util.h
 @@ -6,11 +6,24 @@
@@ -206,7 +206,7 @@ index 4d9843bbc95b..ce28bf42a59d 100644
  
  #endif /* _X86_DTRACE_UTIL_H */
 diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index 5b6bc7016c22..79e017f90c60 100644
+index 5b6bc7016c223e7496fc2645ae8b3434ef83b96b..79e017f90c6040c6927ab0f2485ba45b0401b1bd 100644
 --- a/arch/x86/include/asm/spinlock.h
 +++ b/arch/x86/include/asm/spinlock.h
 @@ -9,6 +9,7 @@
@@ -218,7 +218,7 @@ index 5b6bc7016c22..79e017f90c60 100644
  /*
   * Your basic SMP spinlocks, allowing only a single CPU anywhere
 diff --git a/arch/x86/include/asm/text-patching.h b/arch/x86/include/asm/text-patching.h
-index b7421780e4e9..127a59c41e6d 100644
+index b7421780e4e92959689646cb425485c9deeabfc3..127a59c41e6d51f4bea3297403e9481e923955e4 100644
 --- a/arch/x86/include/asm/text-patching.h
 +++ b/arch/x86/include/asm/text-patching.h
 @@ -25,6 +25,7 @@ static inline void apply_paravirt(struct paravirt_patch_site *start,
@@ -230,7 +230,7 @@ index b7421780e4e9..127a59c41e6d 100644
  
  /*
 diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
-index 2400ad62f330..389c3870ce48 100644
+index 2400ad62f330b9f518b3bcfa3462f5fd2e659e78..389c3870ce48534b92c76d3b9fce606394755160 100644
 --- a/arch/x86/kernel/alternative.c
 +++ b/arch/x86/kernel/alternative.c
 @@ -256,7 +256,7 @@ void __init arch_init_ideal_nops(void)
@@ -244,7 +244,7 @@ index 2400ad62f330..389c3870ce48 100644
  		unsigned int noplen = len;
 diff --git a/arch/x86/kernel/dtrace_sdt.c b/arch/x86/kernel/dtrace_sdt.c
 new file mode 100644
-index 000000000000..31bb962573fb
+index 0000000000000000000000000000000000000000..31bb962573fb15443a2e5d4a7fbb0516cad29262
 --- /dev/null
 +++ b/arch/x86/kernel/dtrace_sdt.c
 @@ -0,0 +1,76 @@
@@ -325,7 +325,7 @@ index 000000000000..31bb962573fb
 +	add_nops(movs + 3, ASM_CALL_SIZE - 3);
 +}
 diff --git a/arch/x86/kernel/dtrace_util.c b/arch/x86/kernel/dtrace_util.c
-index d3d552c062f7..f138fd62f555 100644
+index d3d552c062f7ea425567cdb867b31f65d0242cac..f138fd62f555c8d6b3599287b18846fe8017db53 100644
 --- a/arch/x86/kernel/dtrace_util.c
 +++ b/arch/x86/kernel/dtrace_util.c
 @@ -61,6 +61,13 @@ void dtrace_handle_badaddr(struct pt_regs *regs)
@@ -574,7 +574,7 @@ index d3d552c062f7..f138fd62f555 100644
  {
  	unsigned long	dummy;
 diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-index bf9e0adb5b7e..970b6cd011f6 100644
+index bf9e0adb5b7ec25fd078fcf85f4c2c38f409175d..970b6cd011f69e33dcefeb4e5efa4214ab32467f 100644
 --- a/arch/x86/kernel/vmlinux.lds.S
 +++ b/arch/x86/kernel/vmlinux.lds.S
 @@ -473,7 +473,8 @@ INIT_PER_CPU(irq_stack_backing_store);
@@ -588,7 +588,7 @@ index bf9e0adb5b7e..970b6cd011f6 100644
  
  #ifdef CONFIG_SMP
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index b2b3d81b1535..7d1517f97db2 100644
+index b2b3d81b1535a5abbf6803f3dfbb29058a979bc4..7d1517f97db21f0821d5dedc866a40dc71865453 100644
 --- a/include/asm-generic/vmlinux.lds.h
 +++ b/include/asm-generic/vmlinux.lds.h
 @@ -214,6 +214,20 @@
@@ -622,7 +622,7 @@ index b2b3d81b1535..7d1517f97db2 100644
  	MEM_DISCARD(init.rodata)					\
  	CLK_OF_TABLES()							\
 diff --git a/include/linux/dtrace_os.h b/include/linux/dtrace_os.h
-index 5bcd77e08a14..f2921ce039a7 100644
+index 5bcd77e08a14e8502cbadb53004dbbeb711dc953..f2921ce039a76dd29f93c8183073b8d750681fe6 100644
 --- a/include/linux/dtrace_os.h
 +++ b/include/linux/dtrace_os.h
 @@ -25,6 +25,9 @@ extern void __init dtrace_os_init(void);
@@ -637,7 +637,7 @@ index 5bcd77e08a14..f2921ce039a7 100644
  extern int dtrace_destroy_prov(struct module *);
 diff --git a/include/linux/dtrace_sdt.h b/include/linux/dtrace_sdt.h
 new file mode 100644
-index 000000000000..3a4d608bc3fa
+index 0000000000000000000000000000000000000000..3a4d608bc3fa3de46fded719352e12e9b2f9f2f0
 --- /dev/null
 +++ b/include/linux/dtrace_sdt.h
 @@ -0,0 +1,32 @@
@@ -674,7 +674,7 @@ index 000000000000..3a4d608bc3fa
 +#endif	/* CONFIG_DTRACE */
 +#endif	/* _DTRACE_SDT_H_ */
 diff --git a/include/linux/module.h b/include/linux/module.h
-index 44915ed85337..7abbaeb5d659 100644
+index 44915ed85337f8ef9931afaee5b78f9961ac112e..7abbaeb5d659fa3711c0cd845219366894152ffc 100644
 --- a/include/linux/module.h
 +++ b/include/linux/module.h
 @@ -30,6 +30,8 @@
@@ -700,7 +700,7 @@ index 44915ed85337..7abbaeb5d659 100644
  	struct list_head source_list;
 diff --git a/include/linux/sdt.h b/include/linux/sdt.h
 new file mode 100644
-index 000000000000..8efb63cff1ac
+index 0000000000000000000000000000000000000000..8efb63cff1ac608f809fe8f4dc55409099d23543
 --- /dev/null
 +++ b/include/linux/sdt.h
 @@ -0,0 +1,191 @@
@@ -897,7 +897,7 @@ index 000000000000..8efb63cff1ac
 +#endif	/* _LINUX_SDT_H_ */
 diff --git a/include/linux/sdt_internal.h b/include/linux/sdt_internal.h
 new file mode 100644
-index 000000000000..b544f8e619cf
+index 0000000000000000000000000000000000000000..b544f8e619cff9052620af1ec4f1478032c98d66
 --- /dev/null
 +++ b/include/linux/sdt_internal.h
 @@ -0,0 +1,276 @@
@@ -1178,7 +1178,7 @@ index 000000000000..b544f8e619cf
 +
 +#endif	/* _LINUX_SDT_INTERNAL_H */
 diff --git a/include/linux/tracepoint.h b/include/linux/tracepoint.h
-index 0f21617f1a66..e847bbafd123 100644
+index 0f21617f1a6689395d9caa86d8d2982ef9a3ea84..e847bbafd1234695a78008b77aa8d8740d21d0a0 100644
 --- a/include/linux/tracepoint.h
 +++ b/include/linux/tracepoint.h
 @@ -20,6 +20,7 @@
@@ -1211,7 +1211,7 @@ index 0f21617f1a66..e847bbafd123 100644
  	{ }								\
  	static inline int						\
 diff --git a/kernel/dtrace/Kconfig b/kernel/dtrace/Kconfig
-index d04ca0ab7ac9..c1ec55d8750e 100644
+index d04ca0ab7ac9c14f4450927423b30784311a3cbd..c1ec55d8750edfbaf55ab9431b7c822b3dd2afae 100644
 --- a/kernel/dtrace/Kconfig
 +++ b/kernel/dtrace/Kconfig
 @@ -23,6 +23,22 @@ config DT_CORE
@@ -1238,7 +1238,7 @@ index d04ca0ab7ac9..c1ec55d8750e 100644
  	tristate "System Call Tracing"
  	default m
 diff --git a/kernel/dtrace/Makefile b/kernel/dtrace/Makefile
-index 68fc3861e5d1..06329cbe52cb 100644
+index 68fc3861e5d1175006494f12758ff1f0304d10fa..06329cbe52cbfbd96c23e6838fc99e53cc5ec5d6 100644
 --- a/kernel/dtrace/Makefile
 +++ b/kernel/dtrace/Makefile
 @@ -4,10 +4,11 @@
@@ -1255,7 +1255,7 @@ index 68fc3861e5d1..06329cbe52cb 100644
  				   $(DT_CORE_ARCH_OBJS)
  endif
 diff --git a/kernel/dtrace/dtrace_os.c b/kernel/dtrace/dtrace_os.c
-index d023f3913323..931cfd0d0fbf 100644
+index d023f3913323b42678aee5a7467a4b39c378c8cc..931cfd0d0fbfc05c7670f4c01f1cfef140dbf408 100644
 --- a/kernel/dtrace/dtrace_os.c
 +++ b/kernel/dtrace/dtrace_os.c
 @@ -19,6 +19,7 @@
@@ -1365,7 +1365,7 @@ index d023f3913323..931cfd0d0fbf 100644
   * MODULE SUPPORT FUNCTIONS
 diff --git a/kernel/dtrace/dtrace_sdt_core.c b/kernel/dtrace/dtrace_sdt_core.c
 new file mode 100644
-index 000000000000..90b86726f195
+index 0000000000000000000000000000000000000000..90b86726f195ff4a917c8f73ebb4bfa99fd669c6
 --- /dev/null
 +++ b/kernel/dtrace/dtrace_sdt_core.c
 @@ -0,0 +1,364 @@
@@ -1734,7 +1734,7 @@ index 000000000000..90b86726f195
 +EXPORT_SYMBOL(dtrace_sdt_perf);
 +#endif
 diff --git a/kernel/module.c b/kernel/module.c
-index f4269dabc638..2f214881ae30 100644
+index f4269dabc63837a9055eeed1bab211e30422413e..2f214881ae30de2bfc913db89e618e3446e89cb3 100644
 --- a/kernel/module.c
 +++ b/kernel/module.c
 @@ -40,6 +40,7 @@
@@ -1773,7 +1773,7 @@ index f4269dabc638..2f214881ae30 100644
  
  	/* Find duplicate symbols (must be called under lock). */
 diff --git a/scripts/.gitignore b/scripts/.gitignore
-index a6c11316c969..8458568004eb 100644
+index a6c11316c9696751b12e3f0b9157d58a8233f613..8458568004eb7b30b825bea7e6d8b9efd5eb3309 100644
 --- a/scripts/.gitignore
 +++ b/scripts/.gitignore
 @@ -9,3 +9,4 @@ extract-cert
@@ -1782,7 +1782,7 @@ index a6c11316c969..8458568004eb 100644
  /module.lds
 +kmodsdt
 diff --git a/scripts/Makefile b/scripts/Makefile
-index efa1ff4dff95..509a73b6f269 100644
+index efa1ff4dff951222a8c98326c29f2146d7e4c587..509a73b6f2697e945c01cfb21785c7646a8f1142 100644
 --- a/scripts/Makefile
 +++ b/scripts/Makefile
 @@ -11,6 +11,7 @@ hostprogs-always-$(CONFIG_ASN1)				+= asn1_compiler
@@ -1806,7 +1806,7 @@ index efa1ff4dff95..509a73b6f269 100644
  hostprogs += unifdef
  
 diff --git a/scripts/Makefile.modfinal b/scripts/Makefile.modfinal
-index 920545d75da9..50c464f248ef 100644
+index 920545d75da9b3248ef47ff1cdc81c981d3637ba..50c464f248ef7318d089de8719d9766b5964e11a 100644
 --- a/scripts/Makefile.modfinal
 +++ b/scripts/Makefile.modfinal
 @@ -2,7 +2,7 @@
@@ -1902,7 +1902,7 @@ index 920545d75da9..50c464f248ef 100644
  
 diff --git a/scripts/dtrace_sdt.sh b/scripts/dtrace_sdt.sh
 new file mode 100755
-index 000000000000..2dd7ea1aebd8
+index 0000000000000000000000000000000000000000..2dd7ea1aebd8fed2d5632f438a4e406c91906520
 --- /dev/null
 +++ b/scripts/dtrace_sdt.sh
 @@ -0,0 +1,588 @@
@@ -2496,7 +2496,7 @@ index 000000000000..2dd7ea1aebd8
 +exit $?
 diff --git a/scripts/kmodsdt.c b/scripts/kmodsdt.c
 new file mode 100644
-index 000000000000..1e35794467d7
+index 0000000000000000000000000000000000000000..1e35794467d75ea0fd8e324eac97223fd3dc2ce5
 --- /dev/null
 +++ b/scripts/kmodsdt.c
 @@ -0,0 +1,410 @@
@@ -2911,7 +2911,7 @@ index 000000000000..1e35794467d7
 +	exit(0);
 +}
 diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index bc533252fa3c..0b2f3bb60936 100755
+index bc533252fa3c39482a870654036caf3897946123..0b2f3bb60936f81449de21f296bdaddd466c9569 100755
 --- a/scripts/link-vmlinux.sh
 +++ b/scripts/link-vmlinux.sh
 @@ -43,6 +43,34 @@ info()
@@ -3057,7 +3057,7 @@ index bc533252fa3c..0b2f3bb60936 100755
  # fill in BTF IDs
  if [ -n "${CONFIG_DEBUG_INFO_BTF}" -a -n "${CONFIG_BPF}" ]; then
 diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index f882ce0d9327..ceeb69afc209 100644
+index f882ce0d9327f857049e914196b2e03c38dea9b1..ceeb69afc2091694194d42a93693ff081f7b87fe 100644
 --- a/scripts/mod/modpost.c
 +++ b/scripts/mod/modpost.c
 @@ -2183,7 +2183,9 @@ static int check_exports(struct module *mod)
@@ -3108,5 +3108,5 @@ index f882ce0d9327..ceeb69afc209 100644
  }
  
 -- 
-2.30.0
+2.30.1
 

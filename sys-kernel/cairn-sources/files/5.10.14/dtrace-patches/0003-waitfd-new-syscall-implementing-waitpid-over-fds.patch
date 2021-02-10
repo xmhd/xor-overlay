@@ -108,7 +108,7 @@ Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
  create mode 100644 tools/testing/selftests/waitfd/waitfd.c
 
 diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index 0d0667a9fbd7..5605708e4c31 100644
+index 0d0667a9fbd70aeb9e297342b9f855a457d45ea4..5605708e4c31f920411aec2682d7c0d17271054f 100644
 --- a/arch/x86/entry/syscalls/syscall_32.tbl
 +++ b/arch/x86/entry/syscalls/syscall_32.tbl
 @@ -445,3 +445,6 @@
@@ -119,7 +119,7 @@ index 0d0667a9fbd7..5605708e4c31 100644
 +# Nothing but DTrace should use it.
 +473	i386	waitfd			sys_waitfd
 diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-index 379819244b91..4f4e0585c65f 100644
+index 379819244b91d275b2c98f7ff38a59049c24b42a..4f4e0585c65fc04ecf50c997d3b9e21375b7a88b 100644
 --- a/arch/x86/entry/syscalls/syscall_64.tbl
 +++ b/arch/x86/entry/syscalls/syscall_64.tbl
 @@ -362,6 +362,9 @@
@@ -133,7 +133,7 @@ index 379819244b91..4f4e0585c65f 100644
  #
  # Due to a historical design error, certain syscalls are numbered differently
 diff --git a/drivers/vfio/virqfd.c b/drivers/vfio/virqfd.c
-index 997cb5d0a657..6bfafa889af2 100644
+index 997cb5d0a657cb1cb795ca609704f886c7ffc276..6bfafa889af2181fc6a88aa8e63a7513393cc4ca 100644
 --- a/drivers/vfio/virqfd.c
 +++ b/drivers/vfio/virqfd.c
 @@ -76,7 +76,8 @@ static int virqfd_wakeup(wait_queue_entry_t *wait, unsigned mode, int sync, void
@@ -147,7 +147,7 @@ index 997cb5d0a657..6bfafa889af2 100644
  	struct virqfd *virqfd = container_of(pt, struct virqfd, pt);
  	add_wait_queue(wqh, &virqfd->wait);
 diff --git a/drivers/vhost/vhost.c b/drivers/vhost/vhost.c
-index a262e12c6dc2..31128cadd1b2 100644
+index a262e12c6dc26f76810ac28a833ea5deb1e70d74..31128cadd1b20b24bba7b365e34e416c185d2c7c 100644
 --- a/drivers/vhost/vhost.c
 +++ b/drivers/vhost/vhost.c
 @@ -152,7 +152,7 @@ static void vhost_flush_work(struct vhost_work *work)
@@ -160,7 +160,7 @@ index a262e12c6dc2..31128cadd1b2 100644
  	struct vhost_poll *poll;
  
 diff --git a/fs/Makefile b/fs/Makefile
-index 999d1a23f036..ad5fc1399484 100644
+index 999d1a23f036c9f96a06e056d333e2e3832cdc37..ad5fc1399484685eb956e934b5af56b431a4275f 100644
 --- a/fs/Makefile
 +++ b/fs/Makefile
 @@ -31,6 +31,7 @@ obj-$(CONFIG_SIGNALFD)		+= signalfd.o
@@ -172,7 +172,7 @@ index 999d1a23f036..ad5fc1399484 100644
  obj-$(CONFIG_IO_URING)		+= io_uring.o
  obj-$(CONFIG_IO_WQ)		+= io-wq.o
 diff --git a/fs/aio.c b/fs/aio.c
-index 6a21d8919409..3485fe7913ef 100644
+index 6a21d8919409c4aa2c0378108337724a1f73eb35..3485fe7913ef824cc7636205c13707041ee9fe95 100644
 --- a/fs/aio.c
 +++ b/fs/aio.c
 @@ -1718,7 +1718,7 @@ struct aio_poll_table {
@@ -185,7 +185,7 @@ index 6a21d8919409..3485fe7913ef 100644
  	struct aio_poll_table *pt = container_of(p, struct aio_poll_table, pt);
  
 diff --git a/fs/eventpoll.c b/fs/eventpoll.c
-index 117b1c395ae4..e3c9f4ea9ec6 100644
+index 117b1c395ae4ad7d16fc3b705ec3185065159dbb..e3c9f4ea9ec6aa1b62342976af425318c7624294 100644
 --- a/fs/eventpoll.c
 +++ b/fs/eventpoll.c
 @@ -157,6 +157,9 @@ struct epitem {
@@ -257,7 +257,7 @@ index 117b1c395ae4..e3c9f4ea9ec6 100644
  	/* Allocates slab cache used to allocate "struct epitem" items */
  	epi_cache = kmem_cache_create("eventpoll_epi", sizeof(struct epitem),
 diff --git a/fs/io_uring.c b/fs/io_uring.c
-index fd12d9327ee5..0d0162ab5301 100644
+index fd12d9327ee5b86120f2370aafa457c08f3a5de4..0d0162ab5301200c05db06dc78535bf70ab6fe6b 100644
 --- a/fs/io_uring.c
 +++ b/fs/io_uring.c
 @@ -5109,7 +5109,8 @@ static void __io_queue_proc(struct io_poll_iocb *poll, struct io_poll_table *pt,
@@ -280,7 +280,7 @@ index fd12d9327ee5..0d0162ab5301 100644
  	struct io_poll_table *pt = container_of(p, struct io_poll_table, pt);
  
 diff --git a/fs/select.c b/fs/select.c
-index 37aaa8317f3a..ec91d05beb7d 100644
+index 37aaa8317f3ae1a6a9aa9153f336eefa6c2b1aa4..ec91d05beb7d58ab596c17751afd952450edb183 100644
 --- a/fs/select.c
 +++ b/fs/select.c
 @@ -116,7 +116,7 @@ struct poll_table_page {
@@ -334,7 +334,7 @@ index 37aaa8317f3a..ec91d05beb7d 100644
  	add_wait_queue(wait_address, &entry->wait);
 diff --git a/fs/waitfd.c b/fs/waitfd.c
 new file mode 100644
-index 000000000000..311f84d7b85f
+index 0000000000000000000000000000000000000000..311f84d7b85fdf71c2caf908050953bc8aef8430
 --- /dev/null
 +++ b/fs/waitfd.c
 @@ -0,0 +1,130 @@
@@ -469,7 +469,7 @@ index 000000000000..311f84d7b85f
 +	return ufd;
 +}
 diff --git a/include/linux/poll.h b/include/linux/poll.h
-index 1cdc32b1f1b0..1c06718f39bc 100644
+index 1cdc32b1f1b0836e6dccf2ecf446b9aeab0a950b..1c06718f39bc8562c12dd22ae61967f2c8b332b5 100644
 --- a/include/linux/poll.h
 +++ b/include/linux/poll.h
 @@ -34,7 +34,8 @@ struct poll_table_struct;
@@ -508,7 +508,7 @@ index 1cdc32b1f1b0..1c06718f39bc 100644
  	wait_queue_head_t *wait_address;
  };
 diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index aea0ce9f3b74..0db3a09986d7 100644
+index aea0ce9f3b745ad8f8bfeed1b74ad9c1307f1c28..0db3a09986d7b856267c6e6d801e04cbbd294ef7 100644
 --- a/include/linux/syscalls.h
 +++ b/include/linux/syscalls.h
 @@ -1366,6 +1366,9 @@ long ksys_old_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
@@ -522,7 +522,7 @@ index aea0ce9f3b74..0db3a09986d7 100644
  int __sys_getsockopt(int fd, int level, int optname, char __user *optval,
  		int __user *optlen);
 diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 2056318988f7..58238d6fbbcb 100644
+index 2056318988f774931c4e0a3104144bf4a75ff52f..58238d6fbbcba9e52cf799d5b283851c3e593b82 100644
 --- a/include/uapi/asm-generic/unistd.h
 +++ b/include/uapi/asm-generic/unistd.h
 @@ -860,8 +860,11 @@ __SYSCALL(__NR_faccessat2, sys_faccessat2)
@@ -539,7 +539,7 @@ index 2056318988f7..58238d6fbbcb 100644
  /*
   * 32 bit systems traditionally used different
 diff --git a/init/Kconfig b/init/Kconfig
-index 05d377ccc0e0..5a86bbbf43e0 100644
+index 05d377ccc0e08c27391242886bbd8904a17b4ef4..5a86bbbf43e052f9092da824536c8e223c4a4329 100644
 --- a/init/Kconfig
 +++ b/init/Kconfig
 @@ -1562,6 +1562,22 @@ config EPOLL
@@ -566,7 +566,7 @@ index 05d377ccc0e0..5a86bbbf43e0 100644
  	bool "Enable signalfd() system call" if EXPERT
  	default y
 diff --git a/kernel/exit.c b/kernel/exit.c
-index d13d67fc5f4e..5c5859a9ba75 100644
+index d13d67fc5f4e2085f93c46b77440ca1eeb908833..5c5859a9ba75afff23fcdffcb01eef159724c6df 100644
 --- a/kernel/exit.c
 +++ b/kernel/exit.c
 @@ -1586,7 +1586,10 @@ long kernel_wait4(pid_t upid, int __user *stat_addr, int options,
@@ -597,7 +597,7 @@ index d13d67fc5f4e..5c5859a9ba75 100644
  	if (err > 0) {
  		if (ru && copy_to_user(ru, &r, sizeof(struct rusage)))
 diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
-index f27ac94d5fa7..53900d50a8af 100644
+index f27ac94d5fa7270ba9f272be1bcba6a903149206..53900d50a8af730dbc419cf35e9bafe2f29024e5 100644
 --- a/kernel/sys_ni.c
 +++ b/kernel/sys_ni.c
 @@ -391,6 +391,7 @@ COND_SYSCALL(subpage_prot);
@@ -609,7 +609,7 @@ index f27ac94d5fa7..53900d50a8af 100644
  COND_SYSCALL(epoll_create);
  COND_SYSCALL(inotify_init);
 diff --git a/mm/memcontrol.c b/mm/memcontrol.c
-index 8fc23d53f550..a5d4a1d4f868 100644
+index 8fc23d53f55009064c3160a0f6fab047bff6acf8..a5d4a1d4f8683a8138c836021c85c16978c53e68 100644
 --- a/mm/memcontrol.c
 +++ b/mm/memcontrol.c
 @@ -4839,7 +4839,7 @@ static int memcg_event_wake(wait_queue_entry_t *wait, unsigned mode,
@@ -622,7 +622,7 @@ index 8fc23d53f550..a5d4a1d4f868 100644
  	struct mem_cgroup_event *event =
  		container_of(pt, struct mem_cgroup_event, pt);
 diff --git a/net/9p/trans_fd.c b/net/9p/trans_fd.c
-index 8f528e783a6c..d4890a86c0ce 100644
+index 8f528e783a6c533f604371228b7e31c28ea87577..d4890a86c0ce717009e31562f03ff0bcb3cffc3f 100644
 --- a/net/9p/trans_fd.c
 +++ b/net/9p/trans_fd.c
 @@ -545,7 +545,8 @@ static int p9_pollwake(wait_queue_entry_t *wait, unsigned int mode, int sync, vo
@@ -637,7 +637,7 @@ index 8f528e783a6c..d4890a86c0ce 100644
  	struct p9_poll_wait *pwait = NULL;
 diff --git a/tools/testing/selftests/waitfd/Makefile b/tools/testing/selftests/waitfd/Makefile
 new file mode 100644
-index 000000000000..f85c80b54f05
+index 0000000000000000000000000000000000000000..f85c80b54f05ed71c4ad8cadc1ba6fc766a303d6
 --- /dev/null
 +++ b/tools/testing/selftests/waitfd/Makefile
 @@ -0,0 +1,28 @@
@@ -671,7 +671,7 @@ index 000000000000..f85c80b54f05
 +	rm -fr ./waitfd
 diff --git a/tools/testing/selftests/waitfd/waitfd.c b/tools/testing/selftests/waitfd/waitfd.c
 new file mode 100644
-index 000000000000..2df60bbdbb35
+index 0000000000000000000000000000000000000000..2df60bbdbb3569384dccca820ca77593abc67988
 --- /dev/null
 +++ b/tools/testing/selftests/waitfd/waitfd.c
 @@ -0,0 +1,116 @@
@@ -792,7 +792,7 @@ index 000000000000..2df60bbdbb35
 +	return 0;
 +}
 diff --git a/virt/kvm/eventfd.c b/virt/kvm/eventfd.c
-index c2323c27a28b..8da91bb7015c 100644
+index c2323c27a28b52dd14c6405dcbc8d54b1356efe0..8da91bb7015c1a354e6e0e3b973a8a828a19d7a5 100644
 --- a/virt/kvm/eventfd.c
 +++ b/virt/kvm/eventfd.c
 @@ -232,7 +232,7 @@ irqfd_wakeup(wait_queue_entry_t *wait, unsigned mode, int sync, void *key)
@@ -805,5 +805,5 @@ index c2323c27a28b..8da91bb7015c 100644
  	struct kvm_kernel_irqfd *irqfd =
  		container_of(pt, struct kvm_kernel_irqfd, pt);
 -- 
-2.30.0
+2.30.1
 
