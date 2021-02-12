@@ -232,14 +232,14 @@ DTRACE_PATCHES=(
     0007-dtrace-systrace-provider.patch
     0008-dtrace-sdt-provider-core-components.patch
     0009-dtrace-sdt-provider-for-x86.patch
-#    0010-dtrace-profile-provider-and-test-probe-core-componen.patch
-#    0011-dtrace-profile-and-tick-providers-built-on-cyclics.patch
-#    0012-dtrace-USDT-and-pid-provider-core-and-x86-components.patch
-#    0013-dtrace-USDT-and-pid-providers.patch
-#    0014-dtrace-function-boundary-tracing-FBT-core-and-x86-co.patch
-#    0015-dtrace-fbt-provider-modular-components.patch
-#    0016-dtrace-arm-arm64-port.patch
-#    0017-dtrace-add-SDT-probes.patch
+    0010-dtrace-profile-provider-and-test-probe-core-componen.patch
+    0011-dtrace-profile-and-tick-providers-built-on-cyclics.patch
+    0012-dtrace-USDT-and-pid-provider-core-and-x86-components.patch
+    0013-dtrace-USDT-and-pid-providers.patch
+    0014-dtrace-function-boundary-tracing-FBT-core-and-x86-co.patch
+    0015-dtrace-fbt-provider-modular-components.patch
+    0016-dtrace-arm-arm64-port.patch
+    0017-dtrace-add-SDT-probes.patch
 #    0018-dtrace-add-sample-script-for-building-DTrace-on-Fedo.patch
     0019-locking-publicize-mutex_owner-and-mutex_owned-again.patch
 )
@@ -305,10 +305,6 @@ src_prepare() {
         done
     fi
 
-    if ! use hardened; then
-        eapply "${FILESDIR}"/${KERNEL_VERSION}/gentoo-patches/1510_fs-enable-link-security-restrictions-by-default.patch
-    fi
-
     # append EXTRAVERSION to the kernel sources Makefile
     sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${KERNEL_EXTRAVERSION}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
 
@@ -357,11 +353,13 @@ src_prepare() {
         echo "CONFIG_DT_DEBUG_MUTEX=n" >> .config
         echo "CONFIG_CTF=y" >> .config
         echo "CONFIG_WAITFD=y" >> .config
-	echo "CONFIG_DEBUG_INFO=y" >> .config
-	echo "CONFIG_DEBUG_INFO_REDUCED=n" >> .config
-	echo "CONFIG_DEBUG_INFO_SPLIT=n" >> .config
-	echo "CONFIG_DEBUG_INFO_DWARF4=n" >> .config
-	echo "CONFIG_DEBUG_INFO_BTF=n" >> .config
+        if use debug; then
+            echo "CONFIG_DEBUG_INFO=y" >> .config
+            echo "CONFIG_DEBUG_INFO_REDUCED=n" >> .config
+            echo "CONFIG_DEBUG_INFO_SPLIT=n" >> .config
+            echo "CONFIG_DEBUG_INFO_DWARF4=n" >> .config
+            echo "CONFIG_DEBUG_INFO_BTF=n" >> .config
+        fi
     fi
 
     # these options should already be set, but are a hard dependency for ec2, so we ensure they are set if USE=ec2
@@ -375,7 +373,7 @@ src_prepare() {
 	# hardening opts
 	# TODO: document these
     if use hardened; then
-            echo "CONFIG_AUDIT=y" >> .config
+        echo "CONFIG_AUDIT=y" >> .config
         echo "CONFIG_EXPERT=y" >> .config
         echo "CONFIG_SLUB_DEBUG=y" >> .config
         echo "CONFIG_SLAB_MERGE_DEFAULT=n" >> .config
