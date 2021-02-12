@@ -111,6 +111,7 @@ index 4340b28030047552a40dfa962e08d994d3f33278..acd96c0e0e5f9506f9954802dd3ecd9d
  #include <linux/compat.h>
  #include <linux/vmalloc.h>
  #include <linux/io_uring.h>
+ #include <linux/random.h>
 +#include <linux/sdt.h>
  #include <linux/dtrace_os.h>
  
