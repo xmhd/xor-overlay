@@ -10,19 +10,13 @@ LICENSE="GPL-2"
 
 SLOT="0"
 
-IUSE="dtrace firmware"
+IUSE="firmware"
 
 RDEPEND="
-	dtrace? (
-	    || (
-	        sys-kernel/cairn-sources[dtrace]
-	        sys-kernel/dummy-sources
-	    )
-	)
 	firmware? ( sys-kernel/linux-firmware )
 	|| (
-	    sys-kernel/cairn-sources
 	    sys-kernel/debian-sources
+		sys-kernel/suse-sources
 		sys-kernel/gentoo-sources
 		sys-kernel/dummy-sources
 		sys-kernel/vanilla-sources
@@ -36,7 +30,8 @@ RDEPEND="
 		sys-kernel/zen-sources
 		sys-kernel/aufs-sources
 		sys-kernel/raspberrypi-sources
+		sys-kernel/gentoo-kernel
+		sys-kernel/gentoo-kernel-bin
 		sys-kernel/vanilla-kernel
-		sys-kernel/vanilla-kernel-bin
 	)
 "
