@@ -22,11 +22,10 @@ BDEPEND="
 	virtual/libelf
 "
 
-DEPEND="
+RDEPEND="
 	binary? ( sys-kernel/dracut )
 	btrfs? ( sys-fs/btrfs-progs )
 	dtrace? (
-	    dev-util/dtrace-utils
 	    dev-libs/libdtrace-ctf
 	)
 	firmware? (
@@ -49,6 +48,10 @@ DEPEND="
 	systemd? ( sys-apps/systemd )
 	wireguard? ( virtual/wireguard )
 	zfs? ( sys-fs/zfs )
+"
+
+PDEPEND="
+    dtrace? ( dev-util/dtrace-utils )
 "
 
 # linux kernel upstream
@@ -597,8 +600,13 @@ pkg_postinst() {
 		ln -sf "${EROOT}"/usr/src/linux-${PV}${KERNEL_EXTRAVERSION} "${EROOT}"/usr/src/linux
 	fi
 
+	if use dtrace ; then
+	    ln -sf "${EROOT}"/usr/src/linux-${PV}${KERNEL_EXTRAVERSION}/include/uapi/linux/dtrace \
+	    "${EROOT}"/usr/include/linux/dtrace
+	fi
+
     # if there's a modules folder for these sources, generate modules.dep and map files
-    if [[ -d ${EROOT}/lib/modules/${PV}${KERNEL_EXTRAVERSION} ]]; then
+    if [[ -d "${EROOT}"/lib/modules/${PV}${KERNEL_EXTRAVERSION} ]]; then
         depmod -a ${PV}${KERNEL_EXTRAVERSION}
     fi
 
@@ -704,4 +712,14 @@ pkg_postinst() {
 			ego boot update
 		fi
 	fi
+}
+
+pkg_prerm() {
+
+    if use dtrace ; then
+        # delete the existing symlink if one exists
+	    if [[ -h "${EROOT}"/usr/include/linux/dtrace ]]; then
+            rm -rf "${EROOT}"/usr/include/linux/dtrace
+        fi
+    fi
 }
