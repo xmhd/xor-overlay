@@ -1,26 +1,29 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
 WANT_LIBTOOL="none"
 
-inherit autotools flag-o-matic pax-utils python-utils-r1 toolchain-funcs
+inherit autotools flag-o-matic multiprocessing pax-utils python-utils-r1 toolchain-funcs verify-sig
 
-MY_P="Python-${PV%%_*}"
-MY_PV="${PV%%_*}"
+MY_P="Python-${PV%_p*}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-2.7.18-r4"
+PATCHSET="python-gentoo-patches-${PV}"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
-SRC_URI="https://www.python.org/ftp/python/${MY_PV}/${MY_P}.tar.xz
-	https://dev.gentoo.org/~mgorny/dist/python/${PATCHSET}.tar.xz"
+SRC_URI="https://www.python.org/ftp/python/${PV%_*}/${MY_P}.tar.xz
+	https://dev.gentoo.org/~mgorny/dist/python/${PATCHSET}.tar.xz
+	verify-sig? (
+		https://www.python.org/ftp/python/${PV%_*}/${MY_P}.tar.xz.asc
+	)"
 S="${WORKDIR}/${MY_P}"
 
 LICENSE="PSF-2"
-SLOT="${PYVER}"
+SLOT="${PYVER}/${PYVER}m"
 KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
-IUSE="-berkdb bluetooth build elibc_uclibc examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl +threads tk +wide-unicode wininst +xml"
+IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl test +threads tk wininst +xml"
+RESTRICT="!test? ( test )"
 
 # Do not add a dependency on dev-lang/python to this ebuild.
 # If you need to apply a patch which requires python for bootstrapping, please
@@ -28,21 +31,11 @@ IUSE="-berkdb bluetooth build elibc_uclibc examples gdbm hardened ipv6 libressl 
 # patchset. See bug 447752.
 
 RDEPEND="app-arch/bzip2:=
+	app-arch/xz-utils:=
 	dev-libs/libffi:=
 	>=sys-libs/zlib-1.1.3:=
 	virtual/libcrypt:=
 	virtual/libintl
-	berkdb? ( || (
-		sys-libs/db:5.3
-		sys-libs/db:5.1
-		sys-libs/db:4.8
-		sys-libs/db:4.7
-		sys-libs/db:4.6
-		sys-libs/db:4.5
-		sys-libs/db:4.4
-		sys-libs/db:4.3
-		sys-libs/db:4.2
-	) )
 	gdbm? ( sys-libs/gdbm:=[berkdb] )
 	ncurses? ( >=sys-libs/ncurses-5.2:= )
 	readline? ( >=sys-libs/readline-4.1:= )
@@ -61,25 +54,21 @@ RDEPEND="app-arch/bzip2:=
 # bluetooth requires headers from bluez
 DEPEND="${RDEPEND}
 	bluetooth? ( net-wireless/bluez )
+	test? ( app-arch/xz-utils[extra-filters(+)] )"
+BDEPEND="
 	virtual/pkgconfig
+	verify-sig? ( app-crypt/openpgp-keys-python )
 	!sys-devel/gcc[libffi(-)]"
-RDEPEND+="
-        !build? ( app-misc/mime-types )
-        !<=dev-lang/python-exec-2.4.6-r1"
+PDEPEND="app-eselect/eselect-python"
+RDEPEND+=" !build? ( app-misc/mime-types )"
 
-pkg_setup() {
-	if use berkdb; then
-		ewarn "'bsddb' module is out-of-date and no longer maintained inside"
-		ewarn "dev-lang/python. 'bsddb' and 'dbhash' modules have been additionally"
-		ewarn "removed in Python 3. A maintained alternative of 'bsddb3' module"
-		ewarn "is provided by dev-python/bsddb3."
-	else
-		if has_version "=${CATEGORY}/${PN}-${PV%%.*}*[berkdb]"; then
-			ewarn "You are migrating from =${CATEGORY}/${PN}-${PV%%.*}*[berkdb]"
-			ewarn "to =${CATEGORY}/${PN}-${PV%%.*}*[-berkdb]."
-			ewarn "You might need to migrate your databases."
-		fi
+VERIFY_SIG_OPENPGP_KEY_PATH=/usr/share/openpgp-keys/python.org.asc
+
+src_unpack() {
+	if use verify-sig; then
+		verify-sig_verify_detached "${DISTDIR}"/${MY_P}.tar.xz{,.asc}
 	fi
+	default
 }
 
 src_prepare() {
@@ -90,7 +79,6 @@ src_prepare() {
 
 	local PATCHES=(
 		"${WORKDIR}/${PATCHSET}"
-		"${FILESDIR}/python-2.7.15-PGO-r1.patch"
 	)
 
 	default
@@ -104,17 +92,19 @@ src_prepare() {
 		Makefile.pre.in \
 		Modules/Setup.dist \
 		Modules/getpath.c \
+		configure.ac \
 		setup.py || die "sed failed to replace @@GENTOO_LIBDIR@@"
+
+	# force correct number of jobs
+	# https://bugs.gentoo.org/737660
+	local jobs=$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")
+	sed -i -e "/self\.parallel/s:True:${jobs}:" setup.py || die
 
 	eautoreconf
 }
 
 src_configure() {
-	# dbm module can be linked against berkdb or gdbm.
-	# Defaults to gdbm when both are enabled, #204343.
 	local disable
-	use berkdb    || use gdbm || disable+=" dbm"
-	use berkdb    || disable+=" _bsddb"
 	# disable automagic bluetooth headers detection
 	use bluetooth || export ac_cv_header_bluetooth_bluetooth_h=no
 	use gdbm      || disable+=" gdbm"
@@ -152,42 +142,15 @@ src_configure() {
                 append-cflags $(test-flags-CC -ffat-lto-objects)
         fi
 
-	# LTO needs this
-	if use lto; then
-		append-ldflags "${CFLAGS}"
-	fi
-
-	if tc-is-cross-compiler; then
-		# Force some tests that try to poke fs paths.
-		export ac_cv_file__dev_ptc=no
-		export ac_cv_file__dev_ptmx=yes
-	fi
-
-	# Export CXX so it ends up in /usr/lib/python2.X/config/Makefile.
+	# Export CXX so it ends up in /usr/lib/python3.X/config/Makefile.
 	tc-export CXX
-	# The configure script fails to use pkg-config correctly.
-	# http://bugs.python.org/issue15506
-	export ac_cv_path_PKG_CONFIG=$(tc-getPKG_CONFIG)
-
-	# Set LDFLAGS so we link modules with -lpython2.7 correctly.
-	# Needed on FreeBSD unless Python 2.7 is already installed.
-	# Please query BSD team before removing this!
-	append-ldflags "-L."
 
 	local dbmliborder
 	if use gdbm; then
 		dbmliborder+="${dbmliborder:+:}gdbm"
 	fi
-	if use berkdb; then
-		dbmliborder+="${dbmliborder:+:}bdb"
-	fi
 
 	local myeconfargs=(
-		# The check is broken on clang, and gives false positive:
-		# https://bugs.gentoo.org/596798
-		# (upstream dropped this flag in 3.2a4 anyway)
-		ac_cv_opt_olimit_ok=no
-
 		# glibc-2.30 removes it; since we can't cleanly force-rebuild
 		# Python on glibc upgrade, remove it proactively to give
 		# a chance for users rebuilding python before glibc
@@ -197,7 +160,6 @@ src_configure() {
 		--enable-shared
 		$(use_enable ipv6)
 		$(use_with threads)
-		$(use wide-unicode && echo "--enable-unicode=ucs4" || echo "--enable-unicode=ucs2")
 		$(use_enable pgo optimizations)
 		$(use_with lto)
 		--infodir='${prefix}/share/info'
@@ -206,12 +168,17 @@ src_configure() {
 		--with-dbmliborder="${dbmliborder}"
 		--with-libc=
 		--enable-loadable-sqlite-extensions
+		--without-ensurepip
 		--with-system-expat
 		--with-system-ffi
-		--without-ensurepip
 	)
 
 	OPT="" econf "${myeconfargs[@]}"
+
+	# Would be appended if --with-lto was used
+	if test-flags flto >/dev/null ; then
+		append-flags -Wl,--export-dynamic
+	fi
 
 	if use threads && grep -q "#define POSIX_SEMAPHORES_NOT_ENABLED 1" pyconfig.h; then
 		eerror "configure has detected that the sem_open function is broken."
@@ -226,12 +193,12 @@ src_compile() {
 		export DISTCC_HOSTS=""
 		export CCACHE_DISABLE=1
 	fi
+
 	# Ensure sed works as expected
 	# https://bugs.gentoo.org/594768
 	local -x LC_ALL=C
 
-	# Avoid invoking pgen for cross-compiles.
-	touch Include/graminit.h Python/graminit.c
+	# The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
 
 	# extract the number of parallel jobs in MAKEOPTS
 	echo ${MAKEOPTS} | egrep -o '(\-j|\-\-jobs)(=?|[[:space:]]*)[[:digit:]]+' > /dev/null
@@ -242,7 +209,11 @@ src_compile() {
 	fi
 	export par_arg
 
-	emake EXTRATESTOPTS="${par_arg} -uall,-audio -x test_distutils"
+	if use pgo; then
+		emake profile-opt PROFILE_TASK="-m test.regrtest ${par_arg} -w -uall,-audio -x test_gdb test_multiprocessing test_subprocess test_tokenize test_signal test_faulthandler test_asyncio test_ctypes test_compileall test_pyexpat test_runpy test_support test_threaded_import test_xmlrpc_net test_multiprocessing_spawn test_httpservers test_logging test_xmlrpc"
+	else
+		emake CPPFLAGS= CFLAGS= LDFLAGS=
+	fi
 
 	# Work around bug 329499. See also bug 413751 and 457194.
 	if has_version dev-libs/libffi[pax_kernel]; then
@@ -260,7 +231,7 @@ src_test() {
 	fi
 
 	# Skip failing tests.
-	local skipped_tests="distutils gdb"
+	local skipped_tests="gdb faulthandler"
 
 	for test in ${skipped_tests}; do
 		mv "${S}"/Lib/test/test_${test}.py "${T}"
@@ -269,14 +240,13 @@ src_test() {
 	# bug 660358
 	local -x COLUMNS=80
 
-	# Daylight saving time problem
-	# https://bugs.python.org/issue22067
-	# https://bugs.gentoo.org/610628
-	local -x TZ=UTC
+	local -x PYTHONDONTWRITEBYTECODE=
 
-	# Rerun failed tests in verbose mode (regrtest -w).
-	emake test EXTRATESTOPTS="-w" < /dev/tty
-	local result="$?"
+	local jobs=$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")
+
+	emake test EXTRATESTOPTS="-u-network -j${jobs}" \
+		CPPFLAGS= CFLAGS= LDFLAGS= < /dev/tty
+	local result=$?
 
 	for test in ${skipped_tests}; do
 		mv "${T}/test_${test}.py" "${S}"/Lib/test
@@ -301,18 +271,39 @@ src_install() {
 
 	emake DESTDIR="${D}" altinstall
 
-	sed -e "s/\(LDFLAGS=\).*/\1/" -i "${libdir}/config/Makefile" || die
+	# Remove static library
+	rm "${ED}"/usr/$(get_libdir)/libpython*.a || die
+
+	sed \
+		-e "s/\(CONFIGURE_LDFLAGS=\).*/\1/" \
+		-e "s/\(PY_LDFLAGS=\).*/\1/" \
+		-i "${libdir}/config-${PYVER}"*/Makefile || die "sed failed"
 
 	# Fix collisions between different slots of Python.
-	mv "${ED}/usr/bin/2to3" "${ED}/usr/bin/2to3-${PYVER}" || die
-	mv "${ED}/usr/bin/pydoc" "${ED}/usr/bin/pydoc${PYVER}" || die
-	mv "${ED}/usr/bin/idle" "${ED}/usr/bin/idle${PYVER}" || die
-	rm "${ED}/usr/bin/smtpd.py" || die
+	rm "${ED}/usr/$(get_libdir)/libpython3.so" || die
 
-	use berkdb || rm -r "${libdir}/"{bsddb,dbhash.py*,test/test_bsddb*} || die
+	# Cheap hack to get version with ABIFLAGS
+	local abiver=$(cd "${ED}/usr/include"; echo python*)
+	if [[ ${abiver} != python${PYVER} ]]; then
+		# Replace python3.X with a symlink to python3.Xm
+		rm "${ED}/usr/bin/python${PYVER}" || die
+		dosym "${abiver}" "/usr/bin/python${PYVER}"
+		# Create python3.X-config symlink
+		dosym "${abiver}-config" "/usr/bin/python${PYVER}-config"
+		# Create python-3.5m.pc symlink
+		dosym "python-${PYVER}.pc" "/usr/$(get_libdir)/pkgconfig/${abiver/${PYVER}/-${PYVER}}.pc"
+	fi
+
+	# python seems to get rebuilt in src_install (bug 569908)
+	# Work around it for now.
+	if has_version dev-libs/libffi[pax_kernel]; then
+		pax-mark E "${ED}/usr/bin/${abiver}"
+	else
+		pax-mark m "${ED}/usr/bin/${abiver}"
+	fi
+
 	use sqlite || rm -r "${libdir}/"{sqlite3,test/test_sqlite*} || die
-	use tk || rm -r "${ED}/usr/bin/idle${PYVER}" "${libdir}/"{idlelib,lib-tk} || die
-	use elibc_uclibc && rm -fr "${libdir}/"{bsddb/test,test}
+	use tk || rm -r "${ED}/usr/bin/idle${PYVER}" "${libdir}/"{idlelib,tkinter,test/test_tk*} || die
 
 	use threads || rm -r "${libdir}/multiprocessing" || die
 	use wininst || rm "${libdir}/distutils/command/"wininst-*.exe || die
@@ -321,6 +312,7 @@ src_install() {
 
 	if use examples; then
 		docinto examples
+		find Tools -name __pycache__ -exec rm -fr {} + || die
 		dodoc -r Tools
 	fi
 	insinto /usr/share/gdb/auto-load/usr/$(get_libdir) #443510
@@ -351,27 +343,33 @@ src_install() {
 	python_domodule epython.py
 
 	# python-exec wrapping support
+	local pymajor=${PYVER%.*}
 	local scriptdir=${D}$(python_get_scriptdir)
 	mkdir -p "${scriptdir}" || die
-	# python
-	ln -s "../../../bin/python${PYVER}" \
-		"${scriptdir}/python" || die
-	# python-config
-	ln -s "../../../bin/python${PYVER}-config" \
+	# python and pythonX
+	ln -s "../../../bin/${abiver}" \
+		"${scriptdir}/python${pymajor}" || die
+	ln -s "python${pymajor}" "${scriptdir}/python" || die
+	# python-config and pythonX-config
+	# note: we need to create a wrapper rather than symlinking it due
+	# to some random dirname(argv[0]) magic performed by python-config
+	cat > "${scriptdir}/python${pymajor}-config" <<-EOF || die
+		#!/bin/sh
+		exec "${abiver}-config" "\${@}"
+	EOF
+	chmod +x "${scriptdir}/python${pymajor}-config" || die
+	ln -s "python${pymajor}-config" \
 		"${scriptdir}/python-config" || die
 	# 2to3, pydoc, pyvenv
 	ln -s "../../../bin/2to3-${PYVER}" \
 		"${scriptdir}/2to3" || die
 	ln -s "../../../bin/pydoc${PYVER}" \
 		"${scriptdir}/pydoc" || die
+	ln -s "../../../bin/pyvenv-${PYVER}" \
+		"${scriptdir}/pyvenv" || die
 	# idle
 	if use tk; then
 		ln -s "../../../bin/idle${PYVER}" \
 			"${scriptdir}/idle" || die
 	fi
-
-	# python2* is no longer wrapped, so just symlink it
-	local pymajor=${PYVER%.*}
-	dosym "python${PYVER}" "/usr/bin/python${pymajor}"
-	dosym "python${PYVER}-config" "/usr/bin/python${pymajor}-config"
 }

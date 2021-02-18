@@ -1,26 +1,29 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
 WANT_LIBTOOL="none"
 
-inherit autotools flag-o-matic multiprocessing pax-utils python-utils-r1 toolchain-funcs
+inherit autotools check-reqs flag-o-matic multiprocessing pax-utils python-utils-r1 toolchain-funcs verify-sig
 
-MY_P="Python-${PV%%_*}"
-MY_PV="${PV%%_*}"
+MY_PV=${PV/_alpha/a}
+MY_P="Python-${MY_PV%_p*}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-${MY_PV}-r1"
+PATCHSET="python-gentoo-patches-${MY_PV}"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
-SRC_URI="https://www.python.org/ftp/python/${MY_PV}/${MY_P}.tar.xz
-	https://dev.gentoo.org/~mgorny/dist/python/${PATCHSET}.tar.xz"
+SRC_URI="https://www.python.org/ftp/python/${PV%%_*}/${MY_P}.tar.xz
+	https://dev.gentoo.org/~mgorny/dist/python/${PATCHSET}.tar.xz
+	verify-sig? (
+		https://www.python.org/ftp/python/${PV%%_*}/${MY_P}.tar.xz.asc
+	)"
 S="${WORKDIR}/${MY_P}"
 
 LICENSE="PSF-2"
-SLOT="${PYVER}/${PYVER}m"
-KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
-IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl test +threads tk wininst +xml"
+SLOT="${PYVER}"
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sh ~sparc ~x86"
+IUSE="bluetooth build examples gdbm hardened ipv6 libressl lto +ncurses +readline pgo sqlite +ssl test threads tk wininst +xml"
 RESTRICT="!test? ( test )"
 
 # Do not add a dependency on dev-lang/python to this ebuild.
@@ -31,6 +34,7 @@ RESTRICT="!test? ( test )"
 RDEPEND="app-arch/bzip2:=
 	app-arch/xz-utils:=
 	dev-libs/libffi:=
+	sys-apps/util-linux:=
 	>=sys-libs/zlib-1.1.3:=
 	virtual/libcrypt:=
 	virtual/libintl
@@ -52,10 +56,35 @@ RDEPEND="app-arch/bzip2:=
 # bluetooth requires headers from bluez
 DEPEND="${RDEPEND}
 	bluetooth? ( net-wireless/bluez )
-	test? ( app-arch/xz-utils[extra-filters(+)] )
+	test? ( app-arch/xz-utils[extra-filters(+)] )"
+# autoconf-archive needed to eautoreconf
+BDEPEND="
+	sys-devel/autoconf-archive
 	virtual/pkgconfig
+	verify-sig? ( app-crypt/openpgp-keys-python )
 	!sys-devel/gcc[libffi(-)]"
+PDEPEND="app-eselect/eselect-python"
 RDEPEND+=" !build? ( app-misc/mime-types )"
+
+VERIFY_SIG_OPENPGP_KEY_PATH=/usr/share/openpgp-keys/python.org.asc
+
+# large file tests involve a 2.5G file being copied (duplicated)
+CHECKREQS_DISK_BUILD=5500M
+
+pkg_pretend() {
+	use test && check-reqs_pkg_pretend
+}
+
+pkg_setup() {
+	use test && check-reqs_pkg_setup
+}
+
+src_unpack() {
+	if use verify-sig; then
+		verify-sig_verify_detached "${DISTDIR}"/${MY_P}.tar.xz{,.asc}
+	fi
+	default
+}
 
 src_prepare() {
 	# Ensure that internal copies of expat, libffi and zlib are not used.
@@ -70,20 +99,12 @@ src_prepare() {
 	default
 
 	sed -i -e "s:@@GENTOO_LIBDIR@@:$(get_libdir):g" \
-		Lib/distutils/command/install.py \
-		Lib/distutils/sysconfig.py \
-		Lib/site.py \
-		Lib/sysconfig.py \
-		Lib/test/test_site.py \
-		Makefile.pre.in \
-		Modules/Setup.dist \
-		Modules/getpath.c \
-		configure.ac \
 		setup.py || die "sed failed to replace @@GENTOO_LIBDIR@@"
 
 	# force correct number of jobs
 	# https://bugs.gentoo.org/737660
 	local jobs=$(makeopts_jobs "${MAKEOPTS}" "$(get_nproc)")
+	sed -i -e "s:-j0:-j${jobs}:" Makefile.pre.in || die
 	sed -i -e "/self\.parallel/s:True:${jobs}:" setup.py || die
 
 	eautoreconf
@@ -118,23 +139,22 @@ src_configure() {
 
 	filter-flags -malign-double
 
-	# https://bugs.gentoo.org/show_bug.cgi?id=50309
+	# https://bugs.gentoo.org/50309
 	if is-flagq -O3; then
 		is-flagq -fstack-protector-all && replace-flags -O3 -O2
 		use hardened && replace-flags -O3 -O2
 	fi
 
-        if is-flagq -flto || is-flagq '-flto=*'; then
-                append-cflags $(test-flags-CC -ffat-lto-objects)
-        fi
+	# https://bugs.gentoo.org/700012
+	if is-flagq -flto || is-flagq '-flto=*'; then
+		append-cflags $(test-flags-CC -ffat-lto-objects)
+	fi
 
 	# Export CXX so it ends up in /usr/lib/python3.X/config/Makefile.
 	tc-export CXX
 
-	# Set LDFLAGS so we link modules with -lpython3.2 correctly.
-	# Needed on FreeBSD unless Python 3.2 is already installed.
-	# Please query BSD team before removing this!
-	append-ldflags "-L."
+	# Fix implicit declarations on cross and prefix builds. Bug #674070.
+	use ncurses && append-cppflags -I"${ESYSROOT}"/usr/include/ncursesw
 
 	local dbmliborder
 	if use gdbm; then
@@ -147,10 +167,8 @@ src_configure() {
 		# a chance for users rebuilding python before glibc
 		ac_cv_header_stropts_h=no
 
-		--with-fpectl
 		--enable-shared
 		$(use_enable ipv6)
-		$(use_with threads)
 		$(use_enable pgo optimizations)
 		$(use_with lto)
 		--infodir='${prefix}/share/info'
@@ -179,17 +197,11 @@ src_configure() {
 }
 
 src_compile() {
-	if use pgo; then
-		# disable distcc and ccache
-		export DISTCC_HOSTS=""
-		export CCACHE_DISABLE=1
-	fi
-
 	# Ensure sed works as expected
 	# https://bugs.gentoo.org/594768
 	local -x LC_ALL=C
 
-	# The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
+	#The following code borrowed from https://github.com/stefantalpalaru/gentoo-overlay
 
 	# extract the number of parallel jobs in MAKEOPTS
 	echo ${MAKEOPTS} | egrep -o '(\-j|\-\-jobs)(=?|[[:space:]]*)[[:digit:]]+' > /dev/null
@@ -222,7 +234,7 @@ src_test() {
 	fi
 
 	# Skip failing tests.
-	local skipped_tests="gdb faulthandler"
+	local skipped_tests="gdb"
 
 	for test in ${skipped_tests}; do
 		mv "${S}"/Lib/test/test_${test}.py "${T}"
@@ -249,7 +261,7 @@ src_test() {
 	done
 
 	elog "If you would like to run them, you may:"
-	elog "cd '${EPREFIX}/usr/$(get_libdir)/python${PYVER}/test'"
+	elog "cd '${EPREFIX}/usr/lib/python${PYVER}/test'"
 	elog "and run the tests separately."
 
 	if [[ ${result} -ne 0 ]]; then
@@ -258,7 +270,7 @@ src_test() {
 }
 
 src_install() {
-	local libdir=${ED}/usr/$(get_libdir)/python${PYVER}
+	local libdir=${ED}/usr/lib/python${PYVER}
 
 	emake DESTDIR="${D}" altinstall
 
@@ -295,9 +307,6 @@ src_install() {
 
 	use sqlite || rm -r "${libdir}/"{sqlite3,test/test_sqlite*} || die
 	use tk || rm -r "${ED}/usr/bin/idle${PYVER}" "${libdir}/"{idlelib,tkinter,test/test_tk*} || die
-
-	use threads || rm -r "${libdir}/multiprocessing" || die
-	use wininst || rm "${libdir}/distutils/command/"wininst-*.exe || die
 
 	dodoc Misc/{ACKS,HISTORY,NEWS}
 
@@ -351,13 +360,11 @@ src_install() {
 	chmod +x "${scriptdir}/python${pymajor}-config" || die
 	ln -s "python${pymajor}-config" \
 		"${scriptdir}/python-config" || die
-	# 2to3, pydoc, pyvenv
+	# 2to3, pydoc
 	ln -s "../../../bin/2to3-${PYVER}" \
 		"${scriptdir}/2to3" || die
 	ln -s "../../../bin/pydoc${PYVER}" \
 		"${scriptdir}/pydoc" || die
-	ln -s "../../../bin/pyvenv-${PYVER}" \
-		"${scriptdir}/pyvenv" || die
 	# idle
 	if use tk; then
 		ln -s "../../../bin/idle${PYVER}" \

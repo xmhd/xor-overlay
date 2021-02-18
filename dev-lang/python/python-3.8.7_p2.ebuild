@@ -1,20 +1,22 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
 WANT_LIBTOOL="none"
 
-inherit autotools flag-o-matic multiprocessing pax-utils python-utils-r1 toolchain-funcs
+inherit autotools flag-o-matic multiprocessing pax-utils python-utils-r1 toolchain-funcs verify-sig
 
-MY_P="Python-${PV%%_*}"
-MY_PV="${PV%%_*}"
+MY_P="Python-${PV%_p*}"
 PYVER=$(ver_cut 1-2)
-PATCHSET="python-gentoo-patches-3.8.6"
+PATCHSET="python-gentoo-patches-${PV}"
 
 DESCRIPTION="An interpreted, interactive, object-oriented programming language"
 HOMEPAGE="https://www.python.org/"
-SRC_URI="https://www.python.org/ftp/python/${MY_PV}/${MY_P}.tar.xz
-	https://dev.gentoo.org/~mgorny/dist/python/${PATCHSET}.tar.xz"
+SRC_URI="https://www.python.org/ftp/python/${PV%_*}/${MY_P}.tar.xz
+	https://dev.gentoo.org/~mgorny/dist/python/${PATCHSET}.tar.xz
+	verify-sig? (
+		https://www.python.org/ftp/python/${PV%_*}/${MY_P}.tar.xz.asc
+	)"
 S="${WORKDIR}/${MY_P}"
 
 LICENSE="PSF-2"
@@ -29,8 +31,8 @@ RESTRICT="!test? ( test )"
 # patchset. See bug 447752.
 
 RDEPEND="app-arch/bzip2:=
-	dev-libs/libffi:=
 	app-arch/xz-utils:=
+	dev-libs/libffi:=
 	sys-apps/util-linux:=
 	>=sys-libs/zlib-1.1.3:=
 	virtual/libcrypt:=
@@ -50,13 +52,27 @@ RDEPEND="app-arch/bzip2:=
 		dev-tcltk/tix
 	)
 	xml? ( >=dev-libs/expat-2.1:= )"
+
 # bluetooth requires headers from bluez
 DEPEND="${RDEPEND}
 	bluetooth? ( net-wireless/bluez )
-	test? ( app-arch/xz-utils[extra-filters(+)] )
+	test? ( app-arch/xz-utils[extra-filters(+)] )"
+BDEPEND="
 	virtual/pkgconfig
+	verify-sig? ( app-crypt/openpgp-keys-python )
 	!sys-devel/gcc[libffi(-)]"
+PDEPEND="app-eselect/eselect-python"
 RDEPEND+=" !build? ( app-misc/mime-types )"
+
+VERIFY_SIG_OPENPGP_KEY_PATH=/usr/share/openpgp-keys/python.org.asc
+
+src_unpack() {
+	if use verify-sig; then
+		verify-sig_verify_detached "${DISTDIR}"/${MY_P}.tar.xz{,.asc}
+	fi
+	default
+}
+
 
 src_prepare() {
 	# Ensure that internal copies of expat, libffi and zlib are not used.
@@ -123,11 +139,6 @@ src_configure() {
 
 	# Export CXX so it ends up in /usr/lib/python3.X/config/Makefile.
 	tc-export CXX
-
-	# Set LDFLAGS so we link modules with -lpython3.2 correctly.
-	# Needed on FreeBSD unless Python 3.2 is already installed.
-	# Please query BSD team before removing this!
-	append-ldflags "-L."
 
 	# Fix implicit declarations on cross and prefix builds. Bug #674070.
 	use ncurses && append-cppflags -I"${ESYSROOT}"/usr/include/ncursesw
