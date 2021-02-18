@@ -17,7 +17,6 @@ IUSE="test"
 DEPEND="
         sys-devel/bison
         sys-devel/flex
-        virtual/linux-sources[dtrace]
         virtual/os-headers
 "
 
