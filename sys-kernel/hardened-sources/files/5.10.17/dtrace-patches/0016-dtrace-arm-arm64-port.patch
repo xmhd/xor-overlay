@@ -1,0 +1,2667 @@
+From 7448665d4354efd9fafea1149cc2adc31dc98c64 Mon Sep 17 00:00:00 2001
+From: Kris Van Hees <kris.van.hees@oracle.com>
+Date: Thu, 8 Nov 2018 18:57:33 +0000
+Subject: [PATCH 16/19] dtrace, arm: arm64 port
+
+This provides an arm64 implementation of DTrace.
+
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Signed-off-by: Kris Van Hees <kris.van.hees@oracle.com>
+Signed-off-by: Tomas Jedlicka <tomas.jedlicka@oracle.com>
+Signed-off-by: Eugene Loh <eugene.loh@oracle.com>
+Signed-off-by: David Mc Lean <david.mclean@oracle.com>
+Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
+---
+ arch/arm64/Kconfig                            |   3 +
+ arch/arm64/dtrace/Makefile.arch               |  17 +
+ arch/arm64/dtrace/dtrace_asm_arm64.S          |  51 +++
+ arch/arm64/dtrace/dtrace_isa_arm64.c          | 164 +++++++
+ arch/arm64/dtrace/fasttrap_arm64.c            | 282 ++++++++++++
+ arch/arm64/dtrace/fbt_arm64.c                 | 152 +++++++
+ .../dtrace/include/dtrace/fasttrap_arch.h     |  30 ++
+ arch/arm64/dtrace/include/dtrace/fbt_arch.h   |  53 +++
+ arch/arm64/dtrace/include/dtrace/sdt_arch.h   |  28 ++
+ arch/arm64/dtrace/sdt_arm64.c                 | 122 +++++
+ arch/arm64/include/asm/brk-imm.h              |   6 +
+ arch/arm64/include/asm/cpu.h                  |   1 +
+ arch/arm64/include/asm/debug-monitors.h       |   4 +
+ arch/arm64/include/asm/dtrace_arch.h          |  31 ++
+ arch/arm64/include/asm/dtrace_cpuinfo.h       |  13 +
+ arch/arm64/include/asm/dtrace_sdt_arch.h      |  15 +
+ arch/arm64/include/asm/dtrace_syscall.h       |   3 +
+ arch/arm64/include/asm/dtrace_syscall_types.h |  11 +
+ arch/arm64/include/asm/dtrace_util.h          |  14 +
+ arch/arm64/include/asm/kdebug.h               |  11 +
+ arch/arm64/include/asm/syscall.h              |   8 +-
+ arch/arm64/kernel/dtrace_fbt.c                | 187 ++++++++
+ arch/arm64/kernel/dtrace_sdt.c                |  25 ++
+ arch/arm64/kernel/dtrace_syscall.c            |  89 ++++
+ arch/arm64/kernel/dtrace_syscall_stubs.S      |   0
+ arch/arm64/kernel/dtrace_util.c               | 292 ++++++++++++
+ arch/arm64/kernel/entry-common.c              |   6 +-
+ arch/arm64/kernel/entry.S                     |  53 ++-
+ arch/arm64/kernel/fbt_blacklist.h             |  91 ++++
+ arch/arm64/kernel/probes/uprobes.c            |   3 +-
+ arch/arm64/kernel/sys.c                       |   2 +-
+ arch/arm64/mm/fault.c                         |  18 +
+ include/linux/uprobes.h                       |   1 +
+ kernel/events/uprobes.c                       |  10 +
+ scripts/dtrace_sdt_arm64.sh                   | 425 ++++++++++++++++++
+ scripts/link-vmlinux.sh                       |  15 +-
+ 36 files changed, 2221 insertions(+), 15 deletions(-)
+ create mode 100644 arch/arm64/dtrace/Makefile.arch
+ create mode 100644 arch/arm64/dtrace/dtrace_asm_arm64.S
+ create mode 100644 arch/arm64/dtrace/dtrace_isa_arm64.c
+ create mode 100644 arch/arm64/dtrace/fasttrap_arm64.c
+ create mode 100644 arch/arm64/dtrace/fbt_arm64.c
+ create mode 100644 arch/arm64/dtrace/include/dtrace/fasttrap_arch.h
+ create mode 100644 arch/arm64/dtrace/include/dtrace/fbt_arch.h
+ create mode 100644 arch/arm64/dtrace/include/dtrace/sdt_arch.h
+ create mode 100644 arch/arm64/dtrace/sdt_arm64.c
+ create mode 100644 arch/arm64/include/asm/dtrace_arch.h
+ create mode 100644 arch/arm64/include/asm/dtrace_cpuinfo.h
+ create mode 100644 arch/arm64/include/asm/dtrace_sdt_arch.h
+ create mode 100644 arch/arm64/include/asm/dtrace_syscall.h
+ create mode 100644 arch/arm64/include/asm/dtrace_syscall_types.h
+ create mode 100644 arch/arm64/include/asm/dtrace_util.h
+ create mode 100644 arch/arm64/include/asm/kdebug.h
+ create mode 100644 arch/arm64/kernel/dtrace_fbt.c
+ create mode 100644 arch/arm64/kernel/dtrace_sdt.c
+ create mode 100644 arch/arm64/kernel/dtrace_syscall.c
+ create mode 100644 arch/arm64/kernel/dtrace_syscall_stubs.S
+ create mode 100644 arch/arm64/kernel/dtrace_util.c
+ create mode 100644 arch/arm64/kernel/fbt_blacklist.h
+ create mode 100755 scripts/dtrace_sdt_arm64.sh
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index a6b5b7ef40aea08f036e58d2684f87f378773644..72a0be5f171780292bc9e668b839f15b95860eb6 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -323,6 +323,9 @@ config PGTABLE_LEVELS
+ config ARCH_SUPPORTS_UPROBES
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_DTRACE
++	def_bool y
++
+ config ARCH_PROC_KCORE_TEXT
+ 	def_bool y
+ 
+diff --git a/arch/arm64/dtrace/Makefile.arch b/arch/arm64/dtrace/Makefile.arch
+new file mode 100644
+index 0000000000000000000000000000000000000000..393b5cea3f7c0af4eb0bb280d1e65b4c468c1f3c
+--- /dev/null
++++ b/arch/arm64/dtrace/Makefile.arch
+@@ -0,0 +1,17 @@
++#
++# Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
++#
++
++DTARCHDIR = ../arch/arm64/dtrace
++
++ccflags-y	+= -I$(srctree)/arch/arm64/dtrace/include -Idtrace
++
++dtrace-obj	+= dtrace_asm_arm64.o dtrace_isa_arm64.o
++fasttrap-obj	+= fasttrap_arm64.o
++fbt-obj		+= fbt_arm64.o
++sdt-obj		+= sdt_arm64.o
++
++dtrace-y	+= $(addprefix $(DTARCHDIR)/, $(dtrace-obj))
++fasttrap-y	+= $(addprefix $(DTARCHDIR)/, $(fasttrap-obj))
++fbt-y		+= $(addprefix $(DTARCHDIR)/, $(fbt-obj))
++sdt-y		+= $(addprefix $(DTARCHDIR)/, $(sdt-obj))
+diff --git a/arch/arm64/dtrace/dtrace_asm_arm64.S b/arch/arm64/dtrace/dtrace_asm_arm64.S
+new file mode 100644
+index 0000000000000000000000000000000000000000..d0f7bad5fb0bc687a1eca65a99582f36834995ce
+--- /dev/null
++++ b/arch/arm64/dtrace/dtrace_asm_arm64.S
+@@ -0,0 +1,51 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Dynamic Tracing for Linux - ARM64 specific assembly
++ *
++ * Copyright (c) 2017 Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/linkage.h>
++
++SYM_CODE_START(dtrace_caller)
++	mov	x0, #-1
++	ret
++SYM_CODE_END(dtrace_caller)
++
++SYM_CODE_START(dtrace_copy)
++	ret
++SYM_CODE_END(dtrace_copy)
++
++SYM_CODE_START(dtrace_copystr)
++	ret
++SYM_CODE_END(dtrace_copystr)
++
++SYM_CODE_START(dtrace_fuword8_nocheck)
++	ldrb	w0, [x0]
++	ret
++SYM_CODE_END(dtrace_fuword8_nocheck)
++
++SYM_CODE_START(dtrace_fuword16_nocheck)
++	ldrh	w0, [x0]
++	ret
++SYM_CODE_END(dtrace_fuword16_nocheck)
++
++SYM_CODE_START(dtrace_fuword32_nocheck)
++	ldr	w0, [x0]
++	ret
++SYM_CODE_END(dtrace_fuword32_nocheck)
++
++SYM_CODE_START(dtrace_fuword64_nocheck)
++	ldr	x0, [x0]
++	ret
++SYM_CODE_END(dtrace_fuword64_nocheck)
+diff --git a/arch/arm64/dtrace/dtrace_isa_arm64.c b/arch/arm64/dtrace/dtrace_isa_arm64.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..2eb530149c5b4176b776d673bd3441e8afed8767
+--- /dev/null
++++ b/arch/arm64/dtrace/dtrace_isa_arm64.c
+@@ -0,0 +1,164 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	dtrace_isa_arm64.c
++ * DESCRIPTION:	DTrace - arm64 architecture specific support functions
++ *
++ * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <asm/stacktrace.h>
++#include <linux/ptrace.h>
++
++#include "dtrace.h"
++
++uintptr_t _userlimit = 0x0000ffffffffffffLL;
++
++void dtrace_copyin_arch(uintptr_t uaddr, uintptr_t kaddr, size_t size,
++			volatile uint16_t *flags)
++{
++}
++
++void dtrace_copyinstr_arch(uintptr_t uaddr, uintptr_t kaddr, size_t size,
++			   volatile uint16_t *flags)
++{
++}
++
++void dtrace_copyout(uintptr_t uaddr, uintptr_t kaddr, size_t size,
++		    volatile uint16_t *flags)
++{
++}
++
++void dtrace_copyoutstr(uintptr_t uaddr, uintptr_t kaddr, size_t size,
++		       volatile uint16_t *flags)
++{
++}
++
++#define DTRACE_FUWORD(bits) \
++	uint##bits##_t dtrace_fuword##bits(void *uaddr)			      \
++	{								      \
++		extern uint##bits##_t	dtrace_fuword##bits##_nocheck(void *);\
++									      \
++		if ((uintptr_t)uaddr > _userlimit) {			      \
++			DTRACE_CPUFLAG_SET(CPU_DTRACE_BADADDR);		      \
++			this_cpu_core->cpuc_dtrace_illval = (uintptr_t)uaddr; \
++		}							      \
++									      \
++		return dtrace_fuword##bits##_nocheck(uaddr);		      \
++	}
++
++DTRACE_FUWORD(8)
++DTRACE_FUWORD(16)
++DTRACE_FUWORD(32)
++DTRACE_FUWORD(64)
++
++static int dtrace_unwind_frame(struct task_struct *task,
++			       struct stackframe *frame)
++{
++	unsigned long	fp = frame->fp;
++
++	if (fp & 0xf)
++		return -EINVAL;
++
++	DTRACE_CPUFLAG_SET(CPU_DTRACE_NOFAULT);
++	frame->fp = READ_ONCE_NOCHECK(*(unsigned long *)(fp));
++	frame->pc = READ_ONCE_NOCHECK(*(unsigned long *)(fp + 8));
++	DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_NOFAULT);
++
++	if (!frame->fp && !frame->pc)
++		return -EINVAL;
++
++	return 0;
++}
++
++uint64_t dtrace_getarg(int argno, int aframes)
++{
++	uint64_t		*st;
++	uint64_t		val;
++	int			i;
++	struct stackframe	frame;
++	struct task_struct	*task = current;
++
++	if (argno < 7)
++		return 0;
++
++	if (this_cpu_core->cpu_dtrace_regs)
++		st = (uint64_t *)this_cpu_core->cpu_dtrace_regs->regs[29];
++	else {
++		frame.fp = (unsigned long)__builtin_frame_address(0);
++		frame.pc = (unsigned long)dtrace_getarg;
++
++		aframes += 1;		/* Count this function. */
++		for (i = 0; i < aframes; i++) {
++			if (dtrace_unwind_frame(task, &frame) < 0)
++				break;
++		}
++
++		/*
++		 * If we cannot traverse the expected number of stack frames,
++		 * there is something wrong with the stack.
++		 */
++		if (i < aframes) {
++			DTRACE_CPUFLAG_SET(CPU_DTRACE_BADSTACK);
++
++			return 0;
++		}
++
++		st = (uint64_t *)frame.fp;
++	}
++
++	/*
++	 * The first 7 arguments (arg0 through arg6) are passed in registers
++	 * to dtrace_probe().  The remaining arguments (arg7 through arg9) are
++	 * passed on the stack.
++	 *
++	 * Stack layout:
++	 * bp[0] = pushed fp from caller
++	 * bp[1] = return address
++	 * bp[2] = 8th argument (arg7 -> argno = 7)
++	 * bp[3] = 9th argument (arg8 -> argno = 8)
++	 * ...
++	 */
++	DTRACE_CPUFLAG_SET(CPU_DTRACE_NOFAULT);
++	val = READ_ONCE_NOCHECK(st[2 + (argno - 7)]);
++	DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_NOFAULT);
++
++	return val;
++}
++
++ulong_t dtrace_getreg(struct task_struct *task, uint_t reg)
++{
++	struct pt_regs	*rp = task_pt_regs(task);
++
++	return regs_get_register(rp, reg * sizeof(uint64_t));
++}
++
++void pdata_init(struct dtrace_module *pdata, struct module *mp)
++{
++	/*
++	 * Throw away existing data as we don't support reusal at
++	 * the moment.
++	 */
++	if (mp->pdata != NULL)
++		pdata_cleanup(pdata, mp);
++
++	pdata->sdt_tab = NULL;
++	pdata->fbt_tab = NULL;
++}
++
++void pdata_cleanup(struct dtrace_module *pdata, struct module *mp)
++{
++	if (pdata->sdt_tab != NULL)
++		dtrace_free_text(pdata->sdt_tab);
++	if (pdata->fbt_tab != NULL)
++		dtrace_free_text(pdata->fbt_tab);
++}
+diff --git a/arch/arm64/dtrace/fasttrap_arm64.c b/arch/arm64/dtrace/fasttrap_arm64.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..cc970a11412c7934a10ce6fc7453b1ce132bdcea
+--- /dev/null
++++ b/arch/arm64/dtrace/fasttrap_arm64.c
+@@ -0,0 +1,282 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	fasttrap_arm64.c
++ * DESCRIPTION:	DTrace - fasttrap provider implementation for arm64
++ *
++ * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <asm/insn.h>
++#include <linux/kernel.h>
++#include <linux/slab.h>
++#include <linux/uaccess.h>
++
++#include "dtrace.h"
++#include "dtrace_dev.h"
++#include "fasttrap_impl.h"
++
++static int has_jump_table(const asm_instr_t *addr, size_t size)
++{
++	const asm_instr_t	*end = addr + size;
++
++	while (addr < end) {
++		/*
++		 * If we encounter a branch-to-register instruction, we assume
++		 * it is part of a jump table implementation.
++		 */
++		if (aarch64_insn_is_br(addr[0]))
++			return 1;
++
++		addr++;
++	}
++
++	return 0;
++}
++
++static uint64_t *fasttrap_all_offsets(asm_instr_t *text, size_t size,
++				      uint64_t *np)
++{
++	uint64_t	*offs = NULL;
++	uint64_t	noffs;
++	asm_instr_t	*instr;
++	asm_instr_t	*end;
++
++	/*
++	 * Two passes are taken through this section of code.  The first time
++	 * around we merely count the number of probe points.  The second time,
++	 * we actually record their locations.
++	 */
++again:
++	noffs = 0;
++	instr = text;
++	end = text + size;
++
++	while (instr < end) {
++		if (offs)
++			offs[noffs] = (uint64_t)
++					((uintptr_t)instr - (uintptr_t)text);
++		noffs++;
++
++		instr++;
++	}
++
++	if (offs == NULL) {
++		/*
++		 * No matching offsets found - we are done.
++		 */
++		if (noffs == 0)
++			goto fail;
++
++		/*
++		 * We know how many tracepoint locations there are for this
++		 * probe, so allocate a member to record them, and kick off the
++		 * second pass.
++		 */
++		offs = kmalloc(sizeof(uint64_t) * noffs, GFP_KERNEL);
++		if (!offs)
++			goto fail;
++
++		goto again;
++	}
++
++	*np = noffs;
++
++	return offs;
++
++fail:
++	*np = 0;
++	kfree(offs);
++
++	return NULL;
++}
++
++uint64_t *fasttrap_glob_offsets(struct fasttrap_probe_spec *probe,
++				uint64_t *np)
++{
++	size_t		size = probe->ftps_size;
++	asm_instr_t	*text = NULL;
++	asm_instr_t	*instr;
++	asm_instr_t	*end;
++	uint64_t	*offs = NULL;
++	uint64_t	noffs;
++	int		ret = 0;
++	char		ostr[sizeof(instr) * 2 + 1];	/* 2 chars / byte + 1 */
++
++	if (!IS_ALIGNED(size, sizeof(instr[0])))
++		goto fail;
++
++	text = kmalloc(size, GFP_KERNEL);
++	if (!text)
++		goto fail;
++
++	ret = dtrace_copy_code(probe->ftps_pid, (uint8_t *)text,
++			       probe->ftps_pc, size);
++	if (ret != 0)
++		goto fail;
++
++	/*
++	 * From this point on, size will be a count of instructions rather than
++	 * a byte count.  We already verified earlier on that it is a multiple
++	 * of the instruction size.
++	 */
++	size /= sizeof(instr[0]);
++
++	if (has_jump_table(text, size))
++		goto fail;
++
++	if (probe->ftps_glen == 1 && probe->ftps_gstr[0] == '*') {
++		offs = fasttrap_all_offsets(text, size, &noffs);
++		goto out;
++	}
++
++	/*
++	 * Two passes are taken through this section of code.  The first time
++	 * around we merely count the number of probe points.  The second time,
++	 * we actually record their locations.
++	 */
++again:
++	noffs = 0;
++	instr = text;
++	end = text + size;
++
++	while (instr < end) {
++		uint64_t	off = (uint64_t)
++					((uintptr_t)instr - (uintptr_t)text);
++
++		snprintf(ostr, sizeof(ostr), "%llx", off);
++		if (dtrace_gmatch(ostr, probe->ftps_gstr)) {
++			if (offs)
++				offs[noffs] = off;
++			noffs++;
++		}
++
++		instr++;
++	}
++
++	if (offs == NULL) {
++		/*
++		 * No matching offsets found - we are done.
++		 */
++		if (noffs == 0)
++			goto fail;
++
++		/*
++		 * We know how many tracepoint locations there are for this
++		 * probe, so allocate member to record them, and kick off the
++		 * second pass.
++		 */
++		offs = kmalloc(sizeof(uint64_t) * noffs, GFP_KERNEL);
++		if (!offs)
++			goto fail;
++
++		goto again;
++	}
++
++out:
++	kfree(text);
++
++	*np = noffs;
++
++	return offs;
++
++fail:
++	kfree(offs);
++	kfree(text);
++
++	*np = 0;
++	return NULL;
++}
++
++uint64_t fasttrap_pid_getarg(void *arg, dtrace_id_t id, void *parg, int argno,
++			     int aframes)
++{
++	struct pt_regs	*regs = this_cpu_core->cpu_dtrace_regs;
++	uint64_t	*st;
++	uint64_t	val;
++
++	if (regs == NULL)
++		return 0;
++
++	if (argno < 8)
++		return regs->regs[argno];
++
++	pagefault_disable();
++	st = (uint64_t *)regs->sp;
++	__copy_from_user_inatomic_nocache(&val, (void *)&st[argno - 8],
++					  sizeof(st[0]));
++	pagefault_enable();
++
++	return val;
++}
++
++uint64_t fasttrap_usdt_getarg(void *arg, dtrace_id_t id, void *parg,
++			      int argno, int aframes)
++{
++	return fasttrap_pid_getarg(arg, id, parg, argno, aframes);
++}
++
++static void fasttrap_map_args(struct fasttrap_probe *probe,
++			      struct pt_regs *regs, int argc, uintptr_t *argv)
++{
++	int		i, x, cap = min(argc, (int)probe->ftp_nargs);
++	uintptr_t	*st = (uintptr_t *)regs->sp;
++
++	for (i = 0; i < cap; i++) {
++		x = probe->ftp_argmap[i];
++
++		if (x < 8)
++			argv[i] = regs->regs[x];
++		else {
++			pagefault_disable();
++			__copy_from_user_inatomic_nocache(&argv[i],
++							  (void *)&st[x - 8],
++							  sizeof(st[0]));
++			pagefault_enable();
++		}
++	}
++
++	while (i < argc)
++		argv[i++] = 0;
++}
++
++void fasttrap_pid_probe_arch(struct fasttrap_probe *ftp, struct pt_regs *regs)
++{
++	if (ftp->ftp_argmap == NULL) {
++		dtrace_probe(ftp->ftp_id, regs->regs[0], regs->regs[1],
++					  regs->regs[2], regs->regs[3],
++					  regs->regs[4], regs->regs[5],
++					  regs->regs[6]);
++	} else {
++		uintptr_t	t[7];
++
++		fasttrap_map_args(ftp, regs, sizeof(t) / sizeof(t[0]), t);
++		dtrace_probe(ftp->ftp_id, t[0], t[1], t[2], t[3],
++			     t[4], t[5], t[6]);
++	}
++}
++
++void fasttrap_pid_retprobe_arch(struct fasttrap_probe *ftp,
++				struct pt_regs *regs)
++{
++	/*
++	 * FIXME: The first argument to the probe should be the offset in the
++	 *	  function that the return occurred at, but uprobes doesn't give
++	 *	  us that information (or so it seems).
++	 */
++	dtrace_probe(ftp->ftp_id, 0, regs->regs[0], regs->regs[1], 0, 0, 0, 0);
++}
++
++void fasttrap_set_enabled(struct pt_regs *regs)
++{
++	regs->regs[0] = 1;
++}
+diff --git a/arch/arm64/dtrace/fbt_arm64.c b/arch/arm64/dtrace/fbt_arm64.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..be9dcaf8db28aceb80cb82805407d041c4edced5
+--- /dev/null
++++ b/arch/arm64/dtrace/fbt_arm64.c
+@@ -0,0 +1,152 @@
++/*
++ * FILE:	fbt_arm64.c
++ * DESCRIPTION:	DTrace - FBT provider implementation for arm64
++ *
++ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/dtrace_fbt.h>
++#include <linux/ptrace.h>
++#include <linux/vmalloc.h>
++#include <asm/dtrace_util.h>
++#include <asm/debug-monitors.h>
++
++#include "dtrace.h"
++#include "dtrace_dev.h"
++#include "fbt_impl.h"
++
++static int fbt_brk_hook(struct pt_regs *regs, unsigned int esr)
++{
++	uintptr_t	 ip = instruction_pointer(regs);
++	struct fbt_probe *fbp = fbt_probetab[FBT_ADDR2NDX(ip)];
++
++	for (; fbp != NULL; fbp = fbp->fbp_hashnext) {
++		if ((uintptr_t)fbp->fbp_patchpoint == ip) {
++			struct pt_regs	*oregs;
++
++			oregs = this_cpu_core->cpu_dtrace_regs;
++			this_cpu_core->cpu_dtrace_regs = regs;
++
++			if (fbp->fbp_roffset == 0) {
++				dtrace_probe(fbp->fbp_id, regs->regs[0],
++					     regs->regs[1], regs->regs[2],
++					     regs->regs[3], regs->regs[4],
++					     regs->regs[5], regs->regs[6]);
++			} else {
++				dtrace_probe(fbp->fbp_id, fbp->fbp_roffset,
++					     regs->regs[0], 0, 0, 0, 0, 0);
++			}
++
++			this_cpu_core->cpu_dtrace_regs = oregs;
++
++			return DBG_HOOK_HANDLED;
++		}
++	}
++
++	return DBG_HOOK_ERROR;
++}
++
++uint64_t fbt_getarg(void *arg, dtrace_id_t id, void *parg, int argno,
++		    int aframes)
++{
++	struct pt_regs	*regs = this_cpu_core->cpu_dtrace_regs;
++	uint64_t	*st;
++	uint64_t	val;
++
++	if (regs == NULL)
++		regs = current_pt_regs();
++
++	if (argno < 8)
++		return regs->regs[argno];
++
++	/*
++	 * Arguments are passed by register for the first 8 arguments, and the
++	 * rest is placed on the stack.  The frame pointer (fp) points at the
++	 * beginning of the current frame, and the stack pointer (sp) will
++	 * point to the end of the frame.  Arguments passed by stack are placed
++	 * in stack slots at the end of the frame, so at (sp), (sp + 1), etc...
++	 */
++	st = (uint64_t *)regs->sp;
++
++	DTRACE_CPUFLAG_SET(CPU_DTRACE_NOFAULT);
++	val = READ_ONCE_NOCHECK(st[argno - 8]);
++	DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_NOFAULT);
++
++	return 0;
++}
++
++void fbt_provide_probe_arch(struct fbt_probe *fbp, int type, int stype)
++{
++	fbp->fbp_patchval = type == FBT_ENTRY ? BRK64_OPCODE_DPROBE_FBE
++					      : BRK64_OPCODE_DPROBE_FBR;
++	fbp->fbp_savedval = dtrace_text_peek(fbp->fbp_patchpoint);
++}
++
++int fbt_can_patch_return_arch(asm_instr_t *addr)
++{
++	return 1;
++}
++
++int fbt_provide_module_arch(void *arg, struct module *mp)
++{
++	return 1;
++}
++
++void fbt_destroy_module(void *arg, struct module *mp)
++{
++}
++
++void fbt_enable_arch(struct fbt_probe *fbp, dtrace_id_t id, void *arg)
++{
++	dtrace_text_poke(fbp->fbp_patchpoint, fbp->fbp_patchval);
++}
++
++void fbt_disable_arch(struct fbt_probe *fbp, dtrace_id_t id, void *arg)
++{
++	dtrace_text_poke(fbp->fbp_patchpoint, fbp->fbp_savedval);
++}
++
++static struct break_hook dtrace_fbe_break_hook = {
++	.imm = DPROBES_FBE_BRK_IMM,
++	.fn = fbt_brk_hook,
++};
++
++static struct break_hook dtrace_fbr_break_hook = {
++	.imm = DPROBES_FBR_BRK_IMM,
++	.fn = fbt_brk_hook,
++};
++
++int fbt_dev_init_arch(void)
++{
++	fbt_probetab_mask = fbt_probetab_size - 1;
++	fbt_probetab = dtrace_vzalloc_try(fbt_probetab_size *
++					  sizeof(struct fbt_probe *));
++
++	if (fbt_probetab == NULL)
++		return -ENOMEM;
++
++	dtrace_kernel_brk_start(&dtrace_fbe_break_hook);
++	dtrace_kernel_brk_start(&dtrace_fbr_break_hook);
++
++	return 0;
++}
++
++void fbt_dev_exit_arch(void)
++{
++	dtrace_kernel_brk_stop(&dtrace_fbr_break_hook);
++	dtrace_kernel_brk_stop(&dtrace_fbe_break_hook);
++
++	vfree(fbt_probetab);
++	fbt_probetab_mask = 0;
++	fbt_probetab_size = 0;
++}
+diff --git a/arch/arm64/dtrace/include/dtrace/fasttrap_arch.h b/arch/arm64/dtrace/include/dtrace/fasttrap_arch.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..d5ffa6e711dbd015e7958fbf2288afc0b72f50fe
+--- /dev/null
++++ b/arch/arm64/dtrace/include/dtrace/fasttrap_arch.h
+@@ -0,0 +1,30 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Dynamic Tracing for Linux - Fasttrap provider implementation defines
++ *
++ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++/*
++ * Note: The contents of this file are private to the implementation of the
++ * DTrace subsystem and are subject to change at any time without notice.
++ */
++
++#ifndef _ARM64_FASTTRAP_ARCH_H
++#define _ARM64_FASTTRAP_ARCH_H
++
++#define FASTTRAP_ENTRY_AFRAMES	8
++#define FASTTRAP_RETURN_AFRAMES	8
++#define FASTTRAP_OFFSET_AFRAMES	8
++
++#endif /* _ARM64_FASTTRAP_ARCH_H */
+diff --git a/arch/arm64/dtrace/include/dtrace/fbt_arch.h b/arch/arm64/dtrace/include/dtrace/fbt_arch.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..ed1cd785b3ba277a966ae9c6a15faf17be1a77a7
+--- /dev/null
++++ b/arch/arm64/dtrace/include/dtrace/fbt_arch.h
+@@ -0,0 +1,53 @@
++/*
++ * Dynamic Tracing for Linux - FBT Implementation defines
++ *
++ * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++/*
++ * Note: The contents of this file are private to the implementation of the
++ * DTrace subsystem and are subject to change at any time without notice.
++ */
++
++#ifndef _ARM64_FBT_ARCH_H
++#define _ARM64_FBT_ARCH_H
++
++/*
++ * FBT entry probes are triggered from a breakpoint.  The following stack trace
++ * illustrates the frames that are involved in the call sequence prior to the
++ * actual FBT provider handler.
++ *
++ *	vmlinux`brk_handler+0x70	<- to be skipped
++ *	vmlinux`do_debug_exception+0x9c	<- to be skipped
++ *	vmlinux`el1_sync+0x1d8		<- to be skipped
++ *	vmlinux`SyS_read+0x4
++ *
++ * Therefore, 3 frames need to be skipped.
++ */
++#define FBT_AFRAMES	3
++
++struct fbt_probe {
++	char			*fbp_name;	/* name of probe */
++	dtrace_id_t		fbp_id;		/* probe ID */
++	struct module		*fbp_module;	/* defining module */
++	int			fbp_primary;	/* non-zero if primary mod */
++	asm_instr_t		*fbp_patchpoint;/* patch point */
++	asm_instr_t		fbp_patchval;	/* instruction to patch */
++	asm_instr_t		fbp_savedval;	/* saved instruction value */
++	uint64_t		fbp_roffset;	/* relative offset */
++	struct fbt_probe	*fbp_next;	/* next probe */
++	struct fbt_probe	*fbp_hashnext;	/* next on hash */
++	int			fbp_isret;
++};
++
++#endif /* _ARM64_FBT_ARCH_H */
+diff --git a/arch/arm64/dtrace/include/dtrace/sdt_arch.h b/arch/arm64/dtrace/include/dtrace/sdt_arch.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..237922a77495d960081082c20666afdad3ee569e
+--- /dev/null
++++ b/arch/arm64/dtrace/include/dtrace/sdt_arch.h
+@@ -0,0 +1,28 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Dynamic Tracing for Linux - SDT Implementation defines
++ *
++ * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++/*
++ * Note: The contents of this file are private to the implementation of the
++ * DTrace subsystem and are subject to change at any time without notice.
++ */
++
++#ifndef _ARM64_SDT_ARCH_H
++#define _ARM64_SDT_ARCH_H
++
++#define SDT_AFRAMES	1
++
++#endif /* _ARM64_SDT_ARCH_H */
+diff --git a/arch/arm64/dtrace/sdt_arm64.c b/arch/arm64/dtrace/sdt_arm64.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..ba25824e413ecc22280bcc5aa8e4fa70bad2555f
+--- /dev/null
++++ b/arch/arm64/dtrace/sdt_arm64.c
+@@ -0,0 +1,122 @@
++/*
++ * FILE:	sdt_arm64.c
++ * DESCRIPTION:	DTrace - SDT provider implementation for arm64
++ *
++ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/ptrace.h>
++#include <linux/sdt.h>
++#include <asm/debug-monitors.h>
++
++#include "dtrace.h"
++#include "dtrace_dev.h"
++#include "sdt_impl.h"
++
++static int sdt_brk_hook(struct pt_regs *regs, unsigned int esr)
++{
++	uintptr_t		ip = instruction_pointer(regs);
++	struct sdt_probe	*sdt = sdt_probetab[SDT_ADDR2NDX(ip)];
++
++	for (; sdt != NULL; sdt = sdt->sdp_hashnext) {
++		if ((uintptr_t)sdt->sdp_patchpoint == ip) {
++			if (sdt->sdp_ptype == SDTPT_IS_ENABLED)
++				regs->regs[0] = 1;
++			else {
++				this_cpu_core->cpu_dtrace_regs = regs;
++				dtrace_probe(sdt->sdp_id, regs->regs[0],
++					     regs->regs[1], regs->regs[2],
++					     regs->regs[3], regs->regs[4],
++					     regs->regs[5], regs->regs[6]);
++				this_cpu_core->cpu_dtrace_regs = NULL;
++			}
++
++			instruction_pointer_set(regs,
++						instruction_pointer(regs) + 4);
++
++			return DBG_HOOK_HANDLED;
++		}
++	}
++
++	return DBG_HOOK_ERROR;
++}
++
++void sdt_provide_probe_arch(struct sdt_probe *sdp, struct module *mp, int idx)
++{
++	sdp->sdp_patchval = BRK64_OPCODE_DPROBE_SDT;
++	sdp->sdp_savedval = dtrace_text_peek(sdp->sdp_patchpoint);
++}
++
++int sdt_provide_module_arch(void *arg, struct module *mp)
++{
++	return 1;
++}
++
++void sdt_destroy_module(void *arg, struct module *mp)
++{
++}
++
++void sdt_enable_arch(struct sdt_probe *sdp, dtrace_id_t id, void *arg)
++{
++	dtrace_text_poke(sdp->sdp_patchpoint, sdp->sdp_patchval);
++}
++
++void sdt_disable_arch(struct sdt_probe *sdp, dtrace_id_t id, void *arg)
++{
++	dtrace_text_poke(sdp->sdp_patchpoint, sdp->sdp_savedval);
++}
++
++static struct break_hook dtrace_sdt_break_hook = {
++	.imm = DPROBES_SDT_BRK_IMM,
++	.fn = sdt_brk_hook,
++};
++
++int sdt_dev_init_arch(void)
++{
++	dtrace_kernel_brk_start(&dtrace_sdt_break_hook);
++	return 0;
++}
++
++void sdt_dev_exit_arch(void)
++{
++	dtrace_kernel_brk_stop(&dtrace_sdt_break_hook);
++}
++
++uint64_t sdt_getarg(void *arg, dtrace_id_t id, void *parg, int argno,
++		    int aframes)
++{
++	struct pt_regs  *regs = this_cpu_core->cpu_dtrace_regs;
++	uint64_t	*st;
++	uint64_t	val;
++
++	if (regs == NULL)
++		regs = current_pt_regs();
++
++	if (argno < 8)
++		return regs->regs[argno];
++
++	/*
++	 * Arguments are passed by register for the first 8 arguments, and the
++	 * rest is placed on the stack.  The frame pointer (fp) points at the
++	 * beginning of the current frame, and the stack pointer (sp) will
++	 * point to the end of the frame.  Arguments passed by stack are placed
++	 * in stack slots at the end of the frame, so at (sp), (sp + 1), etc...
++	 */
++	st = (uint64_t *)regs->sp;
++
++	DTRACE_CPUFLAG_SET(CPU_DTRACE_NOFAULT);
++	val = READ_ONCE_NOCHECK(st[argno - 8]);
++	DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_NOFAULT);
++
++	return val;
++}
+diff --git a/arch/arm64/include/asm/brk-imm.h b/arch/arm64/include/asm/brk-imm.h
+index ec7720dbe2c801bc44344d7893cfc510fed7d0d7..405cfb7da5ea39f0bb2ed4a2208fb512ed9129df 100644
+--- a/arch/arm64/include/asm/brk-imm.h
++++ b/arch/arm64/include/asm/brk-imm.h
+@@ -11,6 +11,9 @@
+  * 0x004: for installing kprobes
+  * 0x005: for installing uprobes
+  * 0x006: for kprobe software single-step
++ * 0x007: for installing DTrace SDT probes
++ * 0x008: for installing DTrace function-boundary tracing entry probes
++ * 0x009: for installing DTrace function-boundary tracing return probes
+  * Allowed values for kgdb are 0x400 - 0x7ff
+  * 0x100: for triggering a fault on purpose (reserved)
+  * 0x400: for dynamic BRK instruction
+@@ -21,6 +24,9 @@
+ #define KPROBES_BRK_IMM			0x004
+ #define UPROBES_BRK_IMM			0x005
+ #define KPROBES_BRK_SS_IMM		0x006
++#define DPROBES_SDT_BRK_IMM		0x007
++#define DPROBES_FBE_BRK_IMM		0x008
++#define DPROBES_FBR_BRK_IMM		0x009
+ #define FAULT_BRK_IMM			0x100
+ #define KGDB_DYN_DBG_BRK_IMM		0x400
+ #define KGDB_COMPILED_DBG_BRK_IMM	0x401
+diff --git a/arch/arm64/include/asm/cpu.h b/arch/arm64/include/asm/cpu.h
+index 7faae6ff3ab4d5c27896305d609494cdb13d54e6..496e8df36b56d85a7616b38a56797ee83500c0dd 100644
+--- a/arch/arm64/include/asm/cpu.h
++++ b/arch/arm64/include/asm/cpu.h
+@@ -60,6 +60,7 @@ struct cpuinfo_arm64 {
+ };
+ 
+ DECLARE_PER_CPU(struct cpuinfo_arm64, cpu_data);
++#define cpu_data(cpu)		per_cpu(cpu_data, (cpu))
+ 
+ void cpuinfo_store_cpu(void);
+ void __init cpuinfo_store_boot_cpu(void);
+diff --git a/arch/arm64/include/asm/debug-monitors.h b/arch/arm64/include/asm/debug-monitors.h
+index 657c921fd784a7c12a0e45d814c6bc089f9ca0ec..030756b7e008e52e0e5d8a5ea82521a23ae7045a 100644
+--- a/arch/arm64/include/asm/debug-monitors.h
++++ b/arch/arm64/include/asm/debug-monitors.h
+@@ -56,6 +56,10 @@
+ #define BRK64_OPCODE_KPROBES_SS	(AARCH64_BREAK_MON | (KPROBES_BRK_SS_IMM << 5))
+ /* uprobes BRK opcodes with ESR encoding  */
+ #define BRK64_OPCODE_UPROBES	(AARCH64_BREAK_MON | (UPROBES_BRK_IMM << 5))
++/* DTrace probes BRK opcodes with ESR encoding  */
++#define BRK64_OPCODE_DPROBE_SDT	(AARCH64_BREAK_MON | (DPROBES_SDT_BRK_IMM << 5))
++#define BRK64_OPCODE_DPROBE_FBE	(AARCH64_BREAK_MON | (DPROBES_FBE_BRK_IMM << 5))
++#define BRK64_OPCODE_DPROBE_FBR	(AARCH64_BREAK_MON | (DPROBES_FBR_BRK_IMM << 5))
+ 
+ /* AArch32 */
+ #define DBG_ESR_EVT_BKPT	0x4
+diff --git a/arch/arm64/include/asm/dtrace_arch.h b/arch/arm64/include/asm/dtrace_arch.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..89f883e20aa7a4ff816bbd5be125c3afd98ab5ee
+--- /dev/null
++++ b/arch/arm64/include/asm/dtrace_arch.h
+@@ -0,0 +1,31 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved. */
++
++#ifndef _ASM_ARM64_DTRACE_ARCH_H
++#define _ASM_ARM64_DTRACE_ARCH_H
++
++/* Number of argumens stored inside the mstate. */
++#define	DTRACE_MSTATE_ARGS_MAX		7
++
++typedef uint32_t	asm_instr_t;
++
++typedef int (*prov_exit_f)(void);
++
++/*
++ * Structure to hold DTrace specific information about modules (including the
++ * core kernel module).  Note that each module (and the main kernel) already
++ * has three fields that relate to probing:
++ *	- sdt_probes: description of SDT probes in the module
++ *	- sdt_probec: number of SDT probes in the module
++ *	- pdata: pointer to a dtrace_module struct (for DTrace)
++ */
++struct dtrace_module {
++	int             enabled_cnt;
++	size_t          sdt_probe_cnt;
++	asm_instr_t	*sdt_tab;
++	size_t          fbt_probe_cnt;
++	asm_instr_t	*fbt_tab;
++	prov_exit_f	prov_exit;	/* Called with module_mutex held */
++};
++
++#endif /* _ASM_ARM64_DTRACE_ARCH_H */
+diff --git a/arch/arm64/include/asm/dtrace_cpuinfo.h b/arch/arm64/include/asm/dtrace_cpuinfo.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..4e0ab793c92cd1e757c06754744ce799d14ed72c
+--- /dev/null
++++ b/arch/arm64/include/asm/dtrace_cpuinfo.h
+@@ -0,0 +1,13 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright (C) 2018 Oracle, Inc. */
++
++#ifndef _ASM_ARM64_DTRACE_CPUINFO_H_
++#define _ASM_ARM64_DTRACE_CPUINFO_H_
++
++#include <asm/cpu.h>
++
++typedef struct cpuinfo_arm64		cpuinfo_arch_t;
++
++#define dtrace_cpuinfo_chip(ci)		((ci)->cpu.node_id)
++
++#endif /* _ASM_ARM64_DTRACE_CPUINFO_H_ */
+diff --git a/arch/arm64/include/asm/dtrace_sdt_arch.h b/arch/arm64/include/asm/dtrace_sdt_arch.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..b93a03c215b3f19c6a0ad70353c404bf0a9f1b20
+--- /dev/null
++++ b/arch/arm64/include/asm/dtrace_sdt_arch.h
+@@ -0,0 +1,15 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright (C) 2018 Oracle, Inc. */
++
++#ifndef _ASM_ARM64_DTRACE_SDT_ARCH_H
++#define _ASM_ARM64_DTRACE_SDT_ARCH_H
++
++#include <asm/dtrace_arch.h>
++
++#define NOP_INSTR	0xd503201f
++#define MOV_INSTR	0xd2800000	/* mov x0, #0x0  - default = false */
++
++#define __DTRACE_SDT_ISENABLED_PROTO void
++#define __DTRACE_SDT_ISENABLED_ARGS
++
++#endif /* _ASM_ARM64_DTRACE_SDT_ARCH_H */
+diff --git a/arch/arm64/include/asm/dtrace_syscall.h b/arch/arm64/include/asm/dtrace_syscall.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..402826562478213976f122510d4082af23028fd3
+--- /dev/null
++++ b/arch/arm64/include/asm/dtrace_syscall.h
+@@ -0,0 +1,3 @@
++/*
++ * Copyright (c) 2011, 2018, Oracle and/or its affiliates. All rights reserved.
++ */
+diff --git a/arch/arm64/include/asm/dtrace_syscall_types.h b/arch/arm64/include/asm/dtrace_syscall_types.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..88e6eca6e169fb6b1b82aec04a57adc7ac2bdb6b
+--- /dev/null
++++ b/arch/arm64/include/asm/dtrace_syscall_types.h
+@@ -0,0 +1,11 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 2011, 2018, Oracle and/or its affiliates. All rights reserved.
++ */
++
++#include <linux/types.h>
++#include <linux/dtrace_types.h>
++
++typedef asmlinkage long (*dt_sys_call_t)(const struct pt_regs *regs);
++
++#define DTRACE_SYSCALL_WRAP_PREFIX "__arm64_"
+diff --git a/arch/arm64/include/asm/dtrace_util.h b/arch/arm64/include/asm/dtrace_util.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..003bd34524d6351d1d9ae569c5703b127e9e6814
+--- /dev/null
++++ b/arch/arm64/include/asm/dtrace_util.h
+@@ -0,0 +1,14 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright (C) 2019, Oracle and/or its affiliates. All rights reserved. */
++
++#ifndef _ASM_ARM64_DTRACE_UTIL_H
++#define _ASM_ARM64_DTRACE_UTIL_H
++
++#include <asm/dtrace_arch.h>
++
++extern asm_instr_t dtrace_text_peek(asm_instr_t *addr);
++extern void dtrace_text_poke(asm_instr_t *addr, asm_instr_t opcode);
++extern void dtrace_kernel_brk_start(void *arg);
++extern void dtrace_kernel_brk_stop(void *arg);
++
++#endif /* _ASM_ARM64_DTRACE_UTIL_H */
+diff --git a/arch/arm64/include/asm/kdebug.h b/arch/arm64/include/asm/kdebug.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..66c884086d0458ba15ef8f59f0dd50c4b130a52b
+--- /dev/null
++++ b/arch/arm64/include/asm/kdebug.h
+@@ -0,0 +1,11 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ARM64_KDEBUG_H
++#define _ARM64_KDEBUG_H
++
++/* Grossly misnamed. */
++enum die_val {
++	DIE_OOPS = 1,
++	DIE_PAGE_FAULT,
++};
++
++#endif /* _ARM64_KDEBUG_H */
+diff --git a/arch/arm64/include/asm/syscall.h b/arch/arm64/include/asm/syscall.h
+index cfc0672013f672aaf77a18b1c2f3a7a5e692266e..1ab1fc22cb8bde23107e4de85419ece0cb66dc48 100644
+--- a/arch/arm64/include/asm/syscall.h
++++ b/arch/arm64/include/asm/syscall.h
+@@ -11,7 +11,13 @@
+ 
+ typedef long (*syscall_fn_t)(const struct pt_regs *regs);
+ 
+-extern const syscall_fn_t sys_call_table[];
++#if IS_ENABLED(CONFIG_DT_SYSTRACE)
++#define CONST_SYS_CALL_TABLE
++#else
++#define CONST_SYS_CALL_TABLE const
++#endif
++
++extern CONST_SYS_CALL_TABLE syscall_fn_t sys_call_table[];
+ 
+ #ifdef CONFIG_COMPAT
+ extern const syscall_fn_t compat_sys_call_table[];
+diff --git a/arch/arm64/kernel/dtrace_fbt.c b/arch/arm64/kernel/dtrace_fbt.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..3761e8aa4550e163e29373d3ce1d3b4f4802f79d
+--- /dev/null
++++ b/arch/arm64/kernel/dtrace_fbt.c
+@@ -0,0 +1,187 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:        dtrace_fbt.c
++ * DESCRIPTION: Dynamic Tracing: FBT registration code (arch-specific)
++ *
++ * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
++ */
++
++#include <linux/kernel.h>
++#include <linux/kallsyms.h>
++#include <linux/dtrace_os.h>
++#include <linux/dtrace_fbt.h>
++#include <linux/dtrace_task_impl.h>
++#include <linux/slab.h>
++#include <linux/sort.h>
++#include <asm/insn.h>
++#include <asm/sections.h>
++
++#define FBT_REG_FP	0x1d		/* fp is regiater 29 */
++#define FBT_REG_LR	0x1e		/* lr is regiater 30 */
++#define FBT_REG_SP	0x1f		/* sp is register 31 */
++#define FBT_MOV_FP_SP	0x910003fd	/* "mov x29, sp" */
++
++#define BL_SENTRY(tp, nm)	extern tp nm;
++#define BL_DENTRY(tp, nm)
++#include "fbt_blacklist.h"
++#undef BL_DENTRY
++#undef BL_SENTRY
++
++static void
++dtrace_fbt_populate_bl(void)
++{
++#define	BL_SENTRY(tp, nm)	dtrace_fbt_bl_add((unsigned long)&nm, \
++						  __stringify(nm));
++#define BL_DENTRY(tp, nm)	dtrace_fbt_bl_add(0, __stringify(nm));
++#include "fbt_blacklist.h"
++#undef BL_SENTRY
++#undef BL_DENTRY
++}
++
++void dtrace_fbt_init(fbt_add_probe_fn fbt_add_probe, struct module *mp,
++		     void *arg)
++{
++	loff_t			pos;
++	struct kallsym_iter	sym;
++	asm_instr_t		*paddr = NULL;
++	struct dt_fbt_bl_entry	*blent = NULL;
++
++	/*
++	 * Look up any unresolved symbols in the blacklist, and sort the list
++	 * by ascending address.
++	 */
++	dtrace_fbt_populate_bl();
++
++	blent = dtrace_fbt_bl_first();
++
++	pos = 0;
++	kallsyms_iter_reset(&sym, 0);
++	while (kallsyms_iter_update(&sym, pos++)) {
++		asm_instr_t	*addr, *end;
++		asm_instr_t	instr;
++		void		*fbtp = NULL;
++
++		/*
++		 * There is no point considering non-function symbols for FBT,
++		 * or symbols that have a zero size.  We could consider weak
++		 * symbols but that gets quite complicated and there is no
++		 * demands for that (so far).
++		 */
++		if (sym.type != 'T' && sym.type != 't')
++			continue;
++		if (!sym.size)
++			continue;
++
++		/*
++		 * The symbol must be at a properly aligned text address.
++		 */
++		if (!IS_ALIGNED(sym.value, sizeof(asm_instr_t)))
++			continue;
++
++		/*
++		 * Handle only symbols that belong to the module we have been
++		 * asked for.
++		 */
++		if (mp == dtrace_kmod && !core_kernel_text(sym.value))
++			continue;
++
++		/*
++		 * Ensure we have not been given .init symbol from kallsyms
++		 * interface. This could lead to memory corruption once DTrace
++		 * tries to enable probe in already freed memory.
++		 */
++		if (mp != dtrace_kmod && !within_module_core(sym.value, mp))
++			continue;
++
++		/*
++		 * See if the symbol is on the FBT's blacklist.  Since both
++		 * iterators are workng in sort order by ascending address we
++		 * can use concurrent traversal.
++		 */
++		while (blent != NULL &&
++		       dtrace_fbt_bl_entry_addr(blent) < sym.value) {
++			blent = dtrace_fbt_bl_next(blent);
++		}
++		if (dtrace_fbt_bl_entry_addr(blent) == sym.value)
++			continue;
++
++		/*
++		 * No FBT tracing for DTrace functions, and functions that are
++		 * crucial to probe processing.
++		 * Also weed out symbols that are not relevant here.
++		 */
++		if (strncmp(sym.name, "dtrace_", 7) == 0)
++			continue;
++		if (strncmp(sym.name, "insn_", 5) == 0)
++			continue;
++		if (strncmp(sym.name, "inat_", 5) == 0)
++			continue;
++		if (strncmp(sym.name, "_GLOBAL_", 8) == 0)
++			continue;
++		if (strncmp(sym.name, "do_", 3) == 0)
++			continue;
++		if (strncmp(sym.name, "xen_", 4) == 0)
++			continue;
++
++		addr = (asm_instr_t *)sym.value;
++		end = (asm_instr_t *)(sym.value + sym.size);
++
++		/*
++		 * FIXME:
++		 * When there are multiple symbols for the same address, we
++		 * should link them together as probes associated with the
++		 * same function.  When a probe for that function is triggered
++		 * all associated probes should fire.
++		 *
++		 * For now, we ignore duplicates.
++		 */
++		if (addr == paddr)
++			continue;
++		paddr = addr;
++
++		instr = le32_to_cpu(*addr);
++
++		/*
++		 * We can only instrument functions that begin with a proper
++		 * frame set-up sequence:
++		 *	stp     x29, x30, [sp,#-80]!
++		 *	mov     x29, sp
++		 * So, a STP instruction storing the FP (x29) and LR (x30)
++		 * registers as a pair in a location relative to the SP
++		 * register value.  And then a MOV instruction that sets the
++		 * FP (x29) register to the current SP value (effectively
++		 * establishing the new stack frame).
++		 *
++		 * We will place our breakpoint on the MOV instruction.
++		 */
++		if (!aarch64_insn_is_stp_pre(instr) ||
++		    aarch64_insn_decode_register(
++			    AARCH64_INSN_REGTYPE_RN, instr) != FBT_REG_SP ||
++		    aarch64_insn_decode_register(
++			    AARCH64_INSN_REGTYPE_RT, instr) != FBT_REG_FP ||
++		    aarch64_insn_decode_register(
++			    AARCH64_INSN_REGTYPE_RT2, instr) != FBT_REG_LR)
++			continue;
++
++		addr++;
++		instr = le32_to_cpu(*addr);
++		if (instr != FBT_MOV_FP_SP)
++			continue;
++
++		fbt_add_probe(mp, sym.name, FBT_ENTRY, instr, addr, 0, NULL,
++			      arg);
++
++		while (++addr < end) {
++			uintptr_t	off;
++
++			instr = le32_to_cpu(*addr);
++			if (!aarch64_insn_is_ret(instr))
++				continue;
++
++			off = (uintptr_t)addr - sym.value;
++			fbtp = fbt_add_probe(mp, sym.name, FBT_RETURN, instr,
++					     addr, off, fbtp, arg);
++		}
++	}
++}
++EXPORT_SYMBOL(dtrace_fbt_init);
+diff --git a/arch/arm64/kernel/dtrace_sdt.c b/arch/arm64/kernel/dtrace_sdt.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..d5a6a9d398b3b9a36711a2417dc82324db332ed5
+--- /dev/null
++++ b/arch/arm64/kernel/dtrace_sdt.c
+@@ -0,0 +1,25 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:        dtrace_sdt.c
++ * DESCRIPTION: Dynamic Tracing: SDT registration code (arch-specific)
++ *
++ * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
++ */
++
++#include <linux/module.h>
++#include <asm/insn.h>
++#include <asm/dtrace_arch.h>
++#include <asm/dtrace_sdt_arch.h>
++
++void __init_or_module dtrace_sdt_nop_multi(asm_instr_t **addrs,
++					   int *is_enabled, int cnt)
++{
++	int		i;
++
++	for (i = 0; i < cnt; i++) {
++		if (likely(!is_enabled[i]))
++			aarch64_insn_patch_text_nosync(addrs[i], NOP_INSTR);
++		else
++			aarch64_insn_patch_text_nosync(addrs[i], MOV_INSTR);
++	}
++}
+diff --git a/arch/arm64/kernel/dtrace_syscall.c b/arch/arm64/kernel/dtrace_syscall.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..73730e42f3b8d1ac9d492a5746beb46c43ccc01f
+--- /dev/null
++++ b/arch/arm64/kernel/dtrace_syscall.c
+@@ -0,0 +1,89 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	dtrace_syscall.c
++ * DESCRIPTION:	Dynamic Tracing: system call tracing support (arch-specific)
++ *
++ * Copyright (C) 2010, 2018 Oracle Corporation
++ */
++
++#include <linux/dtrace_syscall.h>
++#include <linux/ptrace.h>
++#include <asm/syscall.h>
++
++void (*systrace_probe)(dtrace_id_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t,
++		       uintptr_t, uintptr_t, uintptr_t);
++
++void systrace_stub(dtrace_id_t id, uintptr_t arg0, uintptr_t arg1,
++		   uintptr_t arg2, uintptr_t arg3, uintptr_t arg4,
++		   uintptr_t arg5, uintptr_t arg6)
++{
++}
++
++asmlinkage long systrace_syscall(const struct pt_regs *regs);
++
++static struct systrace_info systrace_info = {
++				&systrace_probe,
++				systrace_stub,
++				systrace_syscall,
++				{},
++				{
++#undef __SYSCALL
++#define __SYSCALL(nr, sym)	[nr] { .name = __stringify(sym), },
++#include <asm/unistd.h>
++#undef __SYSCALL
++				}
++			};
++
++
++asmlinkage long systrace_syscall(const struct pt_regs *regs)
++{
++	long			rc = 0;
++	unsigned long		sysnum;
++	dtrace_id_t		id;
++	struct dtrace_syscalls	*sc;
++
++	sysnum = syscall_get_nr(current, (struct pt_regs *) regs);
++	sc = &systrace_info.sysent[sysnum];
++
++	id = sc->stsy_entry;
++	/* TODO: arg 6. */
++	if (id != DTRACE_IDNONE)
++		(*systrace_probe)(id, regs->regs[0], regs->regs[1],
++				  regs->regs[2], regs->regs[3], regs->regs[4],
++				  regs->regs[5], 0);
++
++	/*
++	 * FIXME: Add stop functionality for DTrace.
++	 */
++
++	if (sc->stsy_underlying != NULL)
++		rc = (*sc->stsy_underlying)(regs);
++
++	id = sc->stsy_return;
++	if (id != DTRACE_IDNONE)
++		(*systrace_probe)(id, (uintptr_t)rc, (uintptr_t)rc,
++				  (uintptr_t)((uint64_t)rc >> 32), 0, 0, 0, 0);
++
++	return rc;
++}
++
++struct systrace_info *dtrace_syscalls_init()
++{
++	int			i;
++
++	/*
++	 * Only initialize this stuff once...
++	 */
++	if (systrace_info.sysent[0].stsy_tblent != NULL)
++		return &systrace_info;
++
++	for (i = 0; i < NR_syscalls; i++) {
++		systrace_info.sysent[i].stsy_tblent =
++					(dt_sys_call_t *)&sys_call_table[i];
++		systrace_info.sysent[i].stsy_underlying =
++					(dt_sys_call_t)sys_call_table[i];
++	}
++
++	return &systrace_info;
++}
++EXPORT_SYMBOL(dtrace_syscalls_init);
+diff --git a/arch/arm64/kernel/dtrace_syscall_stubs.S b/arch/arm64/kernel/dtrace_syscall_stubs.S
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/arch/arm64/kernel/dtrace_util.c b/arch/arm64/kernel/dtrace_util.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..8142cf0459c28781f3b7ad981ac470e4425941fc
+--- /dev/null
++++ b/arch/arm64/kernel/dtrace_util.c
+@@ -0,0 +1,292 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	dtrace_util.c
++ * DESCRIPTION:	Dynamic Tracing: Architecture utility functions
++ *
++ * Copyright (c) 2010, 2019, Oracle and/or its affiliates. All rights reserved.
++ */
++
++#include <linux/dtrace_cpu.h>
++#include <linux/dtrace_os.h>
++#include <linux/dtrace_task_impl.h>
++#include <linux/kdebug.h>
++#include <linux/notifier.h>
++#include <linux/ptrace.h>
++#include <linux/uaccess.h>
++#include <linux/uprobes.h>
++#include <asm/debug-monitors.h>
++#include <asm/insn.h>
++
++void dtrace_skip_instruction(struct pt_regs *regs)
++{
++	instruction_pointer_set(regs, instruction_pointer(regs) + 4);
++}
++
++void dtrace_handle_badaddr(struct pt_regs *regs)
++{
++	unsigned long	addr = current->thread.fault_address;
++
++	DTRACE_CPUFLAG_SET(CPU_DTRACE_BADADDR);
++	this_cpu_core->cpuc_dtrace_illval = addr;
++
++	dtrace_skip_instruction(regs);
++}
++
++int dtrace_die_notifier(struct notifier_block *nb, unsigned long val,
++			void *args)
++{
++	struct die_args		*dargs = args;
++
++	switch (val) {
++	case DIE_PAGE_FAULT: {
++		if (!DTRACE_CPUFLAG_ISSET(CPU_DTRACE_NOFAULT))
++			return NOTIFY_DONE;
++
++		DTRACE_CPUFLAG_SET(CPU_DTRACE_BADADDR);
++		this_cpu_core->cpuc_dtrace_illval = dargs->err;
++
++		dtrace_skip_instruction(dargs->regs);
++
++		return NOTIFY_OK | NOTIFY_STOP_MASK;
++	}
++	case DIE_OOPS: {
++		pr_info("DTrace: last probe %u\n",
++		       this_cpu_core->cpuc_current_probe);
++		return NOTIFY_DONE;
++	}
++	default:
++		return NOTIFY_DONE;
++	}
++}
++
++struct user_stackframe {
++	struct user_stackframe	__user	*fp;
++	unsigned long			lr;
++} __packed;
++
++static int dtrace_unwind_frame(struct user_stackframe *frame)
++{
++	struct user_stackframe	__user	*ofp = frame->fp;
++	unsigned long			ret;
++
++	/* Verify alignment. */
++	if ((unsigned long)ofp & 0xf)
++		return -EINVAL;
++
++	/* Verify read access. */
++	if (!access_ok(ofp, sizeof(struct user_stackframe)))
++		return -EINVAL;
++
++	pagefault_disable();
++	ret = __copy_from_user_inatomic(frame, ofp,
++					sizeof(struct user_stackframe));
++	pagefault_enable();
++
++	/* Make sure the read worked. */
++	if (ret) {
++		frame->fp = ofp;
++		return -EINVAL;
++	}
++
++	/*
++	 * If the frame pointer in the current frame is NULL, we have reached
++	 * the end of the call chain.
++	 */
++	if (frame->fp == NULL)
++		return 0;
++
++	/*
++	 * In older glibc versions, the call chain did not end with an initial
++	 * frame with NULL frame pointer.  Instead, the initial frame stored
++	 * the beginning of the stack as frame pointer.  We look for that here
++	 * as a special case, and return a frame where the frame pointer is
++	 * set to NULL (as it ought to be).
++	 *
++	 * If we do not know the beginning of the stack, we are out of luck.
++	 */
++	if (current->dt_task && current->dt_task->dt_ustack == frame->fp) {
++		frame->fp = NULL;
++		return 0;
++	}
++
++	/*
++	 * Verify strictly increasing consecutive values.  Since the stack
++	 * grows downward, walking the call chain in reverse must yield ever
++	 * increasing frame pointers.
++	 */
++	if (ofp >= frame->fp)
++		return -EINVAL;
++
++	return 0;
++}
++
++void dtrace_user_stacktrace(struct stacktrace_state *st)
++{
++	struct pt_regs		*regs = current_pt_regs();
++	uint64_t		*pcs = st->pcs;
++	int			limit = st->limit;
++	int			fixups, patches, skip;
++	struct user_stackframe	frame0, frame;
++	struct user_stackframe	*bos = current->dt_task
++					? current->dt_task->dt_ustack
++					: NULL;
++	struct return_instance	*rilist = current->utask
++					? current->utask->return_instances
++					: NULL;
++	struct return_instance	*ri;
++
++	/*
++	 * If we do not have user-mode registers, or if there is no known
++	 * bottom of stack, we cannot collect a call chain.
++	 */
++	if (!user_mode(regs))
++		goto out;
++	if (!bos)
++		goto out;
++	if (!limit)
++		goto out;
++
++	frame0.fp = (struct user_stackframe __user *)regs->regs[29];
++	frame0.lr = regs->regs[30];
++
++	/*
++	 * The first special situation we need to deal with here is the rare
++	 * case of tracing the instruction after a call, when the current
++	 * program counter just got loaded from the link register, i.e. they
++	 * will be the same.  In that case, we don't want to record both pc
++	 * and lr in the trace.
++	 *
++	 * Uretprobes are also tricky because if we are asked to provide a
++	 * ustack() while processing a uretprobe firing, we are still in the
++	 * middle of handling the probe.  Things are not back to normal yet.
++	 */
++	if (regs->pc != frame0.lr) {
++		ri = rilist;
++		if (pcs) {
++			if (uprobe_return_addr_is_hijacked(frame0.lr) &&
++			    ri && ri->orig_ret_vaddr == regs->pc)
++				*pcs++ = ri->func;
++			else
++				*pcs++ = regs->pc;
++		}
++
++		limit--;
++		st->depth++;
++
++		if (!limit)
++			goto out;
++	}
++
++	/*
++	 * First pass: determine how many return addresses need to be fixed up,
++	 * and how many return instances we have.
++	 */
++	frame = frame0;
++	fixups = 0;
++	do {
++		if (uprobe_return_addr_is_hijacked(frame.lr))
++			fixups++;
++
++		if (frame.fp == NULL)
++			break;
++
++		if (dtrace_unwind_frame(&frame) < 0) {
++			this_cpu_core->cpuc_dtrace_illval = (uintptr_t)frame.fp;
++			DTRACE_CPUFLAG_SET(CPU_DTRACE_BADSTACK);
++			break;
++		}
++	} while (frame.lr);
++
++	patches = 0;
++	for (ri = rilist; ri != NULL; ri = ri->next)
++		patches++;
++
++	/*
++	 * It is possible that we think we need one more fixup than we can
++	 * satisfy with the return instances.  This is because we cannot quite
++	 * determine whether the first one is actually needed or not (due to
++	 * lack of proper state when the uretprobe implementation interferes
++	 * with frame chain walking).
++	 */
++	skip = fixups - patches;
++	if (skip > 1) {
++		this_cpu_core->cpuc_dtrace_illval = 0;
++		DTRACE_CPUFLAG_SET(CPU_DTRACE_BADSTACK);
++		goto out;
++	}
++
++	/*
++	 * Second pass: fill in the actual stack trace.
++	 */
++	frame = frame0;
++	ri = rilist;
++	do {
++		if (uprobe_return_addr_is_hijacked(frame.lr)) {
++			if (skip) {
++				skip = 0;
++				goto skip_frame;
++			}
++
++			frame.lr = ri->orig_ret_vaddr;
++			ri = ri->next;
++		}
++
++		if (pcs)
++			*pcs++ = frame.lr;
++
++		limit--;
++		st->depth++;
++
++skip_frame:
++		if (frame.fp == NULL)
++			break;
++
++		if (dtrace_unwind_frame(&frame) < 0) {
++			this_cpu_core->cpuc_dtrace_illval = (uintptr_t)frame.fp;
++			DTRACE_CPUFLAG_SET(CPU_DTRACE_BADSTACK);
++			break;
++		}
++	} while (limit);
++
++out:
++	if (pcs) {
++		while (limit--)
++			*pcs++ = 0;
++	}
++}
++
++asm_instr_t dtrace_text_peek(asm_instr_t *addr)
++{
++	asm_instr_t	opcode;
++
++	aarch64_insn_read(addr, &opcode);
++
++	return opcode;
++}
++EXPORT_SYMBOL(dtrace_text_peek);
++
++void dtrace_text_poke(asm_instr_t *addr, asm_instr_t opcode)
++{
++	aarch64_insn_patch_text_nosync(addr, opcode);
++}
++EXPORT_SYMBOL(dtrace_text_poke);
++
++void dtrace_kernel_brk_start(void *arg)
++{
++	register_kernel_break_hook((struct break_hook *)arg);
++}
++EXPORT_SYMBOL(dtrace_kernel_brk_start);
++
++void dtrace_kernel_brk_stop(void *arg)
++{
++	unregister_kernel_break_hook((struct break_hook *)arg);
++}
++EXPORT_SYMBOL(dtrace_kernel_brk_stop);
++
++void dtrace_mod_pdata_init(struct dtrace_module *pdata)
++{
++}
++
++void dtrace_mod_pdata_cleanup(struct dtrace_module *pdata)
++{
++}
+diff --git a/arch/arm64/kernel/entry-common.c b/arch/arm64/kernel/entry-common.c
+index 70e0a7591245d6a1cc1ec07c3e13a3d8e10f95e7..b4f8280d9ce322099393bde54afd382f9f412560 100644
+--- a/arch/arm64/kernel/entry-common.c
++++ b/arch/arm64/kernel/entry-common.c
+@@ -199,8 +199,7 @@ static void noinstr el1_fpac(struct pt_regs *regs, unsigned long esr)
+ 	local_daif_mask();
+ 	exit_to_kernel_mode(regs);
+ }
+-
+-asmlinkage void noinstr el1_sync_handler(struct pt_regs *regs)
++asmlinkage int noinstr el1_sync_handler(struct pt_regs *regs)
+ {
+ 	unsigned long esr = read_sysreg(esr_el1);
+ 
+@@ -225,13 +224,14 @@ asmlinkage void noinstr el1_sync_handler(struct pt_regs *regs)
+ 	case ESR_ELx_EC_WATCHPT_CUR:
+ 	case ESR_ELx_EC_BRK64:
+ 		el1_dbg(regs, esr);
+-		break;
++		return 1;
+ 	case ESR_ELx_EC_FPAC:
+ 		el1_fpac(regs, esr);
+ 		break;
+ 	default:
+ 		el1_inv(regs, esr);
+ 	}
++	return 0;
+ }
+ 
+ asmlinkage void noinstr enter_from_user_mode(void)
+diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
+index d72c818b019ca7530569fd810f356ad426f0cdf1..6ac1846a645e428f5d1ab629ca91b8b471ee36de 100644
+--- a/arch/arm64/kernel/entry.S
++++ b/arch/arm64/kernel/entry.S
+@@ -28,6 +28,7 @@
+ #include <asm/thread_info.h>
+ #include <asm/asm-uaccess.h>
+ #include <asm/unistd.h>
++#include <asm/debug-monitors.h>
+ 
+ /*
+  * Context tracking and irqflag tracing need to instrument transitions between
+@@ -276,7 +277,7 @@ alternative_else_nop_endif
+ 	*/
+ 	.endm
+ 
+-	.macro	kernel_exit, el
++	.macro	kernel_exit, el, fbt_emu = 0
+ 	.if	\el != 0
+ 	disable_daif
+ 
+@@ -332,7 +333,11 @@ alternative_else_nop_endif
+ 
+ 	msr	elr_el1, x21			// set up the return data
+ 	msr	spsr_el1, x22
+-	ldp	x0, x1, [sp, #16 * 0]
++
++	/*
++	 * No need to restore x0 and x1 - we may still clobber them.  We will
++	 * restore them right before we return.
++	 */
+ 	ldp	x2, x3, [sp, #16 * 1]
+ 	ldp	x4, x5, [sp, #16 * 2]
+ 	ldp	x6, x7, [sp, #16 * 3]
+@@ -348,7 +353,44 @@ alternative_else_nop_endif
+ 	ldp	x26, x27, [sp, #16 * 13]
+ 	ldp	x28, x29, [sp, #16 * 14]
+ 	ldr	lr, [sp, #S_LR]
++
++	.if	\fbt_emu != 0			// FBT emulation needed?
++	mrs	x0, esr_el1			// check if ESR is FBT probe
++	and	x0, x0, #0x1f			// ... mask code
++	cmp	x0, #DPROBES_FBE_BRK_IMM	// ... compare with FBE code
++	beq	6f				// FBT entry -> emulate instr.
++	cmp	x0, #DPROBES_FBR_BRK_IMM	// ... compare with FBR code
++	beq	7f				// FBT return -> emulate instr.
++	b	8f				// not FBT -> skip next section
++
++6:
++	mrs	x0, elr_el1			// retrieve xeceptionx link reg
++	add	x0, x0, #0x4			// advance to next instr
++	msr	elr_el1, x0			// set exception link reg
++
++	ldp	x0, x1, [sp, #16 * 0]		// done with x0, restore orig
+ 	add	sp, sp, #S_FRAME_SIZE		// restore sp
++	mov	x29, sp				// instr we put probe on
++	b	9f				// FBT done -> branch to eret
++
++7:
++	msr	elr_el1, lr			// set exception link reg to
++						// link register value, to
++						// simulate the 'ret' instr.
++
++	ldp	x0, x1, [sp, #16 * 0]		// done with x0, restore orig
++	add	sp, sp, #S_FRAME_SIZE		// restore sp
++	b	9f				// FBT done -> branch to eret
++
++8:
++	ldp	x0, x1, [sp, #16 * 0]		// done with x0, restore orig
++	add	sp, sp, #S_FRAME_SIZE		// restore sp
++9:
++	.else
++	ldp	x0, x1, [sp, #16 * 0]		// done with x0, restore orig
++	add	sp, sp, #S_FRAME_SIZE		// restore sp
++
++	.endif
+ 
+ 	.if	\el == 0
+ alternative_insn eret, nop, ARM64_UNMAP_KERNEL_AT_EL0
+@@ -625,7 +667,12 @@ SYM_CODE_START_LOCAL_NOALIGN(el1_sync)
+ 	kernel_entry 1
+ 	mov	x0, sp
+ 	bl	el1_sync_handler
+-	kernel_exit 1
++#if IS_ENABLED(CONFIG_DT_FBT)
++	cmp	x0, 1
++	b.ne	1020f
++	kernel_exit 1, 1
++#endif
++1020:	kernel_exit 1
+ SYM_CODE_END(el1_sync)
+ 
+ 	.align	6
+diff --git a/arch/arm64/kernel/fbt_blacklist.h b/arch/arm64/kernel/fbt_blacklist.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..7ad327515c8f9e2b35097f44fa4d1f0bcf76aaa2
+--- /dev/null
++++ b/arch/arm64/kernel/fbt_blacklist.h
+@@ -0,0 +1,91 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Functions used in die notifier chain calling.
++ */
++BL_SENTRY(void *, notify_die)
++BL_DENTRY(void *, notifier_call_chain)
++BL_SENTRY(typeof(atomic_notifier_call_chain_robust), atomic_notifier_call_chain_robust)
++BL_SENTRY(typeof(atomic_notifier_call_chain), atomic_notifier_call_chain)
++BL_SENTRY(typeof(raw_notifier_call_chain_robust), raw_notifier_call_chain_robust)
++BL_SENTRY(typeof(raw_notifier_call_chain), raw_notifier_call_chain)
++BL_DENTRY(void *, hw_breakpoint_exceptions_notify)
++BL_DENTRY(void *, kprobe_exceptions_notify)
++
++/*
++ * Functions used to update vtime in probe context.
++ */
++BL_SENTRY(typeof(ktime_get_raw_fast_ns), ktime_get_raw_fast_ns)
++BL_DENTRY(void *, raw_read_seqcount)
++BL_DENTRY(void *, read_seqcount_retry)
++BL_DENTRY(void *, __read_seqcount_retry)
++
++/* xen_clocksource */
++BL_DENTRY(void *, xen_clocksource_get_cycles)
++BL_DENTRY(void *, xen_clocksource_read)
++BL_DENTRY(void *, pvclock_clocksource_read)
++BL_DENTRY(void *, pvclock_touch_watchdogs)
++BL_DENTRY(void *, touch_softlockup_watchdog_sync)
++BL_DENTRY(void *, clocksource_touch_watchdog)
++BL_DENTRY(void *, clocksource_resume_watchdog)
++BL_DENTRY(void *, reset_hung_task_detector)
++/* clocksource_tsc */
++BL_DENTRY(void *, read_tsc)
++BL_DENTRY(void *, get_cycles)
++/* clocksource_hpet */
++BL_DENTRY(void *, read_hpet)
++BL_DENTRY(void *, hpet_readl)
++/* kvm_clock */
++BL_DENTRY(void *, kvm_clock_get_cycles)
++BL_DENTRY(void *, kvm_clock_read)
++/* arm_arch */
++BL_DENTRY(void *, arch_counter_get_cntvct);
++BL_DENTRY(void *, arch_counter_get_cntvct_mem);
++BL_DENTRY(void *, arch_counter_get_cntpct);
++BL_DENTRY(void *, arch_counter_read);
++
++/*
++ * Functions used in trap handling.
++ */
++BL_DENTRY(void *, fixup_exception)
++BL_DENTRY(void *, paranoid_entry)
++BL_DENTRY(void *, kgdb_ll_trap)
++BL_DENTRY(void *, error_entry)
++BL_DENTRY(void *, xen_int3)
++BL_DENTRY(void *, ftrace_int3_handler)
++BL_DENTRY(typeof(poke_int3_handler), poke_int3_handler)
++BL_DENTRY(void *, fixup_bad_iret)
++BL_DENTRY(void *, xen_adjust_exception_frame)
++BL_DENTRY(void *, paravirt_nop)
++BL_DENTRY(void *, ist_enter)
++BL_DENTRY(void *, rcu_nmi_enter)
++BL_DENTRY(void *, rcu_dynticks_curr_cpu_in_eqs)
++BL_DENTRY(void *, rcu_dynticks_eqs_exit)
++BL_DENTRY(void *, rcu_nmi_exit)
++BL_DENTRY(void *, rcu_dynticks_eqs_enter)
++BL_DENTRY(void *, ist_exit)
++
++/*
++ * Functions used in page fault handling.
++ */
++BL_DENTRY(void *, do_page_fault)
++BL_DENTRY(void *, __do_page_fault)
++BL_DENTRY(void *, down_read_trylock)
++BL_DENTRY(void *, __get_user_pages_fast)
++BL_DENTRY(void *, gup_pud_range)
++BL_DENTRY(void *, gup_huge_pud)
++BL_DENTRY(void *, gup_pmd_range)
++BL_DENTRY(void *, gup_huge_pmd)
++BL_DENTRY(void *, gup_pte_range)
++BL_DENTRY(void *, pte_mfn_to_pfn)
++
++/*
++ * Functions used under 4.19 idr_find
++ */
++BL_DENTRY(void *, idr_find)
++BL_DENTRY(void *, find_next_bit)
++BL_DENTRY(void *, _find_next_bit)
++BL_DENTRY(void *, radix_tree_lookup)
++BL_DENTRY(void *, __radix_tree_lookup)
++BL_DENTRY(void *, radix_tree_load_root)
++BL_DENTRY(void *, radix_tree_descend)
++BL_DENTRY(void *, is_sibling_entry)
+diff --git a/arch/arm64/kernel/probes/uprobes.c b/arch/arm64/kernel/probes/uprobes.c
+index a412d8edbcd24428150a16e93ae059d45817b355..49482af77b9f2d698cffc8c1cd8a64c128aa271a 100644
+--- a/arch/arm64/kernel/probes/uprobes.c
++++ b/arch/arm64/kernel/probes/uprobes.c
+@@ -179,7 +179,8 @@ static int uprobe_single_step_handler(struct pt_regs *regs,
+ {
+ 	struct uprobe_task *utask = current->utask;
+ 
+-	WARN_ON(utask && (instruction_pointer(regs) != utask->xol_vaddr + 4));
++	WARN_ON(utask && utask->active_uprobe &&
++		(instruction_pointer(regs) != utask->xol_vaddr + 4));
+ 	if (uprobe_post_sstep_notifier(regs))
+ 		return DBG_HOOK_HANDLED;
+ 
+diff --git a/arch/arm64/kernel/sys.c b/arch/arm64/kernel/sys.c
+index d5ffaaab31a7d1ed433e8e7bf01ae1f52848cd22..4563f0a4d0db806c52c29c80ff7eb47f75d35b04 100644
+--- a/arch/arm64/kernel/sys.c
++++ b/arch/arm64/kernel/sys.c
+@@ -55,7 +55,7 @@ asmlinkage long __arm64_sys_ni_syscall(const struct pt_regs *__unused)
+ #undef __SYSCALL
+ #define __SYSCALL(nr, sym)	[nr] = __arm64_##sym,
+ 
+-const syscall_fn_t sys_call_table[__NR_syscalls] = {
++CONST_SYS_CALL_TABLE syscall_fn_t sys_call_table[__NR_syscalls] = {
+ 	[0 ... __NR_syscalls - 1] = __arm64_sys_ni_syscall,
+ #include <asm/unistd.h>
+ };
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 795d224f184ff2ce63d8427f5e70d4a9a89fd4ef..d2725a8ac9f321e4f551b907e6cacbbddc88bcd3 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -14,6 +14,7 @@
+ #include <linux/mm.h>
+ #include <linux/hardirq.h>
+ #include <linux/init.h>
++#include <linux/kdebug.h>
+ #include <linux/kprobes.h>
+ #include <linux/uaccess.h>
+ #include <linux/page-flags.h>
+@@ -60,6 +61,19 @@ static inline const struct fault_info *esr_to_debug_fault_info(unsigned int esr)
+ 	return debug_fault_info + DBG_ESR_EVT(esr);
+ }
+ 
++#ifdef CONFIG_DTRACE
++static int dtrace_fault(struct pt_regs *regs, unsigned long addr)
++{
++	preempt_disable();
++	if (notify_die(DIE_PAGE_FAULT, "page fault", regs, addr, 14,
++		       SIGKILL) == NOTIFY_STOP)
++		return 1;
++	preempt_enable();
++
++	return 0;
++}
++#endif
++
+ static void data_abort_decode(unsigned int esr)
+ {
+ 	pr_alert("Data abort info:\n");
+@@ -459,6 +473,10 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
+ 
+ 	if (kprobe_page_fault(regs, esr))
+ 		return 0;
++#ifdef CONFIG_DTRACE
++	if (dtrace_fault(regs, addr))
++		return 0;
++#endif
+ 
+ 	/*
+ 	 * If we're in an interrupt or have no user context, we must not take
+diff --git a/include/linux/uprobes.h b/include/linux/uprobes.h
+index f46e0ca0169c722b4d5b749b2c1b0b04ab79c380..b278859820665f0fbe0509e27582fd1de41332e1 100644
+--- a/include/linux/uprobes.h
++++ b/include/linux/uprobes.h
+@@ -124,6 +124,7 @@ extern void uprobe_copy_process(struct task_struct *t, unsigned long flags);
+ extern int uprobe_post_sstep_notifier(struct pt_regs *regs);
+ extern int uprobe_pre_sstep_notifier(struct pt_regs *regs);
+ extern void uprobe_notify_resume(struct pt_regs *regs);
++extern bool uprobe_return_addr_is_hijacked(unsigned long addr);
+ extern bool uprobe_deny_signal(void);
+ extern bool arch_uprobe_skip_sstep(struct arch_uprobe *aup, struct pt_regs *regs);
+ extern void uprobe_clear_state(struct mm_struct *mm);
+diff --git a/kernel/events/uprobes.c b/kernel/events/uprobes.c
+index 00b0358739ab3b6b66b780e20f3374bbef4d4d34..5a7a1c0198708f54175fe6de9d3fb12d0146a3c7 100644
+--- a/kernel/events/uprobes.c
++++ b/kernel/events/uprobes.c
+@@ -1845,6 +1845,16 @@ static unsigned long get_trampoline_vaddr(void)
+ 	return trampoline_vaddr;
+ }
+ 
++/*
++ * Verify whether a return address is a trampoline address or a regular return
++ * address.  This is used by stack unwinders to determine whether a return
++ * address in a stack trace needs to be adjusted.
++ */
++bool uprobe_return_addr_is_hijacked(unsigned long addr)
++{
++	return addr == get_trampoline_vaddr();
++}
++
+ static void cleanup_return_instances(struct uprobe_task *utask, bool chained,
+ 					struct pt_regs *regs)
+ {
+diff --git a/scripts/dtrace_sdt_arm64.sh b/scripts/dtrace_sdt_arm64.sh
+new file mode 100755
+index 0000000000000000000000000000000000000000..a8fdc4ae0bc440e2ad9ad3a09f804a2ea9fd21c6
+--- /dev/null
++++ b/scripts/dtrace_sdt_arm64.sh
+@@ -0,0 +1,425 @@
++#!/bin/sh
++
++LANG=C
++export LANG
++
++#
++# Syntax:
++#	dtrace_sdt_arm64.sh sdtinfo <S-file> <l-file> <o-file>
++#		This is used to generate DTrace SDT probe definitions for a
++#		linked kernel image file <l-file>, based on relocation info
++#		from the kernel object file <o-file>.  The output is written
++#		to <S-file>.
++#
++
++opr="$1"
++shift
++if [ -z "$opr" ]; then
++    echo "ERROR: Missing operation" > /dev/stderr
++    exit 1
++elif [ "$opr" != "sdtinfo" ]; then
++    echo "ERROR: Invalid operation: ${opr}" > /dev/stderr
++    exit 1
++fi
++
++tfn="$1"
++shift
++if [ -z "$tfn" ]; then
++    echo "ERROR: Missing target filename" > /dev/stderr
++    exit 1
++fi
++
++lfn="$1"
++ofn="$2"
++
++if [ -z "$lfn" ]; then
++    echo "ERROR: Missing linked kernel file argument" > /dev/stderr
++    exit 1
++elif [ -z "$ofn" ]; then
++    echo "ERROR: Missing kernel object file argument" > /dev/stderr
++    exit 1
++fi
++
++# For arm64, the kernel is built using "-ffunction-sections -fdata-sections"
++# which due to the linked bug conflicts with "--emit-relocs".  Probe discovery
++# therefore is a bit more complicated.
++#
++# First we collect the VMA address of all the code sections in the linked
++# kernel image.
++#
++# Subsequently, we go through the list of symbols in the linked kernel image,
++# and write out records for some select symbols that are used in the processing
++# of probe locations:
++#
++#	<section> <address> B <name>
++#	    Named identifier at a specific address (global variable).
++#
++# We also process any function symbols, and build a lookup map for section-name
++# pairs and just name.  Due to the possibility of having symbols with identical
++# names (in the same section, e.g. global and/or one or more local), we append
++# -<n> to every 2nd and later copy of the same symbol name in the current
++# section.
++#	section and name
++#	name
++# (If multiple symbols map to any of the above combinations, that specific
++#  combination is omitted from the mapping.)
++#
++# Next, we process the list of function symbols, and for any function that
++# is not located in a section that starts with .exit.text, .init.text, or
++# .meminit.text) we determine its in-section offset and output a record:
++#
++#	<section> <offset> F <name> <address> <section-base-address>
++#	    Named function at a specific address.
++#
++# Finally, each relocation record from a non-init or exit section that relates
++# to SDT probes is written to the output stream:
++#
++#	<section> <address> R <value>
++#	    Relocation within a section at a specific address
++#
++# Probes are identified in the relocation records as symbols with either a
++# __dtrace_probe_ or __dtrace_isenabled_ prefix.
++#
++# All these records are sorted by section and offset, and any SDT probe
++# location relocation records (R) result in writing out an entry that records
++# its offset relative to the _stext symbol, along with the name of the function
++# it was found in, and the probe name.
++
++(
++    objdump -ht ${lfn}
++    objdump -tr ${ofn}
++) | \
++    gawk 'function subl(v0, v1, v0h, v0l, v1h, v1l, d, tmp) {
++	     tmp = $0;
++	     if (length(v0) > 8) {
++		 d = length(v0);
++		 v0h = strtonum("0x"substr(v0, 1, d - 8));
++		 v0l = strtonum("0x"substr(v0, d - 8 + 1));
++		 d = length(v1);
++		 v1h = strtonum("0x"substr(v1, 1, d - 8));
++		 v1l = strtonum("0x"substr(v1, d - 8 + 1));
++
++		 if (v0l >= v1l) {
++		     if (v0h >= v1h) {
++			 d = sprintf("%08x%08x", v0h - v1h, v0l - v1l);
++		     } else {
++			 printf "ERROR: [stage 1.a] Invalid addresses: %s - %s\n", v0, v1;
++			 d = 0;
++			 errc++;
++		     }
++		 } else {
++		     if (v0h > v1h) {
++			 v0h--;
++			 v0l += 4294967296;
++			 d = sprintf("%08x%08x", v0h - v1h, v0l - v1l);
++		     } else {
++			 printf "ERROR: [stage 1.b] Invalid addresses: %s - %s\n", v0, v1;
++			 d = 0;
++			 errc++;
++		     }
++		 }
++	     } else {
++		 v0 = strtonum("0x"v0);
++		 v1 = strtonum("0x"v1);
++		 d = sprintf("%016x", v0 - v1);
++	     }
++	     $0 = tmp;
++
++	     return d;
++	 }
++
++	 BEGIN {
++	     phase = 0;
++	 }
++
++	 /^SYMBOL / {
++	     phase++;
++	     delete scnt;
++	     next;
++	 }
++
++	 phase == 0 && /^ *[1-9][0-9]* / {
++	     snam = $2;
++	     addr = $4;
++	     getline;
++	     if (/CODE/)
++		 secs[snam] = addr;
++
++	     next;
++	 }
++
++	 phase == 1 && $NF ~ /_(stext|_init_(begin|end))$/ {
++	     print ". " $1 " B " $NF;
++	     next;
++	 }
++
++	 phase == 1 && / F / {
++	     if ($4 ~ /^\.(exit|init|meminit)\.text/)
++		 next;
++
++	     off = subl($1, secs[$4]);
++
++	     sym = $NF;
++	     scnt[sym]++;
++	     if (scnt[sym] > 1)
++		 sym = sym"-"(scnt[sym] - 1);
++
++	     # section and name
++	     id = $4 " " sym;
++	     if (id in smap) {
++		 if (smap[id] != $1)
++		     smap[id] = 0;
++	     } else
++		 smap[id] = $1;
++
++	     # name
++	     id = sym;
++	     if (id in smap) {
++		 if (smap[id] != $1)
++		     smap[id] = 0;
++	     } else
++		 smap[id] = $1;
++
++	     next;
++	 }
++
++	 phase == 2 && / F / {
++	     if ($4 ~ /^\.(exit|init|meminit)\.text/)
++		 next;
++
++	     sym = $NF;
++	     scnt[sym]++;
++	     if (scnt[sym] > 1)
++		 sym = sym"-"(scnt[sym] - 1);
++
++	     # section and name
++	     id = $4 " " sym;
++	     if (!(id in smap))
++		 id = sym;
++	     # name
++	     if (id in smap) {
++		 addr = smap[id];
++		 if (!addr)
++		     print "ERROR: Non-unique symbol: " $4 " " $6 " " $1 " ["sym"]";
++	     } else {
++		 print "ERROR: Could not find " $4 " " $6 " " $1 " ["sym"]";
++		 addr = 0;
++	     }
++
++	     print $4 " "  $1 " F " $6 "  " addr " " secs[$4];
++	     next;
++	 }
++
++	 /^RELOC/ {
++	     sect = substr($4, 2, length($4) - 3);
++	     next;
++	 }
++
++	 sect ~ /^\.(exit|init|meminit)\.text/ {
++	     next;
++	 }
++
++	 sect && /__dtrace_probe_/ {
++	     $3 = substr($3, 16);
++	     sub(/[\-+].*$/, "", $3);
++	     print sect " " $1 " R " $3;
++	     next;
++	 }
++
++	 sect && /__dtrace_isenabled_/ {
++	     $3 = substr($3, 20);
++	     sub(/[\-+].*$/, "", $3);
++	     print sect " " $1 " R ?" $3;
++	     next;
++	 }' | \
++    sort -u | \
++    gawk 'function addl(v0, v1, v0h, v0l, v1h, v1l, d, tmp) {
++	     tmp = $0;
++	     if (length(v0) > 8 || length(v1) > 8) {
++		 d = length(v0);
++		 v0h = strtonum("0x"substr(v0, 1, d - 8));
++		 v0l = strtonum("0x"substr(v0, d - 8 + 1));
++		 d = length(v1);
++		 v1h = strtonum("0x"substr(v1, 1, d - 8));
++		 v1l = strtonum("0x"substr(v1, d - 8 + 1));
++
++		 v0l += v1l;
++		 v0h += v1h;
++		 d = sprintf("%x", v0l);
++		 if (length(d) > 8) {
++		     v0h++;
++		     v0l -= 4294967296;
++		 }
++		 d = sprintf("%x", v0h);
++		 if (length(d) <= 8) {
++		     d = sprintf("%08x%08x", v0h, v0l);
++		 } else {
++		     printf "#error [stage 2.a] Invalid addresses: %s + %s\n", v0, v1 \
++			    >"/dev/stderr";
++		     errc++;
++		 }
++	     } else {
++		 v0 = strtonum("0x"v0);
++		 v1 = strtonum("0x"v1);
++		 d = sprintf("%016x", v0 + v1);
++	     }
++	     $0 = tmp;
++
++	     return d;
++	 }
++
++	 function subl(v0, v1, v0h, v0l, v1h, v1l, d, tmp) {
++	     tmp = $0;
++	     if (length(v0) > 8) {
++		 d = length(v0);
++		 v0h = strtonum("0x"substr(v0, 1, d - 8));
++		 v0l = strtonum("0x"substr(v0, d - 8 + 1));
++		 d = length(v1);
++		 v1h = strtonum("0x"substr(v1, 1, d - 8));
++		 v1l = strtonum("0x"substr(v1, d - 8 + 1));
++
++		 if (v0l >= v1l) {
++		     if (v0h >= v1h) {
++			 d = sprintf("%08x%08x", v0h - v1h, v0l - v1l);
++		     } else {
++			 printf "#error [stage 2.b] Invalid addresses: %s - %s\n", v0, v1 \
++				>"/dev/stderr";
++			 errc++;
++		     }
++		 } else {
++		     if (v0h > v1h) {
++			 v0h--;
++			 v0l += 4294967296;
++			 d = sprintf("%08x%08x", v0h - v1h, v0l - v1l);
++		     } else {
++			 printf "#error [stage 2.c] Invalid addresses: %s - %s\n", v0, v1 \
++				>"/dev/stderr";
++			 errc++;
++		     }
++		 }
++	     } else {
++		 v0 = strtonum("0x"v0);
++		 v1 = strtonum("0x"v1);
++		 d = sprintf("%016x", v0 - v1);
++	     }
++	     $0 = tmp;
++
++	     return d;
++	 }
++
++	 function map_string(str, off) {
++	     if (str in strmap)
++		 off = strmap[str];
++	     else {
++		 off = strsz;
++		 strmap[str] = strsz;
++		 strv[strc++] = str;
++		 strsz += length(str) + 1;
++	     }
++
++	     return off;
++	 }
++
++	 BEGIN {
++	     print "#include <asm/types.h>";
++	     print "#if BITS_PER_LONG == 64";
++	     print "# define PTR .quad";
++	     if (arch == "aarch64")
++		 print "# define ALGN .align 3";
++	     else
++		 print "# define ALGN .align 8";
++	     print "#else";
++	     print "# define PTR .long";
++	     if (arch == "aarch64")
++		 print "# define ALGN .align 2";
++	     else
++		 print "# define ALGN .align 4";
++	     print "#endif";
++
++	     print "\t.section .rodata, \042a\042";
++	     print "";
++
++	     print ".globl dtrace_sdt_probes";
++	     print "\tALGN";
++	     print "dtrace_sdt_probes:";
++
++	     probec = 0;
++	     stroff = 0;
++	     strc = 0;
++	 }
++
++	 $1 == "ERROR:" {
++	     next;
++	 }
++
++	 $4 == "_stext" {
++	     stext = $2;
++	     next;
++	 }
++
++	 $4 == "__init_begin" {
++	     init_beg = $2;
++	     next;
++	 }
++
++	 $4 == "__init_end" {
++	     init_end = $2;
++	     next;
++	 }
++
++	 $3 == "F" {
++	     fnam = $4;
++	     sub(/\..*$/, "", fnam);
++	     foff = $2;
++	     fadr = $5;
++
++	     if (fadr != padr)
++		 funcc++;
++	     padr = fadr;
++
++	     next;
++	 }
++
++	 $3 == "R" {
++	     addr = addl(fadr, subl($2, foff));
++	     if (addr >= init_beg && addr <= init_end)
++		 next;
++	     addr = subl(addr, stext);
++
++	     print "/*";
++	     print " * " $1 " " foff " F " fnam " " fadr;
++	     print " * " $0;
++	     print " * (" fadr " + (" $2 " - " foff ")) - " stext;
++	     print " */";
++	     printf "\tPTR\t_stext + 0x%s\n", addr;
++	     printf "\tPTR\t%d\n", map_string($4);
++	     printf "\tPTR\t%d\n", map_string(fnam);
++
++	     probec++;
++
++	     next;
++	 }
++
++	 END {
++	     print "";
++	     print ".globl dtrace_sdt_strings";
++	     print "\tALGN";
++	     print "dtrace_sdt_strings:";
++
++
++	     for (i = 0; i < strc; i++)
++		 printf "\t.asciz\t\042%s\042\n", strv[i];
++
++	     print "";
++	     print ".globl dtrace_sdt_nprobes";
++	     print ".globl dtrace_fbt_nfuncs";
++	     print "\tALGN";
++	     print "dtrace_sdt_nprobes:";
++	     printf "\tPTR\t%d\n", probec;
++	     print "dtrace_fbt_nfuncs:";
++	     printf "\tPTR\t%d\n", funcc;
++
++	     exit(errc == 0 ? 0 : 1);
++	 }' > ${tfn}
++
++exit $?
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 0b2f3bb60936f81449de21f296bdaddd466c9569..aa4c70504d8c36a523d11a668c7e0c9cb5b36458 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -63,7 +63,12 @@ sdtinfo()
+ {
+ 	info SDTINF ${2}
+ 
+-	${srctree}/scripts/dtrace_sdt.sh sdtinfo .tmp_sdtinfo.S ${1}
++	if [ -n "${CONFIG_ARM64}" ]; then
++		${srctree}/scripts/dtrace_sdt_arm64.sh sdtinfo .tmp_sdtinfo.S \
++						       ${1} ${3}
++	else
++		${srctree}/scripts/dtrace_sdt.sh sdtinfo .tmp_sdtinfo.S ${1}
++	fi
+ 
+ 	local aflags="${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL}               \
+ 		      ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
+@@ -389,16 +394,14 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
+ 
+ 	# step 1
+ 	if [ -n "${CONFIG_DTRACE}" ]; then
+-		sdtinfo vmlinux.o ${sdtinfoo}
++		sdtinfo vmlinux.o ${sdtinfoo} vmlinux.o
+ 	fi
+ 
+ 	kallsyms_step 1
+ 
+ 	if [ -n "${CONFIG_DTRACE}" ]; then
+-		if [ -n "${CONFIG_ARM64}" ]; then
+-			kallsyms_step 1
+-		else
+-			kallsyms_step 1 -r
++		if [ -n "${CONFIG_X86_64}" ]; then
++			kallsyms_step 1 --emit-relocs
+ 		fi
+ 		sdtinfo ${kallsyms_vmlinux} ${sdtinfoo} vmlinux.o
+ 	fi
+-- 
+2.30.1
+
