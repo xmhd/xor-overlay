@@ -18,11 +18,15 @@ if [[ ${PV} != 9999 ]]; then
 fi
 
 DEPEND="
-    !sys-kernel/installkernel-gentoo
-    !sys-kernel/installkernel-systemd-boot
+    installkernel? (
+        !sys-kernel/installkernel-gentoo
+        !sys-kernel/installkernel-systemd-boot
+    )
 "
 
-PATCHES=( "${FILESDIR}"/${PN}-3.4.2-no-bs-namespace.patch )
+PATCHES=(
+    "${FILESDIR}"/${PN}-3.4.2-no-bs-namespace.patch
+)
 
 src_unpack() {
         unpack ${PN}_${PV}.tar.xz

@@ -7,10 +7,14 @@ inherit ltprune pam
 DESCRIPTION="PKCS#11 PAM library"
 HOMEPAGE="https://github.com/opensc/pam_pkcs11/wiki"
 SRC_URI="https://github.com/OpenSC/${PN}/archive/${PN}-${PV}.tar.gz"
+
 RESTRICT="mirror"
+
 LICENSE="LGPL-2.1"
-SLOT="0"
 KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
+
+SLOT="0"
+
 IUSE="curl doc ldap nss +pcsc-lite"
 #S="${WORKDIR}/${PN}-${P}"
 

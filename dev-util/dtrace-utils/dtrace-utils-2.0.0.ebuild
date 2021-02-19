@@ -72,7 +72,7 @@ src_prepare() {
         rm -rf test
     fi
 
-    eapply ${FILESDIR}/fix-double-declaration-of-yylineno.patch || die "patch failed"
+    eapply ${FILESDIR}/fix-double-declaration-of-yylineno.patch
 
     # upstream depends on bpf-helpers.h from gcc... which isn't very portable (and is scheduled for removal).
     # libbpf ships bpf_helpers.h etc... so we sed that change across the source files.

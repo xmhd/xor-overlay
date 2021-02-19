@@ -319,6 +319,8 @@ src_prepare() {
 
     ### TWEAK CONFIG ###
 
+    # this is horrible.... TODO: change the echo shite to sed
+
     # Do not configure Debian devs certificates
     echo 'CONFIG_SYSTEM_TRUSTED_KEYS=""' >> .config
 
@@ -610,6 +612,9 @@ pkg_postinst() {
         depmod -a ${PV}${KERNEL_EXTRAVERSION}
     fi
 
+    # ==== TODO ====
+    # this is horrible.... go back to genkernel
+    # ==== END TODO ====
 	# NOTE: WIP and not well tested yet.
 	#
 	# Dracut will build an initramfs when USE=binary.

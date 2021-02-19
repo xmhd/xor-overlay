@@ -2,19 +2,16 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7,8} )
+PYTHON_COMPAT=( python3_{7,8,9} )
 
-if [[ ${PV} == *9999 ]]; then
-	SCM="git-r3"
-	EGIT_REPO_URI="https://github.com/dylanaraps/pywal.git"
-fi
-
-inherit distutils-r1 ${SCM}
+inherit distutils-r1
 
 DESCRIPTION="Generate and change color-schemes on the fly."
 HOMEPAGE="https://github.com/dylanaraps/pywal"
 
 if [[ ${PV} == *9999 ]]; then
+	inherit git-r3
+	EGIT_REPO_URI="https://github.com/dylanaraps/pywal.git"
 	SRC_URI=""
 	KEYWORDS=""
 else
@@ -23,11 +20,13 @@ else
 fi
 
 LICENSE="MIT"
+
 SLOT="0"
+
 IUSE=""
 
 DEPEND="dev-python/setuptools[${PYTHON_USEDEP}]"
+
 RDEPEND="${DEPEND}
 	media-gfx/imagemagick
 "
-BDEPEND=""

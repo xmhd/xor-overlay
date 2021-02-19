@@ -1,8 +1,9 @@
-# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
+
 PYTHON_COMPAT=( python3_{6..9} )
+
 VALA_USE_DEPEND=vapigen
 
 inherit gnome2 meson multilib-minimal python-any-r1 vala virtualx
@@ -11,13 +12,13 @@ DESCRIPTION="GObject library for accessing the freedesktop.org Secret Service AP
 HOMEPAGE="https://wiki.gnome.org/Projects/Libsecret"
 
 LICENSE="LGPL-2.1+ Apache-2.0" # Apache-2.0 license is used for tests only
+KEYWORDS="alpha amd64 arm arm64 ~ia64 ~mips ppc ppc64 sparc x86"
+
 SLOT="0"
 
 IUSE="+crypt gtk-doc +freedesktop-secret-service +introspection test +vala"
 RESTRICT="!test? ( test )"
 REQUIRED_USE="vala? ( introspection )"
-
-KEYWORDS="alpha amd64 arm arm64 ~ia64 ~mips ppc ppc64 sparc x86"
 
 DEPEND="
 	>=dev-libs/glib-2.44:2[${MULTILIB_USEDEP}]

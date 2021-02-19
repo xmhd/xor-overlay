@@ -18,7 +18,9 @@ DESCRIPTION="ASUS WMI Sensor driver"
 HOMEPAGE="https://github.com/electrified/asus-wmi-sensors"
 
 LICENSE="GPL-2"
+
 SLOT="0"
+
 IUSE=""
 
 CONFIG_CHECK="ACPI_WMI HWMON"
@@ -31,10 +33,15 @@ pkg_setup() {
 }
 
 src_install() {
+
 	linux-mod_src_install
 
 	echo "${PN}" > "${T}/${PN}".conf || die
 	insinto /usr/lib/modules-load.d/
 	doins "${T}/${PN}".conf
 	einstalldocs
+}
+
+pkg_postinst() {
+    linux-mod_pkg_postinst
 }

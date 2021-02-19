@@ -1,20 +1,24 @@
-# Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
-PYTHON_COMPAT=( python2_7 )
+EAPI=7
+
+PYTHON_COMPAT=( python3_{7,8,9} )
 
 inherit eutils python-single-r1
 
 DESCRIPTION="Command line tool for setting up authentication from network services"
 HOMEPAGE="https://pagure.io/authconfig"
 SRC_URI="https://pagure.io/releases/${PN}/${P}.tar.bz2"
+
 LICENSE="GPL-2+"
-SLOT="0"
 KEYWORDS="~amd64 ~x86"
+
+SLOT="0"
+
 IUSE="-gtk"
 
-DEPEND="${PYTHON_DEPS}
+BDEPEND="
+	${PYTHON_DEPS}
 	dev-libs/glib:2
 	sys-devel/gettext
 	dev-util/intltool
@@ -22,7 +26,8 @@ DEPEND="${PYTHON_DEPS}
 	dev-perl/XML-Parser
 "
 
-RDEPEND="${PYTHON_DEPS}
+RDEPEND="
+	${PYTHON_DEPS}
 	 sys-libs/pam
 	 >dev-libs/libpwquality-0.9
 	 dev-libs/newt
@@ -34,11 +39,15 @@ RDEPEND="${PYTHON_DEPS}
 "
 
 src_install() {
+
 	emake DESTDIR="${D}" install || die "install failed"
+
 	if ! use gtk ; then
 		rm "${D}usr/share/applications/authconfig.desktop" -f
 	fi
+
 	python_export PYTHON_SITEDIR
+
 	rm "${D}${PYTHON_SITEDIR}/acutilmodule.a"
 	rm "${D}${PYTHON_SITEDIR}/acutilmodule.la"
 	rm "${D}usr/share/${PN}/authconfig-tui.py"

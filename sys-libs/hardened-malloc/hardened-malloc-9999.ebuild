@@ -76,7 +76,7 @@ src_configure() {
 }
 
 src_compile() {
-    emake O="${WORKDIR}"/build "${MAKEARGS[@]}" || "hardened_malloc build failed"
+    emake O="${WORKDIR}"/build "${MAKEARGS[@]}" || die "hardened_malloc build failed"
 }
 
 src_install() {
