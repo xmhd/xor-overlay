@@ -121,7 +121,6 @@ GENTOO_PATCHES=(
     31_all_fno-delayed-branch.patch
     32_all_sparc_pie_TEXTREL.patch
     33_all_lto-O0-mix-ICE-ipa-PR96291.patch
-#    34_all_fundecl-ICE-PR95820.patch
     35_all_ipa-fix-bit-CP.patch
     36_all_ipa-fix-bit-CP-p2.patch
     37_all_c-vector-init-PR96377.patch
