@@ -30,7 +30,7 @@ S="${WORKDIR}/${P/_*}"
 PATCHES=(
 	"${FILESDIR}/${PV}/${PN}-2.86-kexec.patch" #80220
 	"${FILESDIR}/${PV}/${PN}-2.94_beta-shutdown-single.patch" #158615
-	"${FILESDIR}/${PV}/${PN}-2.95_beta-shutdown-h.patch" #449354
+	"${FILESDIR}/${PV}/${PN}-2.99-shutdown-h.patch" #449354
 )
 
 src_prepare() {
