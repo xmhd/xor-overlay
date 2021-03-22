@@ -1,0 +1,25 @@
+From 099aef5c52b2153e7115a149f7349c27b523a702 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Wed, 3 May 2017 19:43:38 -0400
+Subject: [PATCH 010/112] enable SLAB_FREELIST_RANDOM by default
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ init/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index b7d3c6a12196..8f6390b11dd7 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1939,6 +1939,7 @@ config SLAB_MERGE_DEFAULT
+ config SLAB_FREELIST_RANDOM
+ 	bool "Randomize slab freelist"
+ 	depends on SLAB || SLUB
++	default y
+ 	help
+ 	  Randomizes the freelist order used on creating new pages. This
+ 	  security feature reduces the predictability of the kernel slab
+-- 
+2.31.0
+
