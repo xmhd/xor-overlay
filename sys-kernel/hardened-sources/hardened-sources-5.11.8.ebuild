@@ -87,7 +87,7 @@ GENTOO_PATCHES=(
 	2900_tmp513-Fix-build-issue-by-selecting-CONFIG_REG.patch
 	2920_sign-file-patch-for-libressl.patch
 #	4567_distro-Gentoo-Kconfig.patch
-	5020_BMQ-and-PDS-io-scheduler-v5.11-r2.patch
+	5020_BMQ-and-PDS-io-scheduler-v5.11-r2
 )
 
 # TODO: manage HARDENED_PATCHES and GENTOO_PATCHES.
