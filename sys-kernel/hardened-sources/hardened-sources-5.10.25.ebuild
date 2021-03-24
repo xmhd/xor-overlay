@@ -542,7 +542,7 @@ pkg_postinst() {
 			$(usex firmware --firmware --no-firmware) \
 			$(usex luks --luks --no-luks) \
 			$(usex lvm --lvm --no-lvm) \
-			$(usex mdadm --mdadm --no-mdadm) \ # TODO: mdadm.conf
+			$(usex mdadm --mdadm --no-mdadm) \
 			$(usex zfs --zfs --no-zfs) \
 			initramfs || die "failed to build initramfs"
 	fi
