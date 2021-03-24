@@ -538,14 +538,11 @@ pkg_postinst() {
 			--callback="emerge --quiet-build=y @module-rebuild" \
 			--check-free-disk-space-bootdir="64" \
 			--all-ramdisk-modules \
-			# TODO: loglevel=5 if USE=debug
-			$(usex btrfs --btrfs --no-btrfs) \
 			$(usex debug --loglevel=5 --loglevel=0) \
 			$(usex firmware --firmware --no-firmware) \
 			$(usex luks --luks --no-luks) \
 			$(usex lvm --lvm --no-lvm) \
 			$(usex mdadm --mdadm --no-mdadm) \ # TODO: mdadm.conf
-			$(usex microcode --microcode=all --no-microcode) \
 			$(usex zfs --zfs --no-zfs) \
 			initramfs || die "failed to build initramfs"
 	fi
