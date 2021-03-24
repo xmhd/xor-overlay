@@ -521,7 +521,7 @@ pkg_postinst() {
 	fi
 
 	# we only want to force initramfs rebuild if != binary package
-        if [[ ${MERGE_TYPE} != binary ]] && ! use binary ; then
+        if [[ ${MERGE_TYPE} != binary ]] && use binary ; then
 		# fakeroot so we can always generate device nodes i.e /dev/console
 		# TODO: this will fail for -rN kernel revisions as kerneldir is hardcoded badly
                 fakeroot genkernel \
@@ -533,7 +533,7 @@ pkg_postinst() {
 			--tmpdir="/var/tmp/genkernel" \
 			--cleanup \
 			--kernel-config="/boot/config-${KERNEL_FULL_VERSION}" \
-			--kernel-dir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
+			--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
 			--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
 			--callback="emerge --quiet-build=y @module-rebuild" \
 			--check-free-disk-space-bootdir="64" \
