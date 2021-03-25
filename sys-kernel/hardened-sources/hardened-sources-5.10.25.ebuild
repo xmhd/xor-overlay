@@ -23,7 +23,7 @@ BDEPEND="
 "
 
 RDEPEND="
-	binary? ( >=sys-kernel/genkernel-4.1 )
+	binary? ( >=sys-kernel/genkernel-4.2.0 )
 	btrfs? ( sys-fs/btrfs-progs )
 	firmware? (
 		sys-kernel/linux-firmware
