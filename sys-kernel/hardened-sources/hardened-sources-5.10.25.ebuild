@@ -524,7 +524,8 @@ pkg_postinst() {
         if [[ ${MERGE_TYPE} != binary ]] && use binary ; then
 		# fakeroot so we can always generate device nodes i.e /dev/console
 		# TODO: this will fail for -rN kernel revisions as kerneldir is hardcoded badly
-                fakeroot genkernel \
+		# temporarily remove fakeroot
+		genkernel \
 			--no-sandbox \
 			--color \
 			--makeopts="${MAKEOPTS}" \
@@ -538,7 +539,7 @@ pkg_postinst() {
 			--callback="emerge --quiet-build=y @module-rebuild" \
 			--check-free-disk-space-bootdir="64" \
 			--all-ramdisk-modules \
-			$(usex debug --loglevel=5 --loglevel=0) \
+			$(usex debug --loglevel=5 --loglevel=1) \
 			$(usex firmware --firmware --no-firmware) \
 			$(usex luks --luks --no-luks) \
 			$(usex lvm --lvm --no-lvm) \
