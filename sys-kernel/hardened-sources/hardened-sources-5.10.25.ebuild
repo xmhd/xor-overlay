@@ -229,14 +229,15 @@ get_certs_dir() {
 
 pkg_pretend() {
 	# Ensure we have enough disk space to compile
-	if use binary ; then
+	if [[ ${MERGE_TYPE} != binary ]] && use binary ; then
 		CHECKREQS_DISK_BUILD="5G"
 		check-reqs_pkg_setup
 	fi
 }
 
 pkg_setup() {
-	unset ARCH; unset LDFLAGS #will interfere with Makefile if set
+	# will interfere with Makefile if set
+	unset ARCH; unset LDFLAGS
 }
 
 src_unpack() {
