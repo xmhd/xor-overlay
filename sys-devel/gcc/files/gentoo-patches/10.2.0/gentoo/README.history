@@ -1,3 +1,8 @@
+7		TODO
+	+ 42_all_vmat-PR97236.patch
+	+ 43_all_vtv-slibtool.patch
+	+ 44_all_cet-i486.patch
+
 6		29 Dec 2020
 	- 34_all_fundecl-ICE-PR95820.patch
 

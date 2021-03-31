@@ -1,3 +1,9 @@
+7		TODO
+	- 30_all_fno-delayed-branch.patch
+
+6		28 Jan 2021
+	- 07_all_i386_libgcc_note.GNU-stack.patch
+
 5		17 Dec 2020
 	U 05_all_alpha-mieee-default.patch
 	U 27_all_EXTRA_OPTIONS-fstack-clash-protection.patch

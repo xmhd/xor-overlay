@@ -128,6 +128,9 @@ GENTOO_PATCHES=(
 	39_all_ipa-prop-multispec.patch
 	40_all_ipa-to_frequency.patch
 	41_all_strlen-PR96758.patch
+	42_all_vmat-PR97236.patch
+	43_all_vtv-slibtool.patch
+	44_all_cet-i486.patch
 )
 
 ALPINE_PATCHES_DIR="${FILESDIR}/alpine-patches/${GCC_ARCHIVE_VER}"
@@ -928,7 +931,7 @@ src_configure() {
 			confgcc+=( --enable-threads=posix )
 			;;
 		esac
-    fi
+	fi
 
 	# === END CROSS COMPILER ===
 
