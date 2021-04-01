@@ -470,6 +470,7 @@ src_install() {
 			targets+=( dtbs_install )
 		fi
 
+		# TODO: confirm MOD_STRIP works with USE=sign-modules
 		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
 		installkernel "${KERNEL_FULL_VERSION}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
