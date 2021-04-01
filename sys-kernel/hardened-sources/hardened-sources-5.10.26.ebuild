@@ -473,8 +473,10 @@ src_install() {
 		installkernel "${KERNEL_FULL_VERSION}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
 		# module symlink fix-up:
-		rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to remove old kernel source symlink"
-		rm -rf "${D}"/lib/modules/${KERNEL_FULL_VVERSION}/build || die "failed to remove old kernel build symlink"
+		if [[ -h "${D}"/lib/modules/${KERNEL_FULL_VERSION/{source,build} ]] ; then
+			rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to remove old kernel source symlink"
+			rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/build || die "failed to remove old kernel build symlink"
+		fi
 
 		# Set-up module symlinks:
 		ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${ED}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to create kernel source symlink"
