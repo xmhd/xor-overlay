@@ -256,13 +256,13 @@ src_prepare() {
 	# apply gentoo patches
 	einfo "Applying Gentoo Linux patches ..."
 	for my_patch in ${GENTOO_PATCHES[*]} ; do
-		eapply "${GENTOO_PATCHES_DIR}/${my_patch}" || die "failed to apply Gentoo Linux patches"
+		eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
 	done
 
 	# apply hardening patches
 	einfo "Applying hardening patches ..."
 	for my_patch in ${HARDENED_PATCHES[*]} ; do
-		eapply "${HARDENED_PATCHES_DIR}/${my_patch}" || die "failed to apply hardened patches"
+		eapply "${HARDENED_PATCHES_DIR}/${my_patch}"
 	done
 
 	# append EXTRAVERSION to the kernel sources Makefile
