@@ -194,11 +194,11 @@ GNAT_PPC64_BOOTSTRAP="todo"
 SRC_URI+="
 	!system-bootstrap? (
 		bootstrap? (
-	    		ada? (
+			ada? (
 				amd64? (
-		    			elibc_glibc? ( https://bitbucket.org/_x0r/xor-overlay/downloads/${GNAT_AMD64_BOOTSTRAP}.tar.xz )
+					elibc_glibc? ( https://bitbucket.org/_x0r/xor-overlay/downloads/${GNAT_AMD64_BOOTSTRAP}.tar.xz )
 				)
-	    		)
+			)
 		)
 	)
 "
@@ -393,7 +393,7 @@ pkg_setup() {
 		export CTARGET=${CTARGET:-${CHOST}}
 	if [[ ${CTARGET} = ${CHOST} ]] ; then
 		if [[ ${CATEGORY} == cross-* ]] ; then
-	    		export CTARGET=${CATEGORY#cross-}
+			export CTARGET=${CATEGORY#cross-}
 		fi
 	fi
 
@@ -573,7 +573,7 @@ src_prepare() {
 		# Gentoo Linux patches
 		einfo "Applying Gentoo Linux patches ..."
 		for my_patch in ${GENTOO_PATCHES[*]} ; do
-		    eapply "${GENTOO_PATCHES_DIR}/${my_patch}" || die "failed to apply Gentoo Linux patches"
+		    eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
 		done
 
 		# Alpine Linux patches
@@ -581,7 +581,7 @@ src_prepare() {
 		if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
 			einfo "Applying Alpine Linux patches ..."
 			for my_patch in ${ALPINE_PATCHES[*]} ; do
-				eapply "${ALPINE_PATCHES_DIR}/${my_patch}" || die "failed to apply Alpine Linux patches"
+				eapply "${ALPINE_PATCHES_DIR}/${my_patch}"
 			done
 		fi
 
@@ -594,8 +594,8 @@ src_prepare() {
 
 		# Todo
 		if use dev_extra_warnings ; then
-			eapply "${GENTOO_PATCHES_DIR}/02_all_default-warn-format-security.patch" || die "failed to apply default-warn-format-security patch"
-			eapply "${GENTOO_PATCHES_DIR}/03_all_default-warn-trampolines.patch" || die "failed to apply default-warn-trampolines patch"
+			eapply "${GENTOO_PATCHES_DIR}/02_all_default-warn-format-security.patch"
+			eapply "${GENTOO_PATCHES_DIR}/03_all_default-warn-trampolines.patch"
 			if use test ; then
 				ewarn "USE=dev_extra_warnings enables warnings by default which are known to break gcc's tests!"
 			fi
@@ -609,24 +609,24 @@ src_prepare() {
 		# =3 -strong
 		# This ebuild defaults to -strong, and if USE=hardened then set it to -strong
 		if use stack_protector_all; then
-			eapply "${FILESDIR}/cairn-patches/${GCC_ARCHIVE_VER}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch" || die "failed to apply default -stack-protector-all patch"
+			eapply "${FILESDIR}/cairn-patches/${GCC_ARCHIVE_VER}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch"
 			gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
 		fi
 
 		# Enable FORTIFY_SOURCE by default
 		if use fortify_source; then
-			eapply "${GENTOO_PATCHES_DIR}/01_all_default-fortify-source.patch" || die "failed to apply default FORTIFY_SOURCE patch"
+			eapply "${GENTOO_PATCHES_DIR}/01_all_default-fortify-source.patch"
 		fi
 
 		# Enable LINK_NOW by default
 		if use link_now; then
-			eapply "${FILESDIR}/cairn-patches/${GCC_ARCHIVE_VER}/01_all_ENABLE_DEFAULT_LINK_NOW-z-now.patch" || die "failed to apply default LINK_NOW patch"
+			eapply "${FILESDIR}/cairn-patches/${GCC_ARCHIVE_VER}/01_all_ENABLE_DEFAULT_LINK_NOW-z-now.patch"
 			gcc_hard_flags+=" -DENABLE_DEFAULT_LINK_NOW "
 		fi
 
 		# Enable Stack Clash Protection by default
 		if use stack_clash_protection; then
-			eapply "${FILESDIR}/cairn-patches/${GCC_ARCHIVE_VER}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch" || die "failed to apply default -stack-clash-protection patch"
+			eapply "${FILESDIR}/cairn-patches/${GCC_ARCHIVE_VER}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch"
 			gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
 		fi
 
@@ -1003,10 +1003,10 @@ src_configure() {
 
 	if ! use generic_host; then
 		confgcc+=(
-	   	 --with-arch=${MARCH}
-	    	--with-cpu=${MCPU}
-		--with-tune=${MTUNE}
-		--with-fpu=${MFPU}
+			--with-arch=${MARCH}
+			--with-cpu=${MCPU}
+			--with-tune=${MTUNE}
+			--with-fpu=${MFPU}
 		)
 	fi
 
