@@ -1,0 +1,31 @@
+From 294eb72597be69da5c2c7bf9caa51f7f5aa1eaba Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Thu, 1 Jun 2017 03:23:39 -0400
+Subject: [PATCH 091/112] mm: guarantee brk gap is at least one page
+
+Per PaX, but for this alternate brk randomization approach.
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ mm/util.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/mm/util.c b/mm/util.c
+index 4ca72f952329..62ed34dfceb7 100644
+--- a/mm/util.c
++++ b/mm/util.c
+@@ -336,9 +336,9 @@ unsigned long arch_randomize_brk(struct mm_struct *mm)
+ {
+ 	/* Is the current task 32bit ? */
+ 	if (!IS_ENABLED(CONFIG_64BIT) || is_compat_task())
+-		return mm->brk + get_random_long() % SZ_32M;
++		return mm->brk + get_random_long() % SZ_32M + PAGE_SIZE;
+ 
+-	return mm->brk + get_random_long() % SZ_1G;
++	return mm->brk + get_random_long() % SZ_1G + PAGE_SIZE;
+ }
+ 
+ unsigned long arch_mmap_rnd(void)
+-- 
+2.31.1
+
