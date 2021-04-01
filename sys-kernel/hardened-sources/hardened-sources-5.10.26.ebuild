@@ -18,8 +18,9 @@ IUSE="build-kernel btrfs clang custom-cflags debug firmware install-sources luks
 
 BDEPEND="
 	sys-devel/bc
-	debug? ( dev-util/dwarves )
+	sys-devel/flex
 	virtual/libelf
+	virtual/yacc
 "
 
 RDEPEND="
