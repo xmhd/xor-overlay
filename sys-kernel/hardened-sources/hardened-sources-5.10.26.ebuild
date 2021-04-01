@@ -14,7 +14,7 @@ SLOT="${PV}"
 
 RESTRICT="binchecks strip mirror"
 
-IUSE="build-kernel btrfs clang custom-cflags debug firmware luks lvm mcelog mdadm microcode plymouth selinux sign-modules symlink wireguard zfs"
+IUSE="build-kernel btrfs clang custom-cflags debug firmware install-sources luks lvm mcelog mdadm microcode plymouth selinux sign-modules symlink wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -469,7 +469,7 @@ src_install() {
 			targets+=( dtbs_install )
 		fi
 
-		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
+		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
 		installkernel "${KERNEL_FULL_VERSION}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
 		# module symlink fix-up:
@@ -483,6 +483,9 @@ src_install() {
 		# Fixes FL-14
 		cp "${WORKDIR}/build/System.map" "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die "failed to install System.map"
 		cp "${WORKDIR}/build/Module.symvers" "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die "failed to install Module.symvers"
+
+
+		# TODO: optionally remove kernel sources, other than what is required to build external kmods
 
 		if use sign-modules; then
 			for x in $(find "${D}"/lib/modules -iname *.ko); do
