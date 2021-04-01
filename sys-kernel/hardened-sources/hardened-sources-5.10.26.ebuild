@@ -14,7 +14,7 @@ SLOT="${PV}"
 
 RESTRICT="binchecks strip mirror"
 
-IUSE="binary btrfs clang custom-cflags debug firmware luks lvm mcelog mdadm microcode plymouth selinux sign-modules symlink wireguard zfs"
+IUSE="build-kernel btrfs clang custom-cflags debug firmware luks lvm mcelog mdadm microcode plymouth selinux sign-modules symlink wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -23,7 +23,7 @@ BDEPEND="
 "
 
 RDEPEND="
-	binary? ( >=sys-kernel/genkernel-4.2.0 )
+	build-kernel? ( >=sys-kernel/genkernel-4.2.0 )
 	btrfs? ( sys-fs/btrfs-progs )
 	firmware? (
 		sys-kernel/linux-firmware
@@ -229,7 +229,7 @@ get_certs_dir() {
 
 pkg_pretend() {
 	# Ensure we have enough disk space to compile
-	if [[ ${MERGE_TYPE} != binary ]] && use binary ; then
+	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
 		CHECKREQS_DISK_BUILD="5G"
 		check-reqs_pkg_setup
 	fi
@@ -396,7 +396,7 @@ src_prepare() {
 
 src_configure() {
 
-	if use binary; then
+	if use build-kernel; then
 		tc-export_build_env
 		MAKEARGS=(
 			V=1
@@ -430,7 +430,7 @@ src_configure() {
 
 src_compile() {
 
-	if use binary; then
+	if use build-kernel; then
 		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" all || "kernel build failed"
 	fi
 }
@@ -456,9 +456,9 @@ src_install() {
 	# copy kconfig into place
 	cp "${T}"/.config .config || die "failed to copy kconfig from ${TEMPDIR}"
 
-	# if we didn't USE=binary - we're done.
+	# if we didn't USE=build-kernel - we're done.
 	# The kernel source tree is left in an unconfigured state - you can't compile 3rd-party modules against it yet.
-	if use binary; then
+	if use build-kernel; then
 		make prepare || die
 		make scripts || die
 
@@ -522,7 +522,7 @@ pkg_postinst() {
 	fi
 
 	# we only want to force initramfs rebuild if != binary package
-        if [[ ${MERGE_TYPE} != binary ]] && use binary ; then
+        if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
 		# fakeroot so we can always generate device nodes i.e /dev/console
 		# TODO: this will fail for -rN kernel revisions as kerneldir is hardcoded badly
 		# temporarily remove fakeroot
