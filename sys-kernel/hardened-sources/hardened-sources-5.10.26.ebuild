@@ -537,7 +537,6 @@ pkg_postinst() {
 			--kernel-config="/boot/config-${KERNEL_FULL_VERSION}" \
 			--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
 			--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
-			--callback="emerge --quiet-build=y @module-rebuild" \
 			--check-free-disk-space-bootdir="64" \
 			--all-ramdisk-modules \
 			$(usex debug --loglevel=5 --loglevel=1) \
