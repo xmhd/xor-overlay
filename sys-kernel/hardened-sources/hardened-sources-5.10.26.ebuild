@@ -498,9 +498,6 @@ src_install() {
 
 pkg_postinst() {
 
-	# TODO: Change to SANDBOX_WRITE=".." for Dracut writes
-	export SANDBOX_ON=0
-
 	# if USE=symlink...
 	if use symlink; then
 		# delete the existing symlink if one exists
@@ -526,8 +523,8 @@ pkg_postinst() {
 		# fakeroot so we can always generate device nodes i.e /dev/console
 		# TODO: this will fail for -rN kernel revisions as kerneldir is hardcoded badly
 		# temporarily remove fakeroot
+		# TODO: hookup the module-rebuild callback to USE
 		genkernel \
-			--no-sandbox \
 			--color \
 			--makeopts="${MAKEOPTS}" \
 			--logfile="/var/log/genkernel.log" \
@@ -539,6 +536,7 @@ pkg_postinst() {
 			--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
 			--check-free-disk-space-bootdir="64" \
 			--all-ramdisk-modules \
+			--callback="emerge --ignore-default-opts --buildpkg=n --usepkg=n --color=y --quiet-build=y @module-rebuild" \
 			$(usex debug --loglevel=5 --loglevel=1) \
 			$(usex firmware --firmware --no-firmware) \
 			$(usex luks --luks --no-luks) \
