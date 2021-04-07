@@ -7,7 +7,7 @@ inherit desktop wrapper
 DESCRIPTION="The Python IDE for pure Python development"
 HOMEPAGE="https://www.jetbrains.com/pycharm"
 
-MY_PN="${PN%-}"
+MY_PN="${PN%-*}"
 SRC_URI="https://download.jetbrains.com/python/${PN}-${PV}.tar.gz"
 
 LICENSE="
@@ -45,17 +45,19 @@ src_prepare() {
 
 src_install() {
 
-	insinto "/opt/${PN}"
+	local dir="/opt/${PN}"
+
+	insinto "${dir}"
 	doins -r *
 
-	fperms 755 /opt/${PN}/bin/{pycharm.sh,fsnotifier{,64},inspect.sh}
+	fperms 755 "${dir}"/bin/{${MY_PN}.sh,fsnotifier{,64},inspect.sh}
 
-	dosym ../../opt/${PN}/bin/pycharm.sh /usr/bin/${PN}
+	make_wrapper "${PN}" "${dir}"/bin/${MY_PN}.sh
 
-	newicon "bin/${MY_PN}.png" "${PN}.png"
+	newicon "bin/${MY_PN}.svg" "${PN}.svg"
 	make_desktop_entry "${PN}" "PyCharm Community" "${PN}" "Development;IDE;"
 
 	# recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
-	dodir "${D}/etc/sysctl.d/" || die
+	dodir /etc/sysctl.d/
 	echo "fs.inotify.max_user_watches = 524288" > "${D}/etc/sysctl.d/30-idea-inotify-watches.conf" || die
 }
