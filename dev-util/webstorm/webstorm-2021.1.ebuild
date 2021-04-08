@@ -53,16 +53,6 @@ src_install() {
 	make_desktop_entry "${PN}" "WebStorm" "${PN}" "Development;IDE;"
 
 	# recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
-	dodir "${D}/etc/sysctl.d/" || die
+	dodir /etc/sysctl.d
 	echo "fs.inotify.max_user_watches = 524288" > "${D}/etc/sysctl.d/30-idea-inotify-watches.conf" || die
-}
-
-pkg_postinst() {
-	xdg_pkg_postinst
-	gnome2_icon_cache_update
-}
-
-pkg_postrm() {
-	xdg_pkg_postrm
-	gnome2_icon_cache_update
 }
