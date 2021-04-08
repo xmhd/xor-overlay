@@ -520,10 +520,13 @@ pkg_postinst() {
 
 	# we only want to force initramfs rebuild if != binary package
         if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
+
+		# to run callback emerge we need to make sure a few FEATURES are disabled/enabled
+		export FEATURES="${FEATURES} -distlocks -ebuild-locks -parallel-fetch parallel-install"
+
 		# fakeroot so we can always generate device nodes i.e /dev/console
 		# TODO: this will fail for -rN kernel revisions as kerneldir is hardcoded badly
 		# temporarily remove fakeroot
-		# TODO: hookup the module-rebuild callback to USE
 		genkernel \
 			--color \
 			--makeopts="${MAKEOPTS}" \
