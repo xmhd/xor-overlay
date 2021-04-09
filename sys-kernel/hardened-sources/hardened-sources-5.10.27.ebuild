@@ -53,7 +53,7 @@ KERNEL_FULL_VERSION="${PV}${KERNEL_EXTRAVERSION}"
 KERNEL_ARCHIVE="linux-${KERNEL_VERSION}.tar.xz"
 KERNEL_UPSTREAM="https://cdn.kernel.org/pub/linux/kernel/v5.x/${KERNEL_ARCHIVE}"
 
-KERNEL_CONFIG_UPSTREAM="https://salsa.debian.org/kernel-team/linux/-/raw/debian/5.10.24-1/debian/config"
+KERNEL_CONFIG_UPSTREAM="https://salsa.debian.org/kernel-team/linux/-/raw/debian/5.10.26-1/debian/config"
 
 SRC_URI="
 	${KERNEL_UPSTREAM}
