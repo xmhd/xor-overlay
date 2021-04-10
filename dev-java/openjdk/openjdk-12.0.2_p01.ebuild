@@ -189,6 +189,7 @@ src_configure() {
 		--disable-warnings-as-errors
 		--enable-dtrace=$(usex systemtap yes no)
 		--enable-headless-only=$(usex headless-awt yes no)
+		$(tc-is-clang && echo "--with-toolchain-type=clang")
 	)
 
 	if use javafx; then
