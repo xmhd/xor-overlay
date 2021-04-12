@@ -541,7 +541,7 @@ pkg_postinst() {
 			--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
 			--check-free-disk-space-bootdir="64" \
 			--all-ramdisk-modules \
-			--callback="emerge --ignore-default-opts --color=y --buildpkg=n --usepkg=n --quiet-build=y --exclude=sys-kernel/hardened-sources @module-rebuild" \
+			--callback="emerge --ask=n --color=y --usepkg=n --quiet-build=y @module-rebuild" \
 			$(usex debug --loglevel=5 --loglevel=1) \
 			$(usex firmware --firmware --no-firmware) \
 			$(usex luks --luks --no-luks) \
