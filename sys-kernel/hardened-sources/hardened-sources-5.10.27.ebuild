@@ -462,6 +462,7 @@ src_install() {
 	# The kernel source tree is left in an unconfigured state - you can't compile 3rd-party modules against it yet.
 	if use build-kernel; then
 		make prepare || die
+		make modules_prepare || die
 		make scripts || die
 
 		local targets=( modules_install )
