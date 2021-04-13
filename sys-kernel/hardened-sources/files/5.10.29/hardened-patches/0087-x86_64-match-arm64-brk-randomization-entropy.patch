@@ -1,0 +1,38 @@
+From f3728e7e6ef224cd920b9b64ebe8586446020367 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Tue, 30 May 2017 07:19:48 -0400
+Subject: [PATCH 087/112] x86_64: match arm64 brk randomization entropy
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ arch/x86/kernel/process.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index 058941e9ae40..61460d55dd72 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -43,6 +43,8 @@
+ #include <asm/io_bitmap.h>
+ #include <asm/proto.h>
+ #include <asm/frame.h>
++#include <asm/elf.h>
++#include <linux/sizes.h>
+ 
+ #include "process.h"
+ 
+@@ -906,7 +908,10 @@ unsigned long arch_align_stack(unsigned long sp)
+ 
+ unsigned long arch_randomize_brk(struct mm_struct *mm)
+ {
+-	return randomize_page(mm->brk, 0x02000000);
++	if (mmap_is_ia32())
++		return randomize_page(mm->brk, SZ_32M);
++	else
++		return randomize_page(mm->brk, SZ_1G);
+ }
+ 
+ /*
+-- 
+2.31.1
+
