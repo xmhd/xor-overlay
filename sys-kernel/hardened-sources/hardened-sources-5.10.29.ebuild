@@ -19,7 +19,7 @@ IUSE="build-kernel btrfs clang custom-cflags debug firmware luks lvm mcelog mdad
 BDEPEND="
 	sys-devel/bc
 	debug? ( dev-util/dwarves )
-	virtual/flex
+	sys-devel/flex
 	virtual/libelf
 	virtual/yacc
 "
