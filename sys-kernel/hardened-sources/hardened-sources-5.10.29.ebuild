@@ -14,7 +14,7 @@ SLOT="${PV}"
 
 RESTRICT="binchecks strip mirror"
 
-IUSE="build-kernel btrfs clang custom-cflags debug firmware luks lvm mcelog mdadm microcode plymouth selinux sign-modules symlink wireguard zfs"
+IUSE="build-kernel btrfs clang custom-cflags debug firmware +install-sources luks lvm mcelog mdadm microcode plymouth selinux sign-modules symlink wireguard zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -46,6 +46,10 @@ RDEPEND="
 	)
 	wireguard? ( virtual/wireguard )
 	zfs? ( sys-fs/zfs )
+"
+
+REQUIRED_USE="
+	!build-kernel ( install-sources )
 "
 
 # linux kernel upstream
