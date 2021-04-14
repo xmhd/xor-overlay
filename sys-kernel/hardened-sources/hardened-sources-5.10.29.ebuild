@@ -49,7 +49,7 @@ RDEPEND="
 "
 
 REQUIRED_USE="
-	!build-kernel ( install-sources )
+	!build-kernel? ( install-sources )
 "
 
 # linux kernel upstream
