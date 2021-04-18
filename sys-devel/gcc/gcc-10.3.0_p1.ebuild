@@ -1390,7 +1390,7 @@ gcc_movelibs() {
 	fi
 
 	# libgccjit gets installed to /usr/lib, not /usr/$(get_libdir), probably due to a bug in gcc build system.
-	if is_jit ; then
+	if use jit ; then
 		dodir "${LIBPATH#${EPREFIX}}"
 		mv "${ED}"/usr/lib/libgccjit* "${D}${LIBPATH}" || die
 	fi
@@ -1556,7 +1556,7 @@ src_install() {
 	if ! is_crosscompile; then
 		# Rename the main go binaries as we don't want to clobber dev-lang/go
 		# when gcc-config runs. #567806
-		if tc_version_is_at_least 5 && is_go ; then
+		if tc_version_is_at_least 5 && use go ; then
 			for x in go gofmt; do
 				mv ${x} ${x}-${GCCMAJOR} || die
 			done
