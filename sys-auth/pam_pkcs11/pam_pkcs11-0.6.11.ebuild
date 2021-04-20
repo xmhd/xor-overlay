@@ -11,7 +11,7 @@ SRC_URI="https://github.com/OpenSC/${PN}/archive/${PN}-${PV}.tar.gz"
 RESTRICT="mirror"
 
 LICENSE="LGPL-2.1"
-KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
+KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~ppc ~ppc64 ~s390 ~sparc ~x86"
 
 SLOT="0"
 
