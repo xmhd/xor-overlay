@@ -29,8 +29,8 @@ PATCHES=(
 )
 
 src_unpack() {
-        unpack ${PN}_${PV}.tar.xz
-        mv ${PN} ${PN}-${PV}
+	unpack ${PN}_${PV}.tar.xz
+	mv ${PN} ${PN}-${PV}
 }
 
 src_configure() {
@@ -47,7 +47,7 @@ src_install() {
 	fi
 
 	into /usr
-        dobin ischroot
+	dobin ischroot
 	dosbin savelog
 
 	doman ischroot.1 tempfile.1 run-parts.8 savelog.8

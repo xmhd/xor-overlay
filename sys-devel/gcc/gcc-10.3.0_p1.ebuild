@@ -303,7 +303,6 @@ tc_version_is_at_least() {
 	ver_test "${2:-${GCC_ARCHIVE_VER}}" -ge "$1"
 }
 
-
 is_multilib() {
 	tc_version_is_at_least 3 || return 1
 	use_if_iuse multilib
@@ -528,7 +527,7 @@ src_prepare() {
 	# like crtbegin.o into a subdirectory based on the name of the currently-installed
 	# gcc version, rather than *our* gcc version. Manually fix this:
 
-	sed -i -e "s/^version :=.*/version := ${GCC_CONFIG_VER}/" ${S}/libgcc/Makefile.in || die
+	sed -i -e "s/^version :=.*/version := ${GCC_CONFIG_VER}/" "${S}"/libgcc/Makefile.in || die
 
 	# make sure the pkg config files install into multilib dirs.
 	# since we configure with just one --libdir, we can't use that (as gcc itself takes care of building multilibs).
@@ -544,7 +543,7 @@ src_prepare() {
 	for f in $(grep -l 'autoconf version 2.13' $(find "${S}" -name configure)) ; do
 		ebegin "  Updating ${f/${S}\/} [LANG]"
 		patch "${f}" "${FILESDIR}"/gcc-configure-LANG.patch >& "${T}"/configure-patch.log || eerror "Please file a bug about this"
-		eend $?
+		eend "$?"
 	done
 
 	# Prevent new texinfo from breaking old versions (see #198182, #464008)
@@ -1013,7 +1012,7 @@ src_configure() {
 			[[ ${arm_arch} == armv7? ]] && arm_arch=${arm_arch/7/7-}
 
 			# See if this is a valid --with-arch flag
-			if (srcdir=${S}/gcc target=${CTARGET} with_arch=${arm_arch};
+			if (srcdir="${S}"/gcc target=${CTARGET} with_arch=${arm_arch};
 				. "${srcdir}"/config.gcc) &>/dev/null
 			then
 				confgcc+=( --with-arch=${arm_arch} )
@@ -1252,7 +1251,7 @@ src_configure() {
 
 gcc_conf_cross_post() {
 	if use arm ; then
-		sed -i "s/none-/${CHOST%%-*}-/g" ${WORKDIR}/build/Makefile || die
+		sed -i "s/none-/${CHOST%%-*}-/g" "${WORKDIR}"/build/Makefile || die
 	fi
 }
 
@@ -1310,7 +1309,7 @@ src_test() {
 	if is_crosscompile || tc-is-cross-compiler; then
 		ewarn "Running tests on simulator for cross-compiler not yet supported by this ebuild."
 	else
-		( ulimit -s 65536 && ${MAKE:-make} ${MAKEOPTS} LIBPATH="${ED%/}/${LIBPATH}" -k check RUNTESTFLAGS="-v -v -v" 2>&1 | tee ${T}/make-check-log ) || tests_failed=1
+		( ulimit -s 65536 && ${MAKE:-make} ${MAKEOPTS} LIBPATH="${ED%/}/${LIBPATH}" -k check RUNTESTFLAGS="-v -v -v" 2>&1 | tee "${T}"/make-check-log ) || tests_failed=1
 		"../${S##*/}/contrib/test_summary" 2>&1 | tee "${T}/gcc-test-summary.out"
 		[ ${tests_failed} -eq 0 ] || die "make -k check failed"
 	fi
@@ -1474,7 +1473,7 @@ src_install() {
 	# === PRE-MAKE ===
 
 	# Change to the build directory
-	cd ${WORKDIR}/build
+	cd "${WORKDIR}"/build
 
 	# Don't allow symlinks in private gcc include dir as this can break the build
 	find gcc/include*/ -type l -delete
@@ -1549,9 +1548,9 @@ src_install() {
 		fi
 	done
 
-    # ?
+	# ?
 
-    # When gcc builds a crosscompiler it does not install unprefixed tools.
+	# When gcc builds a crosscompiler it does not install unprefixed tools.
 	# When cross-building gcc does install native tools.
 	if ! is_crosscompile; then
 		# Rename the main go binaries as we don't want to clobber dev-lang/go

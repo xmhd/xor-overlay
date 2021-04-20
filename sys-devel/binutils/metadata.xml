@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+<maintainer type="project">
+	<email>xor@cairnlinux.org</email>
+</maintainer>
+<use>
+	<flag name="default-gold">TODO</flag>
+	<flag name="doc">TODO</flag>
+	<flag name="gold">TODO</flag>
+	<flag name="multitarget">TODO</flag>
+	<flag name="nls">TODO</flag>
+	<flag name="plugins">TOOD</flag>
+	<flag name="static-libs">TODO</flag>
+	<flag name="test">TODO</flag>
+</use>
+</pkgmetadata>

@@ -292,8 +292,8 @@ src_prepare() {
 
 	# this is horrible.... TODO: change the echo shite to sed
 
-        # Do not configure Debian devs certificates
-        echo 'CONFIG_SYSTEM_TRUSTED_KEYS=""' >> .config
+	# Do not configure Debian devs certificates
+	echo 'CONFIG_SYSTEM_TRUSTED_KEYS=""' >> .config
 
 	# enable IKCONFIG so that /proc/config.gz can be used for various checks
 	# TODO: Maybe not a good idea for USE=hardened, look into this...
@@ -495,11 +495,11 @@ src_install() {
 		if use sign-modules; then
 			for x in $(find "${D}"/lib/modules -iname *.ko); do
 				# $certs_dir defined previously in this function.
-				${WORKDIR}/build/scripts/sign-file sha512 $certs_dir/signing_key.pem $certs_dir/signing_key.x509 $x || die
+				"${WORKDIR}"/build/scripts/sign-file sha512 $certs_dir/signing_key.pem $certs_dir/signing_key.x509 $x || die
 			done
 			# install the sign-file executable for future use.
 			exeinto /usr/src/linux-${KERNEL_FULL_VERSION}/scripts
-			doexe ${WORKDIR}/build/scripts/sign-file
+			doexe "${WORKDIR}"/build/scripts/sign-file
 		fi
 	fi
 }

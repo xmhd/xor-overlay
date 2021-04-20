@@ -1,35 +1,36 @@
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
-inherit eutils user autotools
+inherit eutils autotools
 
 DESCRIPTION="Distributed compiling of C(++) code across several machines; based on distcc"
 HOMEPAGE="https://github.com/icecc/icecream"
 SRC_URI="https://github.com/icecc/icecream/archive/${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-2"
-SLOT="0"
 KEYWORDS="~amd64 ~x86"
+
+SLOT="0"
+
 IUSE=""
 
 DEPEND="
-	app-arch/zstd
-	sys-libs/libcap-ng
-	dev-libs/lzo
 	app-text/docbook2X
+	acct-group/icecream
+	acct-user/icecream
+	sys-libs/libcap-ng
+	app-arch/libarchive
+	dev-libs/lzo
+	app-arch/zstd
 "
 RDEPEND="
 	${DEPEND}
 	dev-util/shadowman
 "
 
-pkg_setup() {
-	enewgroup icecream
-	enewuser icecream -1 -1 /var/cache/icecream icecream
-}
-
 src_prepare() {
+	default
 	eapply_user
 	eautoreconf
 }
@@ -45,14 +46,18 @@ src_install() {
 	default
 	find "${D}" -name '*.la' -delete || die
 
-	newconfd suse/sysconfig.icecream icecream
-	newinitd "${FILESDIR}"/icecream-r2 icecream
+	dodoc "${FILESDIR}"/HOWTO_Setup_an_ICECREAM_Compile_Cluster_on_Gentoo.md
 
-	insinto /etc/logrotate.d
-	newins suse/logrotate icecream
+	newinitd "${FILESDIR}"/iceccd.rc iceccd
+	newinitd "${FILESDIR}"/icecc-scheduler.rc icecc-scheduler
+	newconfd "${FILESDIR}"/iceccd.confd iceccd
+	newconfd "${FILESDIR}"/icecc-scheduler.confd icecc-scheduler
 
 	insinto /usr/share/shadowman/tools
 	newins - icecc <<<'/usr/libexec/icecc/bin'
+
+	insinto /etc/logrotate.d
+	newins "${FILESDIR}"/icecream.logrotate icecream
 }
 
 pkg_prerm() {
@@ -65,4 +70,32 @@ pkg_postinst() {
 	if [[ ${ROOT} == / ]]; then
 		eselect compiler-shadow update icecc
 	fi
+
+	elog "For configuration help  and howto refer to the documentation inside"
+	elog "/usr/share/doc/icecream-${PN} folder."
+
+	ewarn "Starting with icecream-1.3.10-r2, the management of init scripts and"
+	ewarn "configuration files has been split between the icecc compile daemon (iceccd)"
+	ewarn "and the icecc scheduler."
+	ewarn ""
+	ewarn "Please migrate to new configurations and new init scripts:"
+	ewarn "1. stop and disable old icecream daemon"
+	ewarn "    rc-service icecream stop"
+	ewarn "    rc-update del icecream"
+	ewarn ""
+	ewarn "2. (optionally) configure icecream compile daemon (iceccd) /etc/conf.d/iceccd"
+	ewarn ""
+	ewarn "3. (optionally) add iceccd to autostart and start it"
+	ewarn "    rc-update add iceccd default"
+	ewarn "    rc-service iceccd start"
+	ewarn "4. (optionally) configure icecream scheduler /etc/conf.d/icecc-scheduler"
+	ewarn ""
+	ewarn "5. (optionally) add icecc-scheduler to autostart and start it"
+	ewarn "    rc-update add icecc-scheduler default"
+	ewarn "    rc-service icecc-scheduler start"
+	ewarn ""
+	ewarn "6. remove old icecream init script, configuration and logs"
+	ewarn "    rm /etc/init.d/icecream"
+	ewarn "    rm /etc/conf.d/icecream"
+	ewarn "    rm /var/log/icecream/*"
 }

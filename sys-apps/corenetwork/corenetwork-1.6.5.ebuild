@@ -13,7 +13,14 @@ GITHUB_USER="funtoo"
 
 SRC_URI="https://www.github.com/${GITHUB_USER}/${PN}/tarball/${PVR} -> corenetwork-${PVR}.tar.gz"
 
-RDEPEND="sys-apps/openrc !<=sys-apps/openrc-0.12.4-r4"
+RDEPEND="
+	sys-apps/openrc
+	!<=sys-apps/openrc-0.12.4-r4
+"
+
+DEPEND="
+	${RDEPEND}
+"
 
 src_unpack() {
 	unpack $A
