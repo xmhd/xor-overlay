@@ -43,5 +43,5 @@ src_install() {
 }
 
 pkg_postinst() {
-    linux-mod_pkg_postinst
+	linux-mod_pkg_postinst
 }

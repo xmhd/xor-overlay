@@ -32,11 +32,11 @@ RDEPEND="${DEPEND}"
 # any freedesktop.org secret service API compatible program, e.g. gnome-keyring or keepassx.
 PDEPEND="
 	freedesktop-secret-service? (
-                || (
-                        gnome-base/gnome-keyring
-                        app-admin/keepassxc
-                )
-        )
+		|| (
+			gnome-base/gnome-keyring
+			app-admin/keepassxc
+		)
+	)
 "
 
 BDEPEND="
@@ -59,11 +59,11 @@ PATCHES=(
 )
 
 python_check_deps() {
-        if use introspection; then
-                has_version -b "dev-python/pygobject:3[${PYTHON_USEDEP}]" || return
-        fi
-		has_version -b "dev-python/mock[${PYTHON_USEDEP}]" &&
-        has_version -b "dev-python/dbus-python[${PYTHON_USEDEP}]"
+	if use introspection; then
+		has_version -b "dev-python/pygobject:3[${PYTHON_USEDEP}]" || return
+	fi
+	has_version -b "dev-python/mock[${PYTHON_USEDEP}]" &&
+	has_version -b "dev-python/dbus-python[${PYTHON_USEDEP}]"
 }
 
 pkg_setup() {
@@ -74,38 +74,36 @@ src_prepare() {
 	use vala && vala_src_prepare
 	default
 
-        # Remove @filename@ from the header template that would otherwise cause
-        # differences dependent on the ABI
-        sed -e '/enumerations from "@filename@"/d' \
-                -i libsecret/secret-enum-types.h.template || die
+	# Remove @filename@ from the header template that would otherwise cause
+	# differences dependent on the ABI
+	sed -e '/enumerations from "@filename@"/d' -i libsecret/secret-enum-types.h.template || die
 }
 
 meson_multilib_native_use() {
-        multilib_native_usex "$1" "-D${2-$1}=true" "-D${2-$1}=false"
+	multilib_native_usex "$1" "-D${2-$1}=true" "-D${2-$1}=false"
 }
 
 multilib_src_configure() {
         local emesonargs=(
-                $(meson_use crypt gcrypt)
+		$(meson_use crypt gcrypt)
 
-                # Don't build docs multiple times
-                -Dmanpage=$(multilib_is_native_abi && echo true || echo false)
-                $(meson_multilib_native_use gtk-doc gtk_doc)
-
-                $(meson_multilib_native_use introspection)
-                $(meson_multilib_native_use vala vapi)
+		# Don't build docs multiple times
+		-Dmanpage=$(multilib_is_native_abi && echo true || echo false)
+		$(meson_multilib_native_use gtk-doc gtk_doc)
+		$(meson_multilib_native_use introspection)
+		$(meson_multilib_native_use vala vapi)
         )
 	meson_src_configure
 }
 
 multilib_src_compile() {
-        meson_src_compile
+	meson_src_compile
 }
 
 multilib_src_test() {
-        virtx meson_src_test
+	virtx meson_src_test
 }
 
 multilib_src_install() {
-        meson_src_install
+	meson_src_install
 }

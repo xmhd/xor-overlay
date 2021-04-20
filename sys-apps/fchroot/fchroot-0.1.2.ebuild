@@ -18,9 +18,9 @@ IUSE=""
 
 # TODO: make qemu targets configurable via USE
 RDEPEND="
-	    app-emulation/qemu[static-user,qemu_user_targets_aarch64,qemu_user_targets_arm]
-        dev-libs/glib[static-libs]
-        sys-apps/attr[static-libs]
-        sys-libs/zlib[static-libs]
-        dev-libs/libpcre[static-libs]
+	app-emulation/qemu[static-user,qemu_user_targets_aarch64,qemu_user_targets_arm]
+	sys-apps/attr[static-libs]
+	dev-libs/glib[static-libs]
+	sys-libs/zlib[static-libs]
+	dev-libs/libpcre[static-libs]
 "

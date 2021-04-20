@@ -162,9 +162,9 @@ src_configure() {
 		use hardened && replace-flags -O3 -O2
 	fi
 
-        if is-flagq -flto || is-flagq '-flto=*'; then
-                append-cflags $(test-flags-CC -ffat-lto-objects)
-        fi
+	if is-flagq -flto || is-flagq '-flto=*'; then
+		append-cflags $(test-flags-CC -ffat-lto-objects)
+	fi
 
 	# LTO needs this
 	if use lto; then

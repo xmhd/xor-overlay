@@ -21,8 +21,8 @@ BDEPEND="
 "
 
 RDEPEND="
-        dev-lang/go
-        virtual/jdk
+	dev-lang/go
+	virtual/jdk
 "
 
 RESTRICT="bindist mirror strip"

@@ -17,7 +17,7 @@ SRC_URI="mirror://gnu/binutils/binutils-${PV}.tar.xz"
 IUSE="default-gold doc +gold multitarget +nls +plugins static-libs test"
 
 REQUIRED_USE="
-    default-gold? ( gold )
+	default-gold? ( gold )
 "
 
 RDEPEND="
@@ -59,7 +59,6 @@ PATCH_DEV=${PATCH_DEV:-slyfox}
 
 is_cross() { [[ ${CHOST} != ${CTARGET} ]] ; }
 
-
 MY_BUILDDIR=${WORKDIR}/build
 
 pkg_pretend() {
@@ -73,19 +72,19 @@ pkg_pretend() {
 
 pkg_setup() {
 
-    # export branding
-    # TODO: hardened etc?
-    export BINUTILS_BRANDING="Funtoo Linux ${PV} + p${PATCH_VER}"
+	# export branding
+	# TODO: hardened etc?
+	export BINUTILS_BRANDING="Funtoo Linux ${PV} + p${PATCH_VER}"
 
-    #
-    # The cross-compile logic
-    #
-    export CTARGET=${CTARGET:-${CHOST}}
-    if [[ ${CTARGET} == ${CHOST} ]] ; then
-        if [[ ${CATEGORY} == cross-* ]] ; then
-            export CTARGET=${CATEGORY#cross-}
-        fi
-    fi
+	#
+	# The cross-compile logic
+	#
+	export CTARGET=${CTARGET:-${CHOST}}
+	if [[ ${CTARGET} == ${CHOST} ]] ; then
+		if [[ ${CATEGORY} == cross-* ]] ; then
+			export CTARGET=${CATEGORY#cross-}
+		fi
+	fi
 }
 
 src_unpack() {
@@ -102,8 +101,8 @@ src_unpack() {
 
 src_prepare() {
 
-    # Apply Gentoo Linux patch set
-    # TODO: add a USE=vanilla and more patches?
+	# Apply Gentoo Linux patch set
+	# TODO: add a USE=vanilla and more patches?
 	if [[ ! -z ${PATCH_VER} ]] ; then
 		einfo "Applying binutils-${PATCH_BINUTILS_VER} patchset ${PATCH_VER}"
 		eapply "${WORKDIR}/patch"/*.patch
@@ -261,7 +260,7 @@ src_configure() {
 	)
 
 	# Pass any local EXTRA_ECONF from /etc/portage/env to ./configure.
-    myconf+=( "$@" ${EXTRA_ECONF} )
+	myconf+=( "$@" ${EXTRA_ECONF} )
 
 	myconf+=(
 		--host=${CHOST}

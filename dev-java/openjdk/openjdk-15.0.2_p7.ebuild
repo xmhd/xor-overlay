@@ -134,15 +134,15 @@ pkg_setup() {
 src_prepare() {
 	default
 
-        if use elibc_musl ; then
-                eapply "${FILESDIR}/patches/${SLOT}/1001_build.patch"
-                eapply "${FILESDIR}/patches/${SLOT}/1002_aarch64.patch"
-                eapply "${FILESDIR}/patches/${SLOT}/1003_ppc64le.patch"
+	if use elibc_musl ; then
+		eapply "${FILESDIR}/patches/${SLOT}/1001_build.patch"
+		eapply "${FILESDIR}/patches/${SLOT}/1002_aarch64.patch"
+		eapply "${FILESDIR}/patches/${SLOT}/1003_ppc64le.patch"
 
-                # this needs libthread_db which is only provided by glibc
-                # haven't found any way to disable this module so just remove it.
-                rm -rf "${S}"/src/jdk.hotspot.agent || die "failed to remove HotSpot agent"
-        fi
+		# this needs libthread_db which is only provided by glibc
+		# haven't found any way to disable this module so just remove it.
+		rm -rf "${S}"/src/jdk.hotspot.agent || die "failed to remove HotSpot agent"
+	fi
 
 	chmod +x configure || die
 }
@@ -284,4 +284,3 @@ pkg_postinst() {
 		ewarn "absolute location under ${EPREFIX}/usr/$(get_libdir)/${PN}-${SLOT}."
 	fi
 }
-
