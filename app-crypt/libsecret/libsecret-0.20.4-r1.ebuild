@@ -84,7 +84,7 @@ meson_multilib_native_use() {
 }
 
 multilib_src_configure() {
-        local emesonargs=(
+	local emesonargs=(
 		$(meson_use crypt gcrypt)
 
 		# Don't build docs multiple times
@@ -92,7 +92,7 @@ multilib_src_configure() {
 		$(meson_multilib_native_use gtk-doc gtk_doc)
 		$(meson_multilib_native_use introspection)
 		$(meson_multilib_native_use vala vapi)
-        )
+	)
 	meson_src_configure
 }
 

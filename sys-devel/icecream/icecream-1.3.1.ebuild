@@ -9,7 +9,7 @@ HOMEPAGE="https://github.com/icecc/icecream"
 SRC_URI="https://github.com/icecc/icecream/archive/${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-2"
-KEYWORDS="~amd64 ~x86"
+KEYWORDS="~amd64"
 
 SLOT="0"
 

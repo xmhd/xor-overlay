@@ -73,7 +73,6 @@ src_unpack() {
 	default
 }
 
-
 src_prepare() {
 	# Ensure that internal copies of expat, libffi and zlib are not used.
 	rm -fr Modules/expat || die

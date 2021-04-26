@@ -54,7 +54,7 @@ pkg_setup() {
 
 	for files_to_symlink in ${BPF_HEADERS[*]} ; do
 		if [[ ! -h "${EROOT}"/usr/include/"${files_to_symlink}" ]]; then
-			ln -s ${EROOT}/usr/include/bpf/"${files_to_symlink}" ${EROOT}/usr/include/"${files_to_symlink}"
+			ln -s "${EROOT}"/usr/include/bpf/"${files_to_symlink}" ${EROOT}/usr/include/"${files_to_symlink}"
 		fi
 	done
 }
@@ -62,7 +62,7 @@ pkg_setup() {
 src_unpack() {
 
 	# unpack sources
-	unpack ${DTRACE_UTILS_ARCHIVE} && mv ${WORKDIR}/${PN}-${DTRACE_UTILS_VER}-${DTRACE_UTILS_REV} ${WORKDIR}/${PN}-${DTRACE_UTILS_VER} || die "failed to unpack archive"
+	unpack ${DTRACE_UTILS_ARCHIVE} && mv "${WORKDIR}"/${PN}-${DTRACE_UTILS_VER}-${DTRACE_UTILS_REV} "${WORKDIR}"/${PN}-${DTRACE_UTILS_VER} || die "failed to unpack archive"
 }
 
 src_prepare() {
@@ -72,7 +72,7 @@ src_prepare() {
 		rm -rf test
 	fi
 
-	eapply ${FILESDIR}/fix-double-declaration-of-yylineno.patch
+	eapply "${FILESDIR}"/fix-double-declaration-of-yylineno.patch
 
 	# upstream depends on bpf-helpers.h from gcc... which isn't very portable (and is scheduled for removal).
 	# libbpf ships bpf_helpers.h etc... so we sed that change across the source tree.

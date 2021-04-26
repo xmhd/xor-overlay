@@ -23,9 +23,9 @@ BDEPEND="
 "
 
 RDEPEND="
-        virtual/jdk
+	virtual/jdk
 	dev-libs/libdbusmenu
-        dev-python/pip
+	dev-python/pip
 "
 
 RESTRICT="bindist mirror strip"

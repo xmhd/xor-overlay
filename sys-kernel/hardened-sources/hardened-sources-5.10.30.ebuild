@@ -8,7 +8,7 @@ DESCRIPTION="Linux kernel sources with some optional patches."
 HOMEPAGE="https://kernel.org"
 
 LICENSE="GPL-2"
-KEYWORDS="x86 amd64 arm arm64"
+KEYWORDS="~amd64"
 
 SLOT="${PV}"
 
@@ -527,7 +527,7 @@ pkg_postinst() {
 	fi
 
 	# we only want to force initramfs rebuild if != binary package
-        if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
+	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
 
 		# to run callback emerge we need to make sure a few FEATURES are disabled/enabled
 		export FEATURES="${FEATURES} -distlocks -ebuild-locks -parallel-fetch parallel-install"

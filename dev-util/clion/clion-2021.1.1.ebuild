@@ -23,10 +23,10 @@ BDEPEND="
 "
 
 RDEPEND="
-        dev-util/cmake
-        gdb? ( sys-devel/gdb )
+	dev-util/cmake
+	gdb? ( sys-devel/gdb )
 	lldb? ( dev-util/lldb )
-        virtual/jdk
+	virtual/jdk
 "
 
 RESTRICT="bindist mirror strip"

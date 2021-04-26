@@ -132,8 +132,7 @@ pkg_setup() {
 src_prepare() {
 	default
 
-
-        eapply "${FILESDIR}/patches/${SLOT}/0001_fix-bootjdk-check.patch"
+	eapply "${FILESDIR}/patches/${SLOT}/0001_fix-bootjdk-check.patch"
 
 	if use elibc_musl ; then
 		eapply "${FILESDIR}/patches/${SLOT}/1001_build.patch"

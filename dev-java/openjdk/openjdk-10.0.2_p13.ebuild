@@ -13,7 +13,7 @@ HOMEPAGE="https://openjdk.java.net"
 SRC_URI="https://hg.${PN}.java.net/jdk-updates/jdk${SLOT}u/archive/jdk-${MY_PV}.tar.bz2"
 
 LICENSE="GPL-2"
-KEYWORDS="amd64 arm64"
+KEYWORDS="~amd64"
 
 IUSE="alsa cups debug doc examples gentoo-vm headless-awt javafx +jbootstrap nsplugin +pch selinux source systemtap +webstart"
 
@@ -133,8 +133,8 @@ pkg_setup() {
 src_prepare() {
 	default
 
-        eapply "${FILESDIR}/patches/${SLOT}/0001_fix-bootjdk-check.patch"
-        eapply "${FILESDIR}/patches/${SLOT}/0002_make-4.3.patch"
+	eapply "${FILESDIR}/patches/${SLOT}/0001_fix-bootjdk-check.patch"
+	eapply "${FILESDIR}/patches/${SLOT}/0002_make-4.3.patch"
 	eapply "${FILESDIR}/patches/${SLOT}/0004_gcc10-compilation-fix.patch"
 
 	if use elibc_musl ; then

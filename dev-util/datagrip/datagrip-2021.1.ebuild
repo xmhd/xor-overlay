@@ -2,11 +2,14 @@
 
 EAPI=7
 
-inherit gnome2-utils xdg
+inherit desktop wrapper
 
 DESCRIPTION="Many databases, one tool"
 HOMEPAGE="https://www.jetbrains.com/datagrip"
+SRC_URI="https://download.jetbrains.com/datagrip/${PN}-${PV}.tar.gz"
+
 LICENSE="JetBrains"
+KEYWORDS="amd64"
 
 SLOT="0"
 
@@ -24,18 +27,13 @@ RESTRICT="bindist mirror strip"
 MY_PN="datagrip"
 S="${WORKDIR}/${MY_PN}-${PV}"
 
-if [[ ${PV} != 9999 ]]; then
-        SRC_URI="https://download.jetbrains.com/datagrip/${PN}-${PV}.tar.gz"
-        KEYWORDS="*"
-fi
-
 src_unpack() {
-        default
-        mv "${WORKDIR}"/DataGrip* "${S}" || die "Failed to move/rename source dir"
+	default
+	mv "${WORKDIR}"/DataGrip* "${S}" || die "Failed to move/rename source dir"
 }
 
 src_prepare() {
-        default
+	default
 
 	# Remove any bundled Java
 	rm -rf {jbr,jre{64}} || die "Failed to remove bundled Java"
@@ -53,17 +51,7 @@ src_install() {
 	newicon "bin/${PN}.png" "${PN}.png"
 	make_desktop_entry "${PN}" "DataGrip" "${PN}" "Development;Programming;IDE;"
 
-        # recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
-        mkdir -p "${D}/etc/sysctl.d/" || die
-        echo "fs.inotify.max_user_watches = 524288" > "${D}/etc/sysctl.d/30-idea-inotify-watches.conf" || die
-}
-
-pkg_postinst() {
-	xdg_pkg_postinst
-	gnome2_icon_cache_update
-}
-
-pkg_postrm() {
-	xdg_pkg_postrm
-	gnome2_icon_cache_update
+	# recommended by: https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit
+	mkdir -p "${D}"/etc/sysctl.d/ || die
+	echo "fs.inotify.max_user_watches = 524288" > "${D}"/etc/sysctl.d/30-idea-inotify-watches.conf || die
 }

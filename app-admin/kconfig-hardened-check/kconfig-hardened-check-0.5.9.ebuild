@@ -10,11 +10,11 @@ DESCRIPTION="A script for checking the hardening options in the Linux kernel con
 HOMEPAGE="https://github.com/a13xp0p0v/kconfig-hardened-check"
 
 if [[ ${PV} == *9999 ]]; then
-    inherit git-r3
-    EGIT_REPO_URI="https://github.com/a13xp0p0v/kconfig-hardened-check"
+	inherit git-r3
+	EGIT_REPO_URI="https://github.com/a13xp0p0v/kconfig-hardened-check"
 else
-    SRC_URI="https://github.com/a13xp0p0v/kconfig-hardened-check/archive/v${PV}.tar.gz -> ${P}.tar.gz"
-    KEYWORDS="x86 amd64 arm arm64"
+	SRC_URI="https://github.com/a13xp0p0v/kconfig-hardened-check/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+	KEYWORDS="x86 amd64 arm arm64"
 fi
 
 LICENSE="GPL-3"
@@ -25,6 +25,6 @@ RDEPEND="${PYTHON_DEPS}"
 DEPEND="${RDEPEND}"
 
 src_install() {
-    dodoc -r config_files/ README.md
-    python_foreach_impl python_newscript kconfig-hardened-check.py kconfig-hardened-check
+	dodoc -r config_files/ README.md
+	python_foreach_impl python_newscript kconfig-hardened-check.py kconfig-hardened-check
 }
