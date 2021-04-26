@@ -1,7 +1,7 @@
 # STATUS #
 
-![pkgcheck](https://github.com/adjust/gentoo-overlay/actions/workflows/pkgcheck.yml/badge.svg)
-![RepoMan](https://github.com/adjust/gentoo-overlay/actions/workflows/repoman.yml/badge.svg)
+![pkgcheck](https://github.com/xmhd/xor-overlay/actions/workflows/pkgcheck.yml/badge.svg)
+![RepoMan](https://github.com/xmhd/xor-overlay/actions/workflows/repoman.yml/badge.svg)
 
 # README #
 
