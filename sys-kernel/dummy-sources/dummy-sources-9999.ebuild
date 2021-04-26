@@ -6,7 +6,7 @@ DESCRIPTION="A dummy package for the Linux kernel sources. Ideal for those who l
 HOMEPAGE="https://kernel.org"
 SRC_URI=""
 
-KEYWORDS="*"
+KEYWORDS="~amd64"
 LICENSE="GPL-2"
 
 SLOT="0"

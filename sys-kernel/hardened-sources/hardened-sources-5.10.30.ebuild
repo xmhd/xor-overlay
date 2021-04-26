@@ -14,7 +14,7 @@ SLOT="${PV}"
 
 RESTRICT="binchecks strip mirror"
 
-IUSE="build-kernel btrfs clang custom-cflags debug firmware +install-sources luks lvm mcelog mdadm microcode module-rebuild plymouth selinux sign-modules symlink wireguard zfs"
+IUSE="build-kernel btrfs clang custom-cflags debug firmware +install-sources luks lvm mcelog mdadm microcode module-rebuild plymouth selinux sign-modules symlink zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -44,7 +44,6 @@ RDEPEND="
 		)
 		sys-apps/kmod
 	)
-	wireguard? ( virtual/wireguard )
 	zfs? ( sys-fs/zfs )
 "
 

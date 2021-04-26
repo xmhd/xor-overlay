@@ -8,7 +8,7 @@ HOMEPAGE="https://github.com/oracle/dtrace-utils"
 DESCRIPTION="DTrace userspace utilities"
 
 LICENSE="GPL-2"
-KEYWORDS="x86 amd64"
+KEYWORDS="~amd64"
 
 SLOT="0"
 

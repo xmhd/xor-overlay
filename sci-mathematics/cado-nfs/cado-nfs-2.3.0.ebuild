@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python{2_7,3_7,3_8} )
+PYTHON_COMPAT=( python3_{7,8,9} )
 PYTHON_REQ_USE="sqlite"
 
 CMAKE_MAKEFILE_GENERATOR="emake"
