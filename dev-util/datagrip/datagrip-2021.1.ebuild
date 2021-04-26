@@ -8,7 +8,15 @@ DESCRIPTION="Many databases, one tool"
 HOMEPAGE="https://www.jetbrains.com/datagrip"
 SRC_URI="https://download.jetbrains.com/datagrip/${PN}-${PV}.tar.gz"
 
-LICENSE="JetBrains"
+LICENSE="
+	|| (
+		JetBrains_Business
+		JetBrains_Classroom
+		JetBrains_Educational
+		JetBrains_OpenSource
+		JetBrains_Personal
+	)
+"
 KEYWORDS="amd64"
 
 SLOT="0"

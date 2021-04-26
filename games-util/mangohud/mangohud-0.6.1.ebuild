@@ -6,7 +6,7 @@ PYTHON_COMPAT=( python3_{7,8,9} )
 
 inherit meson distutils-r1 multilib-minimal flag-o-matic git-r3
 
-DESCRIPTION="A Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more."
+DESCRIPTION="Vulkan + OpenGL overlay for monitoring FPS, temps, CPU/GPU load and more."
 HOMEPAGE="https://github.com/flightlessmango/MangoHud"
 
 EGIT_REPO_URI="https://github.com/flightlessmango/MangoHud.git"

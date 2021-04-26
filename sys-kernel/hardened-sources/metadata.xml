@@ -7,6 +7,7 @@
 <use>
 	<flag name="build-kernel">Build a kernel and modules from the kernel sources</flag>
 	<flag name="btrfs">Enable support for btrfs in the kernel + initramfs</flag>
+	<flag name="clang">TODO</flag>
 	<flag name="firmware">Include firmware in the initramfs</flag>
 	<flag name="install-sources">Install the entire kernel sources tree</flag>
 	<flag name="luks">Enable support for luks in the kernel + initramfs</flag>
@@ -17,7 +18,6 @@
 	<flag name="module-rebuild">Perform a callback emerge to rebuild external kernel modules on pkg_postinst</flag>
 	<flag name="plymouth">Enable support for plymouth in the kernel + initramfs</flag>
 	<flag name="sign-modules">Sign the kernel modules as part of the build-kernel process</flag>
-	<flag name="wireguard">Enable support for wireguard in the kernel + initramfs</flag>
 	<flag name="zfs">Enable support for zfs in the kernel + initramfs</flag>
 </use>
 </pkgmetadata>

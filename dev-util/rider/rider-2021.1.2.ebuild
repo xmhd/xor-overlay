@@ -9,8 +9,13 @@ HOMEPAGE="https://www.jetbrains.com/rider"
 SRC_URI="https://download.jetbrains.com/rider/JetBrains.Rider-${PV}.tar.gz"
 
 LICENSE="
-	|| ( jetbrains_business-3.1 jetbrains_individual-4.1 jetbrains_education-3.2 jetbrains_classroom-4.1 jetbrains_open_source-4.1 )
-	Apache-1.1 Apache-2.0 BSD BSD-2 CC0-1.0 CC-BY-2.5 CDDL CDDL-1.1 codehaus CPL-1.0 GPL-2 GPL-2-with-classpath-exception GPL-3 ISC LGPL-2.1 LGPL-3 MIT MPL-1.1 MPL-2.0 OFL trilead-ssh yFiles yourkit W3C ZLIB
+	|| (
+		JetBrains_Business
+		JetBrains_Classroom
+		JetBrains_Educational
+		JetBrains_OpenSource
+		JetBrains_Personal
+	)
 "
 KEYWORDS="amd64"
 

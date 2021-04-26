@@ -2,7 +2,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6..9} )
+PYTHON_COMPAT=( python3_{7..9} )
 
 VALA_USE_DEPEND=vapigen
 
@@ -12,7 +12,7 @@ DESCRIPTION="GObject library for accessing the freedesktop.org Secret Service AP
 HOMEPAGE="https://wiki.gnome.org/Projects/Libsecret"
 
 LICENSE="LGPL-2.1+ Apache-2.0" # Apache-2.0 license is used for tests only
-KEYWORDS="alpha amd64 arm arm64 ~ia64 ~mips ppc ppc64 sparc x86"
+KEYWORDS="~amd64 ~arm ~arm64 ~mips ~ppc ~ppc64 ~x86"
 
 SLOT="0"
 
