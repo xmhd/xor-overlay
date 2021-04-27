@@ -167,6 +167,7 @@ ALPINE_PATCHES=(
 	0038-gcc-go-Disable-printing-of-unaccessible-ppc64-struct.patch
 	0039-CRuntime_Musl-Support-v1.2.0-for-32-bits.patch
 	0040-configure-Add-enable-autolink-libatomic-use-in-LINK_.patch
+	0041-Use-generic-errstr.go-implementation-on-musl.patch
 )
 
 # TODO: This is a WIP. GNAT_AMD64_BOOTSTRAP currently works, and is a dynamically linked glibc built gcc.
