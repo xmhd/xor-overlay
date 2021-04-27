@@ -1,8 +1,5 @@
 # STATUS #
 
-![pkgcheck](https://github.com/xmhd/xor-overlay/actions/workflows/pkgcheck.yml/badge.svg)
-![RepoMan](https://github.com/xmhd/xor-overlay/actions/workflows/repoman.yml/badge.svg)
-
 # README #
 
 This overlay contains packages for software that:
