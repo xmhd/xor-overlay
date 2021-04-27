@@ -68,8 +68,11 @@ DEPEND="
 	x11-libs/libXrender
 	x11-libs/libXt
 	x11-libs/libXtst
+	javafx? ( dev-java/openjfx:${SLOT}= )
 	|| (
+		dev-java/openjdk-bin:${SLOT}
 		dev-java/openjdk:${SLOT}
+		dev-java/openjdk-bin:$((SLOT-1))
 		dev-java/openjdk:$((SLOT-1))
 	)
 "
