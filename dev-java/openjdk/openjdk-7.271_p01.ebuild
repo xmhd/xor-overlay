@@ -65,14 +65,11 @@ DEPEND="
 	x11-libs/libXt
 	x11-libs/libXtst
 	|| (
-		dev-java/openjdk-bin:${SLOT}
-		dev-java/icedtea-bin:${SLOT}
 		dev-java/openjdk:${SLOT}
-		dev-java/icedtea:${SLOT}
+		dev-java/openjdk:$((SLOT-1))
+		dev-java/openjdk:$((SLOT+1))
 	)
 "
-
-PDEPEND="javafx? ( dev-java/openjfx:${SLOT} )"
 
 # The space required to build varies wildly depending on USE flags,
 # ranging from 2GB to 16GB. This function is certainly not exact but

@@ -57,18 +57,11 @@ DEPEND="
 	x11-libs/libXrender
 	x11-libs/libXt
 	x11-libs/libXtst
-	javafx? ( dev-java/openjfx:${SLOT} )
 	|| (
-		dev-java/openjdk-bin:${SLOT}
 		dev-java/openjdk:${SLOT}
-		dev-java/openjdk-bin:$((SLOT-1))[gentoo-vm]
-		dev-java/openjdk:$((SLOT-1))[gentoo-vm]
+		dev-java/openjdk:$((SLOT-1))
+		dev-java/openjdk:$((SLOT+1))
 	)
-"
-
-PDEPEND="
-	webstart? ( >=dev-java/icedtea-web-1.6.1:0 )
-	nsplugin? ( >=dev-java/icedtea-web-1.6.1:0[nsplugin] )
 "
 
 REQUIRED_USE="javafx? ( alsa !headless-awt )"
