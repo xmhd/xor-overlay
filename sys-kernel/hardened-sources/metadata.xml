@@ -16,6 +16,7 @@
 	<flag name="mdadm">Enable support for mdadm in the kernel + initramfs</flag>
 	<flag name="microcode">Include microcode in the initramfs</flag>
 	<flag name="module-rebuild">Perform a callback emerge to rebuild external kernel modules on pkg_postinst</flag>
+	<flag name="page-table-isolation">Remove kernel mapping in user mode</flag>
 	<flag name="plymouth">Enable support for plymouth in the kernel + initramfs</flag>
 	<flag name="retpoline">Avoid speculative indirect branches in kernel</flag>
 	<flag name="sign-modules">Sign the kernel modules as part of the build-kernel process</flag>
