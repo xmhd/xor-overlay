@@ -383,9 +383,20 @@ src_prepare() {
 	fi
 
 	if use retpoline ; then
-		echo "CONFIG_RETPOLINE=y" >> .config
+		if use amd64 || use arm64 || use ppc64 || use x86 ; then
+			"CONFIG_RETPOLINE=y" >> .config
+		elif use arm ; then
+			"CONFIG_CPU_SPECTRE=y" >> .config
+			"CONFIG_HARDEN_BRANCH_PREDICTOR=y" >> .config
+		fi
 	else
-		echo "CONFIG_RETPOLINE=n" >> .config
+		if use amd64 || use arm64 || use ppc64 || use x86 ; then
+			"CONFIG_RETPOLINE=n" >> .config
+		elif use arm ; then
+			"CONFIG_CPU_SPECTRE=n" >> .config
+			"CONFIG_HARDEN_BRANCH_PREDICTOR=n" >> .config
+		fi
+
 	fi
 
 	# sign kernel modules via
