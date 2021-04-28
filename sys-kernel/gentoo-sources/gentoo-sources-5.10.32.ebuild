@@ -299,8 +299,12 @@ src_prepare() {
 		done
 	fi
 
-	if use mprotect ; then
+	if use W^X ; then
 		eapply "${FILESDIR}/${KERNEL_VERSION}/pax-patches/0001-NOWRITEEXEC-and-PAX-features-MPROTECT-EMUTRAMP.patch"
+	fi
+
+	if use randkstack ; then
+		eapply "${FILESDIR}/${KERNEL_VERSION}/pax-patches/0002-PAX_RANDKSTACK.patch"
 	fi
 
 	# append EXTRAVERSION to the kernel sources Makefile
