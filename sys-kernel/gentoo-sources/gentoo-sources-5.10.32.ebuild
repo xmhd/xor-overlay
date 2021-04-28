@@ -19,7 +19,7 @@ IUSE="build-kernel clang debug +install-sources module-rebuild symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
-IUSE="${IUSE} hardened +page-table-isolation +retpoline selinux sign-modules"
+IUSE="${IUSE} hardened mprotect +page-table-isolation randstack +retpoline selinux sign-modules W^X"
 # initramfs
 IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth zfs"
 # misc kconfig tweaks
@@ -54,6 +54,7 @@ RDEPEND="
 		)
 		sys-apps/kmod
 	)
+	W^X? ( app-misc/pax-utils )
 	zfs? ( sys-fs/zfs )
 "
 
@@ -298,6 +299,10 @@ src_prepare() {
 		done
 	fi
 
+	if use mprotect ; then
+		eapply "${FILESDIR}/${KERNEL_VERSION}/pax-patches/0001-NOWRITEEXEC-and-PAX-features-MPROTECT-EMUTRAMP.patch"
+	fi
+
 	# append EXTRAVERSION to the kernel sources Makefile
 	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${KERNEL_EXTRAVERSION}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
 
@@ -333,7 +338,7 @@ src_prepare() {
 		echo "CONFIG_DEBUG_INFO=n" >> .config
 	fi
 
-	# === HARDENING OPTS
+	# === GENERAL HARDENING OPTS
 	# TODO: document these
 	echo "CONFIG_AUDIT=y" >> .config
 	echo "CONFIG_EXPERT=y" >> .config
@@ -386,6 +391,18 @@ src_prepare() {
 	# mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
 	if use mcelog; then
 		echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
+	fi
+
+	if use randkstack ; then
+		echo "CONFIG_PAX=y" >> .config
+		echo "CONFIG_PAX_RANDKSTACK=y" >> .config
+	fi
+
+	if use non-exec-pages ; then
+		echo "CONFIG_PAX=y" >> .config
+		echo "CONFIG_PAX_NOWRITE_EXEC=y" >> .config
+		echo "CONFIG_PAX_EMUTRAMP=y" >> .config
+		echo "CONFIG_PAX_MPROTECT=y" >> .config
 	fi
 
 	if use page-table-isolation ; then
