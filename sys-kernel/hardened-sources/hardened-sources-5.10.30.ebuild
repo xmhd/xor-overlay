@@ -362,6 +362,9 @@ src_prepare() {
 
 	# main hardening options complete... anything after this point is a focus on disabling potential attack vectors
 	# i.e legacy drivers, new complex code that isn't yet proven, or code that we really don't want in a hardened kernel.
+
+	# Kexec is a syscall that enables loading/booting into a new kernel from the currently running kernel.
+	# This has been used in numerous exploits of various systems over the years, so we disable it.
 	echo 'CONFIG_KEXEC=n' >> .config
 	echo "CONFIG_KEXEC_FILE=n" >> .config
 	echo 'CONFIG_KEXEC_SIG=n' >> .config
