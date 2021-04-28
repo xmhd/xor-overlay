@@ -19,7 +19,7 @@ IUSE="build-kernel clang debug +install-sources module-rebuild symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
-IUSE="${IUSE} hardened +page-table-isolation randkstack +retpoline selinux sign-modules write-or-exec"
+IUSE="${IUSE} hardened +page-table-isolation PaX +retpoline selinux sign-modules"
 # initramfs
 IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth zfs"
 # misc kconfig tweaks
@@ -44,6 +44,7 @@ RDEPEND="
 	lvm? ( sys-fs/lvm2 )
 	mdadm? ( sys-fs/mdadm )
 	mcelog? ( app-admin/mcelog )
+	PaX? ( app-misc/pax-utils )
 	plymouth? (
 		x11-libs/libdrm[libkms]
 		sys-boot/plymouth[libkms,udev]
@@ -54,7 +55,6 @@ RDEPEND="
 		)
 		sys-apps/kmod
 	)
-	write-or-exec? ( app-misc/pax-utils )
 	zfs? ( sys-fs/zfs )
 "
 
@@ -244,6 +244,14 @@ HARDENED_PATCHES=(
 	0111-Revert-dccp-don-t-free-ccid2_hc_tx_sock-struct-in-dc.patch
 )
 
+PAX_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/pax-patches"
+
+# TODO
+PAX_PATCHES=(
+	0001-NOWRITEEXEC-and-PAX-features-MPROTECT-EMUTRAMP.patch
+	0002-PAX_RANDKSTACK.patch
+)
+
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
 	for subdir in $PF $P linux; do
@@ -299,12 +307,11 @@ src_prepare() {
 		done
 	fi
 
-	if use write-or-exec ; then
-		eapply "${FILESDIR}/${KERNEL_VERSION}/pax-patches/0001-NOWRITEEXEC-and-PAX-features-MPROTECT-EMUTRAMP.patch"
-	fi
-
-	if use randkstack ; then
-		eapply "${FILESDIR}/${KERNEL_VERSION}/pax-patches/0002-PAX_RANDKSTACK.patch"
+	if use PaX ; then
+		einfo "Applying PaX patches ..."
+		for my_patch in ${PAX_PATCHES[*]} ; do
+			eapply "${PAX_PATCHES_DIR}/${my_patch}"
+		done
 	fi
 
 	# append EXTRAVERSION to the kernel sources Makefile
@@ -397,14 +404,10 @@ src_prepare() {
 		echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
 	fi
 
-	if use randkstack ; then
+	if use PaX ; then
 		echo "CONFIG_PAX=y" >> .config
 		echo "CONFIG_PAX_RANDKSTACK=y" >> .config
-	fi
-
-	if use write-or-exec ; then
-		echo "CONFIG_PAX=y" >> .config
-		echo "CONFIG_PAX_NOWRITE_EXEC=y" >> .config
+		echo "CONFIG_PAX_NOWRITEEXEC=y" >> .config
 		echo "CONFIG_PAX_EMUTRAMP=y" >> .config
 		echo "CONFIG_PAX_MPROTECT=y" >> .config
 	fi
@@ -648,11 +651,8 @@ pkg_postinst() {
 		ewarn "Memory allocation"
 		ewarn "... and more"
 		ewarn ""
-		if use write-or-exec ; then
+		if use PaX ; then
 			ewarn "W^X (writable or executable) TODO"
-			ewarn ""
-		fi
-		if use randkstack ; then
 			ewarn "RANDKSTACK TODO"
 			ewarn ""
 		fi
