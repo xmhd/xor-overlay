@@ -4,7 +4,7 @@ EAPI=7
 
 inherit check-reqs eutils mount-boot toolchain-funcs
 
-DESCRIPTION="Linux kernel sources with some optional patches."
+DESCRIPTION="Linux kernel sources with some additional patches."
 HOMEPAGE="https://kernel.org"
 
 LICENSE="GPL-2"
@@ -14,7 +14,7 @@ SLOT="${PV}"
 
 RESTRICT="binchecks strip mirror"
 
-IUSE="build-kernel btrfs clang custom-cflags debug firmware +install-sources luks lvm mcelog mdadm microcode module-rebuild +page-table-isolation plymouth +retpoline selinux sign-modules symlink zfs"
+IUSE="build-kernel btrfs clang custom-cflags debug firmware hardened +install-sources luks lvm mcelog mdadm microcode module-rebuild +page-table-isolation plymouth +retpoline selinux sign-modules symlink zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -53,7 +53,7 @@ REQUIRED_USE="
 
 # linux kernel upstream
 KERNEL_VERSION="${PV}"
-KERNEL_EXTRAVERSION="-hardened"
+KERNEL_EXTRAVERSION="-gentoo"
 KERNEL_FULL_VERSION="${PV}${KERNEL_EXTRAVERSION}"
 KERNEL_ARCHIVE="linux-${KERNEL_VERSION}.tar.xz"
 KERNEL_UPSTREAM="https://cdn.kernel.org/pub/linux/kernel/v5.x/${KERNEL_ARCHIVE}"
@@ -105,11 +105,11 @@ GENTOO_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/gentoo-patches"
 # 4567_distro-Gentoo-Kconfiig TODO?
 GENTOO_PATCHES=(
 	1500_XATTR_USER_PREFIX.patch
-#	1510_fs-enable-link-security-restrictions-by-default.patch
+	1510_fs-enable-link-security-restrictions-by-default.patch
 	2000_BT-Check-key-sizes-only-if-Secure-Simple-Pairing-enabled.patch
 	2900_tmp513-Fix-build-issue-by-selecting-CONFIG_REG.patch
 	2920_sign-file-patch-for-libressl.patch
-#	4567_distro-Gentoo-Kconfig.patch
+	4567_distro-Gentoo-Kconfig.patch
 	5000_shiftfs-ubuntu-20.04.patch
 )
 
@@ -151,7 +151,7 @@ HARDENED_PATCHES=(
 	0029-enable-IO_STRICT_DEVMEM-by-default.patch
 	0030-disable-COMPAT_BRK-by-default.patch
 	0031-use-maximum-supported-mmap-rnd-entropy-by-default.patch
-	0032-enable-protected_-symlinks-hardlinks-by-default.patch
+#	0032-enable-protected_-symlinks-hardlinks-by-default.patch
 	0033-enable-SECURITY-by-default.patch
 	0034-enable-SECURITY_YAMA-by-default.patch
 	0035-enable-SECURITY_NETWORK-by-default.patch
@@ -280,11 +280,13 @@ src_prepare() {
 		eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
 	done
 
-	# apply hardening patches
-	einfo "Applying hardening patches ..."
-	for my_patch in ${HARDENED_PATCHES[*]} ; do
-		eapply "${HARDENED_PATCHES_DIR}/${my_patch}"
-	done
+	# conditionally apply hardening patches
+	if use hardened ; then
+		einfo "Applying hardening patches ..."
+		for my_patch in ${HARDENED_PATCHES[*]} ; do
+			eapply "${HARDENED_PATCHES_DIR}/${my_patch}"
+		done
+	fi
 
 	# append EXTRAVERSION to the kernel sources Makefile
 	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${KERNEL_EXTRAVERSION}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
@@ -377,15 +379,13 @@ src_prepare() {
 	fi
 
 	if use page-table-isolation ; then
-		if use amd64 || use ppc64 || use x86 ; then
-			echo "CONFIG_PAGE_TABLE_ISOLATION=y" >> .config
-		elif use arm64 ; then
+		echo "CONFIG_PAGE_TABLE_ISOLATION=y" >> .config
+		if use arm64 ; then
 			echo "CONFIG_UNMAP_KERNEL_AT_EL0=y" >> .config
 		fi
 	else
-		if use amd64 || use ppc64 || use x86 ; then
-			echo "CONFIG_PAGE_TABLE_ISOLATION=n" >> .config
-		elif use arm64 ; then
+		echo "CONFIG_PAGE_TABLE_ISOLATION=n" >> .config
+		if use arm64 ; then
 			echo "CONFIG_UNMAP_KERNEL_AT_EL0=n" >> .config
 		fi
 	fi
