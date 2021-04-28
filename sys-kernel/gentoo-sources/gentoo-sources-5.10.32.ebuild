@@ -402,17 +402,17 @@ src_prepare() {
 
 	if use retpoline ; then
 		if use amd64 || use arm64 || use ppc64 || use x86 ; then
-			"CONFIG_RETPOLINE=y" >> .config
+			echo "CONFIG_RETPOLINE=y" >> .config
 		elif use arm ; then
-			"CONFIG_CPU_SPECTRE=y" >> .config
-			"CONFIG_HARDEN_BRANCH_PREDICTOR=y" >> .config
+			echo "CONFIG_CPU_SPECTRE=y" >> .config
+			echo "CONFIG_HARDEN_BRANCH_PREDICTOR=y" >> .config
 		fi
 	else
 		if use amd64 || use arm64 || use ppc64 || use x86 ; then
-			"CONFIG_RETPOLINE=n" >> .config
+			echo "CONFIG_RETPOLINE=n" >> .config
 		elif use arm ; then
-			"CONFIG_CPU_SPECTRE=n" >> .config
-			"CONFIG_HARDEN_BRANCH_PREDICTOR=n" >> .config
+			echo "CONFIG_CPU_SPECTRE=n" >> .config
+			echo "CONFIG_HARDEN_BRANCH_PREDICTOR=n" >> .config
 		fi
 
 	fi
