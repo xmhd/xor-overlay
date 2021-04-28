@@ -402,7 +402,7 @@ src_prepare() {
 		echo "CONFIG_PAX_RANDKSTACK=y" >> .config
 	fi
 
-	if use non-exec-pages ; then
+	if use W^X ; then
 		echo "CONFIG_PAX=y" >> .config
 		echo "CONFIG_PAX_NOWRITE_EXEC=y" >> .config
 		echo "CONFIG_PAX_EMUTRAMP=y" >> .config
