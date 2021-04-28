@@ -14,7 +14,7 @@ SLOT="${PV}"
 
 RESTRICT="binchecks strip mirror"
 
-IUSE="build-kernel btrfs clang custom-cflags debug firmware +install-sources luks lvm mcelog mdadm microcode module-rebuild plymouth selinux sign-modules symlink zfs"
+IUSE="build-kernel btrfs clang custom-cflags debug firmware +install-sources luks lvm mcelog mdadm microcode module-rebuild plymouth +retpoline selinux sign-modules symlink zfs"
 
 BDEPEND="
 	sys-devel/bc
@@ -374,6 +374,12 @@ src_prepare() {
 	# mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
 	if use mcelog; then
 		echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
+	fi
+
+	if use retpoline ; then
+		echo "CONFIG_RETPOLINE=y" >> .config
+	else
+		echo "CONFIG_RETPOLINE=n" >> .config
 	fi
 
 	# sign kernel modules via
