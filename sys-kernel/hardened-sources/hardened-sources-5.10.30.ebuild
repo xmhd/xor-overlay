@@ -73,11 +73,26 @@ SRC_URI="
 	)
 	amd64? (
 		${KERNEL_CONFIG_UPSTREAM}/amd64/config -> debian-kconfig-amd64-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/kernelarch-x86/config -> debian-kconfig-kernelarch-x86-${PV}
+		${KERNEL_CONFIG_UPSTREAM}/kernelarch-x86/config -> debian-kconfig-kernelarch-amd64-${PV}
+	)
+	arm? (
+		${KERNEL_CONFIG_UPSTREAM}/armhf/config -> debian-kconfig-arm-${PV}
+		${KERNEL_CONFIG_UPSTREAM}/armhf/config.armmp-lpae -> debian-kconfig-arm-lpae-${PV}
+		${KERNEL_CONFIG_UPSTREAM}/kernelarch-arm/config -> debian-kconfig-kernelarch-arm-${PV}
 	)
 	arm64? (
 		${KERNEL_CONFIG_UPSTREAM}/arm64/config -> debian-kconfig-arm64-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/kernelarch-arm/config -> debian-kconfig-kernelarch-arm-${PV}
+		${KERNEL_CONFIG_UPSTREAM}/kernelarch-arm/config -> debian-kconfig-kernelarch-arm64-${PV}
+	)
+	ppc? (
+		${KERNEL_CONFIG_UPSTREAM}/powerpc/config.powerpc -> debian-kconfig-ppc-${PV}
+		${KERNEL_CONFIG_UPSTREAM}/powerpc/config.powerpc-smp -> debian-kconfig-ppc-smp-${PV}
+		${KERNEL_CONFIG_UPSTREAM}/kernelarch-powerpc/config -> debian-kconfig-kernelarch-ppc-${PV}
+	)
+	ppc64? (
+		${KERNEL_CONFIG_UPSTREAM}/kernelarch-powerpc/config -> debian-kconfig-kernelarch-ppc64-${PV}
+		${KERNEL_CONFIG_UPSTREAM}/kernelarch-powerpc/config-arch-64 -> debian-kconfig-kernelarch-64-${PV}
+		${KERNEL_CONFIG_UPSTREAM}/kernelarch-powerpc/config-arch-64-le -> debian-kconfig-kernelarch-64-le-${PV}
 	)
 "
 
