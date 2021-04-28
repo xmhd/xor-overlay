@@ -19,7 +19,7 @@ IUSE="build-kernel clang debug +install-sources module-rebuild symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
-IUSE="${IUSE} hardened +page-table-isolation randkstack +retpoline selinux sign-modules W^X"
+IUSE="${IUSE} hardened +page-table-isolation randkstack +retpoline selinux sign-modules write-or-exec"
 # initramfs
 IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth zfs"
 # misc kconfig tweaks
@@ -54,7 +54,7 @@ RDEPEND="
 		)
 		sys-apps/kmod
 	)
-	W^X? ( app-misc/pax-utils )
+	write-or-exec? ( app-misc/pax-utils )
 	zfs? ( sys-fs/zfs )
 "
 
@@ -299,7 +299,7 @@ src_prepare() {
 		done
 	fi
 
-	if use W^X ; then
+	if use write-or-exec ; then
 		eapply "${FILESDIR}/${KERNEL_VERSION}/pax-patches/0001-NOWRITEEXEC-and-PAX-features-MPROTECT-EMUTRAMP.patch"
 	fi
 
@@ -402,7 +402,7 @@ src_prepare() {
 		echo "CONFIG_PAX_RANDKSTACK=y" >> .config
 	fi
 
-	if use W^X ; then
+	if use write-or-exec ; then
 		echo "CONFIG_PAX=y" >> .config
 		echo "CONFIG_PAX_NOWRITE_EXEC=y" >> .config
 		echo "CONFIG_PAX_EMUTRAMP=y" >> .config
@@ -648,7 +648,7 @@ pkg_postinst() {
 		ewarn "Memory allocation"
 		ewarn "... and more"
 		ewarn ""
-		if use W^X ; then
+		if use write-or-exec ; then
 			ewarn "W^X (writable or executable) TODO"
 			ewarn ""
 		fi
