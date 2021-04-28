@@ -377,9 +377,17 @@ src_prepare() {
 	fi
 
 	if use page-table-isolation ; then
-		echo "CONFIG_PAGE_TABLE_ISOLATION=y" >> .config
+		if use amd64 || use ppc64 || use x86 ; then
+			echo "CONFIG_PAGE_TABLE_ISOLATION=y" >> .config
+		elif use arm64 ; then
+			echo "CONFIG_UNMAP_KERNEL_AT_EL0=y" >> .config
+		fi
 	else
-		echo "CONFIG_PAGE_TABLE_ISOLATION=n" >> .config
+		if use amd64 || use ppc64 || use x86 ; then
+			echo "CONFIG_PAGE_TABLE_ISOLATION=n" >> .config
+		elif use arm64 ; then
+			echo "CONFIG_UNMAP_KERNEL_AT_EL0=n" >> .config
+		fi
 	fi
 
 	if use retpoline ; then
