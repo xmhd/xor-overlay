@@ -14,7 +14,17 @@ SLOT="${PV}"
 
 RESTRICT="binchecks strip mirror"
 
-IUSE="build-kernel btrfs clang custom-cflags debug firmware hardened +install-sources luks lvm mcelog mdadm microcode module-rebuild +page-table-isolation plymouth +retpoline selinux sign-modules symlink zfs"
+# general kernel USE flags
+IUSE="build-kernel clang debug +install-sources module-rebuild symlink"
+# optimize
+IUSE="${IUSE} custom-cflags"
+# security
+IUSE="${IUSE} hardened +page-table-isolation +retpoline selinux sign-modules"
+# initramfs
+IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth zfs"
+# misc kconfig tweaks
+IUSE="${IUSE} mcelog"
+
 
 BDEPEND="
 	sys-devel/bc
