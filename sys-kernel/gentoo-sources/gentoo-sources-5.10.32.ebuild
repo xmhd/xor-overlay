@@ -19,7 +19,7 @@ IUSE="build-kernel clang debug +install-sources module-rebuild symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
-IUSE="${IUSE} hardened mprotect +page-table-isolation +retpoline selinux sign-modules W^X"
+IUSE="${IUSE} hardened +page-table-isolation randkstack +retpoline selinux sign-modules W^X"
 # initramfs
 IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth zfs"
 # misc kconfig tweaks
