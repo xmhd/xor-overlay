@@ -633,19 +633,28 @@ pkg_postinst() {
 	fi
 
 	# warn about the issues with running a hardened kernel
-	ewarn ""
-	ewarn "WARNING... WARNING... WARNING..."
-	ewarn ""
-	ewarn "Hardened patches have been applied to the kernel and KCONFIG options have been set."
-	ewarn "These KCONFIG options and patches change kernel behavior."
-	ewarn "Changes include:"
-	ewarn "Increased entropy for Address Space Layout Randomization"
-	ewarn "GCC plugins (if using GCC)"
-	ewarn "Memory allocation"
-	ewarn "... and more"
-	ewarn ""
-	ewarn "These changes will stop certain programs from functioning"
-	ewarn "e.g. VirtualBox, Skype"
-	ewarn "Full information available in $DOCUMENTATION"
-	ewarn ""
+	if use hardened ; then
+		ewarn "Hardened patches have been applied to the kernel and KCONFIG options have been set."
+		ewarn "These KCONFIG options and patches change kernel behavior."
+		ewarn "Changes include:"
+		ewarn "Increased entropy for Address Space Layout Randomization"
+		if ! use clang ; then
+			ewarn "GCC plugins"
+		fi
+		ewarn "Memory allocation"
+		ewarn "... and more"
+		ewarn ""
+		if use W^X ; then
+			ewarn "W^X (writable or executable) TODO"
+			ewarn ""
+		fi
+		if use randkstack ; then
+			ewarn "RANDKSTACK TODO"
+			ewarn ""
+		fi
+		ewarn "These changes will stop certain programs from functioning"
+		ewarn "e.g. VirtualBox, Skype"
+		ewarn "Full information available in $DOCUMENTATION"
+		ewarn ""
+	fi
 }
