@@ -349,53 +349,55 @@ src_prepare() {
 		echo "CONFIG_DEBUG_INFO=n" >> .config
 	fi
 
-	# === GENERAL HARDENING OPTS
-	# TODO: document these
-	echo "CONFIG_AUDIT=y" >> .config
-	echo "CONFIG_EXPERT=y" >> .config
-	echo "CONFIG_SLUB_DEBUG=y" >> .config
-	echo "CONFIG_SLAB_MERGE_DEFAULT=n" >> .config
-	echo "CONFIG_SLAB_FREELIST_RANDOM=y" >> .config
-	echo "CONFIG_SLAB_FREELIST_HARDENED=y" >> .config
-	echo "CONFIG_SLAB_CANARY=y" >> .config
-	echo "CONFIG_SHUFFLE_PAGE_ALLOCATOR=y" >> .config
-	echo "CONFIG_RANDOMIZE_BASE=y" >> .config
-	echo "CONFIG_RANDOMIZE_MEMORY=y" >> .config
-	echo "CONFIG_HIBERNATION=n" >> .config
-	echo "CONFIG_HARDENED_USERCOPY=y" >> .config
-	echo "CONFIG_HARDENED_USERCOPY_FALLBACK=n" >> .config
-	echo "CONFIG_FORTIFY_SOURCE=y" >> .config
-	echo "CONFIG_STACKPROTECTOR=y" >> .config
-	echo "CONFIG_STACKPROTECTOR_STRONG=y" >> .config
-	echo "CONFIG_ARCH_MMAP_RND_BITS=32" >> .config
-	echo "CONFIG_ARCH_MMAP_RND_COMPAT_BITS=16" >> .config
-	echo "CONFIG_INIT_ON_FREE_DEFAULT_ON=y" >> .config
-	echo "CONFIG_INIT_ON_ALLOC_DEFAULT_ON=y" >> .config
-	echo "CONFIG_SLAB_SANITIZE_VERIFY=y" >> .config
-	echo "CONFIG_PAGE_SANITIZE_VERIFY=y" >> .config
+	if use hardened ; then
+		# === GENERAL HARDENING OPTS
+		# TODO: document these
+		echo "CONFIG_AUDIT=y" >> .config
+		echo "CONFIG_EXPERT=y" >> .config
+		echo "CONFIG_SLUB_DEBUG=y" >> .config
+		echo "CONFIG_SLAB_MERGE_DEFAULT=n" >> .config
+		echo "CONFIG_SLAB_FREELIST_RANDOM=y" >> .config
+		echo "CONFIG_SLAB_FREELIST_HARDENED=y" >> .config
+		echo "CONFIG_SLAB_CANARY=y" >> .config
+		echo "CONFIG_SHUFFLE_PAGE_ALLOCATOR=y" >> .config
+		echo "CONFIG_RANDOMIZE_BASE=y" >> .config
+		echo "CONFIG_RANDOMIZE_MEMORY=y" >> .config
+		echo "CONFIG_HIBERNATION=n" >> .config
+		echo "CONFIG_HARDENED_USERCOPY=y" >> .config
+		echo "CONFIG_HARDENED_USERCOPY_FALLBACK=n" >> .config
+		echo "CONFIG_FORTIFY_SOURCE=y" >> .config
+		echo "CONFIG_STACKPROTECTOR=y" >> .config
+		echo "CONFIG_STACKPROTECTOR_STRONG=y" >> .config
+		echo "CONFIG_ARCH_MMAP_RND_BITS=32" >> .config
+		echo "CONFIG_ARCH_MMAP_RND_COMPAT_BITS=16" >> .config
+		echo "CONFIG_INIT_ON_FREE_DEFAULT_ON=y" >> .config
+		echo "CONFIG_INIT_ON_ALLOC_DEFAULT_ON=y" >> .config
+		echo "CONFIG_SLAB_SANITIZE_VERIFY=y" >> .config
+		echo "CONFIG_PAGE_SANITIZE_VERIFY=y" >> .config
 
-	# gcc plugins
-	if ! use clang; then
-		echo "CONFIG_GCC_PLUGINS=y" >> .config
-		echo "CONFIG_GCC_PLUGIN_LATENT_ENTROPY=y" >> .config
-		echo "CONFIG_GCC_PLUGIN_STRUCTLEAK=y" >> .config
-		echo "CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL=y" >> .config
-		echo "CONFIG_GCC_PLUGIN_STACKLEAK=y" >> .config
-		echo "CONFIG_STACKLEAK_TRACK_MIN_SIZE=100" >> .config
-		echo "CONFIG_STACKLEAK_METRICS=n" >> .config
-		echo "CONFIG_STACKLEAK_RUNTIME_DISABLE=n" >> .config
-		echo "CONFIG_GCC_PLUGIN_RANDSTRUCT=y" >> .config
-		echo "CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE=n" >> .config
+		# gcc plugins
+		if ! use clang; then
+			echo "CONFIG_GCC_PLUGINS=y" >> .config
+			echo "CONFIG_GCC_PLUGIN_LATENT_ENTROPY=y" >> .config
+			echo "CONFIG_GCC_PLUGIN_STRUCTLEAK=y" >> .config
+			echo "CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL=y" >> .config
+			echo "CONFIG_GCC_PLUGIN_STACKLEAK=y" >> .config
+			echo "CONFIG_STACKLEAK_TRACK_MIN_SIZE=100" >> .config
+			echo "CONFIG_STACKLEAK_METRICS=n" >> .config
+			echo "CONFIG_STACKLEAK_RUNTIME_DISABLE=n" >> .config
+			echo "CONFIG_GCC_PLUGIN_RANDSTRUCT=y" >> .config
+			echo "CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE=n" >> .config
+		fi
+
+		# main hardening options complete... anything after this point is a focus on disabling potential attack vectors
+		# i.e legacy drivers, new complex code that isn't yet proven, or code that we really don't want in a hardened kernel.
+
+		# Kexec is a syscall that enables loading/booting into a new kernel from the currently running kernel.
+		# This has been used in numerous exploits of various systems over the years, so we disable it.
+		echo 'CONFIG_KEXEC=n' >> .config
+		echo "CONFIG_KEXEC_FILE=n" >> .config
+		echo 'CONFIG_KEXEC_SIG=n' >> .config
 	fi
-
-	# main hardening options complete... anything after this point is a focus on disabling potential attack vectors
-	# i.e legacy drivers, new complex code that isn't yet proven, or code that we really don't want in a hardened kernel.
-
-	# Kexec is a syscall that enables loading/booting into a new kernel from the currently running kernel.
-	# This has been used in numerous exploits of various systems over the years, so we disable it.
-	echo 'CONFIG_KEXEC=n' >> .config
-	echo "CONFIG_KEXEC_FILE=n" >> .config
-	echo 'CONFIG_KEXEC_SIG=n' >> .config
 
 	# === END HARDENING OPTS
 
