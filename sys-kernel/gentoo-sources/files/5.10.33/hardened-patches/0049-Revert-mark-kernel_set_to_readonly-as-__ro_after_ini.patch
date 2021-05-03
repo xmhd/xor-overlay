@@ -1,0 +1,70 @@
+From 064d225012621aaa21810502d1f25a276c00f95f Mon Sep 17 00:00:00 2001
+From: Levente Polyak <levente@leventepolyak.net>
+Date: Sun, 13 Jan 2019 21:42:45 +0100
+Subject: [PATCH 049/112] Revert "mark kernel_set_to_readonly as
+ __ro_after_init"
+
+    This commit causes CPA conflicts, cf.
+    https://github.com/anthraxx/linux-hardened/issues/4.
+
+    Signed-off-by: Thibaut Sautereau <thibaut.sautereau@ssi.gouv.fr>
+---
+ arch/x86/mm/init_32.c | 5 +++--
+ arch/x86/mm/init_64.c | 5 +++--
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index 77192cbc1dd7..7c055259de3a 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -828,7 +828,7 @@ void arch_remove_memory(int nid, u64 start, u64 size,
+ }
+ #endif
+ 
+-int kernel_set_to_readonly __ro_after_init;
++int kernel_set_to_readonly __read_mostly;
+ 
+ static void mark_nxdata_nx(void)
+ {
+@@ -852,11 +852,12 @@ void mark_rodata_ro(void)
+ 	unsigned long start = PFN_ALIGN(_text);
+ 	unsigned long size = (unsigned long)__end_rodata - start;
+ 
+-	kernel_set_to_readonly = 1;
+ 	set_pages_ro(virt_to_page(start), size >> PAGE_SHIFT);
+ 	pr_info("Write protecting kernel text and read-only data: %luk\n",
+ 		size >> 10);
+ 
++	kernel_set_to_readonly = 1;
++
+ #ifdef CONFIG_CPA_DEBUG
+ 	pr_info("Testing CPA: Reverting %lx-%lx\n", start, start + size);
+ 	set_pages_rw(virt_to_page(start), size >> PAGE_SHIFT);
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 63a0f8097d0a..b5a3fa4033d3 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -1322,7 +1322,7 @@ int __init deferred_page_init_max_threads(const struct cpumask *node_cpumask)
+ }
+ #endif
+ 
+-int kernel_set_to_readonly __ro_after_init;
++int kernel_set_to_readonly;
+ 
+ void mark_rodata_ro(void)
+ {
+@@ -1335,9 +1335,10 @@ void mark_rodata_ro(void)
+ 
+ 	printk(KERN_INFO "Write protecting the kernel read-only data: %luk\n",
+ 	       (end - start) >> 10);
+-	kernel_set_to_readonly = 1;
+ 	set_memory_ro(start, (end - start) >> PAGE_SHIFT);
+ 
++	kernel_set_to_readonly = 1;
++
+ 	/*
+ 	 * The rodata/data/bss/brk section (but not the kernel text!)
+ 	 * should also be not-executable.
+-- 
+2.31.1
+

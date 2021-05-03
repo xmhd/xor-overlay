@@ -1,0 +1,70 @@
+From a00d5681e7f4934ccf051c4c849a80316bbb7e0f Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Wed, 3 May 2017 21:54:56 -0400
+Subject: [PATCH 061/112] mm: add support for verifying page sanitization
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+Signed-off-by: Thibaut Sautereau <thibaut.sautereau@ssi.gouv.fr>
+Signed-off-by: Levente Polyak <levente@leventepolyak.net>
+---
+ include/linux/highmem.h    | 7 +++++++
+ mm/page_alloc.c            | 6 ++++++
+ security/Kconfig.hardening | 7 +++++++
+ 3 files changed, 20 insertions(+)
+
+diff --git a/include/linux/highmem.h b/include/linux/highmem.h
+index 14e6202ce47f..4348ad7f5c50 100644
+--- a/include/linux/highmem.h
++++ b/include/linux/highmem.h
+@@ -284,6 +284,13 @@ static inline void clear_highpage(struct page *page)
+ 	kunmap_atomic(kaddr);
+ }
+ 
++static inline void verify_zero_highpage(struct page *page)
++{
++	void *kaddr = kmap_atomic(page);
++	BUG_ON(memchr_inv(kaddr, 0, PAGE_SIZE));
++	kunmap_atomic(kaddr);
++}
++
+ static inline void zero_user_segments(struct page *page,
+ 	unsigned start1, unsigned end1,
+ 	unsigned start2, unsigned end2)
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 7ffa706e5c30..8f476b19c775 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -2284,6 +2284,12 @@ static void prep_new_page(struct page *page, unsigned int order, gfp_t gfp_flags
+ {
+ 	post_alloc_hook(page, order, gfp_flags);
+ 
++	if (IS_ENABLED(CONFIG_PAGE_SANITIZE_VERIFY) && want_init_on_free()) {
++		int i;
++		for (i = 0; i < (1 << order); i++)
++			verify_zero_highpage(page + i);
++	}
++
+ 	if (!free_pages_prezeroed() && want_init_on_alloc(gfp_flags))
+ 		kernel_init_free_pages(page, 1 << order);
+ 
+diff --git a/security/Kconfig.hardening b/security/Kconfig.hardening
+index 2fa447823405..83ad70ae6bc3 100644
+--- a/security/Kconfig.hardening
++++ b/security/Kconfig.hardening
+@@ -219,6 +219,13 @@ config INIT_ON_FREE_DEFAULT_ON
+ 	  touching "cold" memory areas. Most cases see 3-5% impact. Some
+ 	  synthetic workloads have measured as high as 8%.
+ 
++config PAGE_SANITIZE_VERIFY
++	bool "Verify sanitized pages"
++	default y
++	help
++	  When init_on_free is enabled, verify that newly allocated pages
++	  are zeroed to detect write-after-free bugs.
++
+ endmenu
+ 
+ endmenu
+-- 
+2.31.1
+
