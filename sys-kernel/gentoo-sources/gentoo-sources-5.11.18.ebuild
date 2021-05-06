@@ -112,8 +112,6 @@ S="$WORKDIR/linux-${KERNEL_VERSION}"
 GENTOO_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/gentoo-patches"
 
 # Gentoo Linux 'genpatches' patch set
-# 1510_fs-enable-link-security-restrctions-by-default.patch is already provided in hardened patches
-# 4567_distro-Gentoo-Kconfiig TODO?
 GENTOO_PATCHES=(
 	1500_XATTR_USER_PREFIX.patch
 	1510_fs-enable-link-security-restrictions-by-default.patch
@@ -121,7 +119,9 @@ GENTOO_PATCHES=(
 	2900_tmp513-Fix-build-issue-by-selecting-CONFIG_REG.patch
 	2920_sign-file-patch-for-libressl.patch
 	4567_distro-Gentoo-Kconfig.patch
-	5000_shiftfs-ubuntu-20.04.patch
+#	5010_enable-cpu-optimizations-universal.patch
+#	5020_BMQ-and-PDS-io-schedular-v5.11-r3.patch
+#	5021_BMQ-and-PDS-gentoo-defaults-v5.11-r2.patch
 )
 
 # TODO: manage HARDENED_PATCHES and GENTOO_PATCHES
@@ -212,37 +212,36 @@ HARDENED_PATCHES=(
 	0079-PaX-shadow-cr4-sanity-check-essentially-a-revert.patch
 	0080-add-writable-function-pointer-detection.patch
 	0081-support-overriding-early-audit-kernel-cmdline.patch
-	0082-FORTIFY_SOURCE-intra-object-overflow-checking.patch
-	0083-Revert-mm-revert-x86_64-and-arm64-ELF_ET_DYN_BASE-ba.patch
-	0084-x86_64-move-vdso-to-mmap-region-from-stack-region.patch
-	0085-x86-determine-stack-entropy-based-on-mmap-entropy.patch
-	0086-arm64-determine-stack-entropy-based-on-mmap-entropy.patch
-	0087-randomize-lower-bits-of-the-argument-block.patch
-	0088-x86_64-match-arm64-brk-randomization-entropy.patch
-	0089-support-randomizing-the-lower-bits-of-brk.patch
-	0090-mm-randomize-lower-bits-of-brk.patch
-	0091-x86-randomize-lower-bits-of-brk.patch
-	0092-mm-guarantee-brk-gap-is-at-least-one-page.patch
-	0093-x86-guarantee-brk-gap-is-at-least-one-page.patch
-	0094-x86_64-bound-mmap-between-legacy-modern-bases.patch
-	0095-restrict-device-timing-side-channels.patch
-	0096-sysctl-expose-proc_dointvec_minmax_sysadmin-as-API-f.patch
-	0097-usb-add-toggle-for-disabling-newly-added-USB-devices.patch
-	0098-usb-implement-dedicated-subsystem-sysctl-tables.patch
-	0099-hard-wire-legacy-checkreqprot-option-to-0.patch
-	0100-security-tty-Add-owner-user-namespace-to-tty_struct.patch
-	0101-security-tty-make-TIOCSTI-ioctl-require-CAP_SYS_ADMI.patch
-	0102-enable-SECURITY_TIOCSTI_RESTRICT-by-default.patch
-	0103-disable-unprivileged-eBPF-access-by-default.patch
-	0104-enable-BPF-JIT-hardening-by-default-if-available.patch
-	0105-enable-protected_-fifos-regular-by-default.patch
-	0106-modpost-Add-CONFIG_DEBUG_WRITABLE_FUNCTION_POINTERS_.patch
-	0107-mm-Fix-extra_latent_entropy.patch
-	0108-add-CONFIG-for-unprivileged_userfaultfd.patch
-	0109-slub-Extend-init_on_alloc-to-slab-caches-with-constr.patch
-	0110-net-tcp-add-option-to-disable-TCP-simultaneous-conne.patch
-	0111-dccp-ccid-move-timers-to-struct-dccp_sock.patch
-	0112-Revert-dccp-don-t-free-ccid2_hc_tx_sock-struct-in-dc.patch
+	0082-Revert-mm-revert-x86_64-and-arm64-ELF_ET_DYN_BASE-ba.patch
+	0083-x86_64-move-vdso-to-mmap-region-from-stack-region.patch
+	0084-x86-determine-stack-entropy-based-on-mmap-entropy.patch
+	0085-arm64-determine-stack-entropy-based-on-mmap-entropy.patch
+	0086-randomize-lower-bits-of-the-argument-block.patch
+	0087-x86_64-match-arm64-brk-randomization-entropy.patch
+	0088-support-randomizing-the-lower-bits-of-brk.patch
+	0089-mm-randomize-lower-bits-of-brk.patch
+	0090-x86-randomize-lower-bits-of-brk.patch
+	0091-mm-guarantee-brk-gap-is-at-least-one-page.patch
+	0092-x86-guarantee-brk-gap-is-at-least-one-page.patch
+	0093-x86_64-bound-mmap-between-legacy-modern-bases.patch
+	0094-restrict-device-timing-side-channels.patch
+	0095-sysctl-expose-proc_dointvec_minmax_sysadmin-as-API-f.patch
+	0096-usb-add-toggle-for-disabling-newly-added-USB-devices.patch
+	0097-usb-implement-dedicated-subsystem-sysctl-tables.patch
+	0098-hard-wire-legacy-checkreqprot-option-to-0.patch
+	0099-security-tty-Add-owner-user-namespace-to-tty_struct.patch
+	0100-security-tty-make-TIOCSTI-ioctl-require-CAP_SYS_ADMI.patch
+	0101-enable-SECURITY_TIOCSTI_RESTRICT-by-default.patch
+	0102-disable-unprivileged-eBPF-access-by-default.patch
+	0103-enable-BPF-JIT-hardening-by-default-if-available.patch
+	0104-enable-protected_-fifos-regular-by-default.patch
+	0105-modpost-Add-CONFIG_DEBUG_WRITABLE_FUNCTION_POINTERS_.patch
+	0106-mm-Fix-extra_latent_entropy.patch
+	0107-slub-Extend-init_on_alloc-to-slab-caches-with-constr.patch
+	0108-net-tcp-add-option-to-disable-TCP-simultaneous-conne.patch
+	0109-dccp-ccid-move-timers-to-struct-dccp_sock.patch
+	0110-Revert-dccp-don-t-free-ccid2_hc_tx_sock-struct-in-dc.patch
+	0111-ovl-add-config-to-disable-unprivileged-user-namespac.patch
 )
 
 PAX_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/pax-patches"
