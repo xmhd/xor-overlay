@@ -566,7 +566,7 @@ src_install() {
 
 		# module symlink fix-up:
 		rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to remove old kernel source symlink"
-		rm -rf "${D}"/lib/modules/${KERNEL_FULL_VVERSION}/build || die "failed to remove old kernel build symlink"
+		rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/build || die "failed to remove old kernel build symlink"
 
 		# Set-up module symlinks:
 		ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${ED}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to create kernel source symlink"
