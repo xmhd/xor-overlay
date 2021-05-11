@@ -24,7 +24,7 @@ IUSE="$IUSE +system-bootstrap"
 IUSE="$IUSE generic_host openmp altivec fixed-point graphite lto pch +quad" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +stack_protector_strong stack_protector_all" # Base hardening flags
-IUSE="$IUSE +fortify_source +link_now +pie vtv" # Extra hardening flags
+IUSE="$IUSE cet +fortify_source +link_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 IUSE="$IUSE nptl systemtap valgrind zstd" # TODO: sort these flags
@@ -65,6 +65,7 @@ PDEPEND="
 
 REQUIRED_USE="
 	ada? ( cxx )
+	cet? ( amd64 )
 	go? ( cxx )
 	objc++? ( cxx )
 	fortran? ( quad )
@@ -598,6 +599,12 @@ src_prepare() {
 		if use stack_protector_all; then
 			eapply "${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch"
 			gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
+		fi
+
+		# Enable CET by default
+		if use cet ; then
+			eapply "${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches/04_all_ENABLE_DEFAULT_CET.patch"
+			gcc_hard_flags+=" -DENABLE_DEFAULT_CET"
 		fi
 
 		# Enable FORTIFY_SOURCE by default
@@ -1212,6 +1219,12 @@ src_configure() {
 		confgcc+=( --with-zstd )
 	else
 		confgcc+=( --without-zstd )
+	fi
+
+	if use cet ; then
+		confgcc+=( --enable-cet )
+	else
+		confgcc+=( --disable-cet )
 	fi
 
 	# === END FEATURE / LIBRARY CONFIGURATION ===
