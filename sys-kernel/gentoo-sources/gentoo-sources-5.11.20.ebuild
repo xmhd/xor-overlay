@@ -270,14 +270,23 @@ get_certs_dir() {
 pkg_pretend() {
 	# Ensure we have enough disk space to compile
 	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
+
+		# to run callback emerge we need to make sure a few FEATURES are disabled/enabled
+		if ! has ebuild-locks ${FEATURES} || ! has parallel-install ${FEATURES} ; then
+			die 'callback emerge for external module rebuilds requires FEATURES="-ebuild-locks parallel-install"'
+		fi
+
 		CHECKREQS_DISK_BUILD="5G"
 		check-reqs_pkg_setup
 	fi
 }
 
 pkg_setup() {
-	# will interfere with Makefile if set
-	unset ARCH; unset LDFLAGS
+
+	if use build-kernel ; then
+		# will interfere with Makefile if set
+		unset ARCH; unset LDFLAGS
+	fi
 }
 
 src_unpack() {
@@ -613,9 +622,6 @@ pkg_postinst() {
 	# we only want to force initramfs rebuild if != binary package
 	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
 
-		# to run callback emerge we need to make sure a few FEATURES are disabled/enabled
-		export FEATURES="${FEATURES} -distlocks -ebuild-locks -parallel-fetch parallel-install"
-
 		# fakeroot so we can always generate device nodes i.e /dev/console
 		# TODO: this will fail for -rN kernel revisions as kerneldir is hardcoded badly
 		# temporarily remove fakeroot
@@ -636,7 +642,7 @@ pkg_postinst() {
 			$(usex luks --luks --no-luks) \
 			$(usex lvm --lvm --no-lvm) \
 			$(usex mdadm --mdadm --no-mdadm) \
-			$(usex module-rebuild --callback="emerge --ask=n --color=y --usepkg=n --quiet-build=y @module-rebuild" '' ) \
+			--callback="emerge --ask=n --color=y --usepkg=n --quiet-build=y @module-rebuild" \
 			$(usex zfs --zfs --no-zfs) \
 			initramfs || die "failed to build initramfs"
 	fi
