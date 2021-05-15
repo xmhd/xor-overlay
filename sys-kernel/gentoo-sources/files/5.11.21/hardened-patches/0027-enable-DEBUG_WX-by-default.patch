@@ -1,0 +1,25 @@
+From f2469cc0be27c1501901cd7f5caa66e2bf886843 Mon Sep 17 00:00:00 2001
+From: Daniel Micay <danielmicay@gmail.com>
+Date: Mon, 29 May 2017 12:11:11 -0400
+Subject: [PATCH 027/112] enable DEBUG_WX by default
+
+Signed-off-by: Daniel Micay <danielmicay@gmail.com>
+---
+ mm/Kconfig.debug | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/mm/Kconfig.debug b/mm/Kconfig.debug
+index 1e73717802f8..4a023b575370 100644
+--- a/mm/Kconfig.debug
++++ b/mm/Kconfig.debug
+@@ -106,6 +106,7 @@ config DEBUG_WX
+ 	depends on ARCH_HAS_DEBUG_WX
+ 	depends on MMU
+ 	select PTDUMP_CORE
++	default y
+ 	help
+ 	  Generate a warning if any W+X mappings are found at boot.
+ 
+-- 
+2.31.1
+
