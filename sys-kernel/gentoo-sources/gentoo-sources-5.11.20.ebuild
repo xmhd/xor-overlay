@@ -272,7 +272,7 @@ pkg_pretend() {
 	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
 
 		# to run callback emerge we need to make sure a few FEATURES are disabled/enabled
-		if ! has ebuild-locks ${FEATURES} || ! has parallel-install ${FEATURES} ; then
+		if has ebuild-locks ${FEATURES} || ! has parallel-install ${FEATURES} ; then
 			die 'callback emerge for external module rebuilds requires FEATURES="-ebuild-locks parallel-install"'
 		fi
 
