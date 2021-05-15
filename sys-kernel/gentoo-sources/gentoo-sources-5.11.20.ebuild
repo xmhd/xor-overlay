@@ -283,10 +283,8 @@ pkg_pretend() {
 
 pkg_setup() {
 
-	if use build-kernel ; then
-		# will interfere with Makefile if set
-		unset ARCH; unset LDFLAGS
-	fi
+	# will interfere with Makefile if set
+	unset ARCH; unset LDFLAGS
 }
 
 src_unpack() {
