@@ -281,6 +281,9 @@ pkg_pretend() {
 		CHECKREQS_DISK_BUILD="5G"
 		check-reqs_pkg_setup
 	fi
+
+	# check that our boot partition (if it exists) is mounted
+	mount-boot_pkg_pretend
 }
 
 pkg_setup() {
