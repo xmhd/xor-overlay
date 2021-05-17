@@ -268,7 +268,7 @@ get_certs_dir() {
 }
 
 pkg_pretend() {
-	# Ensure we have enough disk space to compile
+	# perform sanity checks that only apply to source builds.
 	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
 
 		# to run callback emerge we need to make sure a few FEATURES are disabled/enabled
@@ -276,12 +276,22 @@ pkg_pretend() {
 			die 'callback emerge for external module rebuilds requires FEATURES="-ebuild-locks parallel-install"'
 		fi
 
+		# Ensure we have enough disk space to compile
 		CHECKREQS_DISK_BUILD="5G"
 		check-reqs_pkg_setup
 	fi
 
-	# check that our boot partition (if it exists) is mounted
-	mount-boot_pkg_pretend
+	# perform sanity checks that apply to both source + binary packages.
+	if use build-kernel ; then
+		# check that our boot partition (if it exists) is mounted
+		mount-boot_pkg_pretend
+
+		# a lot of hardware requires firmware
+		if ! use firmware ; then
+			ewarn "sys-kernel/linux-firmware not found installed on your system."
+			ewarn "This package provides firmware that may be needed for your hardware to work."
+		fi
+	fi
 }
 
 pkg_setup() {
