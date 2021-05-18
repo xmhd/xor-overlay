@@ -533,11 +533,10 @@ src_configure() {
 			ARCH=$(tc-arch-kernel)
 		)
 
-		mkdir -p "${WORKDIR}"/modprep || die
-		cp "${T}"/.config "${WORKDIR}"/modprep/ || die
-		emake O="${WORKDIR}"/modprep "${MAKEARGS[@]}" olddefconfig || die "kernel configure failed"
-		emake O="${WORKDIR}"/modprep "${MAKEARGS[@]}" modules_prepare || die "modules_prepare failed"
-		cp -pR "${WORKDIR}"/modprep "${WORKDIR}"/build || die
+		mkdir -p "${WORKDIR}"/build || die "failed to create build dir"
+		cp "${T}"/.config "${WORKDIR}"/build/.config || die "failed to copy .config into build dir"
+		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" olddefconfig || die "kernel configure failed"
+		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" modules_prepare || die "modules_prepare failed"
 	fi
 }
 
