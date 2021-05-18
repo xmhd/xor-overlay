@@ -37,7 +37,7 @@ BDEPEND="
 RDEPEND="
 	build-kernel? ( >=sys-kernel/genkernel-4.2.0 )
 	btrfs? ( sys-fs/btrfs-progs )
-	compress-modules? ( sys-apps/kmod )
+	compress-modules? ( sys-apps/kmod[lzma] )
 	firmware? (
 		sys-kernel/linux-firmware
 	)
@@ -365,6 +365,8 @@ src_prepare() {
 
 	if use compress-modules; then
 		echo "CONFIG_MODULE_COMPRESS=y" >> .config
+		echo "CONFIG_MODULE_COMPRESS_GZIP=n" >> .config
+		echo "CONFIG_MODULE_COMPRESS_XZ=y" >> .config
 	else
 		echo "CONFIG_MODULE_COMPRESS=n" >> .config
 	fi
