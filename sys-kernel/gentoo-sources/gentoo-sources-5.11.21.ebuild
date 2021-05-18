@@ -15,7 +15,7 @@ SLOT="${PV}"
 RESTRICT="binchecks strip mirror"
 
 # general kernel USE flags
-IUSE="build-kernel clang debug +install-sources symlink"
+IUSE="build-kernel clang compress-modules debug +install-sources symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
@@ -37,6 +37,7 @@ BDEPEND="
 RDEPEND="
 	build-kernel? ( >=sys-kernel/genkernel-4.2.0 )
 	btrfs? ( sys-fs/btrfs-progs )
+	compress-modules? ( sys-apps/kmod )
 	firmware? (
 		sys-kernel/linux-firmware
 	)
@@ -361,6 +362,12 @@ src_prepare() {
 	# TODO: Maybe not a good idea for USE=hardened, look into this...
 	echo "CONFIG_IKCONFIG=y" >> .config
 	echo "CONFIG_IKCONFIG_PROC=y" >> .config
+
+	if use compress-modules; then
+		echo "CONFIG_MODULE_COMPRESS=y" >> .config
+	else
+		echo "CONFIG_MODULE_COMPRESS=n" >> .config
+	fi
 
 	# only enable debugging symbols etc if USE=debug...
 	if use debug; then
