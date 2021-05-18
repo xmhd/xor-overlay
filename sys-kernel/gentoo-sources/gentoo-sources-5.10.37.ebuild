@@ -363,6 +363,7 @@ src_prepare() {
 	echo "CONFIG_IKCONFIG=y" >> .config
 	echo "CONFIG_IKCONFIG_PROC=y" >> .config
 
+	# enable kernel module compression
 	if use compress-modules; then
 		echo "CONFIG_MODULE_COMPRESS=y" >> .config
 		echo "CONFIG_MODULE_COMPRESS_GZIP=n" >> .config
