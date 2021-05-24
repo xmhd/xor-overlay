@@ -70,7 +70,7 @@ KERNEL_FULL_VERSION="${PV}${KERNEL_EXTRAVERSION}"
 KERNEL_ARCHIVE="linux-${KERNEL_VERSION}.tar.xz"
 KERNEL_UPSTREAM="https://cdn.kernel.org/pub/linux/kernel/v5.x/${KERNEL_ARCHIVE}"
 
-KERNEL_CONFIG_VERSION="5.10.28-1"
+KERNEL_CONFIG_VERSION="5.10.38-1"
 KERNEL_CONFIG_UPSTREAM="https://salsa.debian.org/kernel-team/linux/-/raw/debian/${KERNEL_CONFIG_VERSION}/debian/config"
 
 SRC_URI="

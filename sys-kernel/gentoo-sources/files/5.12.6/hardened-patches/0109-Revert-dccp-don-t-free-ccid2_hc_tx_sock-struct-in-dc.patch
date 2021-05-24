@@ -1,0 +1,40 @@
+From 6888cc08c9f328b0ee889c17b7466910d5d0fe4e Mon Sep 17 00:00:00 2001
+From: Thadeu Lima de Souza Cascardo <cascardo@canonical.com>
+Date: Tue, 13 Oct 2020 19:18:49 +0200
+Subject: [PATCH 109/110] Revert "dccp: don't free ccid2_hc_tx_sock struct in
+ dccp_disconnect()"
+
+This reverts commit 2677d20677314101293e6da0094ede7b5526d2b1.
+
+This fixes an issue that after disconnect, dccps_hc_tx_ccid will still be
+kept, allowing the socket to be reused as a listener socket, and the cloned
+socket will free its dccps_hc_tx_ccid, leading to a later use after free,
+when the listener socket is closed.
+
+This addresses CVE-2020-16119.
+
+Fixes: 2677d2067731 (dccp: don't free ccid2_hc_tx_sock struct in dccp_disconnect())
+Reported-by: Hadar Manor
+Signed-off-by: Thadeu Lima de Souza Cascardo <cascardo@canonical.com>
+Signed-off-by: Kleber Sacilotto de Souza <kleber.souza@canonical.com>
+---
+ net/dccp/proto.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/net/dccp/proto.c b/net/dccp/proto.c
+index 6d705d90c614..359e848dba6c 100644
+--- a/net/dccp/proto.c
++++ b/net/dccp/proto.c
+@@ -279,7 +279,9 @@ int dccp_disconnect(struct sock *sk, int flags)
+ 
+ 	dccp_clear_xmit_timers(sk);
+ 	ccid_hc_rx_delete(dp->dccps_hc_rx_ccid, sk);
++	ccid_hc_tx_delete(dp->dccps_hc_tx_ccid, sk);
+ 	dp->dccps_hc_rx_ccid = NULL;
++	dp->dccps_hc_tx_ccid = NULL;
+ 
+ 	__skb_queue_purge(&sk->sk_receive_queue);
+ 	__skb_queue_purge(&sk->sk_write_queue);
+-- 
+2.31.1
+
