@@ -21,7 +21,7 @@ IUSE="${IUSE} custom-cflags"
 # security
 IUSE="${IUSE} hardened +page-table-isolation PaX +retpoline selinux sign-modules"
 # initramfs
-IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth zfs"
+IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode plymouth xfs zfs"
 # misc kconfig tweaks
 IUSE="${IUSE} mcelog"
 
@@ -658,11 +658,15 @@ pkg_postinst() {
 			--check-free-disk-space-bootdir="64" \
 			--all-ramdisk-modules \
 			--callback="emerge --ask=n --color=y --usepkg=n --quiet-build=y @module-rebuild" \
+			$(usex btrfs --btrfs --no-btrfs) \
 			$(usex debug --loglevel=5 --loglevel=1) \
+			$(usex e2fs --e2fsprogs --no-e2fsprogs) \
 			$(usex firmware --firmware --no-firmware) \
 			$(usex luks --luks --no-luks) \
 			$(usex lvm --lvm --no-lvm) \
 			$(usex mdadm --mdadm --no-mdadm) \
+			$(usex microcode --microcode-initramfs --no-microcode-initramfs) \
+			$(usex xfs --xfsprogs --no-xfsprogs) \
 			$(usex zfs --zfs --no-zfs) \
 			initramfs || die "failed to build initramfs"
 	fi
