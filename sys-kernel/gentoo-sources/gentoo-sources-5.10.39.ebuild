@@ -25,7 +25,6 @@ IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode plymouth xfs zfs"
 # misc kconfig tweaks
 IUSE="${IUSE} mcelog"
 
-
 BDEPEND="
 	sys-devel/bc
 	debug? ( dev-util/dwarves )
