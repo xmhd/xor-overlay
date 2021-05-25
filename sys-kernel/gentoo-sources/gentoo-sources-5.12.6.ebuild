@@ -34,7 +34,10 @@ BDEPEND="
 "
 
 RDEPEND="
-	build-kernel? ( >=sys-kernel/genkernel-4.2.0 )
+	build-kernel? (
+			>=sys-apps/portage-3.0.19
+			>=sys-kernel/genkernel-4.2.0
+	)
 	btrfs? ( sys-fs/btrfs-progs )
 	compress-modules? ( sys-apps/kmod[lzma] )
 	firmware? (
