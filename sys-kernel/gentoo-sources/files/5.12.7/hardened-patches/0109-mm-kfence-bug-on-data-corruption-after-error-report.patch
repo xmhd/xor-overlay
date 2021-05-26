@@ -1,0 +1,32 @@
+From 453932d129e58c47b732bcf45fbc488a88db9573 Mon Sep 17 00:00:00 2001
+From: Levente Polyak <levente@leventepolyak.net>
+Date: Tue, 25 May 2021 21:04:47 +0200
+Subject: [PATCH 109/110] mm, kfence: bug on data corruption after error report
+
+Extend CONFIG_BUG_ON_DATA_CORRUPTION to kfence mm. BUG when it
+encounters data corruption in kfence kernel memory structures when
+they get checked for validity.
+
+Signed-off-by: Levente Polyak <levente@leventepolyak.net>
+---
+ mm/kfence/report.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/mm/kfence/report.c b/mm/kfence/report.c
+index e3f71451ad9e..a5468a199a00 100644
+--- a/mm/kfence/report.c
++++ b/mm/kfence/report.c
+@@ -260,6 +260,10 @@ void kfence_report_error(unsigned long address, bool is_write, struct pt_regs *r
+ 
+ 	lockdep_on();
+ 
++#ifdef CONFIG_BUG_ON_DATA_CORRUPTION
++	BUG();
++#endif
++
+ 	if (panic_on_warn)
+ 		panic("panic_on_warn set ...\n");
+ 
+-- 
+2.31.1
+
