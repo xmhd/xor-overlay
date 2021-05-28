@@ -647,9 +647,9 @@ pkg_postinst() {
 		genkernel \
 			--color \
 			--makeopts="${MAKEOPTS}" \
-			--logfile="/var/log/genkernel.log" \
-			--cachedir="/var/cache/genkernel" \
-			--tmpdir="/var/tmp/genkernel" \
+			--logfile="${T}/genkernel/genkernel.log" \
+			--cachedir="${T}/genkernel/tmp" \
+			--tmpdir="${T}/genkernel/tmp" \
 			--cleanup \
 			--kernel-config="/boot/config-${KERNEL_FULL_VERSION}" \
 			--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
