@@ -30,7 +30,7 @@ BDEPEND="
 	debug? ( dev-util/dwarves )
 	sys-devel/flex
 	build-kernel? (
-		>=sys-apps/genkernel-4.2.0
+		>=sys-kernel/genkernel-4.2.0
 	)
 	virtual/libelf
 	virtual/yacc
