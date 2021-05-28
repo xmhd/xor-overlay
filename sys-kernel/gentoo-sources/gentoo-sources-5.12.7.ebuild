@@ -650,7 +650,6 @@ pkg_postinst() {
 			--logfile="${T}/genkernel/genkernel.log" \
 			--cachedir="${T}/genkernel/tmp" \
 			--tmpdir="${T}/genkernel/tmp" \
-			--cleanup \
 			--kernel-config="/boot/config-${KERNEL_FULL_VERSION}" \
 			--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
 			--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
