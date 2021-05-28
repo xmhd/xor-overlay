@@ -29,15 +29,14 @@ BDEPEND="
 	sys-devel/bc
 	debug? ( dev-util/dwarves )
 	sys-devel/flex
+	build-kernel? (
+		>=sys-apps/genkernel-4.2.0
+	)
 	virtual/libelf
 	virtual/yacc
 "
 
 RDEPEND="
-	build-kernel? (
-			>=sys-apps/portage-3.0.19
-			>=sys-kernel/genkernel-4.2.0
-	)
 	btrfs? ( sys-fs/btrfs-progs )
 	compress-modules? ( sys-apps/kmod[lzma] )
 	firmware? (
