@@ -1,0 +1,58 @@
+The x86 family of processors do not directly create read-only and Dirty
+PTEs.  These PTEs are created by software.  One such case is that kernel
+read-only pages are historically setup as Dirty.
+
+New processors that support Shadow Stack regard read-only and Dirty PTEs as
+shadow stack pages.  This results in ambiguity between shadow stack and
+kernel read-only pages.  To resolve this, removed Dirty from kernel read-
+only pages.
+
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@xxxxxxxxx>
+Reviewed-by: Kirill A. Shutemov <kirill.shutemov@xxxxxxxxxxxxxxx>
+Cc: "H. Peter Anvin" <hpa@xxxxxxxxx>
+Cc: Kees Cook <keescook@xxxxxxxxxxxx>
+Cc: Thomas Gleixner <tglx@xxxxxxxxxxxxx>
+Cc: Dave Hansen <dave.hansen@xxxxxxxxxxxxxxx>
+Cc: Christoph Hellwig <hch@xxxxxx>
+Cc: Andy Lutomirski <luto@xxxxxxxxxx>
+Cc: Ingo Molnar <mingo@xxxxxxxxxx>
+Cc: Borislav Petkov <bp@xxxxxxxxx>
+Cc: Peter Zijlstra <peterz@xxxxxxxxxxxxx>
+---
+ arch/x86/include/asm/pgtable_types.h | 6 +++---
+ arch/x86/mm/pat/set_memory.c         | 2 +-
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index f24d7ef8fffa..9db61817dfff 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -192,10 +192,10 @@ enum page_cache_mode {
+ #define _KERNPG_TABLE		 (__PP|__RW|   0|___A|   0|___D|   0|   0| _ENC)
+ #define _PAGE_TABLE_NOENC	 (__PP|__RW|_USR|___A|   0|___D|   0|   0)
+ #define _PAGE_TABLE		 (__PP|__RW|_USR|___A|   0|___D|   0|   0| _ENC)
+-#define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|___D|   0|___G)
+-#define __PAGE_KERNEL_ROX	 (__PP|   0|   0|___A|   0|___D|   0|___G)
++#define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|   0|   0|___G)
++#define __PAGE_KERNEL_ROX	 (__PP|   0|   0|___A|   0|   0|   0|___G)
+ #define __PAGE_KERNEL_NOCACHE	 (__PP|__RW|   0|___A|__NX|___D|   0|___G| __NC)
+-#define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|___D|   0|___G)
++#define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|   0|   0|___G)
+ #define __PAGE_KERNEL_LARGE	 (__PP|__RW|   0|___A|__NX|___D|_PSE|___G)
+ #define __PAGE_KERNEL_LARGE_EXEC (__PP|__RW|   0|___A|   0|___D|_PSE|___G)
+ #define __PAGE_KERNEL_WP	 (__PP|__RW|   0|___A|__NX|___D|   0|___G| __WP)
+diff --git a/arch/x86/mm/pat/set_memory.c b/arch/x86/mm/pat/set_memory.c
+index 156cd235659f..7b0842a3b24d 100644
+--- a/arch/x86/mm/pat/set_memory.c
++++ b/arch/x86/mm/pat/set_memory.c
+@@ -1940,7 +1940,7 @@ int set_memory_nx(unsigned long addr, int numpages)
+ 
+ int set_memory_ro(unsigned long addr, int numpages)
+ {
+-	return change_page_attr_clear(&addr, numpages, __pgprot(_PAGE_RW), 0);
++	return change_page_attr_clear(&addr, numpages, __pgprot(_PAGE_RW | _PAGE_DIRTY), 0);
+ }
+ 
+ int set_memory_rw(unsigned long addr, int numpages)
+-- 
+2.21.0

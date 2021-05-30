@@ -19,7 +19,7 @@ IUSE="build-kernel clang compress-modules debug +install-sources symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
-IUSE="${IUSE} hardened +page-table-isolation PaX +retpoline selinux sign-modules"
+IUSE="${IUSE} cet hardened +page-table-isolation PaX +retpoline selinux sign-modules"
 # initramfs
 IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode plymouth xfs zfs"
 # misc kconfig tweaks
@@ -62,6 +62,7 @@ RDEPEND="
 
 REQUIRED_USE="
 	!build-kernel? ( install-sources )
+	cet? ( !clang )
 "
 
 # linux kernel upstream
@@ -252,6 +253,57 @@ PAX_PATCHES=(
 	0002-PAX_RANDKSTACK.patch
 )
 
+CET_SS_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/cet-patches/ss"
+
+# Intel Control-Flow-Enforcement Technology patches (1 of 2)
+CET_SS_PATCHES=(
+	0001-add-cet-description.patch
+	0002-add-kconfig-option-for-shadow-stack.patch
+	0003-add-cet-cpu-feature-flags-for-cet.patch
+	0004-introduce-cpu-setup-and-option-parsing-for-cet.patch
+	0005-introduce-cet-msr-and-xsaves-supervisor-states.patch
+	0006-add-control-protection-fault-handler.patch
+	0007-remove-PAGE_DIRTY-from-kernel-RO-pages.patch
+	0008-move-pmd_write-pud_write.patch
+	0009-introduce-PAGE_COW.patch
+	0010-change-PAGE_DIRTY-to-PAGE_DIRTY_BITS.patch
+	0011-update-pte_modify-for-PAGE_COW.patch
+	0012-update-ptep_set_wrprotect-and-pmdp_set_wrprotect.patch
+	0013-introduce-VM_SHADOW_STACK.patch
+	0014-shadow-stack-page-fault-error-checking.patch
+	0015-update-maybe_mkwrite-for-shadow-stack.patch
+	0016-fixup-places-that-call-pte_mkwrite-directly.patch
+	0017-add-guard-pages-around-a-shadow-stack.patch
+	0018-add-shadow-stack-pages-to-memory-accounting.patch
+	0019-update-can_follow_write_pte-for-shadow-stack.patch
+	0020-exclude-shadow-stack-from-preserve_write.patch
+	0021-reintroduce-vm_flags-to-do_mmap.patch
+	0022-add-user-mode-shadow-stack-support.patch
+	0023-handle-thread-shadow-stack.patch
+	0024-introduce-shadow-stack-token-setup-verify-routines.patch
+	0025-handle-signals-for-shadow-stack.patch
+	0026-introduce-arch_setup_elf_property.patch
+	0027-add-arch_prctl-functions-for-shadow-stack.patch
+	0028-move-arch_calc_vm_prot_bits.patch
+	0029-update-arch_validate_flags.patch
+	0030-introduce-PROT_SHADOW_STACK.patch
+)
+
+CET_IBT_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/cet-patches/ibt"
+
+# Intel Control-Flow-Enforcement Technology patches (2 of 2)
+CET_IBT_PATCHES=(
+	0001-add-kconfig-opt.patch
+	0002-add-user-mode-indirect-branch-tracking.patch
+	0003-handle-signals-for-indirect-branch-tracking.patch
+	0004-update-elf-header-parsing.patch
+	0005-update-arch_prctl-functions.patch
+	0006-insert-endbr32-endbr64-to-vDSO.patch
+	0007-introduce-ENDBR-macro.patch
+	0008-add-ENDBR-to-__kernel_vsyscall_entry_point.patch
+	0009-add-ENDBR-to-__vdso_sgx_enter_enclave.patch
+)
+
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
 	for subdir in $PF $P linux; do
@@ -334,6 +386,17 @@ src_prepare() {
 		done
 	fi
 
+	if use cet; then
+		einfo "Applying CET patches ..."
+		for my_patch in ${CET_SS_PATCHES[*]} ; do
+			eapply "${CET_SS_PATCHES_DIR}/${my_patch}"
+		done
+
+		for my_patch in ${CET_IBT_PATCHES[*]} ; do
+			eapply "${CET_IBT_PATCHES_DIR}/${my_patch}"
+		done
+	fi
+
 	# append EXTRAVERSION to the kernel sources Makefile
 	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${KERNEL_EXTRAVERSION}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
 
@@ -369,6 +432,11 @@ src_prepare() {
 		echo "CONFIG_MODULE_COMPRESS_XZ=y" >> .config
 	else
 		echo "CONFIG_MODULE_COMPRESS=n" >> .config
+	fi
+
+	if use cet; then
+		echo "CONFIG_X86_SHADOW_STACK=y" >> .config
+		echo "CONFIG_X86_IBT=y" >> .config
 	fi
 
 	# only enable debugging symbols etc if USE=debug...

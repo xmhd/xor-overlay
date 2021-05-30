@@ -1,0 +1,237 @@
+A shadow stack restore token marks a restore point of the shadow stack, and
+the address in a token must point directly above the token, which is within
+the same shadow stack.  This is distinctively different from other pointers
+on the shadow stack, since those pointers point to executable code area.
+
+The restore token can be used as an extra protection for signal handling.
+To deliver a signal, create a shadow stack restore token and put the token
+and the signal restorer address on the shadow stack.  In sigreturn, verify
+the token and restore from it the shadow stack pointer.
+
+Introduce token setup and verify routines.  Also introduce WRUSS, which is
+a kernel-mode instruction but writes directly to user shadow stack.  It is
+used to construct user signal stack as described above.
+
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: Kees Cook <keescook@chromium.org>
+---
+v25:
+- Update inline assembly syntax, use %[].
+- Change token address from (unsigned long) to (u64/u32 __user *).
+- Change -EPERM to -EFAULT.
+
+ arch/x86/include/asm/cet.h           |   9 ++
+ arch/x86/include/asm/special_insns.h |  32 +++++++
+ arch/x86/kernel/shstk.c              | 126 +++++++++++++++++++++++++++
+ 3 files changed, 167 insertions(+)
+diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+index 8b83ded577cc..ef6155213b7e 100644
+--- a/arch/x86/include/asm/cet.h
++++ b/arch/x86/include/asm/cet.h
+@@ -20,6 +20,10 @@  int shstk_setup_thread(struct task_struct *p, unsigned long clone_flags,
+ 		       unsigned long stack_size);
+ void shstk_free(struct task_struct *p);
+ void shstk_disable(void);
++int shstk_setup_rstor_token(bool ia32, unsigned long rstor,
++			    unsigned long *token_addr, unsigned long *new_ssp);
++int shstk_check_rstor_token(bool ia32, unsigned long token_addr,
++			    unsigned long *new_ssp);
+ #else
+ static inline int shstk_setup(void) { return 0; }
+ static inline int shstk_setup_thread(struct task_struct *p,
+@@ -27,6 +31,11 @@  static inline int shstk_setup_thread(struct task_struct *p,
+ 				     unsigned long stack_size) { return 0; }
+ static inline void shstk_free(struct task_struct *p) {}
+ static inline void shstk_disable(void) {}
++static inline int shstk_setup_rstor_token(bool ia32, unsigned long rstor,
++					  unsigned long *token_addr,
++					  unsigned long *new_ssp) { return 0; }
++static inline int shstk_check_rstor_token(bool ia32, unsigned long token_addr,
++					  unsigned long *new_ssp) { return 0; }
+ #endif
+ 
+ #endif /* __ASSEMBLY__ */
+diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
+index 1d3cbaef4bb7..5a0488923cae 100644
+--- a/arch/x86/include/asm/special_insns.h
++++ b/arch/x86/include/asm/special_insns.h
+@@ -234,6 +234,38 @@  static inline void clwb(volatile void *__p)
+ 		: [pax] "a" (p));
+ }
+ 
++#ifdef CONFIG_X86_SHADOW_STACK
++#if defined(CONFIG_IA32_EMULATION) || defined(CONFIG_X86_X32)
++static inline int write_user_shstk_32(u32 __user *addr, u32 val)
++{
++	asm_volatile_goto("1: wrussd %[val], (%[addr])\n"
++			  _ASM_EXTABLE(1b, %l[fail])
++			  :: [addr] "r" (addr), [val] "r" (val)
++			  :: fail);
++	return 0;
++fail:
++	return -EFAULT;
++}
++#else
++static inline int write_user_shstk_32(u32 __user *addr, u32 val)
++{
++	WARN_ONCE(1, "%s used but not supported.\n", __func__);
++	return -EFAULT;
++}
++#endif
++
++static inline int write_user_shstk_64(u64 __user *addr, u64 val)
++{
++	asm_volatile_goto("1: wrussq %[val], (%[addr])\n"
++			  _ASM_EXTABLE(1b, %l[fail])
++			  :: [addr] "r" (addr), [val] "r" (val)
++			  :: fail);
++	return 0;
++fail:
++	return -EFAULT;
++}
++#endif /* CONFIG_X86_SHADOW_STACK */
++
+ #define nop() asm volatile ("nop")
+ 
+ static inline void serialize(void)
+diff --git a/arch/x86/kernel/shstk.c b/arch/x86/kernel/shstk.c
+index d387df84b7f1..48a0c87414ef 100644
+--- a/arch/x86/kernel/shstk.c
++++ b/arch/x86/kernel/shstk.c
+@@ -20,6 +20,7 @@ 
+ #include <asm/fpu/xstate.h>
+ #include <asm/fpu/types.h>
+ #include <asm/cet.h>
++#include <asm/special_insns.h>
+ 
+ static void start_update_msrs(void)
+ {
+@@ -176,3 +177,128 @@  void shstk_disable(void)
+ 
+ 	shstk_free(current);
+ }
++
++static unsigned long _get_user_shstk_addr(void)
++{
++	struct fpu *fpu = &current->thread.fpu;
++	unsigned long ssp = 0;
++
++	fpregs_lock();
++
++	if (fpregs_state_valid(fpu, smp_processor_id())) {
++		rdmsrl(MSR_IA32_PL3_SSP, ssp);
++	} else {
++		struct cet_user_state *p;
++
++		p = get_xsave_addr(&fpu->state.xsave, XFEATURE_CET_USER);
++		if (p)
++			ssp = p->user_ssp;
++	}
++
++	fpregs_unlock();
++	return ssp;
++}
++
++#define TOKEN_MODE_MASK	3UL
++#define TOKEN_MODE_64	1UL
++#define IS_TOKEN_64(token) (((token) & TOKEN_MODE_MASK) == TOKEN_MODE_64)
++#define IS_TOKEN_32(token) (((token) & TOKEN_MODE_MASK) == 0)
++
++/*
++ * Create a restore token on the shadow stack.  A token is always 8-byte
++ * and aligned to 8.
++ */
++static int _create_rstor_token(bool ia32, unsigned long ssp,
++			       unsigned long *token_addr)
++{
++	unsigned long addr;
++
++	*token_addr = 0;
++
++	if ((!ia32 && !IS_ALIGNED(ssp, 8)) || !IS_ALIGNED(ssp, 4))
++		return -EINVAL;
++
++	addr = ALIGN_DOWN(ssp, 8) - 8;
++
++	/* Is the token for 64-bit? */
++	if (!ia32)
++		ssp |= TOKEN_MODE_64;
++
++	if (write_user_shstk_64((u64 __user *)addr, (u64)ssp))
++		return -EFAULT;
++
++	*token_addr = addr;
++	return 0;
++}
++
++/*
++ * Create a restore token on shadow stack, and then push the user-mode
++ * function return address.
++ */
++int shstk_setup_rstor_token(bool ia32, unsigned long ret_addr,
++			    unsigned long *token_addr, unsigned long *new_ssp)
++{
++	struct cet_status *cet = &current->thread.cet;
++	unsigned long ssp = 0;
++	int err = 0;
++
++	if (cet->shstk_size) {
++		if (!ret_addr)
++			return -EINVAL;
++
++		ssp = _get_user_shstk_addr();
++		err = _create_rstor_token(ia32, ssp, token_addr);
++		if (err)
++			return err;
++
++		if (ia32) {
++			*new_ssp = *token_addr - sizeof(u32);
++			err = write_user_shstk_32((u32 __user *)*new_ssp, (u32)ret_addr);
++		} else {
++			*new_ssp = *token_addr - sizeof(u64);
++			err = write_user_shstk_64((u64 __user *)*new_ssp, (u64)ret_addr);
++		}
++	}
++
++	return err;
++}
++
++/*
++ * Verify token_addr point to a valid token, and then set *new_ssp
++ * according to the token.
++ */
++int shstk_check_rstor_token(bool ia32, unsigned long token_addr, unsigned long *new_ssp)
++{
++	unsigned long token;
++
++	*new_ssp = 0;
++
++	if (!IS_ALIGNED(token_addr, 8))
++		return -EINVAL;
++
++	if (get_user(token, (unsigned long __user *)token_addr))
++		return -EFAULT;
++
++	/* Is 64-bit mode flag correct? */
++	if (!ia32 && !IS_TOKEN_64(token))
++		return -EINVAL;
++	else if (ia32 && !IS_TOKEN_32(token))
++		return -EINVAL;
++
++	token &= ~TOKEN_MODE_MASK;
++
++	/*
++	 * Restore address properly aligned?
++	 */
++	if ((!ia32 && !IS_ALIGNED(token, 8)) || !IS_ALIGNED(token, 4))
++		return -EINVAL;
++
++	/*
++	 * Token was placed properly?
++	 */
++	if (((ALIGN_DOWN(token, 8) - 8) != token_addr) || token >= TASK_SIZE_MAX)
++		return -EINVAL;
++
++	*new_ssp = token;
++	return 0;
++}
