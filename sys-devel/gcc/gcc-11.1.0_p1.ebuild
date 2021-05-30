@@ -75,7 +75,7 @@ REQUIRED_USE="
 
 GCC_MAJOR="${PV%%.*}"
 # Version of archive before patches.
-GCC_ARCHIVE_VER="10.3.0"
+GCC_ARCHIVE_VER="11.1.0"
 # GCC release archive
 GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
 
@@ -95,33 +95,30 @@ GENTOO_PATCHES=(
 	04_all_nossp-on-nostdlib.patch
 	05_all_alpha-mieee-default.patch
 	06_all_ia64_note.GNU-stack.patch
-	07_all_i386_libgcc_note.GNU-stack.patch
-	08_all_libiberty-asprintf.patch
-	09_all_libiberty-pic.patch
-	10_all_nopie-all-flags.patch
-	11_all_sh-drop-sysroot-suffix.patch
-	12_all_ia64-TEXTREL.patch
-	13_all_disable-systemtap-switch.patch
-	14_all_m68k-textrel-on-libgcc.patch
-	15_all_respect-build-cxxflags.patch
-	16_all_libgfortran-Werror.patch
-	17_all_libgomp-Werror.patch
-	18_all_libitm-Werror.patch
-	19_all_libatomic-Werror.patch
-	20_all_libbacktrace-Werror.patch
-	21_all_libsanitizer-Werror.patch
-	22_all_libstdcxx-no-vtv.patch
-	23_all_disable-riscv32-ABIs.patch
-	24_all_default_ssp-buffer-size.patch
-	25_all_hppa-faster-synth_mult.patch
-	26_all_libcpp-ar.patch
-#	27_all_EXTRA_OPTIONS-z-now.patch
-#	28_all_EXTRA_OPTIONS-fstack-clash-protection.patch
-	29_all_lto-intl-workaround-PR95194.patch
-	30_all_plugin-objdump.patch
-	31_all_fno-delayed-branch.patch
-	32_all_vtv-slibtool.patch
-	33_all_ctor-union-PR100489.patch
+	07_all_libiberty-asprintf.patch
+	08_all_libiberty-pic.patch
+	09_all_nopie-all-flags.patch
+	10_all_sh-drop-sysroot-suffix.patch
+	11_all_ia64-TEXTREL.patch
+	12_all_disable-systemtap-switch.patch
+	13_all_m68k-textrel-on-libgcc.patch
+	14_all_respect-build-cxxflags.patch
+	15_all_libgomp-Werror.patch
+	16_all_libitm-Werror.patch
+	17_all_libatomic-Werror.patch
+	18_all_libbacktrace-Werror.patch
+	19_all_libsanitizer-Werror.patch
+	20_all_libstdcxx-no-vtv.patch
+	21_all_disable-riscv32-ABIs.patch
+	22_all_default_ssp-buffer-size.patch
+#	23_all_EXTRA_OPTIONS-z-now.patch
+#	24_all_EXTRA_OPTIONS-fstack-clash-protection.patch
+	25_all_lto-intl-workaround-PR95194.patch
+	26_all_plugin-objdump.patch
+	27_all_msp430-f2c.patch
+	28_all_ctor-union-PR100489.patch
+	29_all_perfect-implicit-PR100644.patch
+	30_all_arm-lto-ICE-march-mix.patch
 )
 
 ALPINE_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/alpine-patches"
