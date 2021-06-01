@@ -643,15 +643,18 @@ pkg_postinst() {
 	# we only want to force initramfs rebuild if != binary package
 	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
 
+		# setup dirs for genkernel
+		mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log}
+
 		# fakeroot so we can always generate device nodes i.e /dev/console
 		# TODO: this will fail for -rN kernel revisions as kerneldir is hardcoded badly
 		# temporarily remove fakeroot
 		genkernel \
 			--color \
 			--makeopts="${MAKEOPTS}" \
-			--logfile="${T}/genkernel/genkernel.log" \
-			--cachedir="${T}/genkernel/tmp" \
-			--tmpdir="${T}/genkernel/tmp" \
+			--logfile="${WORKDIR}/genkernel/log/genkernel.log" \
+			--cachedir="${WORKDIR}/genkernel/cache" \
+			--tmpdir="${WORKDIR}/genkernel/tmp" \
 			--kernel-config="/boot/config-${KERNEL_FULL_VERSION}" \
 			--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
 			--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
