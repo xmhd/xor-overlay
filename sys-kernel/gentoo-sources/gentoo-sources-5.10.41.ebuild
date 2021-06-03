@@ -272,10 +272,10 @@ get_certs_dir() {
 pkg_pretend() {
 
 	# perform sanity checks that only apply to source builds.
-	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
+	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel; then
 
 		# to run callback emerge we need to make sure a few FEATURES are disabled/enabled
-		if has ebuild-locks ${FEATURES} || ! has parallel-install ${FEATURES} ; then
+		if has ebuild-locks ${FEATURES} || ! has parallel-install ${FEATURES}; then
 			die 'callback emerge for external module rebuilds requires FEATURES="-ebuild-locks parallel-install"'
 		fi
 
@@ -285,12 +285,12 @@ pkg_pretend() {
 	fi
 
 	# perform sanity checks that apply to both source + binary packages.
-	if use build-kernel ; then
+	if use build-kernel; then
 		# check that our boot partition (if it exists) is mounted
 		mount-boot_pkg_pretend
 
 		# a lot of hardware requires firmware
-		if ! use firmware ; then
+		if ! use firmware; then
 			ewarn "sys-kernel/linux-firmware not found installed on your system."
 			ewarn "This package provides firmware that may be needed for your hardware to work."
 		fi
@@ -317,21 +317,21 @@ src_prepare() {
 
 	# apply gentoo patches
 	einfo "Applying Gentoo Linux patches ..."
-	for my_patch in ${GENTOO_PATCHES[*]} ; do
+	for my_patch in ${GENTOO_PATCHES[*]}; do
 		eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
 	done
 
 	# conditionally apply hardening patches
-	if use hardened ; then
+	if use hardened; then
 		einfo "Applying hardening patches ..."
-		for my_patch in ${HARDENED_PATCHES[*]} ; do
+		for my_patch in ${HARDENED_PATCHES[*]}; do
 			eapply "${HARDENED_PATCHES_DIR}/${my_patch}"
 		done
 	fi
 
-	if use PaX ; then
+	if use PaX; then
 		einfo "Applying PaX patches ..."
-		for my_patch in ${PAX_PATCHES[*]} ; do
+		for my_patch in ${PAX_PATCHES[*]}; do
 			eapply "${PAX_PATCHES_DIR}/${my_patch}"
 		done
 	fi
@@ -380,7 +380,7 @@ src_prepare() {
 		echo "CONFIG_DEBUG_INFO=n" >> .config
 	fi
 
-	if use hardened ; then
+	if use hardened; then
 		# === GENERAL HARDENING OPTS
 		# TODO: document these
 		echo "CONFIG_AUDIT=y" >> .config
@@ -437,7 +437,7 @@ src_prepare() {
 		echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
 	fi
 
-	if use PaX ; then
+	if use PaX; then
 		echo "CONFIG_PAX=y" >> .config
 		echo "CONFIG_PAX_RANDKSTACK=y" >> .config
 		echo "CONFIG_PAX_NOWRITEEXEC=y" >> .config
@@ -445,29 +445,29 @@ src_prepare() {
 		echo "CONFIG_PAX_MPROTECT=y" >> .config
 	fi
 
-	if use page-table-isolation ; then
+	if use page-table-isolation; then
 		echo "CONFIG_PAGE_TABLE_ISOLATION=y" >> .config
-		if use arm64 ; then
+		if use arm64; then
 			echo "CONFIG_UNMAP_KERNEL_AT_EL0=y" >> .config
 		fi
 	else
 		echo "CONFIG_PAGE_TABLE_ISOLATION=n" >> .config
-		if use arm64 ; then
+		if use arm64; then
 			echo "CONFIG_UNMAP_KERNEL_AT_EL0=n" >> .config
 		fi
 	fi
 
-	if use retpoline ; then
-		if use amd64 || use arm64 || use ppc64 || use x86 ; then
+	if use retpoline; then
+		if use amd64 || use arm64 || use ppc64 || use x86; then
 			echo "CONFIG_RETPOLINE=y" >> .config
-		elif use arm ; then
+		elif use arm; then
 			echo "CONFIG_CPU_SPECTRE=y" >> .config
 			echo "CONFIG_HARDEN_BRANCH_PREDICTOR=y" >> .config
 		fi
 	else
-		if use amd64 || use arm64 || use ppc64 || use x86 ; then
+		if use amd64 || use arm64 || use ppc64 || use x86; then
 			echo "CONFIG_RETPOLINE=n" >> .config
-		elif use arm ; then
+		elif use arm; then
 			echo "CONFIG_CPU_SPECTRE=n" >> .config
 			echo "CONFIG_HARDEN_BRANCH_PREDICTOR=n" >> .config
 		fi
@@ -641,7 +641,7 @@ pkg_postinst() {
 	fi
 
 	# we only want to force initramfs rebuild if != binary package
-	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel ; then
+	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel; then
 
 		# setup dirs for genkernel
 		mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log}
@@ -676,18 +676,18 @@ pkg_postinst() {
 	fi
 
 	# warn about the issues with running a hardened kernel
-	if use hardened ; then
+	if use hardened; then
 		ewarn "Hardened patches have been applied to the kernel and KCONFIG options have been set."
 		ewarn "These KCONFIG options and patches change kernel behavior."
 		ewarn "Changes include:"
 		ewarn "Increased entropy for Address Space Layout Randomization"
-		if ! use clang ; then
+		if ! use clang; then
 			ewarn "GCC plugins"
 		fi
 		ewarn "Memory allocation"
 		ewarn "... and more"
 		ewarn ""
-		if use PaX ; then
+		if use PaX; then
 			ewarn "W^X (writable or executable) TODO"
 			ewarn "RANDKSTACK TODO"
 			ewarn ""
