@@ -15,7 +15,7 @@ SLOT="${PV}"
 RESTRICT="binchecks strip mirror"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress-modules debug +install-sources symlink"
+IUSE="build-kernel clang compress-modules debug include-files +install-sources symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
@@ -252,6 +252,9 @@ PAX_PATCHES=(
 	0002-PAX_RANDKSTACK.patch
 )
 
+# dir of files to include in the initramfs
+GK_FS_OVERLAY_DIR="/etc/genkernel"
+
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
 	for subdir in $PF $P linux; do
@@ -279,6 +282,11 @@ pkg_pretend() {
 		# Ensure we have enough disk space to compile
 		CHECKREQS_DISK_BUILD="5G"
 		check-reqs_pkg_setup
+
+		# check that the fs overlay dir exists
+		if use include-files && [[ -d ${GK_FS_OVERLAY_DIR} ]]; then
+			die "Genkernel filesystem overlay directory does not exist - create this directory or set USE=-include-files"
+		fi
 	fi
 
 	# perform sanity checks that apply to both source + binary packages.
@@ -663,6 +671,7 @@ pkg_postinst() {
 			$(usex debug "--loglevel=5" "--loglevel=1") \
 			$(usex e2fs "--e2fsprogs" "--no-e2fsprogs") \
 			$(usex firmware "--firmware" "--no-firmware") \
+			$(usex include-files "--initramfs-overlay=${GK_FS_OVERLAY_DIR}" "") \
 			$(usex luks "--luks" "--no-luks") \
 			$(usex lvm "--lvm" "--no-lvm") \
 			$(usex mdadm "--mdadm" "--no-mdadm") \
