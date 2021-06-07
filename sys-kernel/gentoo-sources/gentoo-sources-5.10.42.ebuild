@@ -303,6 +303,11 @@ pkg_pretend() {
 			ewarn "This package provides firmware that may be needed for your hardware to work."
 		fi
 	fi
+
+	# sanity check for custom-cflags support
+	if ! use amd64 || ! use x86 && use custom-cflags; then
+		die "USE=custom-cflags is only currently supported on amd64 and x86"
+	fi
 }
 
 pkg_setup() {
@@ -358,10 +363,137 @@ src_prepare() {
 	cp "${WORKDIR}"/debian-kconfig-${PV} "${S}"/.config
 
 	if use custom-cflags; then
+
+		# get the march from Portage
 		MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
-		if [ -n "$MARCH" ]; then
-			sed -i -e 's/-mtune=generic/$MARCH/g' arch/x86/Makefile || die "Canna optimize this kernel anymore, captain!"
-		fi
+
+		# if ${MARCH}=foo ...
+		case ${MARCH} in
+			*native)
+				if grep -q "AuthenticAMD" /proc/cpuinfo; then
+					echo "CONFIG_MNATIVE_AMD=y" >> .config
+				elif grep -q "GenuineIntel" /proc/cpuinfo; then
+					echo "CONFIG_MNATIVE_INTEL=y" >> .config
+				fi
+			;;
+			*x86-64)
+				echo "CONFIG_GENERIC_CPU=y" >> .config
+			;;
+			*x86-64-v2)
+				echo "CONFIG_GENERIC_CPU2=y" >> .config
+			;;
+			*x86-64-v3)
+				echo "CONFIG_GENERIC_CPU3=y" >> .config
+			;;
+			*x86-64-v4)
+				echo "CONFIG_GENERIC_CPU4=y" >> .config
+			;;
+			*k8)
+				echo "CONFIG_MK8=y" >> .config
+			;;
+			*k8-sse3)
+				echo "CONFIG_MK8SSE3=y" >> .config
+			;;
+			*amdfam10)
+				echo "CONFIG_MK10=y" >> .config
+			;;
+			*barcelona)
+				echo "CONFIG_MBARCELONA=y" >> .config
+			;;
+			*btver1)
+				echo "CONFIG_MBOBCAT=y" >> .config
+			;;
+			*btver2)
+				echo "CONFIG_MJAGUAR=y" >> .config
+			;;
+			*bdver1)
+				echo "CONFIG_MBULLDOZER=y" >> .config
+			;;
+			*bdver2)
+				echo "CONFIG_MPILEDRIVER=y" >> .config
+			;;
+			*bdver3)
+				echo "CONFIG_MSTEAMROLLER=y" >> .config
+			;;
+			*bdver4)
+				echo "CONFIG_MEXCAVATOR=y" >> .config
+			;;
+			*znver1)
+				echo "CONFIG_MZEN=y" >> .config
+			;;
+			*znver2)
+				echo "CONFIG_MZEN2=y" >> .config
+			;;
+			*znver3)
+				echo "CONFIG_MZEN3=y" >> .config
+			;;
+			*core2)
+				echo "CONFIG_MCORE2=y" >> .config
+			;;
+			*atom | *bonnell)
+				echo "CONFIG_MATOM=y" >> .config
+			;;
+			*silvermont)
+				echo "CONFIG_MSILVERMONT=y" >> .config
+			;;
+			*goldmont)
+				echo "CONFIG_MGOLDMONT=y" >> .config
+			;;
+			*goldmont-plus)
+				echo "CONFIG_MGOLDMONTPLUS=y" >> .config
+			;;
+			*nehalem)
+				echo "CONFIG_MNEHALEM=y" >> .config
+			;;
+			*westmere)
+				echo "CONFIG_MWESTMERE=y" >> .config
+			;;
+			*sandybridge)
+				echo "CONFIG_MSANDYBRIDGE=y" >> .config
+			;;
+			*ivybridge)
+				echo "CONFIG_MIVYBRIDGE=y" >> .config
+			;;
+			*haswell)
+				echo "CONFIG_MHASWELL=y" >> .config
+			;;
+			*broadwell)
+				echo "CONFIG_MBROADWELL=y" >> .config
+			;;
+			*skylake)
+				echo "CONFIG_MSKYLAKE=y" >> .config
+			;;
+			*skylake-avx512)
+				echo "CONFIG_MSKYLAKEX=y" >> .config
+			;;
+			*cannonlake)
+				echo "CONFIG_MCANNONLAKE=y" >> .config
+			;;
+			*icelake-client)
+				echo "CONFIG_MICELAKE=y" >> .config
+			;;
+			*cascadelake)
+				echo "CONFIG_MCASCADELAKE=y" >> .config
+			;;
+			*cooperlake)
+				echo "CONFIG_MCOOPERLAKE=y" >> .config
+			;;
+			*tigerlake)
+				echo "CONFIG_MTIGERLAKE=y" >> .config
+			;;
+			*sapphirerapids)
+				echo "CONFIG_MSAPPHIRERAPIDS=y" >> .config
+			;;
+			*rocketlake)
+				echo "CONFIG_MROCKETLAKE=y" >> .config
+			;;
+			*alderlake)
+				echo "CONFIG_MALDERLAKE=y" >> .config
+			;;
+			*)
+				echo "CONFIG_GENERIC_CPU=y" >> .config
+			;;
+		esac
 	fi
 
 	### TWEAK CONFIG ###

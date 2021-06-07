@@ -300,6 +300,11 @@ pkg_pretend() {
 			ewarn "This package provides firmware that may be needed for your hardware to work."
 		fi
 	fi
+
+	# sanity check for custom-cflags support
+	if ! use amd64 || ! use x86 && use custom-cflags; then
+		die "USE=custom-cflags is only currently supported on amd64 and x86"
+	fi
 }
 
 pkg_setup() {
@@ -357,9 +362,6 @@ src_prepare() {
 
 	if use custom-cflags; then
 
-		# get the cpu type from cpuinfo
-		CPU_TYPE="$(grep 'model name' /proc/cpuinfo | cut -d':' -f 2  | cut -d' ' -f2- | uniq)"
-
 		# get the march from Portage
 		MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
 
@@ -383,12 +385,6 @@ src_prepare() {
 			;;
 			*x86-64-v4)
 				echo "CONFIG_GENERIC_CPU4=y" >> .config
-			;;
-			*k6)
-				echo "CONFIG_MK6=y" >> .config
-			;;
-			*k7)
-				echo "CONFIG_MK7=y" >> .config
 			;;
 			*k8)
 				echo "CONFIG_MK8=y" >> .config
@@ -429,13 +425,10 @@ src_prepare() {
 			*znver3)
 				echo "CONFIG_MZEN3=y" >> .config
 			;;
-			*bonnell)
-				echo "CONFIG_MBONNELL=y" >> .config
-			;;
 			*core2)
 				echo "CONFIG_MCORE2=y" >> .config
 			;;
-			*atom)
+			*atom | *bonnell)
 				echo "CONFIG_MATOM=y" >> .config
 			;;
 			*silvermont)
@@ -499,7 +492,6 @@ src_prepare() {
 				echo "CONFIG_GENERIC_CPU=y" >> .config
 			;;
 		esac
-
 	fi
 
 	### TWEAK CONFIG ###
