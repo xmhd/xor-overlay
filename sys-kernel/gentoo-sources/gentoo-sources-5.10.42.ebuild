@@ -305,8 +305,10 @@ pkg_pretend() {
 	fi
 
 	# sanity check for custom-cflags support
-	if ! use amd64 || ! use x86 && use custom-cflags; then
-		die "USE=custom-cflags is only currently supported on amd64 and x86"
+	if use custom-cflags; then
+		if ! use amd64 || ! use x86; then
+			die "USE=custom-cflags is only currently supported on amd64 and x86"
+		fi
 	fi
 }
 
