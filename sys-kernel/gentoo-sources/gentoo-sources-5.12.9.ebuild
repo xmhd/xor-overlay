@@ -357,11 +357,27 @@ src_prepare() {
 
 	if use custom-cflags; then
 
+		# get the vendor from cpuinfo
+		CPU_VENDOR="$(grep 'model name' /proc/cpuinfo | cut -d':' -f 2  | cut -d' ' -f2- | uniq)"
+
 		# get the march from Portage
 		MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
 
+		ewarn "CAPTURED CPU VENDOR: ${CPU_VENDOR}"
+		ewarm "CAPTURED MARCH: ${MARCH}"
+
 		# if ${MARCH}=foo ...
 		case ${MARCH} in
+			*native)
+				case ${CPU_VENDOR} in
+					*AMD*)
+						echo "CONFIG_MNATIVE_AMD=y" >> .config
+					;;
+					*Intel*)
+						echo "CONFIG_MNATIVE_INTEL=y" >> .config
+					;;
+				esac
+			;;
 			*x86-64)
 				echo "CONFIG_GENERIC_CPU=y" >> .config
 			;;
