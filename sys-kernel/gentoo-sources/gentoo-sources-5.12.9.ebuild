@@ -358,6 +358,8 @@ src_prepare() {
 	if use custom-cflags; then
 		MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
 
+		ewarn "CAPTURED MARCH: ${MARCH}"
+
 		# no MARCH found
 		if [[ -n "$MARCH" ]]; then
 			echo "CONFIG_GENERIC_CPU=y" >> .config
