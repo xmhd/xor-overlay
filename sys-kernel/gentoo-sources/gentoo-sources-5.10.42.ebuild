@@ -62,6 +62,7 @@ RDEPEND="
 
 REQUIRED_USE="
 	!build-kernel? ( install-sources )
+	custom-cflags? ( || ( amd64 x86 ) )
 "
 
 # linux kernel upstream
@@ -301,13 +302,6 @@ pkg_pretend() {
 		if ! use firmware; then
 			ewarn "sys-kernel/linux-firmware not found installed on your system."
 			ewarn "This package provides firmware that may be needed for your hardware to work."
-		fi
-	fi
-
-	# sanity check for custom-cflags support
-	if use custom-cflags; then
-		if ! use amd64 || ! use x86; then
-			die "USE=custom-cflags is only currently supported on amd64 and x86"
 		fi
 	fi
 }
