@@ -360,7 +360,9 @@ src_prepare() {
 
 		# no MARCH found
 		if [[ -n "$MARCH" ]]; then
-			echo "CONFIG_GENERIC_CPU" >> .config
+			echo "CONFIG_GENERIC_CPU=y" >> .config
+		elif [[ "$MARCH" == "haswell" ]]; then
+			echo "CONFIG_MHASWELL=y" >> .config
 		fi
 	fi
 
