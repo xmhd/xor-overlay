@@ -344,6 +344,10 @@ src_prepare() {
 		done
 	fi
 
+	if use custom-cflags; then
+		eapply "${GENTOO_PATCHES_DIR}/5010_enable-cpu-optimizations-universal.patch"
+	fi
+
 	# append EXTRAVERSION to the kernel sources Makefile
 	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${KERNEL_EXTRAVERSION}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
 
