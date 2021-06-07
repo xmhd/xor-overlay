@@ -364,7 +364,7 @@ src_prepare() {
 		MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
 
 		ewarn "CAPTURED CPU VENDOR: ${CPU_VENDOR}"
-		ewarm "CAPTURED MARCH: ${MARCH}"
+		ewarn "CAPTURED MARCH: ${MARCH}"
 
 		# if ${MARCH}=foo ...
 		case ${MARCH} in
