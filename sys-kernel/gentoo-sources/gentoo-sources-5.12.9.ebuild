@@ -366,14 +366,11 @@ src_prepare() {
 		# if ${MARCH}=foo ...
 		case ${MARCH} in
 			*native)
-				case ${CPU_VENDOR} in
-					*AMD*)
-						echo "CONFIG_MNATIVE_AMD=y" >> .config
-					;;
-					*Intel*)
-						echo "CONFIG_MNATIVE_INTEL=y" >> .config
-					;;
-				esac
+				if grep -q "AuthenticAMD" /proc/cpuinfo; then
+					echo "CONFIG_MNATIVE_AMD=y" >> .config
+				elif grep -q "GenuineIntel" /proc/cpuinfo; then
+					echo "CONFIG_MNATIVE_INTEL=y" >> .config
+				fi
 			;;
 			*x86-64)
 				echo "CONFIG_GENERIC_CPU=y" >> .config
