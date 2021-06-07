@@ -383,7 +383,7 @@ src_prepare() {
 			*k8)
 				echo "CONFIG_MK8=y" >> .config
 			;;
-			*k8-ss3)
+			*k8-sse3)
 				echo "CONFIG_MK8SSE3=y" >> .config
 			;;
 			*amdfam10)
