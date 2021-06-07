@@ -357,8 +357,10 @@ src_prepare() {
 
 	if use custom-cflags; then
 		MARCH="$(python -c "import portage; print(portage.settings[\"CFLAGS\"])" | sed 's/ /\n/g' | grep "march")"
-		if [ -n "$MARCH" ]; then
-			sed -i -e 's/-mtune=generic/$MARCH/g' arch/x86/Makefile || die "Canna optimize this kernel anymore, captain!"
+
+		# no MARCH found
+		if [[ -n "$MARCH" ]]; then
+			echo "CONFIG_GENERIC_CPU" >> .config
 		fi
 	fi
 
