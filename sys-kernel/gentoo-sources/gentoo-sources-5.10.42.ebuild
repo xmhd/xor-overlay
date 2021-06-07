@@ -27,7 +27,7 @@ IUSE="${IUSE} mcelog"
 
 BDEPEND="
 	sys-devel/bc
-	debug? ( dev-util/dwarves )
+	debug? ( dev-util/pahole )
 	sys-devel/flex
 	build-kernel? (
 		>=sys-kernel/genkernel-4.2.0
