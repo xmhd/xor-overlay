@@ -698,6 +698,8 @@ src_compile() {
 
 src_install() {
 
+	export SANDBOX_ON=0
+
 	# create sources directory if required
 	dodir /usr/src
 
@@ -728,7 +730,7 @@ src_install() {
 		fi
 
 		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
-		installkernel "${KERNEL_FULL_VERSION}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${ED}/boot"
+		installkernel "${KERNEL_FULL_VERSION}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
 
 		# module symlink fix-up:
 		rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to remove old kernel source symlink"
