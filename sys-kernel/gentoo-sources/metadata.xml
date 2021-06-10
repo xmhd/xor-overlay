@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
 <pkgmetadata>
-	<maintainer type="project">
-		<email>xor@cairnlinux.org</email>
-	</maintainer>
-	<use>
-		<flag name="build-kernel">Build a kernel and modules from the kernel sources</flag>
-		<flag name="btrfs">Enable support for btrfs in the kernel + initramfs</flag>
-		<flag name="clang">TODO</flag>
-		<flag name="compress-modules">Compress kernel modules as part of kernel build</flag>
-		<flag name="e2fs">Enable support for EXT file systems in the kernel + initramfs</flag>
-		<flag name="firmware">Include firmware in the initramfs</flag>
-		<flag name="hardened">Apply kernel hardening patch set and CONFIG_* tweaks</flag>
-		<flag name="include-files">TODO"</flag>
-		<flag name="install-sources">Install the entire kernel sources tree</flag>
-		<flag name="luks">Enable support for luks in the kernel + initramfs</flag>
-		<flag name="lvm">Enable support for lvm in the kernel + initramfs</flag>
-		<flag name="mcelog">Enable support for mcelog in the kernel</flag>
-		<flag name="mdadm">Enable support for mdadm in the kernel + initramfs</flag>
-		<flag name="memcg">Enable support for memory controller for cgroups in the kernel"
-		<flag name="microcode">Include microcode in the initramfs</flag>
-		<flag name="minimal">Minimal kernel configuration for use in virtual environments (e.g. containers)</flag>
-		<flag name="module-rebuild">Perform a callback emerge to rebuild external kernel modules on pkg_postinst</flag>
-		<flag name="page-table-isolation">Remove kernel mapping in user mode</flag>
-		<flag name="PaX">Enforces writable pages to be non-executable, and executable pages to be non-writable</flag>
-		<flag name="plymouth">Enable support for plymouth in the kernel + initramfs</flag>
-		<flag name="retpoline">Avoid speculative indirect branches in kernel</flag>
-		<flag name="sign-modules">Sign the kernel modules as part of the build-kernel process</flag>
-		<flag name="xfs">Enable support for xfs in the kernel + initramfs</flag>
-		<flag name="zfs">Enable support for zfs in the kernel + initramfs</flag>
-	</use>
+<maintainer type="project">
+	<email>xor@cairnlinux.org</email>
+</maintainer>
+<use>
+	<flag name="build-kernel">Build a kernel and modules from the kernel sources</flag>
+	<flag name="btrfs">Enable support for btrfs in the kernel + initramfs</flag>
+	<flag name="clang">TODO</flag>
+	<flag name="compress-modules">Compress kernel modules as part of kernel build</flag>
+	<flag name="e2fs">Enable support for EXT file systems in the kernel + initramfs</flag>
+	<flag name="firmware">Include firmware in the initramfs</flag>
+	<flag name="hardened">Apply kernel hardening patch set and CONFIG_* tweaks</flag>
+	<flag name="include-files">TODO"</flag>
+	<flag name="install-sources">Install the entire kernel sources tree</flag>
+	<flag name="luks">Enable support for luks in the kernel + initramfs</flag>
+	<flag name="lvm">Enable support for lvm in the kernel + initramfs</flag>
+	<flag name="mcelog">Enable support for mcelog in the kernel</flag>
+	<flag name="mdadm">Enable support for mdadm in the kernel + initramfs</flag>
+	<flag name="memcg">Enable support for memory controller for cgroups in the kernel"
+	<flag name="microcode">Include microcode in the initramfs</flag>
+	<flag name="minimal">Minimal kernel configuration for use in virtual environments (e.g. containers)</flag>
+	<flag name="module-rebuild">Perform a callback emerge to rebuild external kernel modules on pkg_postinst</flag>
+	<flag name="page-table-isolation">Remove kernel mapping in user mode</flag>
+	<flag name="PaX">Enforces writable pages to be non-executable, and executable pages to be non-writable</flag>
+	<flag name="plymouth">Enable support for plymouth in the kernel + initramfs</flag>
+	<flag name="retpoline">Avoid speculative indirect branches in kernel</flag>
+	<flag name="sign-modules">Sign the kernel modules as part of the build-kernel process</flag>
+	<flag name="xfs">Enable support for xfs in the kernel + initramfs</flag>
+	<flag name="zfs">Enable support for zfs in the kernel + initramfs</flag>
+</use>
 </pkgmetadata>
