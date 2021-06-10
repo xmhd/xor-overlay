@@ -18,6 +18,7 @@
 		<flag name="lvm">Enable support for lvm in the kernel + initramfs</flag>
 		<flag name="mcelog">Enable support for mcelog in the kernel</flag>
 		<flag name="mdadm">Enable support for mdadm in the kernel + initramfs</flag>
+		<flag name="memcg">Enable the memory controller for cgroups in the kernel</flag>
 		<flag name="microcode">Include microcode in the initramfs</flag>
 		<flag name="minimal">Minimal kernel configuration for use in virtual environments (e.g. containers)</flag>
 		<flag name="module-rebuild">Perform a callback emerge to rebuild external kernel modules on pkg_postinst</flag>
