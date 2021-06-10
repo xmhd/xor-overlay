@@ -661,13 +661,13 @@ src_prepare() {
 		echo
 	fi
 
+	# finally apply any user patches
+	eapply_user
+
 	# get config into good state:
 	yes "" | make oldconfig >/dev/null 2>&1 || die
 	cp .config "${T}"/.config || die
 	make -s mrproper || die "make mrproper failed"
-
-	# finally, apply any user patches
-	eapply_user
 }
 
 src_configure() {
