@@ -17,13 +17,13 @@ RESTRICT="binchecks strip mirror"
 # general kernel USE flags
 IUSE="build-kernel clang compress-modules debug include-files +install-sources symlink"
 # optimize
-IUSE="${IUSE} custom-cflags +memcg"
+IUSE="${IUSE} custom-cflags"
 # security
 IUSE="${IUSE} hardened +page-table-isolation PaX +retpoline selinux sign-modules"
 # initramfs
 IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode plymouth xfs zfs"
 # misc kconfig tweaks
-IUSE="${IUSE} mcelog"
+IUSE="${IUSE} mcelog +memcg"
 
 BDEPEND="
 	sys-devel/bc
