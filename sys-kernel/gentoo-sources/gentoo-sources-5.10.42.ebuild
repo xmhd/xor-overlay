@@ -17,7 +17,7 @@ RESTRICT="binchecks strip mirror"
 # general kernel USE flags
 IUSE="build-kernel clang compress-modules debug include-files +install-sources symlink"
 # optimize
-IUSE="${IUSE} custom-cflags"
+IUSE="${IUSE} custom-cflags +memcg"
 # security
 IUSE="${IUSE} hardened +page-table-isolation PaX +retpoline selinux sign-modules"
 # initramfs
@@ -581,6 +581,12 @@ src_prepare() {
 	# mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
 	if use mcelog; then
 		echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
+	fi
+
+	if use memcg; then
+		echo "CONFIG_MEMCG=y" >> .config
+	else
+		echo "CONFIG_MEMCG=n" >> .config
 	fi
 
 	if use PaX; then
