@@ -364,7 +364,7 @@ src_prepare() {
 	sed -i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
 
 	# copy the kconfig file into the kernel sources tree
-	cp "${WORKDIR}"/alpine-kconfig-* "${S}"/.config
+	cp "${DISTDIR}"/alpine-kconfig-* "${S}"/.config
 
 	if use custom-cflags; then
 
