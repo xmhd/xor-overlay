@@ -15,7 +15,7 @@ SLOT="${PV}"
 RESTRICT="binchecks strip mirror"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress-modules debug include-files +install-sources symlink"
+IUSE="build-kernel clang compress-modules debug include-files +install-sources minimal symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
@@ -70,42 +70,49 @@ KERNEL_EXTRAVERSION="-gentoo"
 KERNEL_FULL_VERSION="${PV}${KERNEL_EXTRAVERSION}"
 KERNEL_ARCHIVE="linux-${KERNEL_VERSION}.tar.xz"
 KERNEL_UPSTREAM="https://cdn.kernel.org/pub/linux/kernel/v5.x/${KERNEL_ARCHIVE}"
-
-KERNEL_CONFIG_VERSION="5.10.38-1"
-KERNEL_CONFIG_UPSTREAM="https://salsa.debian.org/kernel-team/linux/-/raw/debian/${KERNEL_CONFIG_VERSION}/debian/config"
+KERNEL_CONFIG_UPSTREAM="https://git.alpinelinux.org/aports/plain/main/linux-lts"
 
 SRC_URI="
 	${KERNEL_UPSTREAM}
-
-	${KERNEL_CONFIG_UPSTREAM}/config -> debian-kconfig-${PV}
 	x86? (
-		${KERNEL_CONFIG_UPSTREAM}/i386/config -> debian-kconfig-i386-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/i386/config.686 -> debian-kconfig-i686-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/i386/config.686-pae -> debian-kconfig-i686-pae-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/kernelarch-x86/config -> debian-kconfig-kernelarch-x86-${PV}
+		minimal? (
+			${KERNEL_CONFIG_UPSTREAM}/config-virt.x86 -> alpine-kconfig-virt-x86-${PV}
+		)
+		!minimal? (
+			${KERNEL_CONFIG_UPSTREAM}/config-lts.x86 -> alpine-kconfig-x86-${PV}
+		)
 	)
 	amd64? (
-		${KERNEL_CONFIG_UPSTREAM}/amd64/config -> debian-kconfig-amd64-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/kernelarch-x86/config -> debian-kconfig-kernelarch-amd64-${PV}
+		minimal? (
+			${KERNEL_CONFIG_UPSTREAM}/config-virt.x86_64 -> alpine-kconfig-virt-amd64-${PV}
+		)
+		!minimal? (
+			${KERNEL_CONFIG_UPSTREAM}/config-lts.x86_64 -> alpine-kconfig-amd64-${PV}
+		)
 	)
 	arm? (
-		${KERNEL_CONFIG_UPSTREAM}/armhf/config -> debian-kconfig-arm-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/armhf/config.armmp-lpae -> debian-kconfig-arm-lpae-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/kernelarch-arm/config -> debian-kconfig-kernelarch-arm-${PV}
+		minimal? (
+			${KERNEL_CONFIG_UPSTREAM}/config-virt.armv7 -> alpine-kconfig-virt-arm-${PV}
+		)
+		!minimal? (
+			${KERNEL_CONFIG_UPSTREAM}/config-lts.armv7 -> alpine-kconfig-arm-${PV}
+		)
 	)
 	arm64? (
-		${KERNEL_CONFIG_UPSTREAM}/arm64/config -> debian-kconfig-arm64-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/kernelarch-arm/config -> debian-kconfig-kernelarch-arm64-${PV}
-	)
-	ppc? (
-		${KERNEL_CONFIG_UPSTREAM}/powerpc/config.powerpc -> debian-kconfig-ppc-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/powerpc/config.powerpc-smp -> debian-kconfig-ppc-smp-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/kernelarch-powerpc/config -> debian-kconfig-kernelarch-ppc-${PV}
+		minimal? (
+			${KERNEL_CONFIG_UPSTREAM}/config-virt.aarch64 -> alpine-kconfig-virt-arm64-${PV}
+		)
+		!minimal? (
+			${KERNEL_CONFIG_UPSTREAM}/config-lts.aarch64 -> alpine-kconfig-arm64-${PV}
+		)
 	)
 	ppc64? (
-		${KERNEL_CONFIG_UPSTREAM}/kernelarch-powerpc/config -> debian-kconfig-kernelarch-ppc64-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/kernelarch-powerpc/config-arch-64 -> debian-kconfig-kernelarch-64-${PV}
-		${KERNEL_CONFIG_UPSTREAM}/kernelarch-powerpc/config-arch-64-le -> debian-kconfig-kernelarch-64-le-${PV}
+		minimal? (
+			${KERNEL_CONFIG_UPSTREAM}/config-virt.ppc64le -> alpine-kconfig-virt-ppc64-${PV}
+		)
+		!minimal? (
+			${KERNEL_CONFIG_UPSTREAM}/config-lts.ppc64le -> alpine-kconfig-ppc64-${PV}
+		)
 	)
 "
 
@@ -319,9 +326,6 @@ src_unpack() {
 
 	# unpack the kernel sources to ${WORKDIR}
 	unpack ${KERNEL_ARCHIVE} || die "failed to unpack kernel sources"
-
-	# unpack the various kconfig files into a single file
-	cat "${DISTDIR}"/debian-kconfig-* >> "${WORKDIR}"/debian-kconfig-${PV} || die "failed to unpack kconfig"
 }
 
 src_prepare() {
@@ -360,7 +364,7 @@ src_prepare() {
 	sed -i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
 
 	# copy the kconfig file into the kernel sources tree
-	cp "${WORKDIR}"/debian-kconfig-${PV} "${S}"/.config
+	cp "${WORKDIR}"/alpine-kconfig-* "${S}"/.config
 
 	if use custom-cflags; then
 
