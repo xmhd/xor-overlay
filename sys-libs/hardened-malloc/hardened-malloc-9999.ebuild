@@ -24,6 +24,7 @@ DEPEND="
 if [[ ${PV} == 9999* ]]; then
 	inherit git-r3
 	EGIT_REPO_URI="https://github.com/GrapheneOS/hardened_malloc.git"
+	KEYWORDS=""
 else
 	SRC_URI="${HOMEPAGE}/archive/${PV}.tar.gz -> ${PN}-${PV}.tar.gz"
 fi
