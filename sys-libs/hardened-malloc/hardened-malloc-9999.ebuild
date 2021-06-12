@@ -29,6 +29,8 @@ else
 	SRC_URI="${HOMEPAGE}/archive/${PV}.tar.gz -> ${PN}-${PV}.tar.gz"
 fi
 
+S="${WORKDIR}/hardened_malloc-${PV}"
+
 src_unpack() {
 
 	# unpack git sources...
