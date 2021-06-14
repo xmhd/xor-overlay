@@ -679,8 +679,9 @@ src_configure() {
 
 		mkdir -p "${WORKDIR}"/build || die "failed to create build dir"
 		cp "${T}"/.config "${WORKDIR}"/build/.config || die "failed to copy .config into build dir"
-		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" olddefconfig || die "kernel configure failed"
-		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" modules_prepare || die "modules_prepare failed"
+
+		local targets=( olddefconfig prepare modules_prepare scripts )
+		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" "${targets[@]}" || die "kernel configure failed"
 	fi
 }
 
