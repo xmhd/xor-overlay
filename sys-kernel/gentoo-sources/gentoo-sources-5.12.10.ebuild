@@ -108,7 +108,7 @@ GENTOO_PATCHES=(
 	2000_BT-Check-key-sizes-only-if-Secure-Simple-Pairing-enabled.patch
 	2900_tmp513-Fix-build-issue-by-selecting-CONFIG_REG.patch
 	2920_sign-file-patch-for-libressl.patch
-	4567_distro-Gentoo-Kconfig.patch
+#	4567_distro-Gentoo-Kconfig.patch
 #	5010_enable-cpu-optimizations-universal.patch
 #	5020_BMQ-and-PDS-io-schedular-v5.11-r3.patch
 #	5021_BMQ-and-PDS-gentoo-defaults-v5.11-r2.patch

@@ -108,7 +108,7 @@ GENTOO_PATCHES=(
 	2000_BT-Check-key-sizes-only-if-Secure-Simple-Pairing-enabled.patch
 	2900_tmp513-Fix-build-issue-by-selecting-CONFIG_REG.patch
 	2920_sign-file-patch-for-libressl.patch
-	4567_distro-Gentoo-Kconfig.patch
+#	4567_distro-Gentoo-Kconfig.patch
 	5000_shiftfs-ubuntu-20.04.patch
 #	5010_enable-cpu-optimizations-universal.patch
 )
