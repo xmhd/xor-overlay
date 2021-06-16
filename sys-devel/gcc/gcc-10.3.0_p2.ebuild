@@ -122,6 +122,7 @@ GENTOO_PATCHES=(
 	31_all_fno-delayed-branch.patch
 	32_all_vtv-slibtool.patch
 	33_all_ctor-union-PR100489.patch
+	34_all_ICE-tsubst-PR100102.patch
 )
 
 ALPINE_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/alpine-patches"
