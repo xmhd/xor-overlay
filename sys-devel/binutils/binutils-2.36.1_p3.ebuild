@@ -45,6 +45,8 @@ SRC_URI="
 	mirror://gnu/binutils/binutils-${BINUTILS_VER}.tar.xz
 "
 
+S="${WORKDIR}/${PN}-${BINUTILS_VER}"
+
 GENTOO_PATCHES_DIR="${FILESDIR}/${BINUTILS_VER}/gentoo-patches"
 
 GENTOO_PATCHES=(
