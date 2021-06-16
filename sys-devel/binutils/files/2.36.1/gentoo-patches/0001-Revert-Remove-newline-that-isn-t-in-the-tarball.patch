@@ -1,0 +1,24 @@
+From d32fc38b0e6c774c05f244ab6a5289e805cb099d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Andreas=20K=2E=20H=C3=BCttel?= <dilfridge@gentoo.org>
+Date: Mon, 8 Feb 2021 23:54:53 +0200
+Subject: [PATCH 01/28] Revert "Remove newline that isn't in the tarball"
+
+This reverts commit 63dceab1c6e2db66fc1648d453ea6dcbf52c0be1.
+---
+ bfd/development.sh | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/bfd/development.sh b/bfd/development.sh
+index b6f11986c85..eb9762e4426 100644
+--- a/bfd/development.sh
++++ b/bfd/development.sh
+@@ -17,5 +17,6 @@
+ 
+ # Controls whether to enable development-mode features by default.
+ development=false
++
+ # Indicate whether this is a release branch.
+ experimental=false
+-- 
+2.26.3
+

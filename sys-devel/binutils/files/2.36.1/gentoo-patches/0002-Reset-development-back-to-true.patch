@@ -1,0 +1,38 @@
+From dbee5a4467419646ca98752f73ddde0b7370793e Mon Sep 17 00:00:00 2001
+From: Nick Clifton <nickc@redhat.com>
+Date: Sat, 6 Feb 2021 09:21:36 +0000
+Subject: [PATCH 02/28] Reset development back to true
+
+---
+ bfd/ChangeLog      | 4 ++++
+ bfd/development.sh | 2 +-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/bfd/ChangeLog b/bfd/ChangeLog
+index 718e8a3e323..0c4631e15e6 100644
+--- a/bfd/ChangeLog
++++ b/bfd/ChangeLog
+@@ -1,3 +1,7 @@
++2021-02-06  Nick Clifton  <nickc@redhat.com>
++
++	(development): Set to true.
++
+ 2021-02-06  Nick Clifton  <nickc@redhat.com>
+ 
+ 	This is the 2.36.1 release.
+diff --git a/bfd/development.sh b/bfd/development.sh
+index eb9762e4426..a376b02d869 100644
+--- a/bfd/development.sh
++++ b/bfd/development.sh
+@@ -16,7 +16,7 @@
+ # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ 
+ # Controls whether to enable development-mode features by default.
+-development=false
++development=true
+ 
+ # Indicate whether this is a release branch.
+ experimental=false
+-- 
+2.26.3
+

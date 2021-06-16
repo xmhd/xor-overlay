@@ -1,0 +1,63 @@
+From f4dc758f51ee6d03aac68224e28dd36787bf64ad Mon Sep 17 00:00:00 2001
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Thu, 18 Mar 2021 18:34:38 -0700
+Subject: [PATCH 22/28] DWARF: Check version >= 3 for DW_FORM_ref_addr
+
+Check version >= 3, instead of version == 3 || version == 4, for
+DW_FORM_ref_addr.
+
+** NOTE: test cases dropped in the Gentoo branch, since they
+** generate git binary patches, which patch cannot handle yet
+** dilfridge
+
+bfd/
+
+	PR ld/27587
+	* dwarf2.c (read_attribute_value): Check version >= 3 for
+	DW_FORM_ref_addr.
+
+ld/
+
+	PR ld/27587
+	* testsuite/ld-x86-64/pr27587.err: New file.
+	* testsuite/ld-x86-64/pr27587a.obj.bz2: Likewise.
+	* testsuite/ld-x86-64/pr27587b.obj.bz2: Likewise.
+	* testsuite/ld-x86-64/x86-64.exp: Run PR ld/27587 test.
+
+(cherry picked from commit 51f6e7a9f4210aed0f8156c1d2e348de6f96f37d)
+(cherry picked from commit 70d985a00d512ad0c985b8d6db0846c14a192795)
+---
+ bfd/ChangeLog | 6 ++++++
+ bfd/dwarf2.c  | 2 +-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/bfd/ChangeLog b/bfd/ChangeLog
+index 6b399753762..24d25dc1a46 100644
+--- a/bfd/ChangeLog
++++ b/bfd/ChangeLog
+@@ -1,3 +1,9 @@
++2021-03-22  H.J. Lu  <hongjiu.lu@intel.com>
++
++	PR ld/27587
++	* dwarf2.c (read_attribute_value): Check version >= 3 for
++	DW_FORM_ref_addr.
++
+ 2021-03-02  Alan Modra  <amodra@gmail.com>
+ 
+ 	* elf64-ppc.c (ppc64_elf_relocate_section): Don't optimise got
+diff --git a/bfd/dwarf2.c b/bfd/dwarf2.c
+index 240138d5982..5651696c0f7 100644
+--- a/bfd/dwarf2.c
++++ b/bfd/dwarf2.c
+@@ -1195,7 +1195,7 @@ read_attribute_value (struct attribute *  attr,
+     case DW_FORM_ref_addr:
+       /* DW_FORM_ref_addr is an address in DWARF2, and an offset in
+ 	 DWARF3.  */
+-      if (unit->version == 3 || unit->version == 4)
++      if (unit->version >= 3)
+ 	{
+ 	  if (unit->offset_size == 4)
+ 	    attr->u.val = read_4_bytes (unit->abfd, info_ptr, info_ptr_end);
+-- 
+2.26.3
+

@@ -1,0 +1,873 @@
+commit 7cb2fdba3fcf91cb7cc1b34829ec980281f6b2aa (HEAD -> gentoo/binutils-2.36.1)
+Author:     H.J. Lu <hjl.tools@gmail.com>
+AuthorDate: Fri Feb 12 16:30:23 2021 -0800
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Tue Apr 20 17:45:13 2021 +0200
+
+    GCC_CET_HOST_FLAGS: Check if host supports multi-byte NOPs
+    
+    https://bugs.gentoo.org/771765
+    https://sourceware.org/PR27397
+    
+    On i586-like CPUs endbr32 added by -Wl,-z,ibt,-z,shstk
+    generates crashing binaries and causes ./configure failure.
+
+ config/cet.m4       | 19 ++++++++++++++++---
+ libiberty/configure | 29 +++++++++++++++++++++++++++++
+ 2 files changed, 45 insertions(+), 3 deletions(-)
+
+commit 3d0ac199a6329a91e1a5d3cd22a6d787731c41c5
+Author:     GDB Administrator <gdbadmin@sourceware.org>
+AuthorDate: Sun Apr 18 00:00:55 2021 +0000
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Tue Apr 20 17:45:10 2021 +0200
+
+    Automatic date update in version.in
+    
+    (cherry picked from commit 3add24e89bac42ddc50fb4e3195b4fa74f705a98)
+
+ bfd/version.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 6482b99c3073c35c91fc9409f5a4ac39cba4efca
+Author:     Alan Modra <amodra@gmail.com>
+AuthorDate: Thu Apr 15 01:33:13 2021 +0930
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Tue Apr 20 17:45:07 2021 +0200
+
+    Make objcopy -p work when an output file is specified
+    
+    More fallout from the PR27456 fixes.
+    
+            PR 27456
+            * rename.c (smart_rename): When TO and FROM are equal, just set
+            file timestamp.
+            * objcopy.c (strip_main, copy_main): Always call smart_rename.
+    
+    (cherry picked from commit d0ecdcddc363ad7f05fc50cf1eee4028fa7f8964)
+    (cherry picked from commit e4454ee18960b092ba10e43100d43fef12f65b26)
+
+ binutils/ChangeLog |  7 +++++++
+ binutils/objcopy.c | 13 ++++++-------
+ binutils/rename.c  | 15 +++++++++------
+ 3 files changed, 22 insertions(+), 13 deletions(-)
+
+commit 06da394fd2aa1d486b937510026457a6a8ca20dc
+Author:     Tejas Belagod <tejas.belagod@arm.com>
+AuthorDate: Fri Apr 9 12:29:32 2021 +0100
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Tue Apr 20 17:45:04 2021 +0200
+
+    AArch64: Fix Diagnostic messaging for LD/ST Exclusive.
+    
+    A summary of what this patch set fixes:
+    
+    For instructions
+    
+            STXR w0,x2,[x0]
+            STLXR w0,x2,[x0]
+    
+    The warning we emit currently is misleading:
+    
+    Warning: unpredictable: identical transfer and status registers --`stlxr w0,x2,[x0]'
+    Warning: unpredictable: identical transfer and status registers --`stxr w0,x2,[x0]'
+    
+    it ought to be:
+    
+    Warning: unpredictable: identical base and status registers --`stlxr w0,x2,[x0]'
+    Warning: unpredictable: identical base and status registers --`stxr w0,x2,[x0]'
+    
+    For instructions:
+    
+            ldaxp x0,x0,[x0]
+            ldxp x0,x0,[x0]
+    
+    The warning we emit is incorrect
+    
+    Warning: unpredictable: identical transfer and status registers --`ldaxp x0,x0,[x0]'
+    Warning: unpredictable: identical transfer and status registers --`ldxp x0,x0,[x0]'
+    
+    it ought to be:
+    
+    Warning: unpredictable load of register pair -- `ldaxp x0,x0,[x0]'
+    Warning: unpredictable load of register pair -- `ldxp x0,x0,[x0]'
+    
+    For instructions
+    
+            stlxp   w0, x2, x2, [x0]
+            stxp    w0, x2, x2, [x0]
+    
+    We don't emit any warning when it ought to be:
+    
+    Warning: unpredictable: identical base and status registers --`stlxp w0,x2,x2,[x0]'
+    Warning: unpredictable: identical base and status registers --`stxp w0,x2,x2,[x0]'
+    
+    gas/ChangeLog:
+    
+    2021-04-09  Tejas Belagod  <tejas.belagod@arm.com>
+    
+            * config/tc-aarch64.c (warn_unpredictable_ldst): Clean-up diagnostic messages
+            for LD/ST Exclusive instructions.
+            * testsuite/gas/aarch64/diagnostic.s: Add a diagnostic test for STLXP.
+            * testsuite/gas/aarch64/diagnostic.l: Fix-up test after message clean-up.
+    
+    (cherry picked from commit dd17020328b4ebf45be26eed156fba3d269096f6)
+    (cherry picked from commit d6af793d41da15d10f219c437f16346475efb4d5)
+
+ gas/ChangeLog                          | 10 ++++++++
+ gas/config/tc-aarch64.c                | 47 ++++++++++++++++++++++++++++------
+ gas/testsuite/gas/aarch64/diagnostic.l | 12 ++++-----
+ gas/testsuite/gas/aarch64/diagnostic.s |  1 +
+ 4 files changed, 56 insertions(+), 14 deletions(-)
+
+commit 755de099f5eb90925548b1bace0cf09b80747fe0
+Author:     Tejas Belagod <tejas.belagod@arm.com>
+AuthorDate: Fri Apr 9 12:21:38 2021 +0100
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Tue Apr 20 17:45:01 2021 +0200
+
+    AArch64: Fix Atomic LD64/ST64 classification.
+    
+    Patch 1: Fix diagnostics for exclusive load/stores and reclassify
+             Armv8.7-A ST/LD64 Atomics.
+    
+    Following upstream pointing out some inconsistencies in diagnostics,
+    
+    https://sourceware.org/pipermail/binutils/2021-February/115356.html
+    
+    attached is a patch set that fixes the issues. I believe a combination
+    of two patches mainly contributed to these bugs:
+    
+    https://sourceware.org/pipermail/binutils/2020-November/113961.html
+    https://sourceware.org/pipermail/binutils/2018-June/103322.html
+    
+    A summary of what this patch set fixes:
+    
+    For instructions
+    
+            STXR w0,x2,[x0]
+            STLXR w0,x2,[x0]
+    
+    The warning we emit currently is misleading:
+    
+    Warning: unpredictable: identical transfer and status registers --`stlxr w0,x2,[x0]'
+    Warning: unpredictable: identical transfer and status registers --`stxr w0,x2,[x0]'
+    
+    it ought to be:
+    
+    Warning: unpredictable: identical base and status registers --`stlxr w0,x2,[x0]'
+    Warning: unpredictable: identical base and status registers --`stxr w0,x2,[x0]'
+    
+    For instructions:
+    
+            ldaxp x0,x0,[x0]
+            ldxp x0,x0,[x0]
+    
+    The warning we emit is incorrect
+    
+    Warning: unpredictable: identical transfer and status registers --`ldaxp x0,x0,[x0]'
+    Warning: unpredictable: identical transfer and status registers --`ldxp x0,x0,[x0]'
+    
+    it ought to be:
+    
+    Warning: unpredictable load of register pair -- `ldaxp x0,x0,[x0]'
+    Warning: unpredictable load of register pair -- `ldxp x0,x0,[x0]'
+    
+    For instructions
+    
+            stlxp   w0, x2, x2, [x0]
+            stxp    w0, x2, x2, [x0]
+    
+    We don't emit any warning when it ought to be:
+    
+    Warning: unpredictable: identical base and status registers --`stlxp w0,x2,x2,[x0]'
+    Warning: unpredictable: identical base and status registers --`stxp w0,x2,x2,[x0]'
+    
+    For instructions:
+    
+            st64bv  x0, x2, [x0]
+            st64bv  x2, x0, [x0]
+    
+    We incorrectly warn when its not necessary. This is because we classify them
+    incorrectly as ldstexcl when it should be lse_atomics in the opcode table.
+    The incorrect classification makes it pick up the warnings from warning on
+    exclusive load/stores.
+    
+    Patch 2: Reclassify Armv8.7-A ST/LD64 Atomics.
+    
+    This patch reclassifies ST64B{V,V0}, LD64B as lse_atomics rather than ldstexcl
+    according to their encoding class as specified in the architecture. This also
+    has the fortunate side-effect of spurious unpredictable warnings getting
+    eliminated.
+    
+    For eg. For instruction:
+    
+            st64bv  x0, x2, [x0]
+    
+    We incorrectly warn when its not necessary:
+    
+    Warning: unpredictable: identical transfer and status registers --`st64bv x0,x2,[x0]'
+    
+    This is because we classify them incorrectly as ldstexcl when it should be
+    lse_atomics in the opcode table. The incorrect classification makes it pick
+    up the warnings from warning on exclusive load/stores. This patch fixes it
+    by reclassifying it and no warnings are issued for this instruction.
+    
+    opcodes/ChangeLog:
+    
+    2021-04-09  Tejas Belagod  <tejas.belagod@arm.com>
+    
+            * aarch64-tbl.h (struct aarch64_opcode aarch64_opcode_table): Reclassify
+            LD64/ST64 instructions to lse_atomic instead of ldstexcl.
+    
+    (cherry picked from commit 52efda8266cb1f8ade0193f45801fdd6e42165ac)
+    (cherry picked from commit c1d97fe5456e4ee8bf6c9f04e6c73347bacae12c)
+
+ opcodes/ChangeLog     | 8 ++++++++
+ opcodes/aarch64-tbl.h | 8 ++++----
+ 2 files changed, 12 insertions(+), 4 deletions(-)
+
+commit 0bef08db255c42c6c12682ac175071e744cf1d46
+Author:     Tamar Christina <tamar.christina@arm.com>
+AuthorDate: Thu Apr 1 17:10:38 2021 +0100
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Tue Apr 20 17:44:57 2021 +0200
+
+    PE/Windows x86_64: Fix weak undef symbols after image base change
+    
+    The change in PR19011 changed the image load address from being in the lower
+    32-bit address space to the higher 64-bit address space.
+    
+    However when you have a weak undef symbol which stays undef at the end of
+    linking the linker has to resolve this (Windows loader does not support undef
+    symbols).  As such typically these would resolve to 0.
+    
+    The relocation used for these weak symbols are the normal 32-bit PC_REL call
+    relocs.  So when doing the overflow check LD checks if the distance between the
+    symbol and the call is within range.  However now that the load address is
+    > 32-bits and the symbol val is 0 this overflow check will always fail.
+    
+    As such the linker gives a bogus error.  This patch makes the linker not emit
+    the overflow failure but chooses to still let the check be performed (as it's
+    mid-end code).
+    
+    One down side of this is that it does break the common convention that the call
+    be to sym at 0x0. i.e. before you'd get
+    
+          401015:   74 05                   je     40101c
+          401017:   e8 e4 ef bf ff          callq  0
+    
+    and now you get
+    
+       140001015:   74 05                   je     14000101c
+       140001017:   e8 e4 ef ff bf          call   100000000
+    
+    since the call is PC_REL there's no way to get the range large enough to
+    resolve to 0.  As such I have chosen to leave it as the furthest simple range
+    that we can still represent.
+    
+    By only ignoring the error we leave the symbol value itself to still be 0
+    such that the if(<symbol>) checks still work correctly.
+    
+    bfd/ChangeLog:
+    
+    2021-04-01  Tamar Christina  <tamar.christina@arm.com>
+    
+            PR ld/26659
+            * cofflink.c (_bfd_coff_generic_relocate_section): Ignore overflow.
+    
+    ld/ChangeLog:
+    
+    2021-04-01  Tamar Christina  <tamar.christina@arm.com>
+    
+            PR ld/26659
+            * testsuite/ld-pe/pe.exp: Add test.
+            * testsuite/ld-pe/pr26659-weak-undef-sym.d: New test.
+            * testsuite/ld-pe/pr26659-weak-undef-sym.s: New test.
+    
+    (cherry picked from commit 74edb473c9ecf5e2053ecf8e429ee608feafb9e1)
+    (cherry picked from commit 0ff9fad8bf790eebb21a1c1ee378f1c2dd1971af)
+
+ bfd/ChangeLog                               |  8 ++++++
+ bfd/cofflink.c                              | 15 ++++++++++++
+ ld/ChangeLog                                | 10 ++++++++
+ ld/testsuite/ld-pe/pe.exp                   |  1 +
+ ld/testsuite/ld-pe/pr26659-weak-undef-sym.d | 32 ++++++++++++++++++++++++
+ ld/testsuite/ld-pe/pr26659-weak-undef-sym.s | 38 +++++++++++++++++++++++++++++
+ 6 files changed, 104 insertions(+)
+
+commit f4dc758f51ee6d03aac68224e28dd36787bf64ad
+Author:     H.J. Lu <hjl.tools@gmail.com>
+AuthorDate: Thu Mar 18 18:34:38 2021 -0700
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Tue Apr 20 17:42:18 2021 +0200
+
+    DWARF: Check version >= 3 for DW_FORM_ref_addr
+    
+    Check version >= 3, instead of version == 3 || version == 4, for
+    DW_FORM_ref_addr.
+    
+    ** NOTE: test cases dropped in the Gentoo branch, since they
+    ** generate git binary patches, which patch cannot handle yet
+    ** dilfridge
+    
+    bfd/
+    
+            PR ld/27587
+            * dwarf2.c (read_attribute_value): Check version >= 3 for
+            DW_FORM_ref_addr.
+    
+    ld/
+    
+            PR ld/27587
+            * testsuite/ld-x86-64/pr27587.err: New file.
+            * testsuite/ld-x86-64/pr27587a.obj.bz2: Likewise.
+            * testsuite/ld-x86-64/pr27587b.obj.bz2: Likewise.
+            * testsuite/ld-x86-64/x86-64.exp: Run PR ld/27587 test.
+    
+    (cherry picked from commit 51f6e7a9f4210aed0f8156c1d2e348de6f96f37d)
+    (cherry picked from commit 70d985a00d512ad0c985b8d6db0846c14a192795)
+
+ bfd/ChangeLog | 6 ++++++
+ bfd/dwarf2.c  | 2 +-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+commit 3cca33ff6f988ed40d2c4afd36e603443d1f6e38
+Author:     Nick Alcock <nick.alcock@oracle.com>
+AuthorDate: Thu Mar 18 12:37:52 2021 +0000
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Sun Apr 18 12:23:16 2021 +0200
+
+    Add install dependencies for ld -> bfd and libctf -> bfd
+    
+    This stops problems parallel-installing if a relink of libctf is needed.
+    
+    Also adds corresponding install-strip dependencies.
+    
+    ChangeLog
+    2021-03-18  Nick Alcock  <nick.alcock@oracle.com>
+    
+            PR libctf/27482
+            * Makefile.def: Add install-bfd dependencies for install-libctf and
+            install-ld, and install-strip-bfd dependencies for
+            install-strip-libctf and install-strip-ld; move the install-ld
+            dependency on install-libctf to join it.
+            * Makefile.in: Regenerated.
+    
+    (cherry picked from commit 26952c7e3c5342266a2c32ebe1cd96c8795ca7f2)
+
+ ChangeLog    | 9 +++++++++
+ Makefile.def | 9 ++++++++-
+ Makefile.in  | 7 ++++++-
+ 3 files changed, 23 insertions(+), 2 deletions(-)
+
+commit 69c5076e67002705eabc252766f9f55a8c163c52
+Author:     Alan Modra <amodra@gmail.com>
+AuthorDate: Tue Mar 2 21:22:31 2021 +1030
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Sun Apr 18 12:22:41 2021 +0200
+
+    PowerPC64 undefined weak visibility vs GOT optimisation
+    
+    Undefined weak symbols with non-default visibility are seen as local
+    by SYMBOL_REFERENCES_LOCAL.  This stops a got indirect to relative
+    optimisation for them, so that pies and dlls don't get non-zero values
+    when loading somewhere other than the address they are linked at
+    (which always happens).  The optimisation could be allowed for pdes,
+    but I thought it best not to allow it there too.
+    
+    bfd/
+            * elf64-ppc.c (ppc64_elf_relocate_section): Don't optimise got
+            indirect to pc-relative or toc-relative for undefined symbols.
+    ld/
+            * testsuite/ld-powerpc/weak1.d,
+            * testsuite/ld-powerpc/weak1.r,
+            * testsuite/ld-powerpc/weak1.s,
+            * testsuite/ld-powerpc/weak1so.d,
+            * testsuite/ld-powerpc/weak1so.r: New tests.
+            * testsuite/ld-powerpc/powerpc.exp: Run them.
+    
+    (cherry picked from commit f5b9c288a3057f0f04e74f00fdb0e79d171d54a8)
+    (cherry picked from commit e748f8e407692a59efe65bfe67240d1f773e7d61)
+
+ bfd/ChangeLog                       |  5 +++++
+ bfd/elf64-ppc.c                     |  9 +++++++++
+ ld/ChangeLog                        |  9 +++++++++
+ ld/testsuite/ld-powerpc/powerpc.exp |  6 ++++++
+ ld/testsuite/ld-powerpc/weak1.d     | 26 ++++++++++++++++++++++++++
+ ld/testsuite/ld-powerpc/weak1.r     |  5 +++++
+ ld/testsuite/ld-powerpc/weak1.s     | 22 ++++++++++++++++++++++
+ ld/testsuite/ld-powerpc/weak1so.d   | 26 ++++++++++++++++++++++++++
+ ld/testsuite/ld-powerpc/weak1so.r   |  7 +++++++
+ 9 files changed, 115 insertions(+)
+
+commit b407dc878b02fa3d469547035c51125e0bdf807a
+Author:     Alan Modra <amodra@gmail.com>
+AuthorDate: Wed Feb 24 18:01:16 2021 +1030
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Sun Apr 18 12:22:17 2021 +0200
+
+    PR27441, inconsistency in weak definitions
+    
+    This makes IR objects use the same logic as normal objects with
+    respect to what sort of ref/def makes an as-needed library needed.
+    Testing the binding of the definition is just plain wrong.  What
+    matters is the binding of the reference.
+    
+            PR 27441
+            * elf-bfd.h (struct elf_link_hash_entry): Add ref_ir_nonweak.
+            * elflink.c (elf_link_add_object_symbols): Set ref_ir_nonweak and
+            use when deciding an as-needed library should be loaded instead
+            of using the binding of the library definition.
+    
+    (cherry picked from commit bbaddd4bbeba65200ee805d87c2e3a845842e3eb)
+    (cherry picked from commit e3316baf921523e884731f5c7b547bc9362039e5)
+
+ bfd/ChangeLog | 10 ++++++++++
+ bfd/elf-bfd.h |  2 ++
+ bfd/elflink.c | 11 ++++++++---
+ 3 files changed, 20 insertions(+), 3 deletions(-)
+
+commit bde96310800116478740c3e5169487ed3989f863
+Author:     Alan Modra <amodra@gmail.com>
+AuthorDate: Thu Feb 25 09:46:02 2021 +1030
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Sun Apr 18 12:21:55 2021 +0200
+
+    Re: Use make_tempname file descriptor in smart_rename
+    
+            PR 27456
+            * rename.c (simple_copy): Mark target_stat ATTRIBUTE_UNUSED.
+    
+    (cherry picked from commit 40b02646ec5b197e63ba904f95ea101d95a50cf4)
+    (cherry picked from commit 1aad0a424af288cbd7f70ad5f932664a1abd5a79)
+
+ binutils/ChangeLog | 4 ++++
+ binutils/rename.c  | 3 ++-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+commit 11506331964ea439f216219599c4b7fecb21047c
+Author:     Alan Modra <amodra@gmail.com>
+AuthorDate: Tue Feb 23 12:10:58 2021 +1030
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Sun Apr 18 12:21:29 2021 +0200
+
+    Use make_tempname file descriptor in smart_rename
+    
+    This patch makes use of the temp file descriptor in smart_rename
+    rather than reopening the file.  I don't believe there is a security
+    issue in reopening the file, but this way is one less directory
+    operation.  The patch also attempts to preserve S_ISUID and S_ISGID.
+    
+            PR 27456
+            * bucomm.h (smart_rename): Update prototype.
+            * rename.c (smart_rename): Add fromfd and preserve_dates params.
+            Pass fromfd and target_stat to simple_copy.  Call set_times
+            when preserve_dates.
+            (simple_copy): Accept fromfd rather than from filename.  Add
+            target_stat param.  Rewind fromfd rather than opening.  Open
+            "to" file without O_CREAT.  Try to preserve S_ISUID and S_ISGID.
+            * ar.c (write_archive): Rename ofd to tmpfd.  Dup tmpfd before
+            closing output temp file, and pass tmpfd to smart_rename.
+            * arsup.c (temp_fd): Rename from real_fd.
+            (ar_save): Dup temp_fd and pass to smart_rename.
+            * objcopy.c (strip_main, copy_main): Likewise, and pass
+            preserve_dates.
+    
+    (cherry picked from commit c42c71a1527dd70417d3966dce7ba9edbcf4bdb4)
+    (cherry picked from commit 08bdb5f4f98b6a5e1a9bdc89e7d1889933859caf)
+
+ binutils/ChangeLog | 17 +++++++++++++++++
+ binutils/ar.c      | 11 ++++++-----
+ binutils/arsup.c   |  9 +++++----
+ binutils/bucomm.h  |  3 ++-
+ binutils/objcopy.c | 42 +++++++++++++++++++++++++++++++-----------
+ binutils/rename.c  | 35 +++++++++++++++++++++--------------
+ 6 files changed, 82 insertions(+), 35 deletions(-)
+
+commit b304bbb1aa5464529861af662e490a65f0819ad4
+Author:     Alan Modra <amodra@gmail.com>
+AuthorDate: Tue Feb 23 09:37:39 2021 +1030
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Sun Apr 18 12:21:10 2021 +0200
+
+    PR27456, lstat in rename.c on MinGW
+    
+            PR 27456
+            * rename.c: Tidy throughout.
+            (smart_rename): Always copy.  Remove windows specific code.
+    
+    (cherry picked from commit cca8873dd5a6015d5557ea44bc1ea9c252435a29)
+    (cherry picked from commit 8b69e61d4be276bb862698aaafddc3e779d23c8f)
+
+ binutils/ChangeLog |   5 +++
+ binutils/rename.c  | 111 +++++++++++++++++------------------------------------
+ 2 files changed, 40 insertions(+), 76 deletions(-)
+
+commit 295eaecd9edcf2219c25f080b08e9b06ea021a59
+Author:     Alan Modra <amodra@gmail.com>
+AuthorDate: Fri Feb 26 11:30:32 2021 +1030
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Sun Apr 18 12:20:50 2021 +0200
+
+    Reinstate various pieces backed out from smart_rename changes
+    
+    In the interests of a stable release various last minute smart_rename
+    patches were backed out of the 2.36 branch.  The main reason to
+    reinstate some of those backed out changes here is to make necessary
+    followup fixes to commit 8e03235147a9 simple cherry-picks from
+    mainline.  A secondary reason is that ar -M support isn't fixed for
+    pr26945 without this patch.
+    
+            PR 26945
+            * ar.c: Don't include libbfd.h.
+            (write_archive): Replace xmalloc+strcpy with xstrdup.
+            * arsup.c (temp_name, real_ofd): New static variables.
+            (ar_open): Use make_tempname and bfd_fdopenw.
+            (ar_save): Adjust to suit ar_open changes.
+            * objcopy.c: Don't include libbfd.h.
+            * rename.c: Rename and reorder variables.
+    
+    (cherry picked from commit 95b91a043aeaeb546d2fea556d84a2de1e917770)
+    (cherry picked from commit d3edaa91d4cf7202ec14342410194841e2f67f12)
+
+ binutils/ChangeLog | 13 +++++++++++++
+ binutils/ar.c      |  4 +---
+ binutils/arsup.c   | 37 +++++++++++++++++++++++++------------
+ binutils/objcopy.c |  1 -
+ binutils/rename.c  |  6 +++---
+ 5 files changed, 42 insertions(+), 19 deletions(-)
+
+commit 7293d79f8082a2f1d63998c2f553290438a69059
+Author:     Siddhesh Poyarekar <siddhesh@gotplt.org>
+AuthorDate: Mon Feb 22 20:45:50 2021 +0530
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Sun Apr 18 12:20:13 2021 +0200
+
+    binutils: Avoid renaming over existing files
+    
+    Renaming over existing files needs additional care to restore
+    permissions and ownership, which may not always succeed.
+    Additionally, other properties of the file such as extended attributes
+    may be lost, making the operation flaky.
+    
+    For predictable results, resort to rename() only if the file does not
+    exist, otherwise copy the file contents into the existing file.  This
+    ensures that no additional tricks are needed to retain file
+    properties.
+    
+    This also allows dropping of the redundant set_times on the tmpfile in
+    objcopy/strip since now we no longer rename over existing files.
+    
+    binutils/
+    
+            * ar.c (write_archive): Adjust call to SMART_RENAME.
+            * arsup.c (ar_save): Likewise.
+            * objcopy (strip_main): Don't set times on temporary file and
+            adjust call to SMART_RENAME.
+            (copy_main): Likewise.
+            * rename.c [!S_ISLNK]: Remove definitions.
+            (try_preserve_permissions): Remove function.
+            (smart_rename): Replace PRESERVE_DATES argument with
+            TARGET_STAT.  Use rename system call only if TO does not exist.
+            * bucomm.h (smart_rename): Adjust declaration.
+    
+    (cherry picked from commit 3685de750e6a091663a0abe42528cad29e960e35)
+    (cherry picked from commit 8e03235147a9e774d3ba084e93c2da1aa94d1cec)
+
+ binutils/ChangeLog | 13 +++++++++++++
+ binutils/ar.c      |  2 +-
+ binutils/arsup.c   |  2 +-
+ binutils/bucomm.h  |  3 ++-
+ binutils/objcopy.c |  8 ++------
+ binutils/rename.c  | 55 ++++++++++--------------------------------------------
+ 6 files changed, 29 insertions(+), 54 deletions(-)
+
+commit 3c08d05b0826924dd1c11ccd0e112fcf9bcf0faf
+Author:     Andreas Krebbel <krebbel@linux.ibm.com>
+AuthorDate: Mon Feb 15 14:20:00 2021 +0100
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Sun Apr 18 12:19:28 2021 +0200
+
+    IBM Z: Implement instruction set extensions
+    
+    opcodes/
+    
+            * s390-mkopc.c (main): Accept arch14 as cpu string.
+            * s390-opc.txt: Add new arch14 instructions.
+    
+    include/
+    
+            * opcode/s390.h (enum s390_opcode_cpu_val): Add
+            S390_OPCODE_ARCH14.
+    
+    gas/
+    
+            * config/tc-s390.c (s390_parse_cpu): New entry for arch14.
+            * doc/c-s390.texi: Document arch14 march option.
+            * testsuite/gas/s390/s390.exp: Run the arch14 related tests.
+            * testsuite/gas/s390/zarch-arch14.d: New test.
+            * testsuite/gas/s390/zarch-arch14.s: New test.
+    
+    (cherry picked from commit ba2b480f1037082d27da1afdfe0793c8aac9b1bd)
+    (cherry picked from commit 5ffe9b0dbb20d0257e262be0517893a8ef75c3cc)
+
+ gas/ChangeLog                         |  8 ++++++++
+ gas/config/tc-s390.c                  |  2 ++
+ gas/doc/c-s390.texi                   |  7 ++++---
+ gas/testsuite/gas/s390/s390.exp       |  1 +
+ gas/testsuite/gas/s390/zarch-arch14.d | 31 +++++++++++++++++++++++++++++++
+ gas/testsuite/gas/s390/zarch-arch14.s | 24 ++++++++++++++++++++++++
+ include/ChangeLog                     |  5 +++++
+ include/opcode/s390.h                 |  1 +
+ opcodes/ChangeLog                     |  5 +++++
+ opcodes/s390-mkopc.c                  |  2 ++
+ opcodes/s390-opc.txt                  | 28 ++++++++++++++++++++++++++++
+ 11 files changed, 111 insertions(+), 3 deletions(-)
+
+commit 65446bfbd8442aa30957ab2a8dcae0e31e354b53
+Author:     Alan Modra <amodra@gmail.com>
+AuthorDate: Tue Feb 9 13:32:36 2021 +1030
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Sun Apr 18 12:18:58 2021 +0200
+
+    PR27382, build failure if fileno() is a macro
+    
+            PR 27382
+            * objcopy.c (copy_file): Use bfd_stat.
+    
+    (cherry picked from commit 7651a4871c225925ffdfda0a8c91a6ed370cd9a1)
+
+ binutils/ChangeLog | 5 +++++
+ binutils/objcopy.c | 2 +-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+commit c3af0643f45ba231617e97fc46d7fe0c3ee9b7c4 (tag: gentoo/binutils-2.36.1-1)
+Author:     Andreas K. Hüttel <dilfridge@gentoo.org>
+AuthorDate: Wed Oct 18 00:44:49 2017 +0200
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Mon Feb 8 23:55:43 2021 +0200
+
+    Gentoo: Pass --hash-style=sysv to ld in the testsuite
+
+ binutils/testsuite/lib/binutils-common.exp |  2 +-
+ ld/testsuite/lib/ld-lib.exp                | 16 ++++++++++++++--
+ 2 files changed, 15 insertions(+), 3 deletions(-)
+
+commit c804420eb1fdd9f04b9ce2620b2bd73bf1d773c8
+Author:     Andreas K. Hüttel <dilfridge@gentoo.org>
+AuthorDate: Sun Oct 13 05:25:28 2019 +0200
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Mon Feb 8 23:55:40 2021 +0200
+
+    Gentoo: ld: enable new dtags by default for linux/gnu targets
+    
+    Original author: Mike Frysinger <vapier@gentoo.org>
+    
+    The "new" dtags options have been around for 14+ years now, so for Linux
+    and GNU targets, enable them by default.
+    
+    2012-01-21  Mike Frysinger  <vapier@gentoo.org>
+    
+            * emultempl/elf32.em (gld${EMULATION_NAME}_before_parse): Set
+            link_info.new_dtags to TRUE for linux/gnu targets.
+            * NEWS: Mention new dtags default.
+    
+    2013-01-22  Roland McGrath  <mcgrathr@google.com>
+    
+            * emultempl/elf32.em (gld${EMULATION_NAME}_before_parse): Set
+            new_dtags to TRUE for *-*-nacl* targets.
+
+ ld/emultempl/elf.em | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+commit 9fba5f3959c4fbdfafad5a44d22ce7680c114511
+Author:     Sergei Trofimovich <slyfox@gentoo.org>
+AuthorDate: Wed Sep 12 23:44:29 2018 +0100
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Mon Feb 8 23:55:37 2021 +0200
+
+    Gentoo: add --with-extra-soversion-suffix= option
+    
+    --with-extra-soversion-suffix= will allow Gentoo to
+    distinct libbfd.so and libopcodes.so to have more precise
+    SONAME.
+    
+    Today --enable-targets=all and --enable-64-bit-bfd change
+    libbfd.so ABI:
+    --enable-targets=all adds new symbols to the library
+    --enable-64-bit-bfd modifies BFD_ARCH_SIZE default and
+    changes sizes of integer parameters and fields to most
+    APIs.
+    
+    --with-extra-soversion-suffix= will allow Gentoo to inject
+    additional keys into SONAME to indicate ABI change and avoid
+    hard to diagnose crashes when user reinstalls libbfd.so
+    built with different flags (see https://bugs.gentoo.org/663690).
+    
+    Bug: https://bugs.gentoo.org/666100
+    Signed-off-by: Sergei Trofimovich <slyfox@gentoo.org>
+
+ bfd/Makefile.am  |  5 +++++
+ bfd/Makefile.in  |  4 ++++
+ bfd/configure    | 13 +++++++++++++
+ bfd/configure.ac |  7 +++++++
+ 4 files changed, 29 insertions(+)
+
+commit a1ae6f8b9654701467677e62ee9d828427360716
+Author:     Mike Frysinger <vapier@gentoo.org>
+AuthorDate: Tue Jul 5 20:24:00 2016 +0545
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Mon Feb 8 23:55:34 2021 +0200
+
+    Gentoo: opcodes: link against libbfd.la for rpath deps
+    
+    The reason opcodes doesn't link against libbfd.la is to workaround a
+    libtool bug where it uses installed -L paths ahead of DESTDIR paths.
+    The downside is that the library itself lacks rpath tags to find the
+    right version of libbfd.so.
+    
+    Since Gentoo has patched the libtool bug for a while, we don't need
+    the workaround.  Use the .la file so we get the rpath tags.
+    
+    URL: https://bugs.gentoo.org/563934
+    (cherry picked from commit 662586237b0b00ee881e79b56f6234ff36e8bfe6)
+
+ opcodes/configure    | 2 +-
+ opcodes/configure.ac | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+commit b98581b53b4aec4b24f0f49adc81576e6a7ff900
+Author:     Mike Frysinger <vapier@gentoo.org>
+AuthorDate: Fri Jan 7 00:15:53 2005 -0500
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Mon Feb 8 23:55:31 2021 +0200
+
+    Gentoo: libiberty: install PIC version of libiberty.a
+    
+    This will install a PIC version of libiberty.a by overwriting the non-PIC
+    version of libiberty.a while compiling.  We do this because there is no
+    shared version of libiberty for random apps to link against which means if
+    someone wants to use this in a shared library or PIE, they're out of luck.
+    It's arguable whether people should be able to use this in a shared lib,
+    but usage in PIE should be fine.  You could argue that this penalizes the
+    non-PIE users, but the counter point is that people using this library in
+    general are fairly low, and we'd rather have things work for all of them.
+    
+    (cherry picked from commit 112aff9ad3e2675556370c4281117a6df0a879d9)
+
+ libiberty/Makefile.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit 7ca42fb2ec2fe50ad0130241daacebd9c1b9921e
+Author:     Mike Frysinger <vapier@gentoo.org>
+AuthorDate: Tue Oct 10 22:53:53 2017 +0200
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Mon Feb 8 23:55:28 2021 +0200
+
+    Gentoo: gold/ld: add support for poisoned system directories
+    
+    This is based on the old CodeSourcery patch written by Joseph Myers to add
+    support to the link for detecting & rejecting bad -L paths when using a
+    cross-compiler.  The differences here:
+    * The command line flags are always available.
+    * We can turn on & off the warning via the command line.
+    * The configure option controls the default warning behavior.
+    * Add support for gold.
+    
+    It is not currently upstream, nor has it been submitted at all.  There are
+    no plans to do so currently either.
+    
+    BUG=chromium:488360
+    TEST=`cbuildbot chromiumos-sdk` passes  # tests arm/amd64/mipsel/x86
+    TEST=`cbuildbot panther_moblab-full whirlwind-release` pass
+    TEST=`cbuildbot {x32,arm64}-generic-full` has no new failures
+    TEST=x86_64-cros-linux-gnu-ld throws warnings when using -L/lib (gold & bfd)
+    
+    Reviewed-on: https://chromium-review.googlesource.com/272083
+    (cherry picked from commit f92dbf35c00ab13cee36f6be8ae5ca46454d9000)
+
+ gold/options.cc | 33 +++++++++++++++++++++++++++++++++
+ gold/options.h  |  7 +++++++
+ ld/config.in    |  3 +++
+ ld/configure    | 14 ++++++++++++++
+ ld/configure.ac | 10 ++++++++++
+ ld/ld.h         |  7 +++++++
+ ld/ld.texi      | 18 ++++++++++++++++++
+ ld/ldfile.c     | 20 ++++++++++++++++++++
+ ld/ldlex.h      |  3 +++
+ ld/ldmain.c     |  7 +++++++
+ ld/lexsup.c     | 24 ++++++++++++++++++++++++
+ 11 files changed, 146 insertions(+)
+
+commit 84d9d66fcab37e0b94dacaa28453f0673e7f59f2
+Author:     GDB Administrator <gdbadmin@sourceware.org>
+AuthorDate: Mon Feb 8 00:00:46 2021 +0000
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Mon Feb 8 23:55:25 2021 +0200
+
+    Automatic date update in version.in
+
+ bfd/version.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 2c5b0bb33a3dcb82693047a9890197238e0b2608
+Author:     H.J. Lu <hjl.tools@gmail.com>
+AuthorDate: Sun Feb 7 13:11:16 2021 -0800
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Mon Feb 8 23:55:23 2021 +0200
+
+    ld: Remove x86 ISA level run-time tests
+    
+    Remove x86 ISA level run-time tests since with glibc 2.33, they will fail
+    to run on machines with lesser x86 ISA level:
+    
+    tmpdir/property-5-pie: CPU ISA level is lower than required
+    
+            PR ld/27358
+            * testsuite/ld-i386/i386.exp: Remove property 3/4/5 run-time
+            tests.
+            * testsuite/ld-x86-64/x86-64.exp: Likewise.
+    
+    (cherry picked from commit 38a143aa8c633225e000fd006a5a171f0b6c80ee)
+
+ ld/ChangeLog                      |  7 +++++
+ ld/testsuite/ld-i386/i386.exp     | 63 ---------------------------------------
+ ld/testsuite/ld-x86-64/x86-64.exp | 63 ---------------------------------------
+ 3 files changed, 7 insertions(+), 126 deletions(-)
+
+commit 4eb9a92f457ebc9a6f364fdb6bbff6e01309348b
+Author:     GDB Administrator <gdbadmin@sourceware.org>
+AuthorDate: Sun Feb 7 00:00:32 2021 +0000
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Mon Feb 8 23:55:20 2021 +0200
+
+    Automatic date update in version.in
+
+ bfd/version.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit dbee5a4467419646ca98752f73ddde0b7370793e
+Author:     Nick Clifton <nickc@redhat.com>
+AuthorDate: Sat Feb 6 09:21:36 2021 +0000
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Mon Feb 8 23:55:17 2021 +0200
+
+    Reset development back to true
+
+ bfd/ChangeLog      | 4 ++++
+ bfd/development.sh | 2 +-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+commit d32fc38b0e6c774c05f244ab6a5289e805cb099d
+Author:     Andreas K. Hüttel <dilfridge@gentoo.org>
+AuthorDate: Mon Feb 8 23:54:53 2021 +0200
+Commit:     Andreas K. Hüttel <dilfridge@gentoo.org>
+CommitDate: Mon Feb 8 23:54:53 2021 +0200
+
+    Revert "Remove newline that isn't in the tarball"
+    
+    This reverts commit 63dceab1c6e2db66fc1648d453ea6dcbf52c0be1.
+
+ bfd/development.sh | 1 +
+ 1 file changed, 1 insertion(+)

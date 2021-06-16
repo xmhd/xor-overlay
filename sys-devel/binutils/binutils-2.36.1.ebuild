@@ -6,13 +6,12 @@ inherit eutils flag-o-matic gnuconfig libtool multilib toolchain-funcs
 
 DESCRIPTION="Tools necessary to build programs"
 HOMEPAGE="https://sourceware.org/binutils/"
-LICENSE="GPL-3+"
+SRC_URI="mirror://gnu/binutils/binutils-${PV}.tar.xz"
 
+LICENSE="GPL-3+"
 KEYWORDS="~amd64"
 
 SLOT=$(ver_cut 1-2)
-
-SRC_URI="mirror://gnu/binutils/binutils-${PV}.tar.xz"
 
 IUSE="cet default-gold doc +gold multitarget +nls +plugins static-libs test vanilla"
 
@@ -40,25 +39,36 @@ BDEPEND="
 
 RESTRICT="!test? ( test )"
 
-# Variables that can be set here:
-# PATCH_VER          - the patchset version
-#                      Default: empty, no patching
-# PATCH_BINUTILS_VER - the binutils version in the patchset name
-#                    - Default: PV
-# PATCH_DEV          - Use download URI https://dev.gentoo.org/~{PATCH_DEV}/distfiles/...
-#                      for the patchsets
+GENTOO_PATCHES_DIR="${FILESDIR}/2.36.1/gentoo-patches"
 
-PATCH_VER=3
-PATCH_DEV=dilfridge
-
-#
-# The Gentoo patchset
-#
-PATCH_BINUTILS_VER=${PATCH_BINUTILS_VER:-${PV}}
-PATCH_DEV=${PATCH_DEV:-slyfox}
-
-[[ -z ${PATCH_VER} ]] || SRC_URI="${SRC_URI}
-	https://dev.gentoo.org/~${PATCH_DEV}/distfiles/binutils-${PATCH_BINUTILS_VER}-patches-${PATCH_VER}.tar.xz"
+GENTOO_PATCHES=(
+	0001-Revert-Remove-newline-that-isn-t-in-the-tarball.patch
+	0002-Reset-development-back-to-true.patch
+	0004-ld-Remove-x86-ISA-level-run-time-tests.patch
+	0006-Gentoo-gold-ld-add-support-for-poisoned-system-direc.patch
+	0007-Gentoo-libiberty-install-PIC-version-of-libiberty.a.patch
+	0008-Gentoo-opcodes-link-against-libbfd.la-for-rpath-deps.patch
+	0009-Gentoo-add-with-extra-soversion-suffix-option.patch
+	0010-Gentoo-ld-enable-new-dtags-by-default-for-linux-gnu-.patch
+	0011-Gentoo-Pass-hash-style-sysv-to-ld-in-the-testsuite.patch
+	0012-PR27382-build-failure-if-fileno-is-a-macro.patch
+	0013-IBM-Z-Implement-instruction-set-extensions.patch
+	0014-binutils-Avoid-renaming-over-existing-files.patch
+	0015-Reinstate-various-pieces-backed-out-from-smart_renam.patch
+	0016-PR27456-lstat-in-rename.c-on-MinGW.patch
+	0017-Use-make_tempname-file-descriptor-in-smart_rename.patch
+	0018-Re-Use-make_tempname-file-descriptor-in-smart_rename.patch
+	0019-PR27441-inconsistency-in-weak-definitions.patch
+	0020-PowerPC64-undefined-weak-visibility-vs-GOT-optimisat.patch
+	0021-Add-install-dependencies-for-ld-bfd-and-libctf-bfd.patch
+	0022-DWARF-Check-version-3-for-DW_FORM_ref_addr.patch
+	0023-PE-Windows-x86_64-Fix-weak-undef-symbols-after-image.patch
+	0024-AArch64-Fix-Atomic-LD64-ST64-classification.patch
+	0025-AArch64-Fix-Diagnostic-messaging-for-LD-ST-Exclusive.patch
+	0026-Make-objcopy-p-work-when-an-output-file-is-specified.patch
+	0028-GCC_CET_HOST_FLAGS-Check-if-host-supports-multi-byte.patch
+	9999-Gentoo-We-make-a-release.patch
+)
 
 is_cross() { [[ ${CHOST} != ${CTARGET} ]] ; }
 
@@ -104,11 +114,12 @@ src_unpack() {
 
 src_prepare() {
 
-	# Apply Gentoo Linux patch set
-	# TODO: add a USE=vanilla and more patches?
-	if [[ ! -z ${PATCH_VER} ]] ; then
-		einfo "Applying binutils-${PATCH_BINUTILS_VER} patchset ${PATCH_VER}"
-		eapply "${WORKDIR}/patch"/*.patch
+	if ! use vanilla; then
+		# Gentoo Linux patches
+		einfo "Applying Gentoo Linux patches ..."
+		for my_patch in ${GENTOO_PATCHES[*]} ; do
+		    eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
+		done
 	fi
 
 	# Make sure our explicit libdir paths don't get clobbered.
