@@ -6,7 +6,6 @@ inherit eutils flag-o-matic gnuconfig libtool multilib toolchain-funcs
 
 DESCRIPTION="Tools necessary to build programs"
 HOMEPAGE="https://sourceware.org/binutils/"
-SRC_URI="mirror://gnu/binutils/binutils-${PV}.tar.xz"
 
 LICENSE="GPL-3+"
 KEYWORDS="~amd64"
@@ -39,7 +38,14 @@ BDEPEND="
 
 RESTRICT="!test? ( test )"
 
-GENTOO_PATCHES_DIR="${FILESDIR}/2.36.1/gentoo-patches"
+BINUTILS_VER="${PV%_*}"
+BINUTILS_PATCH_VER="${PV##*p}"
+
+SRC_URI="
+	mirror://gnu/binutils/binutils-${BINUTILS_VER}.tar.xz
+"
+
+GENTOO_PATCHES_DIR="${FILESDIR}/${BINUTILS_VER}/gentoo-patches"
 
 GENTOO_PATCHES=(
 	0001-Revert-Remove-newline-that-isn-t-in-the-tarball.patch
@@ -87,7 +93,7 @@ pkg_setup() {
 
 	# export branding
 	# TODO: hardened etc?
-	export BINUTILS_BRANDING="Funtoo Linux ${PV} + p${PATCH_VER}"
+	export BINUTILS_BRANDING="Funtoo Linux ${BINUTILS_VER} + p${BINUTILS_PATCH_VER}"
 
 	#
 	# The cross-compile logic
@@ -120,6 +126,7 @@ src_prepare() {
 		for my_patch in ${GENTOO_PATCHES[*]} ; do
 		    eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
 		done
+
 	fi
 
 	# Make sure our explicit libdir paths don't get clobbered.
