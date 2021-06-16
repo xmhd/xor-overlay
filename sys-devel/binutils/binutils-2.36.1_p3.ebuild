@@ -164,14 +164,6 @@ src_prepare() {
 	elibtoolize --portage --no-uclibc
 }
 
-toolchain-binutils_bugurl() {
-	printf "https://bugs.gentoo.org/"
-}
-toolchain-binutils_pkgversion() {
-	printf "Gentoo ${PV}"
-	[[ -n ${PATCH_VER} ]] && printf " p${PATCH_VER}"
-}
-
 src_configure() {
 
 	# Setup some paths
