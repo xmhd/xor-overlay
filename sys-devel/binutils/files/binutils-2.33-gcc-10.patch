@@ -6,7 +6,7 @@ https://sourceware.org/git/gitweb.cgi?p=binutils-gdb.git;a=commitdiff;h=0b398d69
 @@ -456,8 +456,6 @@ coff_dump (struct coff_ofile *ptr)
      dump_coff_section (ptr->sections + i);
  }
-
+ 
 -char * program_name;
 -
  static void
@@ -17,7 +17,7 @@ https://sourceware.org/git/gitweb.cgi?p=binutils-gdb.git;a=commitdiff;h=0b398d69
 @@ -1687,8 +1687,6 @@ prescan (struct coff_ofile *otree)
      }
  }
-
+ 
 -char *program_name;
 -
  ATTRIBUTE_NORETURN static void
@@ -28,11 +28,12 @@ https://sourceware.org/git/gitweb.cgi?p=binutils-gdb.git;a=commitdiff;h=0b398d69
 @@ -633,8 +633,6 @@ module (void)
      }
  }
-
+ 
 -char *program_name;
 -
  ATTRIBUTE_NORETURN static void
  show_usage (FILE *ffile, int status)
  {
---
+-- 
 2.25.0
+

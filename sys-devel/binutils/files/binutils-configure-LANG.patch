@@ -1,4 +1,4 @@
-The LANG vars aren't reset early enough so when sed tries to use [a-zA-Z] in
+The LANG vars aren't reset early enough so when sed tries to use [a-zA-Z] in 
 option parsing, it may break.
 
 http://bugs.gentoo.org/103483
@@ -9,7 +9,7 @@ http://bugs.gentoo.org/122216
 @@ -54,6 +54,19 @@
  infodir='${prefix}/info'
  mandir='${prefix}/man'
-
+ 
 +# NLS nuisances.
 +for as_var in \
 +  LANG LANGUAGE LC_ADDRESS LC_ALL LC_COLLATE LC_CTYPE LC_IDENTIFICATION \
@@ -29,7 +29,7 @@ http://bugs.gentoo.org/122216
 @@ -452,16 +463,6 @@
    esac
  done
-
+ 
 -# NLS nuisances.
 -# Only set these to C if already set.  These must not be set unconditionally
 -# because not all systems understand e.g. LANG=C (notably SCO).
@@ -46,7 +46,7 @@ http://bugs.gentoo.org/122216
 @@ -1850,6 +1850,19 @@
  # Compiler output produced by configure, useful for debugging
  # configure, is in ./config.log if it exists.
-
+ 
 +# NLS nuisances.
 +for as_var in \
 +  LANG LANGUAGE LC_ADDRESS LC_ALL LC_COLLATE LC_CTYPE LC_IDENTIFICATION \

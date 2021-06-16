@@ -8,13 +8,13 @@ DESCRIPTION="Tools necessary to build programs"
 HOMEPAGE="https://sourceware.org/binutils/"
 LICENSE="GPL-3+"
 
-KEYWORDS=""
+KEYWORDS="~amd64"
 
 SLOT=$(ver_cut 1-2)
 
 SRC_URI="mirror://gnu/binutils/binutils-${PV}.tar.xz"
 
-IUSE="default-gold doc +gold multitarget +nls +plugins static-libs test"
+IUSE="cet default-gold doc +gold multitarget +nls +plugins static-libs test vanilla"
 
 REQUIRED_USE="
 	default-gold? ( gold )
@@ -29,7 +29,10 @@ DEPEND="${RDEPEND}"
 
 BDEPEND="
 	doc? ( sys-apps/texinfo )
-	test? ( dev-util/dejagnu )
+	test? (
+		sys-devel/bc
+		dev-util/dejagnu
+	)
 	nls? ( sys-devel/gettext )
 	sys-devel/flex
 	virtual/yacc
@@ -45,7 +48,7 @@ RESTRICT="!test? ( test )"
 # PATCH_DEV          - Use download URI https://dev.gentoo.org/~{PATCH_DEV}/distfiles/...
 #                      for the patchsets
 
-PATCH_VER=6
+PATCH_VER=3
 PATCH_DEV=dilfridge
 
 #
@@ -269,7 +272,13 @@ src_configure() {
 		--enable-relro
 		# Newer versions (>=2.24) make this an explicit option. #497268
 		--enable-install-libiberty
+		# Available from 2.35 on
+		--enable-textrel-check=warning
 		--disable-werror
+		# Allow user to opt into CET for host libraries.
+		# Ideally automagic-or-disabled here, but the check does not quite work on i686:
+		# Gentoo Linux bug #760926.
+		$(use_enable cet)
 		$(use_enable static-libs static)
 		# Strip out broken static link flags.
 		# https://gcc.gnu.org/PR56750
