@@ -10,7 +10,7 @@ HOMEPAGE="https://sourceware.org/binutils/"
 LICENSE="GPL-3+"
 KEYWORDS="~amd64"
 
-SLOT=$(ver_cut 1-2)
+SLOT="${PV%_*}"
 
 IUSE="cet default-gold doc +gold multitarget +nls +plugins static-libs test vanilla"
 
