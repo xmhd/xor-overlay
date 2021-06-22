@@ -153,7 +153,7 @@ src_prepare() {
 	eapply "${FILESDIR}/patches/${SLOT}/0002_make-4.3.patch"
 	# https://bugs.openjdk.java.net/browse/JDK-8201788
 	# bootcycle-jobs?
-	eapply "${FILESDIR}/patches/${SLOT}/0004_gcc10-compilation-fix.patch"
+	eapply "${FILESDIR}/patches/${SLOT}/0003_gcc10-compilation-fix.patch"
 
 	if use elibc_musl ; then
 		eapply "${FILESDIR}/patches/${SLOT}/1001_build.patch"
