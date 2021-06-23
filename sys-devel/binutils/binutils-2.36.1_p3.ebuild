@@ -12,7 +12,7 @@ KEYWORDS="~amd64"
 
 SLOT="${PV%_*}"
 
-IUSE="cet default-gold doc +gold +ld multitarget +nls +plugins static-libs test vanilla"
+IUSE="cet default-gold doc +gas +gold +ld multitarget +nls +plugins static-libs test vanilla"
 
 REQUIRED_USE="
 	default-gold? ( gold )
@@ -289,6 +289,7 @@ src_configure() {
 		# Ideally automagic-or-disabled here, but the check does not quite work on i686:
 		# Gentoo Linux bug #760926.
 		$(use_enable cet)
+		$(use_enable gas)
 		$(use_enable ld)
 		$(use_enable static-libs static)
 		# Strip out broken static link flags.
