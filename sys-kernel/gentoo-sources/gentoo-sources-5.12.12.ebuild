@@ -12,7 +12,7 @@ KEYWORDS="~amd64"
 
 SLOT="${PV}"
 
-RESTRICT="binchecks strip mirror"
+RESTRICT="binchecks mirror strip"
 
 # general kernel USE flags
 IUSE="build-kernel clang compress-modules debug include-files +install-sources minimal symlink"
