@@ -5,6 +5,7 @@
 	<email>xor@cairnlinux.org</email>
 </maintainer>
 <use>
+	<flag name="cet">TODO</flag>
 	<flag name="default-gold">TODO</flag>
 	<flag name="doc">TODO</flag>
 	<flag name="gas">TODO</flag>
