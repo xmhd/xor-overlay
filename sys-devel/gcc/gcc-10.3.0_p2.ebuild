@@ -255,61 +255,57 @@ get_make_var() {
 setup_multilib_osdirnames() {
 
 	# this logic only current applies to glibc based systems
-	is_multilib || return 0
+	if use multilib; then
 
-	local config
-	local libdirs="../lib64 ../lib32"
+		local config
+		local libdirs="../lib64 ../lib32"
 
-	# this only makes sense for some Linux targets
-	case ${CTARGET} in
-		x86_64*-linux*)
-		    config="i386"
-		    ;;
-		powerpc64*-linux*)
-		    config="rs6000"
-		    ;;
-		sparc64*-linux*)
-		    config="sparc"
-		    ;;
-		s390x*-linux*)
-		    config="s390"
-		    ;;
-		*)
-		return 0
-		;;
-	esac
+		# this only makes sense for some Linux targets
+		case ${CTARGET} in
+			x86_64*-linux*)
+			    config="i386"
+			    ;;
+			powerpc64*-linux*)
+			    config="rs6000"
+			    ;;
+			sparc64*-linux*)
+			    config="sparc"
+			    ;;
+			s390x*-linux*)
+			    config="s390"
+			    ;;
+			*)
+			return 0
+			;;
+		esac
 
-	config+="/t-linux64"
+		config+="/t-linux64"
 
-	local sed_args=()
+		local sed_args=()
 
-	if tc_version_is_at_least 4.6 ; then
-		sed_args+=( -e 's:$[(]call if_multiarch[^)]*[)]::g' )
-	fi
-
-	if [[ ${SYMLINK_LIB} == "yes" ]] ; then
-		einfo "updating multilib directories to be: ${libdirs}"
-		if tc_version_is_at_least 4.6.4 || tc_version_is_at_least 4.7 ; then
-			sed_args+=( -e '/^MULTILIB_OSDIRNAMES.*lib32/s:[$][(]if.*):../lib32:' )
-		else
-			sed_args+=( -e "/^MULTILIB_OSDIRNAMES/s:=.*:= ${libdirs}:" )
+		if tc_version_is_at_least 4.6; then
+			sed_args+=( -e 's:$[(]call if_multiarch[^)]*[)]::g' )
 		fi
-	else
-		einfo "using upstream multilib; disabling lib32 autodetection"
-		sed_args+=( -r -e 's:[$][(]if.*,(.*)[)]:\1:' )
-	fi
 
-	sed -i "${sed_args[@]}" "${S}"/gcc/config/${config} || die
+		if [[ ${SYMLINK_LIB} == "yes" ]] ; then
+			einfo "updating multilib directories to be: ${libdirs}"
+			if tc_version_is_at_least 4.6.4 || tc_version_is_at_least 4.7 ; then
+				sed_args+=( -e '/^MULTILIB_OSDIRNAMES.*lib32/s:[$][(]if.*):../lib32:' )
+			else
+				sed_args+=( -e "/^MULTILIB_OSDIRNAMES/s:=.*:= ${libdirs}:" )
+			fi
+		else
+			einfo "using upstream multilib; disabling lib32 autodetection"
+			sed_args+=( -r -e 's:[$][(]if.*,(.*)[)]:\1:' )
+		fi
+
+		sed -i "${sed_args[@]}" "${S}"/gcc/config/${config} || die
+	fi
 }
 
 # General purpose version check.  Without a second arg matches up to minor version (x.x.x)
 tc_version_is_at_least() {
 	ver_test "${2:-${GCC_ARCHIVE_VER}}" -ge "$1"
-}
-
-is_multilib() {
-	tc_version_is_at_least 3 || return 1
-	use_if_iuse multilib
 }
 
 pkg_setup() {
