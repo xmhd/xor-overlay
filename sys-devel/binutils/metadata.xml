@@ -7,7 +7,9 @@
 <use>
 	<flag name="default-gold">TODO</flag>
 	<flag name="doc">TODO</flag>
+	<flag name="gas">TODO</flag>
 	<flag name="gold">TODO</flag>
+	<flag name="ld">TODO</flag>
 	<flag name="multitarget">TODO</flag>
 	<flag name="nls">TODO</flag>
 	<flag name="plugins">TOOD</flag>
