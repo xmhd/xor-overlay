@@ -21,7 +21,7 @@ IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE +system-bootstrap"
-IUSE="$IUSE generic_host openmp altivec fixed-point graphite lto pch +quad" # Optimizations/features flags
+IUSE="$IUSE custom-cflags openmp altivec fixed-point graphite lto pch +quad" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +stack_protector_strong stack_protector_all" # Base hardening flags
 IUSE="$IUSE cet +fortify_source +link_now +pie vtv" # Extra hardening flags
@@ -993,7 +993,7 @@ src_configure() {
 		confgcc+=( --disable-multiarch )
 	fi
 
-	if ! use generic_host; then
+	if use custom-cflags; then
 		confgcc+=(
 			--with-arch=${MARCH}
 			--with-cpu=${MCPU}
