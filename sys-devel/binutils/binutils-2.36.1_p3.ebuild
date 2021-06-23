@@ -95,7 +95,7 @@ pkg_setup() {
 
 	# export branding
 	# TODO: hardened etc?
-	export BINUTILS_BRANDING="Funtoo Linux ${PV}"
+	export BINUTILS_BRANDING="Cairn Linux ${PV}"
 
 	#
 	# The cross-compile logic
