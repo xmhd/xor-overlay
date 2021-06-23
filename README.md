@@ -35,15 +35,15 @@ enterprise/government/DoD.
 * nm-applet - Removed hard dependency on polkit as it is not required.
 * libsecret - Removed hard dependency on gnome-keyring and added USE flag to support multiple providers of
   FreeDesktop.org libsecret service (e.g. keepassx, gnome-keyring).
-* linux-sources - Added additional kernel sources to satisfy virtual/linux-sources dependency.
+* gentoo-sources - Linux kernel sources with additional patches and optional compilation, module signing etc.
 * icecream - up-to-date releases.
 * OpenJDK - forked to add older OpenJDK versions and add musl support.
 * debianutils - removed gentoo-installkernel stuff from ebuild as we use Debian' installkernel script.
 
 ### TLDR; Changelog for packages not in the main repositories ###
 
-* Ego - Configuration tool from Funtoo Linux by Daniel Robbins. Replaces eselect-profile from Gentoo Linux.
-* GCC - Refactored logic which will all reside inside the ebuild rather than toolchain.eclass, so that additional patch
+* ego - Configuration tool from Funtoo Linux by Daniel Robbins. Replaces eselect-profile from Gentoo Linux.
+* gcc - Refactored logic which will all reside inside the ebuild rather than toolchain.eclass, so that additional patch
   sets can be easily added etc.
 * DTrace - tracer from Solaris & BSD, supported in Oracle Linux and now *too Linux.
 * Various packages for CAC key support.
@@ -67,7 +67,6 @@ enterprise/government/DoD.
 * ZFS supported as a first class citizen.
 * Sane defaults for desktop/workstation users.
 * Link-time-optimization support.
-* TODO: Clang/LLVM as a system compiler support.
 
 ### TODO: ###
 
@@ -75,14 +74,13 @@ enterprise/government/DoD.
 * Toolchain work.
 * OpenJDK.
 * Profiles - continue expansion and further modularisation.
-* Expand Clang/LLVM system compiler work.
 * Expand on hardening features/defaults.
 * beadm - boot envrionment support for zfs users.
 * profit??
 
 ### Who do I talk to? ###
 
-* x0r/xaero on freenode, or message here.
+* x0r/xaero on libera/OFTC, or message here.
 
 ### Anything else? ###
 
