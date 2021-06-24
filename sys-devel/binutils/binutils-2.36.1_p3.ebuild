@@ -78,7 +78,9 @@ GENTOO_PATCHES=(
 	9999-Gentoo-We-make-a-release.patch
 )
 
-is_cross() { [[ ${CHOST} != ${CTARGET} ]] ; }
+is_cross() {
+	[[ ${CHOST} != ${CTARGET} ]] ;
+}
 
 pkg_pretend() {
 
@@ -174,7 +176,7 @@ src_configure() {
 	# Keep things sane
 	strip-flags
 
-	if use elibc_musl; then
+	if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
 		append-ldflags "-Wl,-z,stack-size=2097152"
 	fi
 
@@ -304,12 +306,12 @@ src_configure() {
 	# do configure
 	../${PN}-${BINUTILS_VER}/configure "${binutils_conf[@]}" || die "failed to configure binutils"
 
-        # Prevent makeinfo from running if doc is unset.
-        if ! use doc ; then
+	# Prevent makeinfo from running if doc is unset.
+	if ! use doc ; then
                 sed -i \
                         -e '/^MAKEINFO/s:=.*:= true:' \
                         Makefile || die
-        fi
+	fi
 
 	if use bpf; then
 		install -d "${WORKDIR}"/build-bpf
