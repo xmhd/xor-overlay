@@ -12,7 +12,7 @@ KEYWORDS="~amd64"
 
 SLOT="${PV%_*}"
 
-IUSE="cet default-gold doc +gas +gold +ld multitarget +nls +plugins static-libs test vanilla"
+IUSE="bpf cet default-gold doc +gas +gold +ld multitarget +nls +plugins static-libs test vanilla"
 
 REQUIRED_USE="
 	default-gold? ( gold )
@@ -80,8 +80,6 @@ GENTOO_PATCHES=(
 
 is_cross() { [[ ${CHOST} != ${CTARGET} ]] ; }
 
-MY_BUILDDIR=${WORKDIR}/build
-
 pkg_pretend() {
 
 	if [[ ${CTARGET} == *-uclibc* ]] ; then
@@ -110,8 +108,6 @@ pkg_setup() {
 
 src_unpack() {
 	default
-
-	mkdir -p "${MY_BUILDDIR}"
 }
 
 src_prepare() {
@@ -189,62 +185,64 @@ src_configure() {
 	done
 	echo
 
-	cd "${MY_BUILDDIR}"
-	local myconf=()
+	install -d "${WORKDIR}"/build
+	cd "${WORKDIR}"/build
+
+	local binutils_conf
 
 	if use plugins ; then
-		myconf+=( --enable-plugins )
+		binutils_conf+=( --enable-plugins )
 	fi
 	# enable gold (installed as ld.gold) and ld's plugin architecture
 	if use gold ; then
-		myconf+=( --enable-gold )
+		binutils_conf+=( --enable-gold )
 		if use default-gold; then
-			myconf+=( --enable-gold=default )
+			binutils_conf+=( --enable-gold=default )
 		fi
 	fi
 
 	if use nls ; then
-		myconf+=( --without-included-gettext )
+		binutils_conf+=( --without-included-gettext )
 	else
-		myconf+=( --disable-nls )
+		binutils_conf+=( --disable-nls )
 	fi
 
-	myconf+=( --with-system-zlib )
+	binutils_conf+=( --with-system-zlib )
 
 	# For bi-arch systems, enable a 64bit bfd.  This matches
 	# the bi-arch logic in toolchain.eclass. #446946
 	# We used to do it for everyone, but it's slow on 32bit arches. #438522
 	case $(tc-arch) in
-		ppc|sparc|x86) myconf+=( --enable-64-bit-bfd ) ;;
+		ppc|sparc|x86) binutils_conf+=( --enable-64-bit-bfd ) ;;
 	esac
 
-	use multitarget && myconf+=( --enable-targets=all --enable-64-bit-bfd )
+	use multitarget && binutils_conf+=( --enable-targets=all --enable-64-bit-bfd )
 
-	[[ -n ${CBUILD} ]] && myconf+=( --build=${CBUILD} )
+	[[ -n ${CBUILD} ]] && binutils_conf+=( --build=${CBUILD} )
 
-	is_cross && myconf+=(
+	is_cross && binutils_conf+=(
 		--with-sysroot="${EPREFIX}"/usr/${CTARGET}
 		--enable-poison-system-directories
 	)
 
 	# glibc-2.3.6 lacks support for this ... so rather than force glibc-2.5+
 	# on everyone in alpha (for now), we'll just enable it when possible
-	has_version ">=${CATEGORY}/glibc-2.5" && myconf+=( --enable-secureplt )
-	has_version ">=sys-libs/glibc-2.5" && myconf+=( --enable-secureplt )
+	has_version ">=${CATEGORY}/glibc-2.5" && binutils_conf+=( --enable-secureplt )
+	has_version ">=sys-libs/glibc-2.5" && binutils_conf+=( --enable-secureplt )
 
 	# mips can't do hash-style=gnu ...
 	if [[ $(tc-arch) != mips ]] ; then
-		myconf+=( --enable-default-hash-style=gnu )
+		binutils_conf+=( --enable-default-hash-style=gnu )
 	fi
 
 	# apply branding
-	myconf+=(
+	binutils_conf+=(
 	    --with-pkgversion="${BINUTILS_BRANDING}"
 	    --with-bugurl="https://bugs.cairnlinux.org"
 	)
 
 	# configure paths
-	myconf+=(
+	binutils_conf+=(
 		--prefix="${EPREFIX}"/usr
 		--datadir="${EPREFIX}"${DATAPATH}
 		--datarootdir="${EPREFIX}"${DATAPATH}
@@ -257,7 +255,7 @@ src_configure() {
 	)
 
 	# general
-	myconf+=(
+	binutils_conf+=(
 		--enable-obsolete
 		--enable-shared
 		--enable-threads
@@ -265,7 +263,7 @@ src_configure() {
 
 	# Disable modules that are in a combined binutils/gdb tree
 	# Gentoo Linux bug #490566
-	myconf+=(
+	binutils_conf+=(
 	    --disable-gdb
 	    --disable-libdecnumber
 	    --disable-readline
@@ -273,9 +271,9 @@ src_configure() {
 	)
 
 	# Pass any local EXTRA_ECONF from /etc/portage/env to ./configure.
-	myconf+=( "$@" ${EXTRA_ECONF} )
+	binutils_conf+=( "$@" ${EXTRA_ECONF} )
 
-	myconf+=(
+	binutils_conf+=(
 		--host=${CHOST}
 		--target=${CTARGET}
 		# Newer versions (>=2.27) offer a configure flag now.
@@ -299,19 +297,65 @@ src_configure() {
 		# {native,cross}/binutils, binutils-libs. #666100
 		--with-extra-soversion-suffix=gentoo-${CATEGORY}-${PN}-$(usex multitarget mt st)
 	)
-	echo ./configure "${myconf[@]}"
-	"${S}"/configure "${myconf[@]}" || die
 
-	# Prevent makeinfo from running if doc is unset.
-	if ! use doc ; then
-		sed -i \
-			-e '/^MAKEINFO/s:=.*:= true:' \
-			Makefile || die
+	# print out configure opts
+	echo ./configure "${binutils_conf[@]}"
+
+	# do configure
+	../${PN}-${BINUTILS_VER}/configure "${binutils_conf[@]}" || die "failed to configure binutils"
+
+        # Prevent makeinfo from running if doc is unset.
+        if ! use doc ; then
+                sed -i \
+                        -e '/^MAKEINFO/s:=.*:= true:' \
+                        Makefile || die
+        fi
+
+	if use bpf; then
+		install -d "${WORKDIR}"/build-bpf
+		cd "${WORKDIR}"/build-bpf
+
+		local binutils_bpf_conf
+
+		BPF_TARGET="bpf-unknown-none"
+
+		binutils_bpf_conf=(
+			--prefix="${EPREFIX}"/usr
+			--datadir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${PV}
+			--datarootdir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${PV}
+			--infodir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${PV}/info
+			--mandir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${PV}/man
+			--bindir="${EPREFIX}"/usr/${BPF_TARGET}/binutils-bin/${PV}
+			--libdir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}
+			--libexecdir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}
+			--includedir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/include
+
+			--host=${CHOST}
+			--target=bpf
+			--disable-werror
+			--disable-nls
+			--enable-plugins
+			--with-system-zlib
+		)
+
+		# print out configure opts
+		echo ./configure "${binutils_bpf_conf[@]}"
+
+	        # do configure
+	        ../${PN}-${BINUTILS_VER}/configure "${binutils_bpf_conf[@]}" || die "failed to configure binutils-bpf"
+
+		# Prevent makeinfo from running if doc is unset.
+		if ! use doc ; then
+			sed -i \
+				-e '/^MAKEINFO/s:=.*:= true:' \
+				Makefile || die
+		fi
 	fi
 }
 
 src_compile() {
-	cd "${MY_BUILDDIR}"
+
+	cd "${WORKDIR}"/build
 	# see Note [tooldir hack for ldscripts]
 	emake tooldir="${EPREFIX}${TOOLPATH}" all
 
@@ -320,24 +364,49 @@ src_compile() {
 		emake info
 	fi
 
-	# we nuke the manpages when we're left with junk
-	# (like when we bootstrap, no perl -> no manpages)
-	find . -name '*.1' -a -size 0 -delete
+        # we nuke the manpages when we're left with junk
+        # (like when we bootstrap, no perl -> no manpages)
+        find . -name '*.1' -a -size 0 -delete
+
+	if use bpf; then
+		cd "${WORKDIR}"/build-bpf
+
+	        # see Note [tooldir hack for ldscripts]
+	        emake tooldir="${EPREFIX}/usr/${BPF_TARGET}" all
+
+	        # only build info pages if the user wants them
+	        if use doc ; then
+	                emake info
+	        fi
+
+	        # we nuke the manpages when we're left with junk
+	        # (like when we bootstrap, no perl -> no manpages)
+	        find . -name '*.1' -a -size 0 -delete
+	fi
 }
 
 src_test() {
-	cd "${MY_BUILDDIR}"
+	cd "${WORKDIR}"/build
 
 	# bug 637066
 	filter-flags -Wall -Wreturn-type
 
 	emake -k check
+
+	if use bpf; then
+	        # bug 637066
+	        filter-flags -Wall -Wreturn-type
+
+	        emake -k check
+	fi
 }
 
 src_install() {
+
+	cd "${WORKDIR}"/build
+
 	local x d
 
-	cd "${MY_BUILDDIR}"
 	# see Note [tooldir hack for ldscripts]
 	emake DESTDIR="${D}" tooldir="${EPREFIX}${LIBPATH}" install
 	rm -rf "${ED}"/${LIBPATH}/bin
@@ -389,6 +458,9 @@ src_install() {
 		TARGET="${CTARGET}"
 		VER="${PV}"
 		LIBPATH="${EPREFIX}${LIBPATH}"
+		if use bpf; then
+			LIBPATH="${EPREFIX}/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}"
+		fi
 	EOF
 	newins "${T}"/env.d ${CTARGET}-${PV}
 
@@ -417,6 +489,87 @@ src_install() {
 
 	# Trim all empty dirs
 	find "${ED}" -depth -type d -exec rmdir {} + 2>/dev/null
+
+	if use bpf; then
+		cd "${WORKDIR}"/build-bpf
+
+		local x d
+
+		# see Note [tooldir hack for ldscripts]
+		emake DESTDIR="${D}" tooldir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV} install
+
+		echo ${DESTDIR}
+		echo ${tooldir}
+
+		rm -rf "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/bin
+		use static-libs || find "${ED}" -name '*.la' -delete
+
+		# Newer versions of binutils get fancy with ${LIBPATH} #171905
+		cd "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}
+		for d in ../* ; do
+			[[ ${d} == ../${PV} ]] && continue
+			mv ${d}/* . || die
+			rmdir ${d} || die
+		done
+
+		# Now we collect everything intp the proper SLOT-ed dirs
+		# When something is built to cross-compile, it installs into
+		# /usr/$CHOST/ by default ... we have to 'fix' that :)
+		if is_cross ; then
+			cd "${ED}"/${BINPATH}
+			for x in * ; do
+				mv ${x} ${x/${CTARGET}-}
+			done
+
+			if [[ -d ${ED}/usr/${CHOST}/${CTARGET} ]] ; then
+				mv "${ED}"/usr/${CHOST}/${CTARGET}/include "${ED}"/${INCPATH}
+				mv "${ED}"/usr/${CHOST}/${CTARGET}/lib/* "${ED}"/${LIBPATH}/
+				rm -r "${ED}"/usr/${CHOST}/{include,lib}
+			fi
+		fi
+		insinto /usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/include
+		local libiberty_headers=(
+			# Not all the libiberty headers.  See libiberty/Makefile.in:install_to_libdir.
+			demangle.h
+			dyn-string.h
+			fibheap.h
+			hashtab.h
+			libiberty.h
+			objalloc.h
+			splay-tree.h
+		)
+		doins "${libiberty_headers[@]/#/${S}/include/}"
+		if [[ -d ${ED}/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/lib ]] ; then
+			mv "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/lib/* "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/
+			rm -r "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/lib
+		fi
+
+		# Handle documentation
+		if ! is_cross ; then
+			cd "${S}"
+			dodoc README
+			docinto bfd
+			dodoc bfd/ChangeLog* bfd/README bfd/PORTING bfd/TODO
+			docinto binutils
+			dodoc binutils/ChangeLog binutils/NEWS binutils/README
+			docinto gas
+			dodoc gas/ChangeLog* gas/CONTRIBUTORS gas/NEWS gas/README*
+			docinto gprof
+			dodoc gprof/ChangeLog* gprof/TEST gprof/TODO gprof/bbconv.pl
+			docinto ld
+			dodoc ld/ChangeLog* ld/README ld/NEWS ld/TODO
+			docinto libiberty
+			dodoc libiberty/ChangeLog* libiberty/README
+			docinto opcodes
+			dodoc opcodes/ChangeLog*
+		fi
+
+		# Remove shared info pages
+		rm -f "${ED}"/usr/share/binutils-data/${BPF_TARGET}/${PV}/info/{dir,configure.info,standards.info}
+
+		# Trim all empty dirs
+		find "${ED}" -depth -type d -exec rmdir {} + 2>/dev/null
+	fi
 }
 
 pkg_postinst() {
