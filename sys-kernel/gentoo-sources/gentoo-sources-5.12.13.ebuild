@@ -642,7 +642,7 @@ src_prepare() {
 		echo
 	fi
 
-	# finally apply any user patches
+	# finally, apply any user patches
 	eapply_user
 
 	# get config into good state:
@@ -697,9 +697,9 @@ install_kernel_and_friends() {
 	install -d "${D}"/boot
 	local kern_arch=$(tc-arch-kernel)
 
-	cp "${WORKDIR}"/build/arch/${kern_arch}/boot/bzImage "${D}"/boot/vmlinuz-${KERNEL_FULL_VERSION} || die "todo"
-	cp "${T}"/build/.config "${D}"/boot/config-${KERNEL_FULL_VERSION} || die "todo"
-	cp "${WORKDIR}"/build/System.map "${D}"/boot/System.map-${KERNEL_FULL_VERSION} || die "todo"
+	cp "${WORKDIR}"/build/arch/${kern_arch}/boot/bzImage "${D}"/boot/vmlinuz-${KERNEL_FULL_VERSION} || die "failed to install kernel to /boot"
+	cp "${T}"/.config "${D}"/boot/config-${KERNEL_FULL_VERSION} || die "failed to install kernel config to /boot"
+	cp "${WORKDIR}"/build/System.map "${D}"/boot/System.map-${KERNEL_FULL_VERSION} || die "failed to install System.map to /boot"
 }
 
 src_install() {

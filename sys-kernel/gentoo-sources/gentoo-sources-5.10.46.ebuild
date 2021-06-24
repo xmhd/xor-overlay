@@ -694,9 +694,17 @@ src_compile() {
 	fi
 }
 
-src_install() {
+install_kernel_and_friends() {
 
-	export SANDBOX_ON=0
+	install -d "${D}"/boot
+	local kern_arch=$(tc-arch-kernel)
+
+	cp "${WORKDIR}"/build/arch/${kern_arch}/boot/bzImage "${D}"/boot/vmlinuz-${KERNEL_FULL_VERSION} || die "failed to install kernel to /boot"
+	cp "${T}"/.config "${D}"/boot/config-${KERNEL_FULL_VERSION} || die "failed to install kernel config to /boot"
+	cp "${WORKDIR}"/build/System.map "${D}"/boot/System.map-${KERNEL_FULL_VERSION} || die "failed to install System.map to /boot"
+}
+
+src_install() {
 
 	# create sources directory if required
 	dodir /usr/src
@@ -728,7 +736,8 @@ src_install() {
 		fi
 
 		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
-		installkernel "${KERNEL_FULL_VERSION}" "${WORKDIR}/build/arch/x86_64/boot/bzImage" "${WORKDIR}/build/System.map" "${EROOT}/boot"
+
+		install_kernel_and_friends
 
 		# module symlink fix-up:
 		rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to remove old kernel source symlink"
