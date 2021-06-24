@@ -215,7 +215,9 @@ src_configure() {
 	# the bi-arch logic in toolchain.eclass. #446946
 	# We used to do it for everyone, but it's slow on 32bit arches. #438522
 	case $(tc-arch) in
-		ppc|sparc|x86) binutils_conf+=( --enable-64-bit-bfd ) ;;
+		ppc|sparc|x86)
+			binutils_conf+=( --enable-64-bit-bfd )
+			;;
 	esac
 
 	use multitarget && binutils_conf+=( --enable-targets=all --enable-64-bit-bfd )
@@ -374,7 +376,7 @@ src_compile() {
 		cd "${WORKDIR}"/build-bpf
 
 	        # see Note [tooldir hack for ldscripts]
-	        emake tooldir="${EPREFIX}"/usr/${BPF_TARGET} scriptsdir="${EPREFIX}"/usr/${BPF_TARGET}/lib all
+	        emake tooldir="${EPREFIX}"/usr/${BPF_TARGET} all
 
 	        # only build info pages if the user wants them
 	        if use doc ; then
@@ -455,13 +457,11 @@ src_install() {
 	fi
 
 	# Generate an env.d entry for this binutils
-	local target_lib_paths=( ${EPREFIX}${LIBPATH} )
-	use bpf && target_lib_paths+=( ${EPREFIX}/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV} )
 	insinto /etc/env.d/binutils
 	cat <<-EOF > "${T}"/env.d
 		TARGET="${CTARGET}"
 		VER="${PV}"
-		LIBPATH="${target_lib_paths}"
+		LIBPATH="${EPREFIX}${LIBPATH}"
 	EOF
 	newins "${T}"/env.d ${CTARGET}-${PV}
 
@@ -542,6 +542,15 @@ src_install() {
 			rm -r "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/lib
 		fi
 
+		# Generate an env.d entry for this binutils
+		insinto /etc/env.d/binutils
+		cat <<-EOF > "${T}"/env.d
+			TARGET="${BPF_TARGET}"
+			VER="${PV}"
+			LIBPATH="${EPREFIX}/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}"
+		EOF
+		newins "${T}"/env.d ${BPF_TARGET}-${PV}
+
 		# Handle documentation
 		if ! is_cross ; then
 			cd "${S}"
@@ -574,6 +583,10 @@ pkg_postinst() {
 	# Make sure this ${CTARGET} has a binutils version selected
 	[[ -e ${EROOT}/etc/env.d/binutils/config-${CTARGET} ]] && return 0
 	binutils-config ${CTARGET}-${PV}
+
+	# Make sure this ${CTARGET} has a binutils version selected
+	[[ -e ${EROOT}/etc/env.d/binutils/config-${BPF_TARGET} ]] && return 0
+	binutils-config ${BPF_TARGET}-${PV}
 }
 
 pkg_postrm() {
@@ -594,6 +607,24 @@ pkg_postrm() {
 	elif [[ $(CHOST=${CTARGET} binutils-config -c) == ${CTARGET}-${PV} ]] ; then
 		binutils-config ${CTARGET}-${PV}
 	fi
+
+	local current_profile_bpf=$(binutils-config -c ${BPF_TARGET})
+
+        # If no other versions exist, then uninstall for this target ... otherwise, switch to the newest version
+        # Note: only do this if this version is unmerged.  We rerun binutils-config if this is a remerge, as
+        # we want the mtimes on the symlinks updated (if it is the same as the current selected profile).
+        if [[ ! -e ${EPREFIX}/usr/${BPF_TARGET}/binutils-bin/${PV}/ld ]] && [[ ${current_profile_bpf} == ${BPF_TARGET}-${PV} ]] ; then
+                local choice=$(binutils-config -l | grep ${BPF_TARGET} | awk '{print $2}')
+                choice=${choice//$'\n'/ }
+                choice=${choice/* }
+                if [[ -z ${choice} ]] ; then
+                        binutils-config -u ${BPF_TARGET}
+                else
+                        binutils-config ${choice}
+                fi
+        elif [[ $(CHOST=${BPF_TARGET} binutils-config -c) == ${BPF_TARGET}-${PV} ]] ; then
+                binutils-config ${BPF_TARGET}-${PV}
+        fi
 }
 
 # Note [slotting support]
