@@ -357,7 +357,7 @@ src_compile() {
 
 	cd "${WORKDIR}"/build
 	# see Note [tooldir hack for ldscripts]
-	emake tooldir="${EPREFIX}${TOOLPATH}" all
+	emake tooldir="${EPREFIX}"${TOOLPATH} all
 
 	# only build info pages if the user wants them
 	if use doc ; then
@@ -372,7 +372,7 @@ src_compile() {
 		cd "${WORKDIR}"/build-bpf
 
 	        # see Note [tooldir hack for ldscripts]
-	        emake tooldir="${EPREFIX}/usr/${BPF_TARGET}" all
+	        emake tooldir="${EPREFIX}"/usr/${BPF_TARGET} scriptsdir="${EPREFIX}"/usr/${BPF_TARGET}/lib all
 
 	        # only build info pages if the user wants them
 	        if use doc ; then
@@ -496,9 +496,6 @@ src_install() {
 
 		# see Note [tooldir hack for ldscripts]
 		emake DESTDIR="${D}" tooldir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV} install
-
-		echo ${DESTDIR}
-		echo ${tooldir}
 
 		rm -rf "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/bin
 		use static-libs || find "${ED}" -name '*.la' -delete
