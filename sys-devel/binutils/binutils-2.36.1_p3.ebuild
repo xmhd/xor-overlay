@@ -459,7 +459,7 @@ src_install() {
 	cat <<-EOF > "${T}"/env.d
 		TARGET="${CTARGET}"
 		VER="${PV}"
-		LIBPATH="${target_lib_paths"
+		LIBPATH="${target_lib_paths}"
 	EOF
 	newins "${T}"/env.d ${CTARGET}-${PV}
 
