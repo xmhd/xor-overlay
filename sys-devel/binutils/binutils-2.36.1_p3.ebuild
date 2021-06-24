@@ -453,14 +453,13 @@ src_install() {
 	fi
 
 	# Generate an env.d entry for this binutils
+	local target_lib_paths=( ${EPREFIX}${LIBPATH} )
+	use bpf && target_lib_paths+=( ${EPREFIX}/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV} )
 	insinto /etc/env.d/binutils
 	cat <<-EOF > "${T}"/env.d
 		TARGET="${CTARGET}"
 		VER="${PV}"
-		LIBPATH="${EPREFIX}${LIBPATH}"
-		if use bpf; then
-			LIBPATH="${EPREFIX}/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}"
-		fi
+		LIBPATH="${target_lib_paths"
 	EOF
 	newins "${T}"/env.d ${CTARGET}-${PV}
 
