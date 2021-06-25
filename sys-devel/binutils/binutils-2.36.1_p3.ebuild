@@ -458,12 +458,19 @@ src_install() {
 
 	# Generate an env.d entry for this binutils
 	insinto /etc/env.d/binutils
-	cat <<-EOF > "${T}"/env.d
+	cat <<-EOF > "${T}"/config-${CTARGET}
+		VER="${PV}"
+	EOF
+	newins "${T}"/config-${CTARGET} config-${CTARGET}
+
+	# Generate an env.d entry for this binutils
+	insinto /etc/env.d/binutils
+	cat <<-EOF > "${T}"/${CTARGET}-${PV}
 		TARGET="${CTARGET}"
 		VER="${PV}"
 		LIBPATH="${EPREFIX}${LIBPATH}"
 	EOF
-	newins "${T}"/env.d ${CTARGET}-${PV}
+	newins "${T}"/${CTARGET}-${PV} ${CTARGET}-${PV}
 
 	# Handle documentation
 	if ! is_cross ; then
@@ -544,12 +551,19 @@ src_install() {
 
 		# Generate an env.d entry for this binutils
 		insinto /etc/env.d/binutils
-		cat <<-EOF > "${T}"/env.d
+		cat <<-EOF > "${T}"/config-${BPF_TARGET}
+			CURRENT="${PV}"
+		EOF
+		newins "${T}"/config-${BPF_TARGET} config-${BPF_TARGET}
+
+		# Generate an env.d entry for this binutils
+		insinto /etc/env.d/binutils
+		cat <<-EOF > "${T}"/${BPF_TARGET}-${PV}
 			TARGET="${BPF_TARGET}"
 			VER="${PV}"
 			LIBPATH="${EPREFIX}/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}"
 		EOF
-		newins "${T}"/env.d ${BPF_TARGET}-${PV}
+		newins "${T}"/${BPF_TARGET}-${PV} ${BPF_TARGET}-${PV}
 
 		# Handle documentation
 		if ! is_cross ; then
@@ -584,7 +598,7 @@ pkg_postinst() {
 	[[ -e ${EROOT}/etc/env.d/binutils/config-${CTARGET} ]] && return 0
 	binutils-config ${CTARGET}-${PV}
 
-	# Make sure this ${CTARGET} has a binutils version selected
+	# Make sure this ${BPF_TARGET} has a binutils version selected
 	[[ -e ${EROOT}/etc/env.d/binutils/config-${BPF_TARGET} ]] && return 0
 	binutils-config ${BPF_TARGET}-${PV}
 }
