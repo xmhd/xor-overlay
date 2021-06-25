@@ -460,7 +460,7 @@ src_install() {
 		# Generate an env.d entry for this binutils
 		insinto /etc/env.d/binutils
 		cat <<-EOF > "${T}"/config-${CTARGET}
-			VER="${PV}"
+			CURRENT="${PV}"
 		EOF
 		newins "${T}"/config-${CTARGET} config-${CTARGET}
 	fi
