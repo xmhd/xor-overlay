@@ -456,12 +456,14 @@ src_install() {
 		rm -r "${ED}"/${LIBPATH}/lib
 	fi
 
-	# Generate an env.d entry for this binutils
-	insinto /etc/env.d/binutils
-	cat <<-EOF > "${T}"/config-${CTARGET}
-		VER="${PV}"
-	EOF
-	newins "${T}"/config-${CTARGET} config-${CTARGET}
+	if [[ ! -e "${EROOT}"/env.d/binutils/config-${CTARGET} ]]; then
+		# Generate an env.d entry for this binutils
+		insinto /etc/env.d/binutils
+		cat <<-EOF > "${T}"/config-${CTARGET}
+			VER="${PV}"
+		EOF
+		newins "${T}"/config-${CTARGET} config-${CTARGET}
+	fi
 
 	# Generate an env.d entry for this binutils
 	insinto /etc/env.d/binutils
@@ -549,12 +551,15 @@ src_install() {
 			rm -r "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/lib
 		fi
 
-		# Generate an env.d entry for this binutils
-		insinto /etc/env.d/binutils
-		cat <<-EOF > "${T}"/config-${BPF_TARGET}
-			CURRENT="${PV}"
-		EOF
-		newins "${T}"/config-${BPF_TARGET} config-${BPF_TARGET}
+
+		if [[ ! -e "${EROOT}"/env.d/binutils/config-${BPF_TARGET} ]] ;then
+			# Generate an env.d entry for this binutils
+			insinto /etc/env.d/binutils
+			cat <<-EOF > "${T}"/config-${BPF_TARGET}
+				CURRENT="${PV}"
+			EOF
+			newins "${T}"/config-${BPF_TARGET} config-${BPF_TARGET}
+		fi
 
 		# Generate an env.d entry for this binutils
 		insinto /etc/env.d/binutils
