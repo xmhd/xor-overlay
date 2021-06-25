@@ -456,7 +456,7 @@ src_install() {
 		rm -r "${ED}"/${LIBPATH}/lib
 	fi
 
-	if [[ ! -e "${EROOT}"/env.d/binutils/config-${CTARGET} ]]; then
+	if ! [[ -e "${EROOT}"/env.d/binutils/config-${CTARGET} ]]; then
 		# Generate an env.d entry for this binutils
 		insinto /etc/env.d/binutils
 		cat <<-EOF > "${T}"/config-${CTARGET}
@@ -552,7 +552,7 @@ src_install() {
 		fi
 
 
-		if [[ ! -e "${EROOT}"/env.d/binutils/config-${BPF_TARGET} ]] ;then
+		if ! [[ -e "${EROOT}"/env.d/binutils/config-${BPF_TARGET} ]] ;then
 			# Generate an env.d entry for this binutils
 			insinto /etc/env.d/binutils
 			cat <<-EOF > "${T}"/config-${BPF_TARGET}
