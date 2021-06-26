@@ -159,15 +159,15 @@ src_prepare() {
 src_configure() {
 
 	# Setup some paths
-	LIBPATH=/usr/$(get_libdir)/binutils/${CTARGET}/${PV}
+	LIBPATH=/usr/$(get_libdir)/binutils/${CTARGET}/${BINUTILS_VER}
 	INCPATH=${LIBPATH}/include
-	DATAPATH=/usr/share/binutils-data/${CTARGET}/${PV}
+	DATAPATH=/usr/share/binutils-data/${CTARGET}/${BINUTILS_VER}
 	if is_cross ; then
 		TOOLPATH=/usr/${CHOST}/${CTARGET}
 	else
 		TOOLPATH=/usr/${CTARGET}
 	fi
-	BINPATH=${TOOLPATH}/binutils-bin/${PV}
+	BINPATH=${TOOLPATH}/binutils-bin/${BINUTILS_VER}
 
 	# Make sure we filter $LINGUAS so that only ones that
 	# actually work make it through #42033
@@ -325,14 +325,14 @@ src_configure() {
 
 		binutils_bpf_conf=(
 			--prefix="${EPREFIX}"/usr
-			--datadir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${PV}
-			--datarootdir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${PV}
-			--infodir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${PV}/info
-			--mandir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${PV}/man
-			--bindir="${EPREFIX}"/usr/${BPF_TARGET}/binutils-bin/${PV}
-			--libdir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}
-			--libexecdir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}
-			--includedir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/include
+			--datadir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${BINUTILS_VER}
+			--datarootdir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${BINUTILS_VER}
+			--infodir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${BINUTILS_VER}/info
+			--mandir="${EPREFIX}"/usr/share/binutils-data/${BPF_TARGET}/${BINUTILS_VER}/man
+			--bindir="${EPREFIX}"/usr/${BPF_TARGET}/binutils-bin/${BINUTILS_VER}
+			--libdir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}
+			--libexecdir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}
+			--includedir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}/include
 
 			--host=${CHOST}
 			--target=bpf
@@ -419,7 +419,7 @@ src_install() {
 	# Newer versions of binutils get fancy with ${LIBPATH} #171905
 	cd "${ED}"/${LIBPATH}
 	for d in ../* ; do
-		[[ ${d} == ../${PV} ]] && continue
+		[[ ${d} == ../${BINUTILS_VER} ]] && continue
 		mv ${d}/* . || die
 		rmdir ${d} || die
 	done
@@ -460,19 +460,19 @@ src_install() {
 		# Generate an env.d entry for this binutils
 		insinto /etc/env.d/binutils
 		cat <<-EOF > "${T}"/config-${CTARGET}
-			CURRENT="${PV}"
+			CURRENT="${BINUTILS_VER}"
 		EOF
 		newins "${T}"/config-${CTARGET} config-${CTARGET}
 	fi
 
 	# Generate an env.d entry for this binutils
 	insinto /etc/env.d/binutils
-	cat <<-EOF > "${T}"/${CTARGET}-${PV}
+	cat <<-EOF > "${T}"/${CTARGET}-${BINUTILS_VER}
 		TARGET="${CTARGET}"
-		VER="${PV}"
+		VER="${BINUTILS_VER}"
 		LIBPATH="${EPREFIX}${LIBPATH}"
 	EOF
-	newins "${T}"/${CTARGET}-${PV} ${CTARGET}-${PV}
+	newins "${T}"/${CTARGET}-${BINUTILS_VER} ${CTARGET}-${BINUTILS_VER}
 
 	# Handle documentation
 	if ! is_cross ; then
@@ -506,15 +506,15 @@ src_install() {
 		local x d
 
 		# see Note [tooldir hack for ldscripts]
-		emake DESTDIR="${D}" tooldir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV} install
+		emake DESTDIR="${D}" tooldir="${EPREFIX}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER} install
 
-		rm -rf "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/bin
+		rm -rf "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}/bin
 		use static-libs || find "${ED}" -name '*.la' -delete
 
 		# Newer versions of binutils get fancy with ${LIBPATH} #171905
-		cd "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}
+		cd "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}
 		for d in ../* ; do
-			[[ ${d} == ../${PV} ]] && continue
+			[[ ${d} == ../${BINUTILS_VER} ]] && continue
 			mv ${d}/* . || die
 			rmdir ${d} || die
 		done
@@ -534,7 +534,7 @@ src_install() {
 				rm -r "${ED}"/usr/${CHOST}/{include,lib}
 			fi
 		fi
-		insinto /usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/include
+		insinto /usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}/include
 		local libiberty_headers=(
 			# Not all the libiberty headers.  See libiberty/Makefile.in:install_to_libdir.
 			demangle.h
@@ -546,9 +546,9 @@ src_install() {
 			splay-tree.h
 		)
 		doins "${libiberty_headers[@]/#/${S}/include/}"
-		if [[ -d ${ED}/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/lib ]] ; then
-			mv "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/lib/* "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/
-			rm -r "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}/lib
+		if [[ -d ${ED}/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}/lib ]] ; then
+			mv "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}/lib/* "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}/
+			rm -r "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}/lib
 		fi
 
 
@@ -556,19 +556,19 @@ src_install() {
 			# Generate an env.d entry for this binutils
 			insinto /etc/env.d/binutils
 			cat <<-EOF > "${T}"/config-${BPF_TARGET}
-				CURRENT="${PV}"
+				CURRENT="${BINUTILS_VER}"
 			EOF
 			newins "${T}"/config-${BPF_TARGET} config-${BPF_TARGET}
 		fi
 
 		# Generate an env.d entry for this binutils
 		insinto /etc/env.d/binutils
-		cat <<-EOF > "${T}"/${BPF_TARGET}-${PV}
+		cat <<-EOF > "${T}"/${BPF_TARGET}-${BINUTILS_VER}
 			TARGET="${BPF_TARGET}"
-			VER="${PV}"
-			LIBPATH="${EPREFIX}/usr/$(get_libdir)/binutils/${BPF_TARGET}/${PV}"
+			VER="${BINUTILS_VER}"
+			LIBPATH="${EPREFIX}/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}"
 		EOF
-		newins "${T}"/${BPF_TARGET}-${PV} ${BPF_TARGET}-${PV}
+		newins "${T}"/${BPF_TARGET}-${BINUTILS_VER} ${BPF_TARGET}-${BINUTILS_VER}
 
 		# Handle documentation
 		if ! is_cross ; then
@@ -591,7 +591,7 @@ src_install() {
 		fi
 
 		# Remove shared info pages
-		rm -f "${ED}"/usr/share/binutils-data/${BPF_TARGET}/${PV}/info/{dir,configure.info,standards.info}
+		rm -f "${ED}"/usr/share/binutils-data/${BPF_TARGET}/${BINUTILS_VER}/info/{dir,configure.info,standards.info}
 
 		# Trim all empty dirs
 		find "${ED}" -depth -type d -exec rmdir {} + 2>/dev/null
@@ -601,11 +601,11 @@ src_install() {
 pkg_postinst() {
 	# Make sure this ${CTARGET} has a binutils version selected
 	[[ -e ${EROOT}/etc/env.d/binutils/config-${CTARGET} ]] && return 0
-	binutils-config ${CTARGET}-${PV}
+	binutils-config ${CTARGET}-${BINUTILS_VER}
 
 	# Make sure this ${BPF_TARGET} has a binutils version selected
 	[[ -e ${EROOT}/etc/env.d/binutils/config-${BPF_TARGET} ]] && return 0
-	binutils-config ${BPF_TARGET}-${PV}
+	binutils-config ${BPF_TARGET}-${BINUTILS_VER}
 }
 
 pkg_postrm() {
@@ -614,7 +614,7 @@ pkg_postrm() {
 	# If no other versions exist, then uninstall for this target ... otherwise, switch to the newest version
 	# Note: only do this if this version is unmerged.  We rerun binutils-config if this is a remerge, as
 	# we want the mtimes on the symlinks updated (if it is the same as the current selected profile).
-	if [[ ! -e ${EPREFIX}${BINPATH}/ld ]] && [[ ${current_profile} == ${CTARGET}-${PV} ]] ; then
+	if [[ ! -e ${EPREFIX}${BINPATH}/ld ]] && [[ ${current_profile} == ${CTARGET}-${BINUTILS_VER} ]] ; then
 		local choice=$(binutils-config -l | grep ${CTARGET} | awk '{print $2}')
 		choice=${choice//$'\n'/ }
 		choice=${choice/* }
@@ -623,8 +623,8 @@ pkg_postrm() {
 		else
 			binutils-config ${choice}
 		fi
-	elif [[ $(CHOST=${CTARGET} binutils-config -c) == ${CTARGET}-${PV} ]] ; then
-		binutils-config ${CTARGET}-${PV}
+	elif [[ $(CHOST=${CTARGET} binutils-config -c) == ${CTARGET}-${BINUTILS_VER} ]] ; then
+		binutils-config ${CTARGET}-${BINUTILS_VER}
 	fi
 
 	local current_profile_bpf=$(binutils-config -c ${BPF_TARGET})
@@ -632,7 +632,7 @@ pkg_postrm() {
         # If no other versions exist, then uninstall for this target ... otherwise, switch to the newest version
         # Note: only do this if this version is unmerged.  We rerun binutils-config if this is a remerge, as
         # we want the mtimes on the symlinks updated (if it is the same as the current selected profile).
-        if [[ ! -e ${EPREFIX}/usr/${BPF_TARGET}/binutils-bin/${PV}/ld ]] && [[ ${current_profile_bpf} == ${BPF_TARGET}-${PV} ]] ; then
+        if [[ ! -e ${EPREFIX}/usr/${BPF_TARGET}/binutils-bin/${BINUTILS_VER}/ld ]] && [[ ${current_profile_bpf} == ${BPF_TARGET}-${BINUTILS_VER} ]] ; then
                 local choice=$(binutils-config -l | grep ${BPF_TARGET} | awk '{print $2}')
                 choice=${choice//$'\n'/ }
                 choice=${choice/* }
@@ -641,8 +641,8 @@ pkg_postrm() {
                 else
                         binutils-config ${choice}
                 fi
-        elif [[ $(CHOST=${BPF_TARGET} binutils-config -c) == ${BPF_TARGET}-${PV} ]] ; then
-                binutils-config ${BPF_TARGET}-${PV}
+        elif [[ $(CHOST=${BPF_TARGET} binutils-config -c) == ${BPF_TARGET}-${BINUTILS_VER} ]] ; then
+                binutils-config ${BPF_TARGET}-${BINUTILS_VER}
         fi
 }
 
@@ -672,4 +672,4 @@ pkg_postrm() {
 # - at build-time set scriptdir to point to symlinked location:
 #   ${TOOLPATH}: /usr/${CHOST} (or /usr/${CHOST}/${CTARGET} for cross-case)
 # - at install-time set scriptdir to point to slotted location:
-#   ${LIBPATH}: /usr/$(get_libdir)/binutils/${CTARGET}/${PV}
+#   ${LIBPATH}: /usr/$(get_libdir)/binutils/${CTARGET}/${BINUTILS_VER}
