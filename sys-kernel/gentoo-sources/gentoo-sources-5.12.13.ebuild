@@ -783,6 +783,18 @@ pkg_postinst() {
 		depmod -a ${KERNEL_FULL_VERSION}
 	fi
 
+	# callback emerge, performed to rebuild external kernel modules (e.g. zfs, nvidia).
+	# note: the (usex zfs "foo" "" ) logic is to keep zfs + zfs-kmod in lockstep.
+	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel; then
+		emerge \
+			--ask=n \
+			--color=y \
+			--usepkg=n \
+			--quiet-build=y \
+			$(usex zfs "zfs" "" ) \
+			@module-rebuild
+	fi
+
 	# we only want to force initramfs rebuild if != binary package
 	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel; then
 
@@ -803,7 +815,6 @@ pkg_postinst() {
 			--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
 			--check-free-disk-space-bootdir="64" \
 			--all-ramdisk-modules \
-			--callback="emerge --ask=n --color=y --usepkg=n --quiet-build=y @module-rebuild" \
 			$(usex btrfs "--btrfs" "--no-btrfs") \
 			$(usex debug "--loglevel=5" "--loglevel=1") \
 			$(usex e2fs "--e2fsprogs" "--no-e2fsprogs") \
