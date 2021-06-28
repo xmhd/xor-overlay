@@ -63,9 +63,11 @@ RDEPEND="
 
 REQUIRED_USE="
 	!build-kernel? ( install-sources )
-	|| (
-		dracut
-		genkernel
+	build-kernel? (
+		^^ (
+			dracut
+			genkernel
+		)
 	)
 "
 
