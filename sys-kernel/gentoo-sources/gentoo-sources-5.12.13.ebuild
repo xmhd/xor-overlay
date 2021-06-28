@@ -15,13 +15,13 @@ SLOT="${PV}"
 RESTRICT="binchecks mirror strip"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress-modules debug include-files +install-sources minimal symlink"
+IUSE="build-kernel clang compress-modules debug +install-sources minimal symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
 IUSE="${IUSE} hardened +page-table-isolation PaX +retpoline selinux sign-modules"
 # initramfs
-IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode plymouth xfs zfs"
+IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode plymouth udev xfs zfs"
 # misc kconfig tweaks
 IUSE="${IUSE} mcelog +memcg"
 
@@ -239,9 +239,6 @@ PAX_PATCHES=(
 	0001-NOWRITEEXEC-and-PAX-features-MPROTECT-EMUTRAMP.patch
 	0002-PAX_RANDKSTACK.patch
 )
-
-# dir of files to include in the initramfs
-GK_FS_OVERLAY_DIR="/etc/genkernel"
 
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
@@ -825,6 +822,7 @@ pkg_postinst() {
 			$(usex mdadm "--mdadm" "--no-mdadm") \
 			$(usex mdadm "--mdadm-config=/etc/mdadm.conf" "") \
 			$(usex microcode "--microcode-initramfs" "--no-microcode-initramfs") \
+			$(usex udev "--udev-rules" "--no-udev-rules") \
 			$(usex xfs "--xfsprogs" "--no-xfsprogs") \
 			$(usex zfs "--zfs" "--no-zfs") \
 			initramfs || die "failed to build initramfs"

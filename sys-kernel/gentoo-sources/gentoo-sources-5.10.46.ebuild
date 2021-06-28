@@ -15,7 +15,7 @@ SLOT="${PV}"
 RESTRICT="binchecks mirror strip"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress-modules debug include-files +install-sources minimal symlink"
+IUSE="build-kernel clang compress-modules debug +install-sources minimal symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
@@ -241,9 +241,6 @@ PAX_PATCHES=(
 	0001-NOWRITEEXEC-and-PAX-features-MPROTECT-EMUTRAMP.patch
 	0002-PAX_RANDKSTACK.patch
 )
-
-# dir of files to include in the initramfs
-GK_FS_OVERLAY_DIR="/etc/genkernel"
 
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
@@ -787,7 +784,7 @@ pkg_postinst() {
 
 	# optional callback emerge, performed to rebuild external kernel modules (e.g. zfs, nvidia).
 	# note: the (usex zfs "foo" "" ) logic is to keep zfs + zfs-kmod in lockstep.
-	if [[ ${MERGE_TYPE} != binary ]] && use module-rebuild; then
+	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel; then
 		emerge \
 			--ask=n \
 			--color=y \
@@ -821,12 +818,12 @@ pkg_postinst() {
 			$(usex debug "--loglevel=5" "--loglevel=1") \
 			$(usex e2fs "--e2fsprogs" "--no-e2fsprogs") \
 			$(usex firmware "--firmware" "--no-firmware") \
-			$(usex include-files "--initramfs-overlay=${GK_FS_OVERLAY_DIR}" "") \
 			$(usex luks "--luks" "--no-luks") \
 			$(usex lvm "--lvm" "--no-lvm") \
 			$(usex mdadm "--mdadm" "--no-mdadm") \
 			$(usex mdadm "--mdadm-config=/etc/mdadm.conf" "") \
 			$(usex microcode "--microcode-initramfs" "--no-microcode-initramfs") \
+			$(usex udev "--udev-rules" "--no-udev-rules") \
 			$(usex xfs "--xfsprogs" "--no-xfsprogs") \
 			$(usex zfs "--zfs" "--no-zfs") \
 			initramfs || die "failed to build initramfs"
