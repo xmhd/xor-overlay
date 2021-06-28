@@ -15,7 +15,7 @@ SLOT="${PV}"
 RESTRICT="binchecks mirror strip"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress-modules debug +install-sources minimal symlink"
+IUSE="build-kernel clang compress-modules debug dracut genkernel +install-sources minimal symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
@@ -30,7 +30,8 @@ BDEPEND="
 	debug? ( dev-util/pahole )
 	sys-devel/flex
 	build-kernel? (
-		>=sys-kernel/genkernel-4.2.0
+		dracut? ( sys-kernel/dracut )
+		genkernel? ( >=sys-kernel/genkernel-4.2.0 )
 	)
 	virtual/libelf
 	virtual/yacc
@@ -62,6 +63,10 @@ RDEPEND="
 
 REQUIRED_USE="
 	!build-kernel? ( install-sources )
+	|| (
+		dracut
+		genkernel
+	)
 "
 
 # linux kernel upstream
@@ -256,6 +261,7 @@ get_certs_dir() {
 }
 
 pkg_pretend() {
+
 	# perform sanity checks that only apply to source builds.
 	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel; then
 
@@ -278,7 +284,6 @@ pkg_pretend() {
 	if use build-kernel; then
 		# check that our boot partition (if it exists) is mounted
 		mount-boot_pkg_pretend
-
 
 		# check that we have enough free space in the boot partition
 		CHECKREQS_DISK_BOOT="64M"
@@ -797,39 +802,95 @@ pkg_postinst() {
 			@module-rebuild
 	fi
 
-	# we only want to force initramfs rebuild if != binary package
-	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel; then
+	# rebuild the initramfs on post_install
+	# both dracut and genkernel are supported at present.
+	if use build-kernel; then
 
-		# setup dirs for genkernel
-		mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log}
+		if use dracut; then
+			einfo ">>> Dracut: building initramfs"
+			dracut \
+				--stdlog=4 \
+				--force \
+				--no-hostonly \
+				--add="base biosdevname fs-lib i18n kernel-modules network qemu qemu-net rootfs-block shutdown terminfo udev-rules usrmount" \
+				--omit="bootchart busybox caps convertfs dash debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh network-manager rpmversion securityfs ssh-client stratis syslog url-lib" \
+				$(usex btrfs "-a btrfs" "-o btrfs") \
+				$(usex dmraid "-a dmraid -a dm" "-o dmraid") \
+				$(usex hardened "-o resume" "-a resume") \
+				$(usex iscsi "-a iscsi" "-o iscsi") \
+				$(usex lvm "-a lvm -a dm" "-o lvm") \
+				$(usex lvm "--lvmconf" "--nolvmconf") \
+				$(usex luks "-a crypt" "-o crypt") \
+				$(usex mdadm "--mdadmconf" "--nomdadmconf") \
+				$(usex mdadm "-a mdraid" "-o mdraid") \
+				$(usex microcode "--early-microcode" "--no-early-microcode") \
+				$(usex multipath "-a multipath -a dm" "-o multipath") \
+				$(usex nbd "-a nbd" "-o nbd") \
+				$(usex nfs "-a nfs" "-o nfs") \
+				$(usex plymouth "-a plymouth" "-o plymouth") \
+				$(usex selinux "-a selinux" "-o selinux") \
+				$(usex systemd "-a systemd -a systemd-initrd -a systemd-networkd" "-o systemd -o systemd-initrd -o systemd-networkd") \
+				$(usex zfs "-a zfs" "-o zfs") \
+				--kmoddir "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} \
+				--fwdir "${EROOT}"/lib/firmware \
+				"${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} ${KERNEL_FULL_VERSION} || die ">>>Dracut: Building initramfs failed"
+				einfo ""
+				einfo ">>> Dracut: Finished building initramfs"
+				ewarn ""
+				ewarn "WARNING... WARNING... WARNING..."
+				ewarn ""
+				ewarn "Dracut initramfs has been generated!"
+				ewarn ""
+				ewarn "Required kernel arguments:"
+				ewarn ""
+				ewarn "    root=/dev/ROOT"
+				ewarn ""
+				ewarn "    Where ROOT is the device node for your root partition as the"
+				ewarn "    one specified in /etc/fstab"
+				ewarn ""
+				ewarn "Additional kernel cmdline arguments that *may* be required to boot properly..."
+				ewarn ""
+				ewarn "If you use hibernation:"
+				ewarn ""
+				ewarn "    resume=/dev/SWAP"
+				ewarn ""
+				ewarn "    Where $SWAP is the swap device used by hibernate software of your choice."
+				ewarn ""
+				ewarn "    Please consult "man 7 dracut.kernel" for additional kernel arguments."
+		fi
 
-		# fakeroot so we can always generate device nodes i.e /dev/console
-		# TODO: this will fail for -rN kernel revisions as kerneldir is hardcoded badly
-		# temporarily remove fakeroot
-		genkernel \
-			--color \
-			--makeopts="${MAKEOPTS}" \
-			--logfile="${WORKDIR}/genkernel/log/genkernel.log" \
-			--cachedir="${WORKDIR}/genkernel/cache" \
-			--tmpdir="${WORKDIR}/genkernel/tmp" \
-			--kernel-config="/boot/config-${KERNEL_FULL_VERSION}" \
-			--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
-			--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
-			--all-ramdisk-modules \
-			$(usex btrfs "--btrfs" "--no-btrfs") \
-			$(usex debug "--loglevel=5" "--loglevel=1") \
-			$(usex e2fs "--e2fsprogs" "--no-e2fsprogs") \
-			$(usex firmware "--firmware" "--no-firmware") \
-			$(usex include-files "--initramfs-overlay=${GK_FS_OVERLAY_DIR}" "") \
-			$(usex luks "--luks" "--no-luks") \
-			$(usex lvm "--lvm" "--no-lvm") \
-			$(usex mdadm "--mdadm" "--no-mdadm") \
-			$(usex mdadm "--mdadm-config=/etc/mdadm.conf" "") \
-			$(usex microcode "--microcode-initramfs" "--no-microcode-initramfs") \
-			$(usex udev "--udev-rules" "--no-udev-rules") \
-			$(usex xfs "--xfsprogs" "--no-xfsprogs") \
-			$(usex zfs "--zfs" "--no-zfs") \
-			initramfs || die "failed to build initramfs"
+		if  use genkernel; then
+			# setup dirs for genkernel
+			mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log}
+
+			# fakeroot so we can always generate device nodes i.e /dev/console
+			# TODO: this will fail for -rN kernel revisions as kerneldir is hardcoded badly
+			# temporarily remove fakeroot
+			genkernel \
+				--color \
+				--makeopts="${MAKEOPTS}" \
+				--logfile="${WORKDIR}/genkernel/log/genkernel.log" \
+				--cachedir="${WORKDIR}/genkernel/cache" \
+				--tmpdir="${WORKDIR}/genkernel/tmp" \
+				--kernel-config="/boot/config-${KERNEL_FULL_VERSION}" \
+				--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
+				--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
+				--all-ramdisk-modules \
+				$(usex btrfs "--btrfs" "--no-btrfs") \
+				$(usex debug "--loglevel=5" "--loglevel=1") \
+				$(usex e2fs "--e2fsprogs" "--no-e2fsprogs") \
+				$(usex firmware "--firmware" "--no-firmware") \
+				$(usex include-files "--initramfs-overlay=${GK_FS_OVERLAY_DIR}" "") \
+				$(usex luks "--luks" "--no-luks") \
+				$(usex lvm "--lvm" "--no-lvm") \
+				$(usex mdadm "--mdadm" "--no-mdadm") \
+				$(usex mdadm "--mdadm-config=/etc/mdadm.conf" "") \
+				$(usex microcode "--microcode-initramfs" "--no-microcode-initramfs") \
+				$(usex udev "--udev-rules" "--no-udev-rules") \
+				$(usex xfs "--xfsprogs" "--no-xfsprogs") \
+				$(usex zfs "--zfs" "--no-zfs") \
+				initramfs || die "failed to build initramfs"
+		fi
 	fi
 
 	# warn about the issues with running a hardened kernel
