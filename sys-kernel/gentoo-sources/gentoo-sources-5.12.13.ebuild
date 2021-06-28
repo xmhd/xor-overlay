@@ -2,7 +2,7 @@
 
 EAPI=7
 
-inherit check-reqs eutils mount-boot toolchain-funcs
+inherit check-reqs mount-boot toolchain-funcs
 
 DESCRIPTION="Linux kernel sources with some additional patches."
 HOMEPAGE="https://kernel.org"
@@ -23,6 +23,7 @@ IUSE="${IUSE} hardened +page-table-isolation PaX +retpoline selinux sign-modules
 # initramfs
 IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode plymouth udev xfs zfs"
 # misc kconfig tweaks
+
 IUSE="${IUSE} mcelog +memcg"
 
 BDEPEND="

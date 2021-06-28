@@ -2,7 +2,7 @@
 
 EAPI=7
 
-inherit check-reqs eutils mount-boot toolchain-funcs
+inherit check-reqs mount-boot toolchain-funcs
 
 DESCRIPTION="Linux kernel sources with some additional patches."
 HOMEPAGE="https://kernel.org"
