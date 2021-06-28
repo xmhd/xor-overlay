@@ -279,6 +279,11 @@ pkg_pretend() {
 		# check that our boot partition (if it exists) is mounted
 		mount-boot_pkg_pretend
 
+
+		# check that we have enough free space in the boot partition
+		CHECKREQS_DISK_BOOT="64M"
+		check-reqs_pkg_setup
+
 		# a lot of hardware requires firmware
 		if ! use firmware; then
 			ewarn "sys-kernel/linux-firmware not found installed on your system."
@@ -810,7 +815,6 @@ pkg_postinst() {
 			--kernel-config="/boot/config-${KERNEL_FULL_VERSION}" \
 			--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
 			--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
-			--check-free-disk-space-bootdir="64" \
 			--all-ramdisk-modules \
 			$(usex btrfs "--btrfs" "--no-btrfs") \
 			$(usex debug "--loglevel=5" "--loglevel=1") \
