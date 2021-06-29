@@ -7,7 +7,7 @@ index aa85d599b184..8b83ded577cc 100644
  #ifdef CONFIG_X86_SHADOW_STACK
  int shstk_setup(void);
 +int shstk_setup_thread(struct task_struct *p, unsigned long clone_flags,
-+
++		       unsigned long stack_size);
  void shstk_free(struct task_struct *p);
  void shstk_disable(void);
  int shstk_setup_rstor_token(bool ia32, unsigned long rstor,
@@ -33,14 +33,12 @@ index 27516046117a..53569114aa01 100644
  #include <asm/debugreg.h>
  
  extern atomic64_t last_mm_ctx_id;
-@@ -145,7 +146,9 @@  do {						\
- } while (0)
+@@ -146,6 +147,8 @@  do {						\
  #else
  #define deactivate_mm(tsk, mm)			\
--do {						\
-+do {
+ do {						\
 +	if (!tsk->vfork_done)			\
-+		shstk_free(tsk);		\				\
++		shstk_free(tsk);		\
  	load_gs_index(0);			\
  	loadsegment(fs, 0);			\
  } while (0)
@@ -85,7 +83,7 @@ index 9c214d7085a4..fa01e8679d01 100644
  		return 0;
  	}
  
-@@ -183,6 +186,13 @@  int copy_thread(unsigned long clone_flags, unsigned long sp, unsigned long arg,
+@@ -183,6 +186,12 @@  int copy_thread(unsigned long clone_flags, unsigned long sp, unsigned long arg,
  	if (clone_flags & CLONE_SETTLS)
  		ret = set_new_tls(p, tls);
  
@@ -95,7 +93,6 @@ index 9c214d7085a4..fa01e8679d01 100644
 +		ret = shstk_setup_thread(p, clone_flags, stack_size);
 +#endif
 +
-+
  	if (!ret && unlikely(test_tsk_thread_flag(current, TIF_IO_BITMAP)))
  		io_bitmap_share(p);
  
@@ -103,7 +100,7 @@ diff --git a/arch/x86/kernel/shstk.c b/arch/x86/kernel/shstk.c
 index c815c7507830..d387df84b7f1 100644
 --- a/arch/x86/kernel/shstk.c
 +++ b/arch/x86/kernel/shstk.c
-@@ -71,6 +71,56 @@  int shstk_setup(void)
+@@ -71,6 +71,55 @@  int shstk_setup(void)
  	return 0;
  }
  
@@ -156,11 +153,10 @@ index c815c7507830..d387df84b7f1 100644
 +	return 0;
 +}
 +
-+
  void shstk_free(struct task_struct *tsk)
  {
  	struct cet_status *cet = &tsk->thread.cet;
-@@ -80,7 +130,13 @@  void shstk_free(struct task_struct *tsk)
+@@ -80,7 +129,13 @@  void shstk_free(struct task_struct *tsk)
  	    !cet->shstk_base)
  		return;
  

@@ -69,6 +69,7 @@ REQUIRED_USE="
 			genkernel
 		)
 	)
+	cet? ( amd64 )
 "
 
 # linux kernel upstream
