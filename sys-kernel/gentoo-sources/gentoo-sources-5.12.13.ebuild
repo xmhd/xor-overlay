@@ -631,6 +631,11 @@ src_prepare() {
 
 	# === END HARDENING OPTS
 
+	if use cet; then
+		echo "CONFIG_X86_SHADOW_STACK=y" >> .config
+		echo "CONFIG_X86_IBT=y" >> .config
+	fi
+
 	# mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
 	if use mcelog; then
 		echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
