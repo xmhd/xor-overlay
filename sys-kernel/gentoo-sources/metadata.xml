@@ -7,6 +7,7 @@
 	<use>
 		<flag name="build-kernel">Build a kernel and modules from the kernel sources</flag>
 		<flag name="btrfs">Enable support for btrfs in the kernel + initramfs</flag>
+		<flag name="cet">Enable support for Intel Control Flow Enforcement Technology in the kernel</flag>
 		<flag name="clang">TODO</flag>
 		<flag name="compress-modules">Compress kernel modules as part of kernel build</flag>
 		<flag name="e2fs">Enable support for EXT file systems in the kernel + initramfs</flag>
