@@ -19,7 +19,7 @@ IUSE="build-kernel clang compress-modules debug dracut genkernel +install-source
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
-IUSE="${IUSE} hardened +page-table-isolation PaX +retpoline selinux sign-modules"
+IUSE="${IUSE} cet hardened +page-table-isolation PaX +retpoline selinux sign-modules"
 # initramfs
 IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode plymouth udev xfs zfs"
 # misc kconfig tweaks
@@ -247,6 +247,57 @@ PAX_PATCHES=(
 	0002-PAX_RANDKSTACK.patch
 )
 
+CET_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/cet-patches/scs"
+
+# Intel CET patch set (1 of 2)
+CET_PATCHES=(
+	0001-add-cet-description.patch
+	0002-add-kconfig-option-for-shstk.patch
+	0003-add-cet-cpu-feature-flags.patch
+	0004-introduce-cpu-setup-and-boot-option-parsing.patch
+	0005-introduce-cet-msr-and-xsave-supervisor-states.patch
+	0006-add-control-protection-fault-handler.patch
+	0007-remove-_PAGE_DIRTY-from-kernel-RO-pages.patch
+	0008-move-pmd_write-pud_write.patch
+	0009-introduce-_PAGE_COW.patch
+	0010-change-_PAGE_DIRTY-to_PAGE_DIRTY_BITS.patch
+	0011-update-pte_modify-for_PAGE_COW.patch
+	0012-update-ptep_set_wrprotect-and-pmdp_set_wrprotect.patch
+	0013-introduce-vm-shadow-stack.patch
+	0014-shadow-stack-page-fault-error-checking.patch
+	0015-update-maybe_mkwrite-for-shadow-stack.patch
+	0016-fixup-places-that-call-pte_mkwrite.patch
+	0017-add-guard-pages-around-a-shadow-stack.patch
+	0018-add-shadow-stack-pages-to-memory-accounting.patch
+	0019-update-can_follow_write_pte.patch
+	0020-exclude-shadow-stack-from-preserve_write.patch
+	0021-reintroduce-vm_flags-to-do_mmap.patch
+	0022-add-user-mode-shadow-stack-support.patch
+	0023-handle-thread-shadow-stack.patch
+	0024-introduce-shadow-stack-token.patch
+	0025-handle-signals-for-shadow-stack.patch
+	0026-introduce-arch_setup_elf_property.patch
+	0027-add-arch_prctl-functions-for-shadow-stack.patch
+	0028-move-arch_calc_vm_prot_bits.patch
+	0029-update-arch_validate_flags.patch
+	0030-introduce-PROT_SHADOW_STACK.patch
+)
+
+IBT_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/cet-patches/ibt"
+
+# Intel CET patch set (2 of 2)
+IBT_PATCHES=(
+	0001-add-kconfig-option-for-ibt.patch
+	0002-add-usermode-ibt-support.patch
+	0003-handle-signals-for-ibt.patch
+	0004-update-elf-header-parsing-for-ibt.patch
+	0005-update-arch_prctl-functions-for-ibt.patch
+	0006-insert-endbr32-endbr64-to-vdso.patch
+	0007-introduce-endbr-macro.patch
+	0008-add-endbr-to-__kernel_vsyscall-entry-point.patch
+	0009-add-endbr-to-__vdso_sgx_enter_enclave.patch
+)
+
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
 	for subdir in $PF $P linux; do
@@ -333,6 +384,16 @@ src_prepare() {
 		einfo "Applying hardening patches ..."
 		for my_patch in ${HARDENED_PATCHES[*]}; do
 			eapply "${HARDENED_PATCHES_DIR}/${my_patch}"
+		done
+	fi
+
+	if use cet; then
+                einfo "Applying control flow enforcement patches ..."
+                for my_patch in ${CET_PATCHES[*]}; do
+                        eapply "${CET_PATCHES_DIR}/${my_patch}"
+                done
+		for my_patch in ${IBT_PATCHES[*]}; do
+			eapply "${IBT_PATCHES_DIR}/${my_patch}"
 		done
 	fi
 

@@ -1,0 +1,36 @@
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index cf10c3822853..3b841d7efd13 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1824,6 +1824,13 @@  int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
+ 		return 0;
+ 
+ 	preserve_write = prot_numa && pmd_write(*pmd);
++
++	/*
++	 * Preserve only normal writable huge PMD, but not shadow
++	 * stack (RW=0, Dirty=1).
++	 */
++	if (is_shadow_stack_mapping(vma->vm_flags))
++		preserve_write = false;
+ 	ret = 1;
+ 
+ #ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
+diff --git a/mm/mprotect.c b/mm/mprotect.c
+index c1ce78d688b6..3b2f0d75519f 100644
+--- a/mm/mprotect.c
++++ b/mm/mprotect.c
+@@ -77,6 +77,13 @@  static unsigned long change_pte_range(struct vm_area_struct *vma, pmd_t *pmd,
+ 			pte_t ptent;
+ 			bool preserve_write = prot_numa && pte_write(oldpte);
+ 
++			/*
++			 * Preserve only normal writable PTE, but not shadow
++			 * stack (RW=0, Dirty=1).
++			 */
++			if (is_shadow_stack_mapping(vma->vm_flags))
++				preserve_write = false;
++
+ 			/*
+ 			 * Avoid trapping faults against the zero or KSM
+ 			 * pages. See similar comment in change_huge_pmd.

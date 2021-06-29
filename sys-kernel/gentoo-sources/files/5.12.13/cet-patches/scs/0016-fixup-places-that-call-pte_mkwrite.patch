@@ -1,0 +1,63 @@
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 8203bd6ae4bd..044029ef45cd 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1551,7 +1551,7 @@  vm_fault_t do_huge_pmd_numa_page(struct vm_fault *vmf, pmd_t pmd)
+ 	pmd = pmd_modify(pmd, vma->vm_page_prot);
+ 	pmd = pmd_mkyoung(pmd);
+ 	if (was_writable)
+-		pmd = pmd_mkwrite(pmd);
++		pmd = maybe_pmd_mkwrite(pmd, vma);
+ 	set_pmd_at(vma->vm_mm, haddr, vmf->pmd, pmd);
+ 	update_mmu_cache_pmd(vma, vmf->address, vmf->pmd);
+ 	unlock_page(page);
+diff --git a/mm/memory.c b/mm/memory.c
+index 550405fc3b5e..0cb1028b1c02 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3563,8 +3563,7 @@  static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 
+ 	entry = mk_pte(page, vma->vm_page_prot);
+ 	entry = pte_sw_mkyoung(entry);
+-	if (vma->vm_flags & VM_WRITE)
+-		entry = pte_mkwrite(pte_mkdirty(entry));
++	entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+ 
+ 	vmf->pte = pte_offset_map_lock(vma->vm_mm, vmf->pmd, vmf->address,
+ 			&vmf->ptl);
+@@ -4129,7 +4128,7 @@  static vm_fault_t do_numa_page(struct vm_fault *vmf)
+ 	pte = pte_modify(old_pte, vma->vm_page_prot);
+ 	pte = pte_mkyoung(pte);
+ 	if (was_writable)
+-		pte = pte_mkwrite(pte);
++		pte = maybe_mkwrite(pte, vma);
+ 	ptep_modify_prot_commit(vma, vmf->address, vmf->pte, old_pte, pte);
+ 	update_mmu_cache(vma, vmf->address, vmf->pte);
+ 
+diff --git a/mm/migrate.c b/mm/migrate.c
+index 62b81d5257aa..7251c88a3d64 100644
+--- a/mm/migrate.c
++++ b/mm/migrate.c
+@@ -2983,8 +2983,7 @@  static void migrate_vma_insert_page(struct migrate_vma *migrate,
+ 		}
+ 	} else {
+ 		entry = mk_pte(page, vma->vm_page_prot);
+-		if (vma->vm_flags & VM_WRITE)
+-			entry = pte_mkwrite(pte_mkdirty(entry));
++		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+ 	}
+ 
+ 	ptep = pte_offset_map_lock(mm, pmdp, addr, &ptl);
+diff --git a/mm/mprotect.c b/mm/mprotect.c
+index 94188df1ee55..c1ce78d688b6 100644
+--- a/mm/mprotect.c
++++ b/mm/mprotect.c
+@@ -139,7 +139,7 @@  static unsigned long change_pte_range(struct vm_area_struct *vma, pmd_t *pmd,
+ 			if (dirty_accountable && pte_dirty(ptent) &&
+ 					(pte_soft_dirty(ptent) ||
+ 					 !(vma->vm_flags & VM_SOFTDIRTY))) {
+-				ptent = pte_mkwrite(ptent);
++				ptent = maybe_mkwrite(ptent, vma);
+ 			}
+ 			ptep_modify_prot_commit(vma, addr, pte, oldpte, ptent);
+ 			pages++;
