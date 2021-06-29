@@ -15,7 +15,6 @@ KEYWORDS="~amd64"
 SLOT="${PV%%_*}"
 
 RESTRICT="strip"
-FEATURES=${FEATURES/multilib-strict/}
 
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
