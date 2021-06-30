@@ -1,0 +1,12 @@
+diff -Naur linux-5.12.13/Makefile linux-5.12.13-r1/Makefile
+--- linux-5.12.13/Makefile	2021-06-29 22:02:05.841321466 -0400
++++ linux-5.12.13-r1/Makefile	2021-06-29 22:09:59.804670362 -0400
+@@ -1002,6 +1002,8 @@
+ KBUILD_AFLAGS   += $(KAFLAGS)
+ KBUILD_CFLAGS   += $(KCFLAGS)
+ 
++KBUILD_LDFLAGS += $(call ld-option, --ctf-variables)
++
+ KBUILD_LDFLAGS_MODULE += --build-id=sha1
+ LDFLAGS_vmlinux += --build-id=sha1
+ 

@@ -23,7 +23,7 @@ IUSE="${IUSE} cet hardened +page-table-isolation PaX +retpoline selinux sign-mod
 # initramfs
 IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode plymouth udev xfs zfs"
 # misc kconfig tweaks
-IUSE="${IUSE} mcelog +memcg"
+IUSE="${IUSE} dtrace mcelog +memcg"
 
 BDEPEND="
 	sys-devel/bc
@@ -299,6 +299,25 @@ IBT_PATCHES=(
 	0009-add-endbr-to-__vdso_sgx_enter_enclave.patch
 )
 
+DTRACE_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/dtrace-patches/"
+
+DTRACE_PATCHES=(
+	0001-kallsyms-new-proc-kallmodsyms-with-builtin-modules-a.patch
+	0002-ctf-generate-CTF-information-for-the-kernel.patch
+	0003-waitfd-new-syscall-implementing-waitpid-over-fds.patch
+	0004-ctf-kernel-build-with-gt-for-CTF-generation-using-GC.patch
+	0005-ctf-toolchain-based-CTF-support.patch
+	0006-kbuild-arm64-Set-objects.builtin-dependency-to-Image.patch
+	0007-ctf-adapt-to-the-new-CTF-linker-API.patch
+	#0008-ctf-discard-CTF-sections-for-arches-not-using-DISCAR.patch
+	0009-ctf-discard-CTF-from-the-vDSO.patch
+	0010-ctf-fix-memory-leak-in-ctfarchive.patch
+	0011-ctf-adjust-to-upcoming-binutils-ctf_link_add_ctf-API.patch
+	0012-ctf-support-ld-ctf-variables-if-available.patch
+	0013-ctf-add-.ctf-to-.gitignore.patch
+	0014-waitfd-enable-by-default.patch
+)
+
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
 	for subdir in $PF $P linux; do
@@ -402,6 +421,13 @@ src_prepare() {
 		einfo "Applying PaX patches ..."
 		for my_patch in ${PAX_PATCHES[*]}; do
 			eapply "${PAX_PATCHES_DIR}/${my_patch}"
+		done
+	fi
+
+	if use dtrace; then
+		einfo "Applying DTrace patches ..."
+		for my_patch in ${DTRACE_PATCHES[*]}; do
+			eapply "${DTRACE_PATCHES_DIR}/${my_patch}"
 		done
 	fi
 
@@ -757,6 +783,9 @@ src_configure() {
 		cp "${T}"/.config "${WORKDIR}"/build/.config || die "failed to copy .config into build dir"
 
 		local targets=( olddefconfig prepare modules_prepare scripts )
+		if use dtrace; then
+			targets+=( ctf )
+		fi
 		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" "${targets[@]}" || die "kernel configure failed"
 	fi
 }

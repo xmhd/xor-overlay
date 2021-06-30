@@ -1,0 +1,67 @@
+From a7135140376e3673298527daf487992dc31d131f Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Mon, 21 Oct 2019 18:06:54 +0100
+Subject: [PATCH 07/14] ctf: adapt to the new CTF linker API
+
+The ctf_link API now supports lazy opening: CTF_LINK_SHARE_DUPLICATED
+works too.  (And it deduplicates.)
+
+We also need to pass in CTF_LINK_EMPTY_CU_MAPPINGS, because the only
+evidence of the existence (and validity) of built-in modules is
+the existence of a CTF archive member corresponding to them, so they
+should be created even if they contain no types.
+
+This commit should be installed before binutils 2.30-58.0.10.el8_1.1
+is installed on the OL8 kernel autobuilders (but it won't build
+until binutils 2.30-58.0.10.el8_1.1 is installed).
+
+Orabug: 31003216
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Reviewed-by: Jack Vogel <jack.vogel@oracle.com>
+---
+ scripts/ctf/ctfarchive.c | 21 ++++-----------------
+ 1 file changed, 4 insertions(+), 17 deletions(-)
+
+diff --git a/scripts/ctf/ctfarchive.c b/scripts/ctf/ctfarchive.c
+index d97ece8d49db..355a7b124557 100644
+--- a/scripts/ctf/ctfarchive.c
++++ b/scripts/ctf/ctfarchive.c
+@@ -28,21 +28,7 @@ static ctf_file_t *output;
+  */
+ static void add_to_link(const char *fn)
+ {
+-	ctf_archive_t *fp;
+-	int err;
+-
+-	fp = ctf_open(fn, NULL, &err);
+-	if (fp == NULL) {
+-		/*
+-		 * Having no CTF is normal for things like assembly output.
+-		 */
+-		if (err == ECTF_NOCTFDATA)
+-			return;
+-		fprintf(stderr, "Cannot open %s: %s\n", fn, ctf_errmsg(err));
+-		exit(1);
+-	}
+-
+-	if (ctf_link_add_ctf (output, fp, fn) < 0)
++	if (ctf_link_add_ctf (output, NULL, fn, NULL, 0) < 0)
+ 	{
+ 		fprintf(stderr, "Cannot add CTF file %s: %s\n", fn,
+ 			ctf_errmsg(ctf_errno(output)));
+@@ -256,9 +242,10 @@ int main (int argc, char *argv[])
+ 	ctf_link_set_memb_name_changer(output, transform_module_names, NULL);
+ 
+ 	/*
+-	 * Do the link.  This link mode will change in future.
++	 * Do the link.
+ 	 */
+-	if (ctf_link(output, CTF_LINK_SHARE_UNCONFLICTED) < 0)
++	if (ctf_link(output, CTF_LINK_SHARE_DUPLICATED |
++                     CTF_LINK_EMPTY_CU_MAPPINGS) < 0)
+ 		goto ctf_err;
+ 
+ 	/*
+-- 
+2.28.0
+

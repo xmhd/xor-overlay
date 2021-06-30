@@ -1,0 +1,1333 @@
+diff -Naur linux-5.12.13/.gitignore linux-5.12.13-r1/.gitignore
+--- linux-5.12.13/.gitignore	2021-06-23 08:44:11.000000000 -0400
++++ linux-5.12.13-r1/.gitignore	2021-06-29 20:10:58.127768619 -0400
+@@ -50,6 +50,7 @@
+ Module.symvers
+ modules.builtin
+ modules.order
++modules_thick.builtin
+ 
+ #
+ # Top-level generic files
+diff -Naur linux-5.12.13/Documentation/dontdiff linux-5.12.13-r1/Documentation/dontdiff
+--- linux-5.12.13/Documentation/dontdiff	2021-06-23 08:44:11.000000000 -0400
++++ linux-5.12.13-r1/Documentation/dontdiff	2021-06-29 20:11:23.967769466 -0400
+@@ -183,6 +183,7 @@
+ modules.builtin.modinfo
+ modules.nsdeps
+ modules.order
++modules_thick.builtin
+ modversions.h*
+ nconf
+ nconf-cfg
+diff -Naur linux-5.12.13/Makefile linux-5.12.13-r1/Makefile
+--- linux-5.12.13/Makefile	2021-06-29 20:09:31.844432458 -0400
++++ linux-5.12.13-r1/Makefile	2021-06-29 20:21:17.134455691 -0400
+@@ -1203,7 +1203,7 @@
+ 	$(CONFIG_SHELL) $< "$(LD)" "$(KBUILD_LDFLAGS)" "$(LDFLAGS_vmlinux)";    \
+ 	$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
+ 
+-vmlinux: scripts/link-vmlinux.sh autoksyms_recursive $(vmlinux-deps) FORCE
++vmlinux: scripts/link-vmlinux.sh autoksyms_recursive $(vmlinux-deps) modules_thick.builtin FORCE
+ 	+$(call if_changed,link-vmlinux)
+ 
+ targets := vmlinux
+@@ -1513,6 +1513,23 @@
+ 
+ endif # CONFIG_MODULES
+ 
++# modules_thick.builtin maps from kernel modules (or rather the object file
++# names they would have had had they not been built in) to their constituent
++# object files: dwarf2ctf uses this to determine which modules any given object
++# file is part of.  (We cannot eliminate the slight redundancy here without
++# double-expansion.)
++
++modthickbuiltin-dirs := $(addprefix _modthickbuiltin_, $(build-dirs))
++
++modules_thick.builtin: $(modthickbuiltin-dirs)
++	$(Q)$(AWK) '!x[$$0]++' $(addsuffix /$@, $(build-dirs)) > $@
++
++PHONY += $(modthickbuiltin-dirs)
++# tristate.conf is not included from this Makefile. Add it as a prerequisite
++# here to make it self-healing in case somebody accidentally removes it.
++$(modthickbuiltin-dirs): include/config/tristate.conf
++	$(Q)$(MAKE) $(modbuiltin)=$(patsubst _modthickbuiltin_%,%,$@) builtin-file=modules_thick.builtin
++
+ ###
+ # Cleaning is done on three levels.
+ # make clean     Delete most generated files
+@@ -1877,7 +1894,7 @@
+ 		-o -name '*.lex.c' -o -name '*.tab.[ch]' \
+ 		-o -name '*.asn1.[ch]' \
+ 		-o -name '*.symtypes' -o -name 'modules.order' \
+-		-o -name '.tmp_*.o.*' \
++		-o -name '.tmp_*.o.*' -o -name modules_thick.builtin \
+ 		-o -name '*.c.[012]*.*' \
+ 		-o -name '*.ll' \
+ 		-o -name '*.gcno' \
+diff -Naur linux-5.12.13/include/linux/module.h linux-5.12.13-r1/include/linux/module.h
+--- linux-5.12.13/include/linux/module.h	2021-06-23 08:44:11.000000000 -0400
++++ linux-5.12.13-r1/include/linux/module.h	2021-06-29 20:22:06.911124011 -0400
+@@ -570,7 +570,8 @@
+ /* Returns 0 and fills in value, defined and namebuf, or -ERANGE if
+    symnum out of range. */
+ int module_get_kallsym(unsigned int symnum, unsigned long *value, char *type,
+-			char *name, char *module_name, int *exported);
++		       char *name, char *module_name, unsigned long *size,
++		       int *exported);
+ 
+ /* Look for this name: can be of form module:name. */
+ unsigned long module_kallsyms_lookup_name(const char *name);
+@@ -747,8 +748,8 @@
+ }
+ 
+ static inline int module_get_kallsym(unsigned int symnum, unsigned long *value,
+-					char *type, char *name,
+-					char *module_name, int *exported)
++				     char *type, char *name, char *module_name,
++				     unsigned long *size, int *exported)
+ {
+ 	return -ERANGE;
+ }
+diff -Naur linux-5.12.13/init/Kconfig linux-5.12.13-r1/init/Kconfig
+--- linux-5.12.13/init/Kconfig	2021-06-29 20:09:31.491099114 -0400
++++ linux-5.12.13-r1/init/Kconfig	2021-06-29 20:22:31.264458147 -0400
+@@ -1492,6 +1492,14 @@
+ 
+ 	  If unsure say y.
+ 
++config KALLMODSYMS
++	default y
++	bool "Enable support for /proc/kallmodsyms" if EXPERT
++	depends on KALLSYMS
++	help
++	  This option enables the /proc/kallmodsyms file, which maps symbols
++	  to addresses and their associated modules.
++
+ config PRINTK
+ 	default y
+ 	bool "Enable support for printk" if EXPERT
+diff -Naur linux-5.12.13/kernel/kallsyms.c linux-5.12.13-r1/kernel/kallsyms.c
+--- linux-5.12.13/kernel/kallsyms.c	2021-06-23 08:44:11.000000000 -0400
++++ linux-5.12.13-r1/kernel/kallsyms.c	2021-06-29 20:31:14.431142024 -0400
+@@ -33,6 +33,7 @@
+  */
+ extern const unsigned long kallsyms_addresses[] __weak;
+ extern const int kallsyms_offsets[] __weak;
++extern const unsigned long kallsyms_sizes[] __weak;
+ extern const u8 kallsyms_names[] __weak;
+ 
+ /*
+@@ -47,6 +48,8 @@
+ 
+ extern const char kallsyms_token_table[] __weak;
+ extern const u16 kallsyms_token_index[] __weak;
++extern const char kallsyms_modules[] __weak;
++extern const u32 kallsyms_symbol_modules[] __weak;
+ 
+ extern const unsigned int kallsyms_markers[] __weak;
+ 
+@@ -201,12 +204,24 @@
+ }
+ #endif /* CONFIG_LIVEPATCH */
+ 
++/*
++ * The caller passes in an address, and we return an index to the symbol --
++ * potentially also size and offset information.
++ * But an address might map to multiple symbols because:
++ *   - some symbols might have zero size
++ *   - some symbols might be aliases of one another
++ *   - some symbols might span (encompass) others
++ * The symbols should already be ordered so that, for a particular address,
++ * we first have the zero-size ones, then the biggest, then the smallest.
++ * So we find the index by:
++ *   - finding the last symbol with the target address
++ *   - backing the index up so long as both the address and size are unchanged
++ */
+ static unsigned long get_symbol_pos(unsigned long addr,
+ 				    unsigned long *symbolsize,
+ 				    unsigned long *offset)
+ {
+-	unsigned long symbol_start = 0, symbol_end = 0;
+-	unsigned long i, low, high, mid;
++	unsigned long low, high, mid;
+ 
+ 	/* This kernel should never had been booted. */
+ 	if (!IS_ENABLED(CONFIG_KALLSYMS_BASE_RELATIVE))
+@@ -227,37 +242,17 @@
+ 	}
+ 
+ 	/*
+-	 * Search for the first aliased symbol. Aliased
+-	 * symbols are symbols with the same address.
++	 * Search for the first aliased symbol.
+ 	 */
+-	while (low && kallsyms_sym_address(low-1) == kallsyms_sym_address(low))
++	while (low
++	    && kallsyms_sym_address(low-1) == kallsyms_sym_address(low)
++	    && kallsyms_sizes[low-1] == kallsyms_sizes[low])
+ 		--low;
+ 
+-	symbol_start = kallsyms_sym_address(low);
+-
+-	/* Search for next non-aliased symbol. */
+-	for (i = low + 1; i < kallsyms_num_syms; i++) {
+-		if (kallsyms_sym_address(i) > symbol_start) {
+-			symbol_end = kallsyms_sym_address(i);
+-			break;
+-		}
+-	}
+-
+-	/* If we found no next symbol, we use the end of the section. */
+-	if (!symbol_end) {
+-		if (is_kernel_inittext(addr))
+-			symbol_end = (unsigned long)_einittext;
+-		else if (IS_ENABLED(CONFIG_KALLSYMS_ALL))
+-			symbol_end = (unsigned long)_end;
+-		else
+-			symbol_end = (unsigned long)_etext;
+-	}
+-
+ 	if (symbolsize)
+-		*symbolsize = symbol_end - symbol_start;
++		*symbolsize = kallsyms_sizes[low];
+ 	if (offset)
+-		*offset = addr - symbol_start;
+-
++		*offset = addr - kallsyms_sym_address(low);
+ 	return low;
+ }
+ 
+@@ -276,6 +271,7 @@
+ 	return !!module_address_lookup(addr, symbolsize, offset, NULL, namebuf) ||
+ 	       !!__bpf_address_lookup(addr, symbolsize, offset, namebuf);
+ }
++EXPORT_SYMBOL_GPL(kallsyms_lookup_size_offset);
+ 
+ /*
+  * Lookup an address
+@@ -447,9 +443,11 @@
+ 	loff_t pos_bpf_end;
+ 	unsigned long value;
+ 	unsigned int nameoff; /* If iterating in core kernel symbols. */
++	unsigned long size;
+ 	char type;
+ 	char name[KSYM_NAME_LEN];
+ 	char module_name[MODULE_NAME_LEN];
++	int builtin_module;
+ 	int exported;
+ 	int show_value;
+ };
+@@ -479,7 +477,9 @@
+ 	int ret = module_get_kallsym(iter->pos - iter->pos_arch_end,
+ 				     &iter->value, &iter->type,
+ 				     iter->name, iter->module_name,
+-				     &iter->exported);
++				     &iter->size, &iter->exported);
++	iter->builtin_module = 0;
++
+ 	if (ret < 0) {
+ 		iter->pos_mod_end = iter->pos;
+ 		return 0;
+@@ -542,8 +542,19 @@
+ static unsigned long get_ksymbol_core(struct kallsym_iter *iter)
+ {
+ 	unsigned off = iter->nameoff;
++	u32 mod_index = 0;
+ 
+-	iter->module_name[0] = '\0';
++	if (kallsyms_symbol_modules)
++		mod_index = kallsyms_symbol_modules[iter->pos];
++
++	if (mod_index == 0 || kallsyms_modules == NULL) {
++		iter->module_name[0] = '\0';
++		iter->builtin_module = 0;
++	} else {
++		strcpy(iter->module_name, &kallsyms_modules[mod_index]);
++		iter->builtin_module = 1;
++	}
++	iter->exported = 0;
+ 	iter->value = kallsyms_sym_address(iter->pos);
+ 
+ 	iter->type = kallsyms_get_symbol_type(off);
+@@ -595,7 +606,7 @@
+ }
+ 
+ /* Returns false if pos at or past end of file. */
+-static int update_iter(struct kallsym_iter *iter, loff_t pos)
++int update_iter(struct kallsym_iter *iter, loff_t pos)
+ {
+ 	/* Module symbols can be accessed randomly. */
+ 	if (pos >= kallsyms_num_syms)
+@@ -631,18 +642,23 @@
+ {
+ }
+ 
+-static int s_show(struct seq_file *m, void *p)
++static int s_show_internal(struct seq_file *m, void *p, int builtin_modules)
+ {
+ 	void *value;
+ 	struct kallsym_iter *iter = m->private;
++	unsigned long size;
+ 
+ 	/* Some debugging symbols have no name.  Ignore them. */
+ 	if (!iter->name[0])
+ 		return 0;
+ 
+ 	value = iter->show_value ? (void *)iter->value : NULL;
++	size = iter->show_value ? iter->size : 0;
++
+ 
+-	if (iter->module_name[0]) {
++	if ((iter->builtin_module == 0 && iter->module_name[0]) ||
++	    (iter->builtin_module != 0 && iter->module_name[0] &&
++	     builtin_modules != 0)) {
+ 		char type;
+ 
+ 		/*
+@@ -651,9 +667,17 @@
+ 		 */
+ 		type = iter->exported ? toupper(iter->type) :
+ 					tolower(iter->type);
+-		seq_printf(m, "%px %c %s\t[%s]\n", value,
+-			   type, iter->name, iter->module_name);
+-	} else
++		if (builtin_modules)
++			seq_printf(m, "%px %lx %c %s\t[%s]\n", value,
++				   size, type, iter->name,
++				   iter->module_name);
++		else
++			seq_printf(m, "%px %c %s\t[%s]\n", value,
++				   type, iter->name, iter->module_name);
++	} else if (builtin_modules)
++		seq_printf(m, "%px %lx %c %s\n", value, size,
++			   iter->type, iter->name);
++	else
+ 		seq_printf(m, "%px %c %s\n", value,
+ 			   iter->type, iter->name);
+ 	return 0;
+@@ -666,6 +690,18 @@
+ 	.show = s_show
+ };
+ 
++static int s_show(struct seq_file *m, void *p)
++{
++	return s_show_internal(m, p, 0);
++}
++
++#ifdef CONFIG_KALLMODSYMS
++static int s_mod_show(struct seq_file *m, void *p)
++{
++	return s_show_internal(m, p, 1);
++}
++#endif
++
+ static inline int kallsyms_for_perf(void)
+ {
+ #ifdef CONFIG_PERF_EVENTS
+@@ -701,7 +737,8 @@
+ 	}
+ }
+ 
+-static int kallsyms_open(struct inode *inode, struct file *file)
++static int kallsyms_open_internal(struct inode *inode, struct file *file,
++	const struct seq_operations *ops)
+ {
+ 	/*
+ 	 * We keep iterator in m->private, since normal case is to
+@@ -709,7 +746,7 @@
+ 	 * using get_symbol_offset for every symbol.
+ 	 */
+ 	struct kallsym_iter *iter;
+-	iter = __seq_open_private(file, &kallsyms_op, sizeof(*iter));
++	iter = __seq_open_private(file, ops, sizeof(*iter));
+ 	if (!iter)
+ 		return -ENOMEM;
+ 	reset_iter(iter, 0);
+@@ -722,6 +759,18 @@
+ 	return 0;
+ }
+ 
++static int kallsyms_open(struct inode *inode, struct file *file)
++{
++	return kallsyms_open_internal(inode, file, &kallsyms_op);
++}
++
++#ifdef CONFIG_KALLMODSYMS
++static int kallmodsyms_open(struct inode *inode, struct file *file)
++{
++	return kallsyms_open_internal(inode, file, &kallmodsyms_op);
++}
++#endif
++
+ #ifdef	CONFIG_KGDB_KDB
+ const char *kdb_walk_kallsyms(loff_t *pos)
+ {
+@@ -749,9 +798,21 @@
+ 	.proc_release	= seq_release_private,
+ };
+ 
++#ifdef CONFIG_KALLMODSYMS
++static const struct proc_ops kallmodsyms_proc_ops = {
++	.proc_open	= kallmodsyms_open,
++	.proc_read	= seq_read,
++	.proc_lseek	= seq_lseek,
++	.proc_release	= seq_release_private,
++};
++#endif
++
+ static int __init kallsyms_init(void)
+ {
+ 	proc_create("kallsyms", 0444, NULL, &kallsyms_proc_ops);
++#ifdef CONFIG_KALLMODSYMS
++	proc_create("kallmodsyms", 0444, NULL, &kallmodsyms_proc_ops);
++#endif
+ 	return 0;
+ }
+ device_initcall(kallsyms_init);
+diff -Naur linux-5.12.13/kernel/module.c linux-5.12.13-r1/kernel/module.c
+--- linux-5.12.13/kernel/module.c	2021-06-23 08:44:11.000000000 -0400
++++ linux-5.12.13-r1/kernel/module.c	2021-06-29 20:32:03.904476985 -0400
+@@ -4313,7 +4313,8 @@
+ }
+ 
+ int module_get_kallsym(unsigned int symnum, unsigned long *value, char *type,
+-			char *name, char *module_name, int *exported)
++		       char *name, char *module_name, unsigned long *size,
++		       int *exported)
+ {
+ 	struct module *mod;
+ 
+@@ -4332,6 +4333,7 @@
+ 			strlcpy(name, kallsyms_symbol_name(kallsyms, symnum), KSYM_NAME_LEN);
+ 			strlcpy(module_name, mod->name, MODULE_NAME_LEN);
+ 			*exported = is_exported(name, *value, mod);
++			*size = kallsyms->symtab[symnum].st_size;
+ 			preempt_enable();
+ 			return 0;
+ 		}
+diff -Naur linux-5.12.13/scripts/Kbuild.include linux-5.12.13-r1/scripts/Kbuild.include
+--- linux-5.12.13/scripts/Kbuild.include	2021-06-23 08:44:11.000000000 -0400
++++ linux-5.12.13-r1/scripts/Kbuild.include	2021-06-29 20:32:36.754478067 -0400
+@@ -154,6 +154,12 @@
+ build := -f $(srctree)/scripts/Makefile.build obj
+ 
+ ###
++# Shorthand for $(Q)$(MAKE) -f scripts/Makefile.modbuiltin obj=
++# Usage:
++# $(Q)$(MAKE) $(modbuiltin)=dir
++modbuiltin := -f $(srctree)/scripts/Makefile.modbuiltin obj
++
++###
+ # Shorthand for $(Q)$(MAKE) -f scripts/Makefile.dtbinst obj=
+ # Usage:
+ # $(Q)$(MAKE) $(dtbinst)=dir
+diff -Naur linux-5.12.13/scripts/Makefile.modbuiltin linux-5.12.13-r1/scripts/Makefile.modbuiltin
+--- linux-5.12.13/scripts/Makefile.modbuiltin	1969-12-31 19:00:00.000000000 -0500
++++ linux-5.12.13-r1/scripts/Makefile.modbuiltin	2021-06-29 20:32:49.841145156 -0400
+@@ -0,0 +1,60 @@
++# SPDX-License-Identifier: GPL-2.0
++# ==========================================================================
++# Generating modules_thick.builtin
++# ==========================================================================
++
++src := $(obj)
++
++PHONY := __modbuiltin
++__modbuiltin:
++
++include include/config/auto.conf
++# tristate.conf sets tristate variables to uppercase 'Y' or 'M'
++# That way, we get the list of built-in modules in obj-Y
++include include/config/tristate.conf
++
++include scripts/Kbuild.include
++
++ifdef building_out_of_srctree
++# Create output directory if not already present
++_dummy := $(shell [ -d $(obj) ] || mkdir -p $(obj))
++endif
++
++# The filename Kbuild has precedence over Makefile
++kbuild-dir := $(if $(filter /%,$(src)),$(src),$(srctree)/$(src))
++kbuild-file := $(if $(wildcard $(kbuild-dir)/Kbuild),$(kbuild-dir)/Kbuild,$(kbuild-dir)/Makefile)
++include $(kbuild-file)
++
++include scripts/Makefile.lib
++__subdir-Y     := $(patsubst %/,%,$(filter %/, $(obj-Y)))
++subdir-Y       += $(__subdir-Y)
++subdir-ym      := $(sort $(subdir-y) $(subdir-Y) $(subdir-m))
++subdir-ym      := $(addprefix $(obj)/,$(subdir-ym))
++pathobj-Y      := $(addprefix $(obj)/,$(obj-Y))
++
++modthickbuiltin-subdirs := $(patsubst %,%/modules_thick.builtin, $(subdir-ym))
++modthickbuiltin-target  := $(obj)/modules_thick.builtin
++
++__modbuiltin: $(obj)/$(builtin-file) $(subdir-ym)
++	@:
++
++$(modthickbuiltin-target): $(subdir-ym) FORCE
++	$(Q) $(foreach mod-o, $(filter %.o,$(obj-Y)),\
++		printf "%s:" $(addprefix $(obj)/,$(mod-o)) >> $@; \
++		printf " %s" $(sort $(strip $(addprefix $(obj)/,$($(mod-o:.o=-objs)) \
++			$($(mod-o:.o=-y)) $($(mod-o:.o=-Y))))) >> $@; \
++		printf "\n" >> $@; ) \
++	cat /dev/null $(modthickbuiltin-subdirs) >> $@;
++
++PHONY += FORCE
++
++FORCE:
++
++# Descending
++# ---------------------------------------------------------------------------
++
++PHONY += $(subdir-ym)
++$(subdir-ym):
++	$(Q)$(MAKE) $(modbuiltin)=$@ builtin-file=$(builtin-file)
++
++.PHONY: $(PHONY)
+diff -Naur linux-5.12.13/scripts/kallsyms.c linux-5.12.13-r1/scripts/kallsyms.c
+--- linux-5.12.13/scripts/kallsyms.c	2021-06-23 08:44:11.000000000 -0400
++++ linux-5.12.13-r1/scripts/kallsyms.c	2021-06-29 20:40:39.784493933 -0400
+@@ -5,7 +5,10 @@
+  * This software may be used and distributed according to the terms
+  * of the GNU General Public License, incorporated herein by reference.
+  *
+- * Usage: nm -n vmlinux | scripts/kallsyms [--all-symbols] > symbols.S
++ * Usage: nm -n -S vmlinux
++ *        | scripts/kallsyms [--all-symbols] [--absolute-percpu]
++ *             [--base-relative] [--builtin=modules_thick.builtin]
++ *        > symbols.S
+  *
+  *      Table compression uses all the unused char codes on the symbols and
+  *  maps these to the most used substrings (tokens). For instance, it might
+@@ -18,6 +21,7 @@
+  *
+  */
+ 
++#define _GNU_SOURCE 1
+ #include <stdbool.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -25,15 +29,27 @@
+ #include <ctype.h>
+ #include <limits.h>
+ 
++#include "../include/generated/autoconf.h"
++
++#ifdef CONFIG_KALLMODSYMS
++#include <errno.h>
++#endif
++
++#ifndef ARRAY_SIZE
+ #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
++#endif
+ 
+ #define KSYM_NAME_LEN		128
+ 
+ struct sym_entry {
+ 	unsigned long long addr;
++	unsigned long long size;
+ 	unsigned int len;
+ 	unsigned int start_pos;
+ 	unsigned int percpu_absolute;
++#ifdef CONFIG_KALLMODSYMS
++	unsigned int module;
++#endif
+ 	unsigned char sym[];
+ };
+ 
+@@ -67,11 +83,118 @@
+ static unsigned char best_table[256][2];
+ static unsigned char best_table_len[256];
+ 
++#ifdef CONFIG_KALLMODSYMS
++static unsigned int strhash(const char *s)
++{
++	/* fnv32 hash */
++	unsigned int hash = 2166136261U;
++
++	for (; *s; s++)
++		hash = (hash ^ *s) * 0x01000193;
++	return hash;
++}
++
++#define OBJ2MOD_BITS 10
++#define OBJ2MOD_N (1 << OBJ2MOD_BITS)
++#define OBJ2MOD_MASK (OBJ2MOD_N - 1)
++struct obj2mod_elem {
++	char *obj;
++	int mod;
++	struct obj2mod_elem *next;
++};
++
++static struct obj2mod_elem *obj2mod[OBJ2MOD_N];
++
++static void obj2mod_init(void)
++{
++	memset(obj2mod, 0, sizeof(obj2mod));
++}
++
++static void obj2mod_put(char *obj, int mod)
++{
++	int i = strhash(obj) & OBJ2MOD_MASK;
++	struct obj2mod_elem *elem = malloc(sizeof(struct obj2mod_elem));
++
++	if (!elem) {
++		fprintf(stderr, "kallsyms: out of memory\n");
++		exit(1);
++	}
++
++	elem->obj = strdup(obj);
++	if (!elem->obj) {
++		fprintf(stderr, "kallsyms: out of memory\n");
++		free(elem);
++		exit(1);
++	}
++
++	elem->mod = mod;
++	elem->next = obj2mod[i];
++	obj2mod[i] = elem;
++}
++
++static int obj2mod_get(char *obj)
++{
++	int i = strhash(obj) & OBJ2MOD_MASK;
++	struct obj2mod_elem *elem;
++
++	for (elem = obj2mod[i]; elem; elem = elem->next)
++		if (strcmp(elem->obj, obj) == 0)
++			return elem->mod;
++	return 0;
++}
++
++static void obj2mod_free(void)
++{
++	int i;
++
++	for (i = 0; i < OBJ2MOD_N; i++) {
++		struct obj2mod_elem *elem = obj2mod[i];
++		struct obj2mod_elem *next;
++
++		while (elem) {
++			next = elem->next;
++			free(elem->obj);
++			free(elem);
++			elem = next;
++		}
++	}
++}
++
++/*
++ * The builtin module names.  The "offset" points to the name as if
++ * all builtin module names were concatenated to a single string.
++ */
++static unsigned int builtin_module_size;	/* number allocated */
++static unsigned int builtin_module_len;		/* number assigned */
++static char **builtin_modules;			/* array of module names */
++static unsigned int *builtin_module_offsets;	/* offset */
++
++/*
++ * modules_thick.builtin iteration state.
++ */
++struct modules_thick_iter {
++	FILE *f;
++	char *line;
++	size_t line_size;
++};
++
++/*
++ * An ordered list of address ranges and how they map to built-in modules.
++ */
++struct addrmap_entry {
++	unsigned long long addr;
++	unsigned long long size;
++	unsigned int module;
++};
++static struct addrmap_entry *addrmap;
++static int addrmap_num, addrmap_alloced;
++#endif
+ 
+ static void usage(void)
+ {
+-	fprintf(stderr, "Usage: kallsyms [--all-symbols] "
+-			"[--base-relative] < in.map > out.S\n");
++	fprintf(stderr, "Usage: kallsyms [--all-symbols] [--absolute-percpu] "
++			"[--base-relative] [--builtin=modules_thick.builtin] "
++			"< nm_vmlinux.out > symbols.S\n");
+ 	exit(1);
+ }
+ 
+@@ -94,11 +217,14 @@
+ 		"kallsyms_addresses",
+ 		"kallsyms_offsets",
+ 		"kallsyms_relative_base",
++		"kallsyms_sizes",
+ 		"kallsyms_num_syms",
+ 		"kallsyms_names",
+ 		"kallsyms_markers",
+ 		"kallsyms_token_table",
+ 		"kallsyms_token_index",
++		"kallsyms_symbol_modules",
++		"kallsyms_modules",
+ 		/* Exclude linker generated symbols which vary between passes */
+ 		"_SDA_BASE_",		/* ppc */
+ 		"_SDA2_BASE_",		/* ppc */
+@@ -195,16 +321,37 @@
+ 	}
+ }
+ 
++#ifdef CONFIG_KALLMODSYMS
++static int addrmap_compare(const void *keyp, const void *rangep)
++{
++	unsigned long long addr = *((const unsigned long long *)keyp);
++	const struct addrmap_entry *range = (const struct addrmap_entry *)rangep;
++
++	if (addr < range->addr)
++		return -1;
++	if (addr < range->addr + range->size)
++		return 0;
++	return 1;
++}
++#endif
++
+ static struct sym_entry *read_symbol(FILE *in)
+ {
+ 	char name[500], type;
+ 	unsigned long long addr;
+ 	unsigned int len;
+ 	struct sym_entry *sym;
+-	int rc;
+ 
+-	rc = fscanf(in, "%llx %c %499s\n", &addr, &type, name);
+-	if (rc != 3) {
++	int rc, init_scratch = 0;
++	unsigned long long size;
++#ifdef CONFIG_KALLMODSYMS
++	struct addrmap_entry *range;
++	unsigned int module;
++#endif
++
++ read_another:
++	rc = fscanf(in, "%llx %llx %c %499s\n", &addr, &size, &type, name);
++	if (rc != 4) {
+ 		if (rc != EOF && fgets(name, 500, in) == NULL)
+ 			fprintf(stderr, "Read error or end of file.\n");
+ 		return NULL;
+@@ -219,6 +366,16 @@
+ 	if (strcmp(name, "_text") == 0)
+ 		_text = addr;
+ 
++	/* skip the .init.scratch section */
++	if (strcmp(name, "__init_scratch_end") == 0) {
++		init_scratch = 0;
++		goto read_another;
++	}
++	if (strcmp(name, "__init_scratch_begin") == 0)
++		init_scratch = 1;
++	if (init_scratch)
++		goto read_another;
++
+ 	/* Ignore most absolute/undefined (?) symbols. */
+ 	if (is_ignored_symbol(name, type))
+ 		return NULL;
+@@ -226,6 +383,16 @@
+ 	check_symbol_range(name, addr, text_ranges, ARRAY_SIZE(text_ranges));
+ 	check_symbol_range(name, addr, &percpu_range, 1);
+ 
++#ifdef CONFIG_KALLMODSYMS
++	/* look up the builtin module this is part of (if any) */
++	range = (struct addrmap_entry *) bsearch(&addr,
++	    addrmap, addrmap_num, sizeof(*addrmap), &addrmap_compare);
++	if (range)
++		module = builtin_module_offsets[range->module];
++	else
++		module = 0;
++#endif
++
+ 	/* include the type field in the symbol name, so that it gets
+ 	 * compressed together */
+ 
+@@ -242,6 +409,10 @@
+ 	sym->sym[0] = type;
+ 	strcpy(sym_name(sym), name);
+ 	sym->percpu_absolute = 0;
++	sym->size = size;
++#ifdef CONFIG_KALLMODSYMS
++	sym->module = module;
++#endif
+ 
+ 	return sym;
+ }
+@@ -451,6 +622,11 @@
+ 		printf("\n");
+ 	}
+ 
++	output_label("kallsyms_sizes");
++	for (i = 0; i < table_cnt; i++)
++		printf("\tPTR\t%#llx\n", table[i]->size);
++	printf("\n");
++
+ 	output_label("kallsyms_num_syms");
+ 	printf("\t.long\t%u\n", table_cnt);
+ 	printf("\n");
+@@ -500,6 +676,21 @@
+ 	for (i = 0; i < 256; i++)
+ 		printf("\t.short\t%d\n", best_idx[i]);
+ 	printf("\n");
++
++#ifdef CONFIG_KALLMODSYMS
++	output_label("kallsyms_modules");
++	for (i = 0; i < builtin_module_len; i++)
++		printf("\t.asciz\t\"%s\"\n", builtin_modules[i]);
++	printf("\n");
++
++	for (i = 0; i < builtin_module_len; i++)
++		free(builtin_modules[i]);
++
++	output_label("kallsyms_symbol_modules");
++	for (i = 0; i < table_cnt; i++)
++		printf("\t.int\t%d\n", table[i]->module);
++	printf("\n");
++#endif
+ }
+ 
+ 
+@@ -703,6 +894,18 @@
+ 	if (sa->addr < sb->addr)
+ 		return -1;
+ 
++	/* zero-size markers before nonzero-size symbols */
++	if (sa->size > 0 && sb->size == 0)
++		return 1;
++	if (sa->size == 0 && sb->size > 0)
++		return -1;
++
++	/* sort by size (large size preceding symbols it encompasses) */
++	if (sa->size < sb->size)
++		return 1;
++	if (sa->size > sb->size)
++		return -1;
++
+ 	/* sort by "weakness" type */
+ 	wa = (sa->sym[0] == 'w') || (sa->sym[0] == 'W');
+ 	wb = (sb->sym[0] == 'w') || (sb->sym[0] == 'W');
+@@ -762,23 +965,370 @@
+ 		}
+ }
+ 
++#ifdef CONFIG_KALLMODSYMS
++/*
++ * Read a modules_thick.builtin file.
++ */
++
++/*
++ * Construct a modules_thick.builtin iterator.
++ */
++static struct modules_thick_iter *
++modules_thick_iter_new(const char *modules_thick_file)
++{
++	struct modules_thick_iter *i;
++
++	i = calloc(1, sizeof(struct modules_thick_iter));
++	if (i == NULL)
++		return NULL;
++
++	i->f = fopen(modules_thick_file, "r");
++
++	if (i->f == NULL) {
++		fprintf(stderr, "Cannot open builtin module file %s: %s\n",
++			modules_thick_file, strerror(errno));
++		return NULL;
++	}
++
++	return i;
++}
++
++/*
++ * Iterate, returning a new null-terminated array of object file names, and a
++ * new dynamically-allocated module name.  (The module name passed in is freed.)
++ *
++ * The array of object file names should be freed by the caller: the strings it
++ * points to are owned by the iterator, and should not be freed.
++ */
++static char ** __attribute__((__nonnull__))
++modules_thick_iter_next(struct modules_thick_iter *i, char **module_name)
++{
++	size_t npaths = 1;
++	char **module_paths;
++	char *last_slash;
++	char *last_dot;
++	char *trailing_linefeed;
++	char *object_name = i->line;
++	char *dash;
++	int composite = 0;
++
++	/*
++	 * Read in all module entries, computing the suffixless, pathless name
++	 * of the module and building the next arrayful of object file names for
++	 * return.
++	 *
++	 * Modules can consist of multiple files: in this case, the portion
++	 * before the colon is the path to the module (as before): the portion
++	 * after the colon is a space-separated list of files that should be *
++	 * considered part of this module.  In this case, the portion before the
++	 * name is an "object file" that does not actually exist: it is merged
++	 * into built-in.a without ever being written out.
++	 *
++	 * All module names have - translated to _, to match what is done to the
++	 * names of the same things when built as modules.
++	 */
++
++	/*
++	 * Reinvocation of exhausted iterator. Return NULL, once.
++	 */
++retry:
++	if (getline(&i->line, &i->line_size, i->f) < 0) {
++		if (ferror(i->f)) {
++			fprintf(stderr,
++				"Error reading from modules_thick file: %s\n",
++				strerror(errno));
++			exit(1);
++		}
++		rewind(i->f);
++		return NULL;
++	}
++
++	if (i->line[0] == '\0')
++		goto retry;
++
++	/*
++	 * Slice the line in two at the colon, if any.  If there is anything
++	 * past the ': ', this is a composite module.  (We allow for no colon
++	 * for robustness, even though one should always be present.)
++	 */
++	if (strchr(i->line, ':') != NULL) {
++		char *name_start;
++
++		object_name = strchr(i->line, ':');
++		*object_name = '\0';
++		object_name++;
++		name_start = object_name + strspn(object_name, " \n");
++		if (*name_start != '\0') {
++			composite = 1;
++			object_name = name_start;
++		}
++	}
++
++	/*
++	 * Figure out the module name.
++	 */
++	last_slash = strrchr(i->line, '/');
++	last_slash = (!last_slash) ? i->line :
++		last_slash + 1;
++	free(*module_name);
++	*module_name = strdup(last_slash);
++	dash = *module_name;
++
++	while (dash != NULL) {
++		dash = strchr(dash, '-');
++		if (dash != NULL)
++			*dash = '_';
++	}
++
++	last_dot = strrchr(*module_name, '.');
++	if (last_dot != NULL)
++		*last_dot = '\0';
++
++	trailing_linefeed = strchr(object_name, '\n');
++	if (trailing_linefeed != NULL)
++		*trailing_linefeed = '\0';
++
++	/*
++	 * Multifile separator? Object file names explicitly stated:
++	 * slice them up and shuffle them in.
++	 *
++	 * The array size may be an overestimate if any object file
++	 * names start or end with spaces (very unlikely) but cannot be
++	 * an underestimate.  (Check for it anyway.)
++	 */
++	if (composite) {
++		char *one_object;
++
++		for (npaths = 0, one_object = object_name;
++		     one_object != NULL;
++		     npaths++, one_object = strchr(one_object + 1, ' '))
++			;
++	}
++
++	module_paths = malloc((npaths + 1) * sizeof(char *));
++	if (!module_paths) {
++		fprintf(stderr, "%s: out of memory on module %s\n", __func__,
++			*module_name);
++		exit(1);
++	}
++
++	if (composite) {
++		char *one_object;
++		size_t i = 0;
++
++		while ((one_object = strsep(&object_name, " ")) != NULL) {
++			if (i >= npaths) {
++				fprintf(stderr, "%s: npaths overflow on module "
++					"%s: this is a bug.\n", __func__,
++					*module_name);
++				exit(1);
++			}
++
++			module_paths[i++] = one_object;
++		}
++	} else
++		module_paths[0] = i->line;	/* untransformed module name */
++
++	module_paths[npaths] = NULL;
++
++	return module_paths;
++}
++
++/*
++ * Free an iterator. Can be called while iteration is underway, so even
++ * state that is freed at the end of iteration must be freed here too.
++ */
++static void
++modules_thick_iter_free(struct modules_thick_iter *i)
++{
++	if (i == NULL)
++		return;
++	fclose(i->f);
++	free(i->line);
++	free(i);
++}
++
++/*
++ * Expand the builtin modules list.
++ */
++static void expand_builtin_modules(void)
++{
++	builtin_module_size += 50;
++
++	builtin_modules = realloc(builtin_modules,
++				  sizeof(*builtin_modules) *
++				  builtin_module_size);
++	builtin_module_offsets = realloc(builtin_module_offsets,
++					 sizeof(*builtin_module_offsets) *
++					 builtin_module_size);
++
++	if (!builtin_modules || !builtin_module_offsets) {
++		fprintf(stderr, "kallsyms failure: out of memory.\n");
++		exit(EXIT_FAILURE);
++	}
++}
++
++/*
++ * Add a single built-in module (possibly composed of many files) to the
++ * modules list.  Take the offset of the current module and return it
++ * (purely for simplicity's sake in the caller).
++ */
++static size_t add_builtin_module(const char *module_name, char **module_paths,
++				 size_t offset)
++{
++	/* map the module's object paths to the module offset */
++	while (*module_paths) {
++		obj2mod_put(*module_paths, builtin_module_len);
++		module_paths++;
++	}
++
++	/* add the module name */
++	if (builtin_module_size <= builtin_module_len)
++		expand_builtin_modules();
++	builtin_modules[builtin_module_len] = strdup(module_name);
++	builtin_module_offsets[builtin_module_len] = offset;
++	builtin_module_len++;
++
++	return (offset + strlen(module_name) + 1);
++}
++
++/*
++ * Read the linker map.
++ */
++static void read_linker_map(void)
++{
++	unsigned long long addr, size;
++	char obj[PATH_MAX+1];
++	FILE *f = fopen(".tmp_vmlinux.ranges", "r");
++
++	if (!f) {
++		fprintf(stderr, "Cannot open '.tmp_vmlinux.ranges'.\n");
++		exit(1);
++	}
++
++	addrmap_num = 0;
++	addrmap_alloced = 4096;
++	addrmap = malloc(sizeof(*addrmap) * addrmap_alloced);
++	if (!addrmap)
++		goto oom;
++
++	/*
++	 * For each address range (addr,size) and object, add to addrmap
++	 * the range and the built-in module to which the object maps.
++	 */
++	while (fscanf(f, "%llx %llx %s\n", &addr, &size, obj) == 3) {
++		int m = obj2mod_get(obj);
++
++		if (addr == 0 || size == 0 || m == 0)
++			continue;
++
++		if (addrmap_num >= addrmap_alloced) {
++			addrmap_alloced *= 2;
++			addrmap = realloc(addrmap,
++			    sizeof(*addrmap) * addrmap_alloced);
++			if (!addrmap)
++				goto oom;
++		}
++
++		addrmap[addrmap_num].addr = addr;
++		addrmap[addrmap_num].size = size;
++		addrmap[addrmap_num].module = m;
++		addrmap_num++;
++	}
++	fclose(f);
++	return;
++
++oom:
++	fprintf(stderr, "kallsyms: out of memory\n");
++	exit(1);
++}
++
++/*
++ * Read "modules_thick.builtin" (the list of built-in modules).  Construct:
++ *   - builtin_modules: array of built-in-module names
++ *   - builtin_module_offsets: array of offsets that will later be
++ *       used to access a concatenated list of built-in-module names
++ *   - obj2mod: a temporary, many-to-one, hash mapping
++ *       from object-file paths to built-in-module names
++ * Read ".tmp_vmlinux.ranges" (the linker map).
++ *   - addrmap[] maps address ranges to built-in module names (using obj2mod)
++ */
++static void read_modules(const char *modules_builtin)
++{
++	struct modules_thick_iter *i;
++	size_t offset = 0;
++	char *module_name = NULL;
++	char **module_paths;
++
++	obj2mod_init();
++
++	/*
++	 * builtin_modules[0] is a null entry signifying a symbol that cannot be
++	 * modular.
++	 */
++	builtin_module_size = 50;
++	builtin_modules = malloc(sizeof(*builtin_modules) *
++				 builtin_module_size);
++	builtin_module_offsets = malloc(sizeof(*builtin_module_offsets) *
++				 builtin_module_size);
++	if (!builtin_modules || !builtin_module_offsets) {
++		fprintf(stderr, "kallsyms: out of memory\n");
++		exit(1);
++	}
++	builtin_modules[0] = strdup("");
++	builtin_module_offsets[0] = 0;
++	builtin_module_len = 1;
++	offset++;
++
++	/*
++	 * Iterate over all modules in modules_thick.builtin and add each.
++	 */
++	i = modules_thick_iter_new(modules_builtin);
++	if (i == NULL) {
++		fprintf(stderr, "Cannot iterate over builtin modules.\n");
++		exit(1);
++	}
++
++	while ((module_paths = modules_thick_iter_next(i, &module_name))) {
++		offset = add_builtin_module(module_name, module_paths, offset);
++		free(module_paths);
++		module_paths = NULL;
++	}
++
++	free(module_name);
++	modules_thick_iter_free(i);
++
++	/*
++	 * Read linker map.
++	 */
++	read_linker_map();
++
++	obj2mod_free();
++}
++#else
++static void read_modules(const char *unused) {}
++#endif /* CONFIG_KALLMODSYMS */
++
+ int main(int argc, char **argv)
+ {
+ 	if (argc >= 2) {
+ 		int i;
+ 		for (i = 1; i < argc; i++) {
+-			if(strcmp(argv[i], "--all-symbols") == 0)
++			if (strcmp(argv[i], "--all-symbols") == 0)
+ 				all_symbols = 1;
+ 			else if (strcmp(argv[i], "--absolute-percpu") == 0)
+ 				absolute_percpu = 1;
+ 			else if (strcmp(argv[i], "--base-relative") == 0)
+ 				base_relative = 1;
++			else if (strncmp(argv[i], "--builtin=", 10) == 0)
++				modules_builtin = &argv[i][10];
+ 			else
+ 				usage();
+ 		}
+ 	} else if (argc != 1)
+ 		usage();
+ 
++	read_modules(modules_builtin);
+ 	read_map(stdin);
+ 	shrink_table();
+ 	if (absolute_percpu)
+diff -Naur linux-5.12.13/scripts/kconfig/confdata.c linux-5.12.13-r1/scripts/kconfig/confdata.c
+--- linux-5.12.13/scripts/kconfig/confdata.c	2021-06-23 08:44:11.000000000 -0400
++++ linux-5.12.13-r1/scripts/kconfig/confdata.c	2021-06-29 20:43:09.297832177 -0400
+@@ -711,6 +711,25 @@
+ 	.print_comment = header_print_comment,
+ };
+ 
++/*
++ * Tristate printer
++ *
++ * This printer is used when generating the `include/config/tristate.conf' file.
++ */
++static void
++tristate_print_symbol(FILE *fp, struct symbol *sym, const char *value, void *arg)
++{
++
++       if (sym->type == S_TRISTATE && *value != 'n')
++	       fprintf(fp, "%s%s=%c\n", CONFIG_, sym->name, (char)toupper(*value));
++}
++
++static struct conf_printer tristate_printer_cb =
++{
++       .print_symbol = tristate_print_symbol,
++       .print_comment = kconfig_print_comment,
++};
++
+ static void conf_write_symbol(FILE *fp, struct symbol *sym,
+ 			      struct conf_printer *printer, void *printer_arg)
+ {
+@@ -1044,7 +1063,7 @@
+ 	struct symbol *sym;
+ 	const char *name;
+ 	const char *autoconf_name = conf_get_autoconfig_name();
+-	FILE *out, *out_h;
++	FILE *out, *tristate, *out_h;
+ 	int i;
+ 
+ 	if (!overwrite && is_present(autoconf_name))
+@@ -1059,6 +1078,13 @@
+ 	if (!out)
+ 		return 1;
+ 
++	tristate = fopen(".tmpconfig_tristate", "w");
++	if (!tristate) {
++		fclose(out);
++		fclose(tristate);
++		return 1;
++	}
++
+ 	out_h = fopen(".tmpconfig.h", "w");
+ 	if (!out_h) {
+ 		fclose(out);
+@@ -1066,6 +1092,7 @@
+ 	}
+ 
+ 	conf_write_heading(out, &kconfig_printer_cb, NULL);
++	conf_write_heading(tristate, &tristate_printer_cb, NULL);
+ 	conf_write_heading(out_h, &header_printer_cb, NULL);
+ 
+ 	for_all_symbols(i, sym) {
+@@ -1073,11 +1100,13 @@
+ 		if (!(sym->flags & SYMBOL_WRITE) || !sym->name)
+ 			continue;
+ 
+-		/* write symbols to auto.conf and autoconf.h */
++		/* write symbols to auto.conf, tristate and autoconf.h */
+ 		conf_write_symbol(out, sym, &kconfig_printer_cb, (void *)1);
++		conf_write_symbol(tristate, sym, &tristate_printer_cb, (void *)1);
+ 		conf_write_symbol(out_h, sym, &header_printer_cb, NULL);
+ 	}
+ 	fclose(out);
++	fclose(tristate);
+ 	fclose(out_h);
+ 
+ 	name = getenv("KCONFIG_AUTOHEADER");
+@@ -1088,6 +1117,14 @@
+ 	if (rename(".tmpconfig.h", name))
+ 		return 1;
+ 
++	name = getenv("KCONFIG_TRISTATE");
++	if (!name)
++		name = "include/config/tristate.conf";
++	if (make_parent_dir(name))
++		return 1;
++	if (rename(".tmpconfig_tristate", name))
++		return 1;
++
+ 	if (make_parent_dir(autoconf_name))
+ 		return 1;
+ 	/*
+diff -Naur linux-5.12.13/scripts/link-vmlinux.sh linux-5.12.13-r1/scripts/link-vmlinux.sh
+--- linux-5.12.13/scripts/link-vmlinux.sh	2021-06-23 08:44:11.000000000 -0400
++++ linux-5.12.13-r1/scripts/link-vmlinux.sh	2021-06-29 20:46:41.681172506 -0400
+@@ -181,6 +181,7 @@
+ 				--start-group			\
+ 				${KBUILD_VMLINUX_LIBS}		\
+ 				--end-group			\
++				-Map=.tmp_vmlinux.map		\
+ 				${@}"
+ 		fi
+ 
+@@ -195,6 +196,7 @@
+ 			-Wl,--start-group			\
+ 			${KBUILD_VMLINUX_LIBS}			\
+ 			-Wl,--end-group				\
++			-Wl,-Map=.tmp_vmlinux.map 		\
+ 			${@}"
+ 
+ 		${CC} ${CFLAGS_vmlinux}				\
+@@ -247,6 +249,21 @@
+ {
+ 	local kallsymopt;
+ 
++
++	# read the linker map to identify ranges of addresses:
++	#   - for each *.o file, report address, size, pathname
++	#       - most such lines will have four fields
++	#       - but sometimes there is a line break after the first field
++	#   - start reading at "Linker script and memory map"
++	#   - stop reading at ".brk"
++	${AWK} '
++	    /\.o$/ && start==1 { print $(NF-2), $(NF-1), $NF }
++	    /^Linker script and memory map/ { start = 1 }
++	    /^\.brk/ { exit(0) }
++	' .tmp_vmlinux.map | sort > .tmp_vmlinux.ranges
++
++	# get kallsyms options
++
+ 	if [ -n "${CONFIG_KALLSYMS_ALL}" ]; then
+ 		kallsymopt="${kallsymopt} --all-symbols"
+ 	fi
+@@ -259,8 +276,14 @@
+ 		kallsymopt="${kallsymopt} --base-relative"
+ 	fi
+ 
++
++	# "nm -S" does not print symbol size when size is 0
++	# Therefore use awk to regularize the data:
++	#   - when there are only three fields, add an explicit "0"
++	#   - when there are already four fields, pass through as is
+ 	info KSYMS ${2}
+-	${NM} -n ${1} | scripts/kallsyms ${kallsymopt} > ${2}
++	${NM} -n -S ${1} | ${AWK} 'NF==3 {print $1, 0, $2, $3}; NF==4' | \
++	    scripts/kallsyms ${kallsymopt} > ${2}
+ }
+ 
+ # Perform one step in kallsyms generation, including temporary linking of

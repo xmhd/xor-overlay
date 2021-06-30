@@ -10,6 +10,7 @@
 		<flag name="cet">Enable support for Intel Control Flow Enforcement Technology in the kernel</flag>
 		<flag name="clang">TODO</flag>
 		<flag name="compress-modules">Compress kernel modules as part of kernel build</flag>
+		<flag name="dtrace">Enable support for DTrace in the kernel</flag>
 		<flag name="e2fs">Enable support for EXT file systems in the kernel + initramfs</flag>
 		<flag name="firmware">Include firmware in the initramfs</flag>
 		<flag name="hardened">Apply kernel hardening patch set and CONFIG_* tweaks</flag>

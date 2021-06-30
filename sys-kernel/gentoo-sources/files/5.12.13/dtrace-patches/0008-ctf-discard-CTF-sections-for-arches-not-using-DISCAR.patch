@@ -1,0 +1,71 @@
+From 3be4e3a49e1067698adb7ad0ca76d0cc4848285a Mon Sep 17 00:00:00 2001
+From: Nick Alcock <nick.alcock@oracle.com>
+Date: Sat, 14 Mar 2020 19:15:32 +0000
+Subject: [PATCH 08/14] ctf: discard CTF sections for arches not using DISCARDS
+
+CTF sections are not needed at kernel link time (we get them straight
+from the object files), so we already discard CTF sections in the
+generic DISCARDS macro.  But not all arches use this macro: arches that
+don't need explicit arch-by-arch discards for .ctf added.
+
+Orabug: 31003216
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Reviewed-by: Jack Vogel <jack.vogel@oracle.com>
+---
+ arch/arm/kernel/vmlinux.lds.h     | 1 +
+ arch/arm64/kernel/vmlinux.lds.S   | 1 +
+ arch/c6x/kernel/vmlinux.lds.S     | 1 +
+ arch/hexagon/kernel/vmlinux.lds.S | 1 +
+ 4 files changed, 4 insertions(+)
+
+diff --git a/arch/arm/kernel/vmlinux.lds.h b/arch/arm/kernel/vmlinux.lds.h
+index 381a8e105fa5..6a90870c29dc 100644
+--- a/arch/arm/kernel/vmlinux.lds.h
++++ b/arch/arm/kernel/vmlinux.lds.h
+@@ -49,6 +49,7 @@
+ 		EXIT_CALL						\
+ 		ARM_MMU_DISCARD(*(.text.fixup))				\
+ 		ARM_MMU_DISCARD(*(__ex_table))				\
++		*(.ctf)							\
+ 		*(.discard)						\
+ 		*(.discard.*)
+ 
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index 5423ffe0a987..7ae0089a9217 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -93,6 +93,7 @@ SECTIONS
+ 		EXIT_CALL
+ 		*(.discard)
+ 		*(.discard.*)
++		*(.ctf)
+ 		*(.interp .dynamic)
+ 		*(.dynsym .dynstr .hash .gnu.hash)
+ 		*(.eh_frame)
+diff --git a/arch/c6x/kernel/vmlinux.lds.S b/arch/c6x/kernel/vmlinux.lds.S
+index ac99ba0864bf..49813d191479 100644
+--- a/arch/c6x/kernel/vmlinux.lds.S
++++ b/arch/c6x/kernel/vmlinux.lds.S
+@@ -146,6 +146,7 @@ SECTIONS
+ 		  EXIT_CALL
+ 		  *(.discard)
+ 		  *(.discard.*)
++		  *(.ctf)
+ 		  *(.interp)
+ 	}
+ }
+diff --git a/arch/hexagon/kernel/vmlinux.lds.S b/arch/hexagon/kernel/vmlinux.lds.S
+index 0ca2471ddb9f..efcf54de95ed 100644
+--- a/arch/hexagon/kernel/vmlinux.lds.S
++++ b/arch/hexagon/kernel/vmlinux.lds.S
+@@ -63,6 +63,7 @@ SECTIONS
+ 		EXIT_TEXT
+ 		EXIT_DATA
+ 		EXIT_CALL
++		*(.ctf)
+ 	}
+ 
+ 	STABS_DEBUG
+-- 
+2.28.0
+
