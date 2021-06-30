@@ -19,7 +19,7 @@ IUSE="build-kernel clang compress-modules debug dracut genkernel +install-source
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
-IUSE="${IUSE} cet hardened +page-table-isolation PaX +retpoline selinux sign-modules"
+IUSE="${IUSE} cet hardened +page-table-isolation pax +retpoline selinux sign-modules"
 # initramfs
 IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode plymouth udev xfs zfs"
 # misc kconfig tweaks
@@ -47,7 +47,7 @@ RDEPEND="
 	lvm? ( sys-fs/lvm2 )
 	mdadm? ( sys-fs/mdadm )
 	mcelog? ( app-admin/mcelog )
-	PaX? ( app-misc/pax-utils )
+	pax? ( app-misc/pax-utils )
 	plymouth? (
 		x11-libs/libdrm[libkms]
 		sys-boot/plymouth[libkms,udev]
@@ -416,7 +416,7 @@ src_prepare() {
 		done
 	fi
 
-	if use PaX; then
+	if use pax; then
 		einfo "Applying PaX patches ..."
 		for my_patch in ${PAX_PATCHES[*]}; do
 			eapply "${PAX_PATCHES_DIR}/${my_patch}"
@@ -673,7 +673,7 @@ src_prepare() {
 		echo "CONFIG_MEMCG=n" >> .config
 	fi
 
-	if use PaX; then
+	if use pax; then
 		echo "CONFIG_PAX=y" >> .config
 		echo "CONFIG_PAX_NOWRITEEXEC=y" >> .config
 		echo "CONFIG_PAX_EMUTRAMP=y" >> .config
@@ -1001,7 +1001,7 @@ pkg_postinst() {
 		ewarn "Memory allocation"
 		ewarn "... and more"
 		ewarn ""
-		if use PaX; then
+		if use pax; then
 			ewarn "W^X (writable or executable) TODO"
 			ewarn ""
 		fi

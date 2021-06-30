@@ -25,7 +25,7 @@
 		<flag name="microcode">Include microcode in the initramfs</flag>
 		<flag name="minimal">Minimal kernel configuration for use in virtual environments (e.g. containers)</flag>
 		<flag name="page-table-isolation">Remove kernel mapping in user mode</flag>
-		<flag name="PaX">Enforces writable pages to be non-executable, and executable pages to be non-writable</flag>
+		<flag name="pax">Enforces writable pages to be non-executable, and executable pages to be non-writable</flag>
 		<flag name="plymouth">Enable support for plymouth in the kernel + initramfs</flag>
 		<flag name="retpoline">Avoid speculative indirect branches in kernel</flag>
 		<flag name="sign-modules">Sign the kernel modules as part of the build-kernel process</flag>
