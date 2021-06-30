@@ -245,7 +245,6 @@ PAX_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/pax-patches"
 # TODO
 PAX_PATCHES=(
 	0001-NOWRITEEXEC-and-PAX-features-MPROTECT-EMUTRAMP.patch
-	0002-PAX_RANDKSTACK.patch
 )
 
 CET_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/cet-patches/scs"
@@ -676,7 +675,6 @@ src_prepare() {
 
 	if use PaX; then
 		echo "CONFIG_PAX=y" >> .config
-		echo "CONFIG_PAX_RANDKSTACK=y" >> .config
 		echo "CONFIG_PAX_NOWRITEEXEC=y" >> .config
 		echo "CONFIG_PAX_EMUTRAMP=y" >> .config
 		echo "CONFIG_PAX_MPROTECT=y" >> .config
@@ -1005,7 +1003,6 @@ pkg_postinst() {
 		ewarn ""
 		if use PaX; then
 			ewarn "W^X (writable or executable) TODO"
-			ewarn "RANDKSTACK TODO"
 			ewarn ""
 		fi
 		ewarn "These changes will stop certain programs from functioning"
