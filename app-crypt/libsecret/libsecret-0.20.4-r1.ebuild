@@ -1,44 +1,36 @@
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-
-PYTHON_COMPAT=( python3_{8..10} )
-
+PYTHON_COMPAT=( python3_{8..9} )
 VALA_USE_DEPEND=vapigen
 
-inherit gnome2 meson multilib-minimal python-any-r1 vala virtualx
+inherit gnome2 meson-multilib python-any-r1 vala virtualx
 
 DESCRIPTION="GObject library for accessing the freedesktop.org Secret Service API"
 HOMEPAGE="https://wiki.gnome.org/Projects/Libsecret"
 
 LICENSE="LGPL-2.1+ Apache-2.0" # Apache-2.0 license is used for tests only
-KEYWORDS="~amd64 ~arm ~arm64 ~mips ~ppc ~ppc64 ~x86"
-
 SLOT="0"
 
-IUSE="+crypt gtk-doc +freedesktop-secret-service +introspection test +vala"
+IUSE="+crypt secret-service gtk-doc +introspection test +vala"
 RESTRICT="!test? ( test )"
-REQUIRED_USE="vala? ( introspection )"
+REQUIRED_USE="
+	vala? ( introspection )
+	gtk-doc? ( crypt )
+"
+
+KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~ia64 ~mips ~ppc ~ppc64 ~riscv ~sparc ~x86"
 
 DEPEND="
 	>=dev-libs/glib-2.44:2[${MULTILIB_USEDEP}]
 	crypt? ( >=dev-libs/libgcrypt-1.2.2:0=[${MULTILIB_USEDEP}] )
 	introspection? ( >=dev-libs/gobject-introspection-1.29:= )
 "
-RDEPEND="${DEPEND}"
-# See https://bugs.gentoo.org/475182#c2 and https://bugs.gentoo.org/547456.
-# Gentoo has libsecret hard depend on a freedesktop secret service, in this case gnome-keyring.
-# We change this to have a configurable USE freedesktop-secret-service which can be met by
-# any freedesktop.org secret service API compatible program, e.g. gnome-keyring or keepassx.
-PDEPEND="
-	freedesktop-secret-service? (
-		|| (
-			gnome-base/gnome-keyring
-			app-admin/keepassxc
-		)
-	)
+RDEPEND="
+	${DEPEND}
+	secret-service? ( virtual/secret-service )
 "
-
 BDEPEND="
 	dev-libs/libxslt
 	dev-util/gdbus-codegen
@@ -76,11 +68,8 @@ src_prepare() {
 
 	# Remove @filename@ from the header template that would otherwise cause
 	# differences dependent on the ABI
-	sed -e '/enumerations from "@filename@"/d' -i libsecret/secret-enum-types.h.template || die
-}
-
-meson_multilib_native_use() {
-	multilib_native_usex "$1" "-D${2-$1}=true" "-D${2-$1}=false"
+	sed -e '/enumerations from "@filename@"/d' \
+		-i libsecret/secret-enum-types.h.template || die
 }
 
 multilib_src_configure() {
@@ -88,22 +77,15 @@ multilib_src_configure() {
 		$(meson_use crypt gcrypt)
 
 		# Don't build docs multiple times
-		-Dmanpage=$(multilib_is_native_abi && echo true || echo false)
-		$(meson_multilib_native_use gtk-doc gtk_doc)
-		$(meson_multilib_native_use introspection)
-		$(meson_multilib_native_use vala vapi)
+		$(meson_native_true manpage)
+		$(meson_native_use_bool gtk-doc gtk_doc)
+
+		$(meson_native_use_bool introspection)
+		$(meson_native_use_bool vala vapi)
 	)
 	meson_src_configure
 }
 
-multilib_src_compile() {
-	meson_src_compile
-}
-
 multilib_src_test() {
 	virtx meson_src_test
-}
-
-multilib_src_install() {
-	meson_src_install
 }
