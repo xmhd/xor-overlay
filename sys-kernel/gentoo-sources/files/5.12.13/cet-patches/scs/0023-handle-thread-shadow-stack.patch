@@ -46,15 +46,15 @@ diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
 index 9c214d7085a4..fa01e8679d01 100644
 --- a/arch/x86/kernel/process.c
 +++ b/arch/x86/kernel/process.c
-@@ -45,6 +45,7 @@
+@@ -43,6 +43,7 @@
+ #include <asm/io_bitmap.h>
+ #include <asm/proto.h>
  #include <asm/frame.h>
- #include <asm/elf.h>
- #include <linux/sizes.h>
 +#include <asm/cet.h>
  
  #include "process.h"
- 
-@@ -111,6 +112,7 @@  void exit_thread(struct task_struct *tsk)
+
+@@ -109,6 +110,7 @@  void exit_thread(struct task_struct *tsk)
  
  	free_vm86(t);
  
@@ -62,7 +62,7 @@ index 9c214d7085a4..fa01e8679d01 100644
  	fpu__drop(fpu);
  }
  
-@@ -124,8 +126,9 @@  static int set_new_tls(struct task_struct *p, unsigned long tls)
+@@ -122,8 +124,9 @@  static int set_new_tls(struct task_struct *p, unsigned long tls)
  		return do_set_thread_area_64(p, ARCH_SET_FS, tls);
  }
  
@@ -74,7 +74,7 @@ index 9c214d7085a4..fa01e8679d01 100644
  {
  	struct inactive_task_frame *frame;
  	struct fork_frame *fork_frame;
-@@ -165,7 +168,7 @@  int copy_thread(unsigned long clone_flags, unsigned long sp, unsigned long arg,
+@@ -163,7 +166,7 @@  int copy_thread(unsigned long clone_flags, unsigned long sp, unsigned long arg,
  	/* Kernel thread ? */
  	if (unlikely(p->flags & (PF_KTHREAD | PF_IO_WORKER))) {
  		memset(childregs, 0, sizeof(struct pt_regs));
@@ -83,7 +83,7 @@ index 9c214d7085a4..fa01e8679d01 100644
  		return 0;
  	}
  
-@@ -183,6 +186,12 @@  int copy_thread(unsigned long clone_flags, unsigned long sp, unsigned long arg,
+@@ -181,6 +184,12 @@  int copy_thread(unsigned long clone_flags, unsigned long sp, unsigned long arg,
  	if (clone_flags & CLONE_SETTLS)
  		ret = set_new_tls(p, tls);
  
