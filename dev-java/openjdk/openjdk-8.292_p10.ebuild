@@ -74,6 +74,7 @@ DEPEND="
 	app-arch/zip
 	media-libs/alsa-lib
 	net-print/cups
+	virtual/pkgconfig
 	x11-base/xorg-proto
 	x11-libs/libX11
 	x11-libs/libXext
@@ -210,7 +211,7 @@ src_configure() {
 	fi
 
 	(
-		unset _JAVA_OPTIONS JAVA JAVA_TOOL_OPTIONS JAVAC XARGS
+		unset _JAVA_OPTIONS JAVA JAVA_TOOL_OPTIONS JAVAC MAKE XARGS
 		CFLAGS= CXXFLAGS= LDFLAGS= \
 		CONFIG_SITE=/dev/null \
 		CONFIG_SHELL="${EPREFIX}/bin/bash"
