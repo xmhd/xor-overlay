@@ -1,0 +1,24 @@
+diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
+index b426d200e070..bd3c80d402e7 100644
+--- a/arch/x86/kernel/cet_prctl.c
++++ b/arch/x86/kernel/cet_prctl.c
+@@ -22,6 +22,9 @@  static int cet_copy_status_to_user(struct thread_shstk *shstk, u64 __user *ubuf)
+ 		buf[2] = shstk->size;
+ 	}
+ 
++	if (shstk->ibt)
++		buf[0] |= GNU_PROPERTY_X86_FEATURE_1_IBT;
++
+ 	return copy_to_user(ubuf, buf, sizeof(buf));
+ }
+ 
+@@ -46,6 +49,8 @@  int prctl_cet(int option, u64 arg2)
+ 			return -EINVAL;
+ 		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
+ 			shstk_disable();
++		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_IBT)
++			ibt_disable();
+ 		return 0;
+ 
+ 	case ARCH_X86_CET_LOCK:
+
