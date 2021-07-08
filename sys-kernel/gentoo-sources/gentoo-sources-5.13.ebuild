@@ -141,7 +141,7 @@ CET_PATCHES=(
 	0014-introduce-vm_shadow_stack.patch
 	0015-shadow-stack-page-fault-error-checking.patch
 	0016-update-maybe_mkwrite-for-shadow-stack.patch
-#	0017-fixup-places-that-call-pte_mkwrite-directly.patch
+	0017-fixup-places-that-call-pte_mkwrite-directly.patch
 	0018-add-guard-pages-around-shadow-stack.patch
 	0019-add-shadow-stack-pages-to-memory-accounting.patch
 	0020-update-can_follow_write_pte-for-shadow-stack.patch
