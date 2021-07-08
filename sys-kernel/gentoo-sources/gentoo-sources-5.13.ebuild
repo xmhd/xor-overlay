@@ -15,7 +15,7 @@ SLOT="${PV}"
 RESTRICT="binchecks mirror strip"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress-modules debug dracut genkernel +install-sources minimal symlink"
+IUSE="build-kernel clang compress-modules debug dracut +install-sources minimal symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
@@ -31,7 +31,7 @@ BDEPEND="
 	sys-devel/flex
 	build-kernel? (
 		dracut? ( sys-kernel/dracut )
-		genkernel? ( >=sys-kernel/genkernel-4.2.0 )
+		!dracut? ( >=sys-kernel/genkernel-4.2.0 )
 	)
 	virtual/libelf
 	virtual/yacc
@@ -63,12 +63,6 @@ RDEPEND="
 
 REQUIRED_USE="
 	!build-kernel? ( install-sources )
-	build-kernel? (
-		^^ (
-			dracut
-			genkernel
-		)
-	)
 	cet? ( amd64 )
 "
 
@@ -769,8 +763,39 @@ pkg_postinst() {
 	fi
 
 	# rebuild the initramfs on post_install
-	# both dracut and genkernel are supported at present.
+	# this ebuild currently defaults to genkernel
+	# though dracut can be used by setting USE=dracut
 	if use build-kernel; then
+
+		if  ! use dracut; then
+			# setup dirs for genkernel
+			mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log}
+
+			genkernel \
+				--color \
+				--makeopts="${MAKEOPTS}" \
+				--logfile="${WORKDIR}/genkernel/log/genkernel.log" \
+				--cachedir="${WORKDIR}/genkernel/cache" \
+				--tmpdir="${WORKDIR}/genkernel/tmp" \
+				--kernel-config="/boot/config-${KERNEL_FULL_VERSION}" \
+				--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
+				--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
+				--all-ramdisk-modules \
+				$(usex btrfs "--btrfs" "--no-btrfs") \
+				$(usex debug "--loglevel=5" "--loglevel=1") \
+				$(usex e2fs "--e2fsprogs" "--no-e2fsprogs") \
+				$(usex firmware "--firmware" "--no-firmware") \
+				$(usex include-files "--initramfs-overlay=${GK_FS_OVERLAY_DIR}" "") \
+				$(usex luks "--luks" "--no-luks") \
+				$(usex lvm "--lvm" "--no-lvm") \
+				$(usex mdadm "--mdadm" "--no-mdadm") \
+				$(usex mdadm "--mdadm-config=/etc/mdadm.conf" "") \
+				$(usex microcode "--microcode-initramfs" "--no-microcode-initramfs") \
+				$(usex udev "--udev-rules" "--no-udev-rules") \
+				$(usex xfs "--xfsprogs" "--no-xfsprogs") \
+				$(usex zfs "--zfs" "--no-zfs") \
+				initramfs || die "failed to build initramfs"
+		fi
 
 		if use dracut; then
 			einfo ">>> Dracut: building initramfs"
@@ -823,39 +848,6 @@ pkg_postinst() {
 				ewarn "    Where $SWAP is the swap device used by hibernate software of your choice."
 				ewarn ""
 				ewarn "    Please consult "man 7 dracut.kernel" for additional kernel arguments."
-		fi
-
-		if  use genkernel; then
-			# setup dirs for genkernel
-			mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log}
-
-			# fakeroot so we can always generate device nodes i.e /dev/console
-			# TODO: this will fail for -rN kernel revisions as kerneldir is hardcoded badly
-			# temporarily remove fakeroot
-			genkernel \
-				--color \
-				--makeopts="${MAKEOPTS}" \
-				--logfile="${WORKDIR}/genkernel/log/genkernel.log" \
-				--cachedir="${WORKDIR}/genkernel/cache" \
-				--tmpdir="${WORKDIR}/genkernel/tmp" \
-				--kernel-config="/boot/config-${KERNEL_FULL_VERSION}" \
-				--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
-				--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
-				--all-ramdisk-modules \
-				$(usex btrfs "--btrfs" "--no-btrfs") \
-				$(usex debug "--loglevel=5" "--loglevel=1") \
-				$(usex e2fs "--e2fsprogs" "--no-e2fsprogs") \
-				$(usex firmware "--firmware" "--no-firmware") \
-				$(usex include-files "--initramfs-overlay=${GK_FS_OVERLAY_DIR}" "") \
-				$(usex luks "--luks" "--no-luks") \
-				$(usex lvm "--lvm" "--no-lvm") \
-				$(usex mdadm "--mdadm" "--no-mdadm") \
-				$(usex mdadm "--mdadm-config=/etc/mdadm.conf" "") \
-				$(usex microcode "--microcode-initramfs" "--no-microcode-initramfs") \
-				$(usex udev "--udev-rules" "--no-udev-rules") \
-				$(usex xfs "--xfsprogs" "--no-xfsprogs") \
-				$(usex zfs "--zfs" "--no-zfs") \
-				initramfs || die "failed to build initramfs"
 		fi
 	fi
 
