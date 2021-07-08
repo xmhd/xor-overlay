@@ -183,20 +183,7 @@ IBT_PATCHES=(
 DTRACE_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/dtrace-patches/"
 
 DTRACE_PATCHES=(
-	0001-kallsyms-new-proc-kallmodsyms-with-builtin-modules-a.patch
-	0002-ctf-generate-CTF-information-for-the-kernel.patch
-	0003-waitfd-new-syscall-implementing-waitpid-over-fds.patch
-	0004-ctf-kernel-build-with-gt-for-CTF-generation-using-GC.patch
-	0005-ctf-toolchain-based-CTF-support.patch
-	0006-kbuild-arm64-Set-objects.builtin-dependency-to-Image.patch
-	0007-ctf-adapt-to-the-new-CTF-linker-API.patch
-	#0008-ctf-discard-CTF-sections-for-arches-not-using-DISCAR.patch
-	0009-ctf-discard-CTF-from-the-vDSO.patch
-	0010-ctf-fix-memory-leak-in-ctfarchive.patch
-	0011-ctf-adjust-to-upcoming-binutils-ctf_link_add_ctf-API.patch
-	0012-ctf-support-ld-ctf-variables-if-available.patch
-	0013-ctf-add-.ctf-to-.gitignore.patch
-	0014-waitfd-enable-by-default.patch
+
 )
 
 get_certs_dir() {
