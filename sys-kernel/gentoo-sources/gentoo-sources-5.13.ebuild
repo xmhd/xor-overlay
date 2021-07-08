@@ -23,7 +23,7 @@ IUSE="${IUSE} cet hardened +page-table-isolation pax +retpoline selinux sign-mod
 # initramfs
 IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode plymouth udev xfs zfs"
 # misc kconfig tweaks
-IUSE="${IUSE} dtrace mcelog +memcg"
+IUSE="${IUSE} dtrace mcelog +memcg +numa"
 
 BDEPEND="
 	sys-devel/bc
@@ -548,6 +548,12 @@ src_prepare() {
 		echo "CONFIG_MEMCG=y" >> .config
 	else
 		echo "CONFIG_MEMCG=n" >> .config
+	fi
+
+	if use numa; then
+		echo "CONFIG_NUMA_BALANCING=y" >> .config
+	else
+		echo "CONFIG_NUMA_BALANCING=n" >> .config
 	fi
 
 	if use pax; then
