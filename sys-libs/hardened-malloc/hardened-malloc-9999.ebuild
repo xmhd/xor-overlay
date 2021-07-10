@@ -38,7 +38,7 @@ src_unpack() {
 		git-r3_src_unpack
 	else
 	# ... or unpack downloaded sources
-	default
+		default
 	fi
 }
 
