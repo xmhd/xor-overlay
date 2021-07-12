@@ -1,0 +1,1076 @@
+From d66cfa3ee06caf9a62aa8a92240e1378375bc6da Mon Sep 17 00:00:00 2001
+From: Kris Van Hees <kris.van.hees@oracle.com>
+Date: Mon, 19 Nov 2018 18:00:18 +0000
+Subject: [PATCH 09/20] dtrace: sdt provider for x86
+
+This implements the SDT provider itself.  It is relatively
+straightforward except for the code needed to parse the argument strings
+ultimately derived from SDT DTRACE_PROBE invocations and perf-event
+prototype definitions.
+
+Signed-off-by: Kris Van Hees <kris.van.hees@oracle.com>
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Signed-off-by: Tomas Jedlicka <tomas.jedlicka@oracle.com>
+Signed-off-by: Eugene Loh <eugene.loh@oracle.com>
+Signed-off-by: David Mc Lean <david.mclean@oracle.com>
+Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
+---
+ arch/x86/dtrace/Makefile.arch |   2 +
+ arch/x86/dtrace/sdt_x86_64.c  | 126 ++++++++
+ dtrace/Makefile               |   2 +
+ dtrace/dt_test_dev.c          |  33 ++
+ dtrace/dt_test_mod.c          |   5 +
+ dtrace/sdt_dev.c              | 562 ++++++++++++++++++++++++++++++++++
+ dtrace/sdt_impl.h             |  87 ++++++
+ dtrace/sdt_mod.c              | 154 ++++++++++
+ 8 files changed, 971 insertions(+)
+ create mode 100644 arch/x86/dtrace/sdt_x86_64.c
+ create mode 100644 dtrace/sdt_dev.c
+ create mode 100644 dtrace/sdt_impl.h
+ create mode 100644 dtrace/sdt_mod.c
+
+diff --git a/arch/x86/dtrace/Makefile.arch b/arch/x86/dtrace/Makefile.arch
+index ffb9ef4d1722..8492eaee426d 100644
+--- a/arch/x86/dtrace/Makefile.arch
++++ b/arch/x86/dtrace/Makefile.arch
+@@ -7,5 +7,7 @@ DTARCHDIR = ../arch/x86/dtrace
+ ccflags-y	+= -I$(srctree)/arch/x86/dtrace/include -Idtrace
+ 
+ dtrace-obj	+= dtrace_asm_x86_64.o dtrace_isa_x86_64.o
++sdt-obj		+= sdt_x86_64.o
+ 
+ dtrace-y	+= $(addprefix $(DTARCHDIR)/, $(dtrace-obj))
++sdt-y		+= $(addprefix $(DTARCHDIR)/, $(sdt-obj))
+diff --git a/arch/x86/dtrace/sdt_x86_64.c b/arch/x86/dtrace/sdt_x86_64.c
+new file mode 100644
+index 000000000000..e686634ff410
+--- /dev/null
++++ b/arch/x86/dtrace/sdt_x86_64.c
+@@ -0,0 +1,126 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	sdt_dev.c
++ * DESCRIPTION:	DTrace - SDT provider implementation for x86
++ *
++ * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/sdt.h>
++#include <linux/slab.h>
++#include <linux/vmalloc.h>
++#include <asm/dtrace_util.h>
++
++#include "dtrace.h"
++#include "dtrace_dev.h"
++#include "sdt_impl.h"
++
++#define SDT_PATCHVAL		0xf0
++
++static uint8_t sdt_invop(struct pt_regs *regs)
++{
++	struct sdt_probe	*sdt = sdt_probetab[SDT_ADDR2NDX(regs->ip)];
++
++	for (; sdt != NULL; sdt = sdt->sdp_hashnext) {
++		if ((uintptr_t)sdt->sdp_patchpoint == regs->ip) {
++			if (sdt->sdp_ptype == SDTPT_IS_ENABLED)
++				regs->ax = 1;
++			else {
++				struct pt_regs *old_regs =
++					this_cpu_core->cpu_dtrace_regs;
++
++				this_cpu_core->cpu_dtrace_regs = regs;
++
++				dtrace_probe(sdt->sdp_id, regs->di, regs->si,
++					     regs->dx, regs->cx, regs->r8,
++					     regs->r9, 0);
++
++				this_cpu_core->cpu_dtrace_regs = old_regs;
++			}
++
++			return DTRACE_INVOP_NOPS;
++		}
++	}
++
++	return 0;
++}
++
++void sdt_provide_probe_arch(struct sdt_probe *sdp, struct module *mp, int idx)
++{
++	sdp->sdp_patchval = SDT_PATCHVAL;
++	sdp->sdp_savedval = *sdp->sdp_patchpoint;
++}
++
++int sdt_provide_module_arch(void *arg, struct module *mp)
++{
++	return 1;
++}
++
++void sdt_destroy_module(void *arg, struct module *mp)
++{
++}
++
++void sdt_enable_arch(struct sdt_probe *sdp, dtrace_id_t id, void *arg)
++{
++	dtrace_invop_enable(sdp->sdp_patchpoint, sdp->sdp_patchval);
++}
++
++void sdt_disable_arch(struct sdt_probe *sdp, dtrace_id_t id, void *arg)
++{
++	dtrace_invop_disable(sdp->sdp_patchpoint, sdp->sdp_savedval);
++}
++
++uint64_t sdt_getarg(void *arg, dtrace_id_t id, void *parg, int argno,
++		    int aframes)
++{
++	struct pt_regs  *regs = this_cpu_core->cpu_dtrace_regs;
++	uint64_t	*st;
++	uint64_t	val;
++
++	if (regs == NULL)
++		return 0;
++
++	switch (argno) {
++	case 0:
++		return regs->di;
++	case 1:
++		return regs->si;
++	case 2:
++		return regs->dx;
++	case 3:
++		return regs->cx;
++	case 4:
++		return regs->r8;
++	case 5:
++		return regs->r9;
++	}
++
++	ASSERT(argno > 5);
++
++	st = (uint64_t *)regs->sp;
++	DTRACE_CPUFLAG_SET(CPU_DTRACE_NOFAULT);
++	val = st[argno - 6];
++	DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_NOFAULT);
++
++	return val;
++}
++
++int sdt_dev_init_arch(void)
++{
++	return dtrace_invop_add(sdt_invop);
++}
++
++void sdt_dev_exit_arch(void)
++{
++	dtrace_invop_remove(sdt_invop);
++}
+diff --git a/dtrace/Makefile b/dtrace/Makefile
+index b91bc69d3802..126d4985967a 100644
+--- a/dtrace/Makefile
++++ b/dtrace/Makefile
+@@ -3,6 +3,7 @@
+ #
+ 
+ obj-$(CONFIG_DT_CORE)		+= dtrace.o
++obj-$(CONFIG_DT_SDT)		+= sdt.o
+ obj-$(CONFIG_DT_SYSTRACE)	+= systrace.o
+ obj-$(CONFIG_DT_DT_TEST)	+= dt_test.o
+ 
+@@ -15,6 +16,7 @@ dtrace-y			:= dtrace_mod.o dtrace_dev.o \
+ 				   dtrace_probe.o dtrace_probe_ctx.o \
+ 				   dtrace_ptofapi.o dtrace_predicate.o \
+ 				   dtrace_spec.o dtrace_state.o dtrace_util.o
++sdt-y				:= sdt_mod.o sdt_dev.o
+ systrace-y			:= systrace_mod.o systrace_dev.o
+ dt_test-y			:= dt_test_mod.o dt_test_dev.o
+ 
+diff --git a/dtrace/dt_test_dev.c b/dtrace/dt_test_dev.c
+index 8e1f5bab8a12..b720d8091787 100644
+--- a/dtrace/dt_test_dev.c
++++ b/dtrace/dt_test_dev.c
+@@ -131,6 +131,39 @@ static long dt_test_ioctl(struct file *file,
+ 		return 0;
+ 	}
+ 
++	if (DTRACE_PROBE_ENABLED(sdt__test))
++		DTRACE_PROBE(sdt__test__is__enabled);
++
++	DTRACE_PROBE(sdt__test);
++
++	/*
++	 * Test translation-to-nothing.
++	 */
++	DTRACE_PROBE(sdt__test__ioctl__file, int, cmd, int :, 666,
++		     char * : (), 0, struct file *, file, int, arg);
++
++	/*
++	 * Probes with every valid count of args.
++	 */
++	DTRACE_PROBE(sdt__test__arg1, int, 1);
++	DTRACE_PROBE(sdt__test__arg2, int, 1, int, 2);
++	DTRACE_PROBE(sdt__test__arg3, int, 1, int, 2, int, 3);
++	DTRACE_PROBE(sdt__test__arg4, int, 1, int, 2, int, 3, int, 4);
++	DTRACE_PROBE(sdt__test__arg5, int, 1, int, 2, int, 3, int, 4, int, 5);
++	DTRACE_PROBE(sdt__test__arg6, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6);
++	DTRACE_PROBE(sdt__test__arg7, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7);
++	DTRACE_PROBE(sdt__test__arg8, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7, int, 8);
++	DTRACE_PROBE(sdt__test__arg9, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7, int, 8, int, 9);
++	DTRACE_PROBE(sdt__test__arga, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7, int, 8, int, 9, int, 10);
++	DTRACE_PROBE(sdt__test__argb, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7, int, 8, int, 9, int, 10, int, 11);
++	DTRACE_PROBE(sdt__test__argc, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7, int, 8, int, 9, int, 10, int, 11, int, 12);
++	DTRACE_PROBE(sdt__test__argd, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7, int, 8, int, 9, int, 10, int, 11, int, 12, int, 13);
++	DTRACE_PROBE(sdt__test__arge, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7, int, 8, int, 9, int, 10, int, 11, int, 12, int, 13, int, 14);
++	DTRACE_PROBE(sdt__test__argf, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7, int, 8, int, 9, int, 10, int, 11, int, 12, int, 13, int, 14, int, 15);
++	DTRACE_PROBE(sdt__test__argg, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7, int, 8, int, 9, int, 10, int, 11, int, 12, int, 13, int, 14, int, 15, int, 16);
++	DTRACE_PROBE(sdt__test__argh, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7, int, 8, int, 9, int, 10, int, 11, int, 12, int, 13, int, 14, int, 15, int, 16, int, 17);
++	DTRACE_PROBE(sdt__test__argi, int, 1, int, 2, int, 3, int, 4, int, 5, int, 6, int, 7, int, 8, int, 9, int, 10, int, 11, int, 12, int, 13, int, 14, int, 15, int, 16, int, 17, int, 18);
++
+ 	return -EAGAIN;
+ }
+ 
+diff --git a/dtrace/dt_test_mod.c b/dtrace/dt_test_mod.c
+index d8af71665a37..a86c8bc02ae9 100644
+--- a/dtrace/dt_test_mod.c
++++ b/dtrace/dt_test_mod.c
+@@ -50,3 +50,8 @@ static struct dtrace_pops dt_test_pops = {
+ };
+ 
+ DT_PROVIDER_MODULE(dt_test, DTRACE_PRIV_USER)
++
++void foo(void)
++{
++	DTRACE_PROBE(sdt__test2);
++}
+diff --git a/dtrace/sdt_dev.c b/dtrace/sdt_dev.c
+new file mode 100644
+index 000000000000..78457dad8773
+--- /dev/null
++++ b/dtrace/sdt_dev.c
+@@ -0,0 +1,562 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	sdt_dev.c
++ * DESCRIPTION:	DTrace - SDT provider device driver
++ *
++ * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/ctype.h>
++#include <linux/fs.h>
++#include <linux/miscdevice.h>
++#include <linux/sdt.h>
++#include <linux/slab.h>
++#include <linux/uaccess.h>
++#include <linux/vmalloc.h>
++
++#include "dtrace.h"
++#include "dtrace_dev.h"
++#include "sdt_impl.h"
++
++#define SDT_PROBETAB_SIZE	0x1000		/* 4k entries -- 16K total */
++
++struct sdt_probe	**sdt_probetab;
++int			sdt_probetab_size;
++int			sdt_probetab_mask;
++
++/*
++ * Return, in newly-allocated space, a version of the passed-in type 'vartype'
++ * which has been cleaned up suitably for CTF: leading and trailing spaces (if
++ * any) removed, and optionally a trailing argument removed as well.
++ *
++ * Type strings look like either
++ *
++ * type (for SDT, as in function prototypes), or
++ *
++ * type argname (for perf: as in function declarations).
++ *
++ * Translator components ": (foo, foo)", if any, have been removed by this
++ * stage.
++ */
++static char *cleanup_type(const char *vartype, int arg_strip)
++{
++	const char *cleaned;
++	const char *p;
++
++	cleaned = vartype + strspn(vartype, " \t");
++	for (p = cleaned + strlen(cleaned) - 1; p > cleaned && isspace(*p);
++	     p--);
++	if (arg_strip) {
++		for (; p > cleaned && (isalnum(*p) || *p == '_'); p--);
++		for (; p > cleaned && isspace(*p); p--);
++	}
++	p++;
++
++	return kstrndup(cleaned, p - cleaned, GFP_KERNEL);
++}
++
++/*
++ * Set up the args lists, extracting them from their sdpd entry and parsing them
++ * into an sdt_argdesc array for each probe.
++ */
++static struct sdt_argdesc *
++sdt_setup_args(struct sdt_probedesc *sdpd,
++	       size_t *sdp_nargdesc)
++{
++	struct sdt_argdesc *args;
++	char *argstr;
++	char *p;
++	int arg_strip = 0;
++	char *next_arg = NULL;
++	size_t arg = 0, sarg = 0, i;
++
++	*sdp_nargdesc = 0;
++
++	if ((sdpd->sdpd_args == NULL) || (sdpd->sdpd_args[0] == '\0'))
++		return NULL;
++
++	/*
++	 * Take a copy of the string so we can mutate it without causing trouble
++	 * on module reload.
++	 */
++	argstr = kstrdup(sdpd->sdpd_args, GFP_KERNEL);
++	if (argstr == NULL)
++		goto oom;
++
++	/*
++	 * Handle the common case of a trailing comma before we allocate space,
++	 * and elide it.
++	 */
++	p = argstr + strlen(argstr) - 1;
++	if (p[0] == ',' && p[1] == '\0')
++		*p = '\0';
++
++	/*
++	 * This works for counting the number of args even though translator
++	 * strings can contain commas, because each comma denotes a new probe
++	 * argument.  It may overcount in the case of elided arguments
++	 * ("foo : ,"): we compensate for that further down, and ignore the tiny
++	 * memory leak that results.
++	 */
++	for (p = argstr; p != NULL; p = strchr(p + 1, ','))
++		(*sdp_nargdesc)++;
++
++	args = kzalloc(*sdp_nargdesc * sizeof(struct sdt_argdesc),
++		GFP_KERNEL);
++	if (args == NULL)
++		goto oom_argstr;
++
++	/*
++	 * We need to transform each arg (stripping off a terminal argument
++	 * name) if this is a perf probe.
++	 */
++	if (strncmp(sdpd->sdpd_name, "__perf_", strlen("__perf_")) == 0)
++		arg_strip = 1;
++
++	next_arg = argstr;
++	do {
++		char *tok;
++		char *xlator = NULL, *p;
++		char *native;
++		int parens = 0;
++		int empty_xlation;
++
++		/*
++		 * Find the end of this arg, and figure out if it has any
++		 * translators.  Clean up the type of the arg (or native type,
++		 * if this is a translated type).
++		 */
++		tok = next_arg;
++		next_arg = NULL;
++		p = strpbrk(tok, "():,");
++		while (p && !next_arg) {
++			switch (*p) {
++			case '(':
++				parens++;
++				break;
++			case ')':
++				if (parens > 0)
++					parens--;
++				break;
++			case ':':
++				*p = '\0';
++				xlator = p + 1;
++				break;
++			case ',':
++				if (parens == 0) {
++					*p = '\0';
++					next_arg = p + 1;
++				}
++				break;
++			}
++			p = strpbrk(p + 1, "():,");
++		}
++
++		native = cleanup_type(tok, arg_strip);
++		if (native == NULL) {
++			args[arg].sda_native = args[arg].sda_xlate = NULL;
++			goto full_oom;
++		}
++
++		/*
++		 * Special case: perf's DECLARE_TRACE_NOARGS passes a single arg
++		 * 'void'. Spot and skip it.
++		 */
++		if (!xlator && arg_strip && strcmp(native, "void") == 0) {
++			kfree(native);
++			(*sdp_nargdesc)--;
++			sarg++;
++			continue;
++		}
++
++		/*
++		 * No translator: straight mapping.
++		 */
++		if (xlator == NULL) {
++			ASSERT(arg < *sdp_nargdesc);
++			args[arg].sda_mapping = sarg;
++			args[arg].sda_native = native;
++			args[arg].sda_xlate = NULL;
++			arg++;
++			sarg++;
++			continue;
++		}
++
++		/*
++		 * If this is a perf probe, warn: translations cannot exist for
++		 * these, and have no defined format yet in any case.  We can
++		 * struggle on by assuming they look like SDT translations.
++		 */
++		if (arg_strip)
++			pr_warn("Perf probe %s has at least one SDT translation, "
++				"which should be impossible.", sdpd->sdpd_name);
++
++		/*
++		 * Zero or more translations.  (If there are zero, i.e. a pair
++		 * of empty parentheses or a colon with nothing after it, we
++		 * have to decrement the nargdesc.)
++		 */
++
++		empty_xlation = 1;
++		while ((p = strsep(&xlator, "(,)")) != NULL) {
++			/*
++			 * Skip the empty space before the ( or after the ).
++			 */
++			if (strspn(p, " \t") == strlen(p))
++				continue;
++
++			ASSERT(arg < *sdp_nargdesc);
++
++			empty_xlation = 0;
++			args[arg].sda_mapping = sarg;
++			args[arg].sda_native = kstrdup(native, GFP_KERNEL);
++			args[arg].sda_xlate = cleanup_type(p, 0);
++			if ((args[arg].sda_native == NULL) ||
++			    (args[arg].sda_xlate == NULL)) {
++				pr_warn("Unable to create argdesc list for "
++					"probe %s: out of memory\n",
++					sdpd->sdpd_name);
++				kfree(native);
++				goto full_oom;
++			}
++			arg++;
++		}
++		if (empty_xlation)
++			(*sdp_nargdesc)--;
++
++		kfree(native);
++		sarg++;
++	} while (next_arg != NULL);
++
++	kfree(argstr);
++	return args;
++
++full_oom:
++	for (i = 0; i < arg; i++) {
++		kfree(args[i].sda_native);
++		kfree(args[i].sda_xlate);
++	}
++	kfree(args);
++oom_argstr:
++	kfree(argstr);
++oom:
++	*sdp_nargdesc = 0;
++	pr_warn("Unable to create argdesc list for probe %s: "
++		"out of memory\n", sdpd->sdpd_name);
++	return NULL;
++}
++
++void sdt_provide_module(void *arg, struct module *mp)
++{
++	char			*modname = mp->name;
++	struct dtrace_mprovider	*prov;
++	struct sdt_probedesc	*sdpd;
++	struct sdt_probe	*sdp, *prv;
++	int			idx, len;
++	int			probes_skipped = 0;
++
++	/* If module setup has failed then do not provide anything. */
++	if (PDATA(mp) == NULL)
++		return;
++
++	/*
++	 * Nothing to do if the module SDT probes were already created.
++	 */
++	if (PDATA(mp)->sdt_probe_cnt != 0)
++		return;
++
++	/*
++	 * Nothing to do if there are no SDT probes.
++	 */
++	if (mp->sdt_probec == 0)
++		return;
++
++	/*
++	 * Nothing if arch specific module setup fails.
++	 */
++	if (!sdt_provide_module_arch(NULL, mp))
++		return;
++
++	/*
++	 * Do not provide any probes unless all SDT providers have been created
++	 * for this meta-provider.
++	 */
++	for (prov = sdt_providers; prov->dtmp_name != NULL; prov++) {
++		if (prov->dtmp_id == DTRACE_PROVNONE)
++			return;
++	}
++
++	for (idx = 0, sdpd = mp->sdt_probes; idx < mp->sdt_probec;
++	     idx++, sdpd++) {
++		char			*name = sdpd->sdpd_name, *nname;
++		int			i, j;
++		struct dtrace_mprovider	*prov;
++		dtrace_id_t		id;
++		enum fasttrap_probe_type ptype;
++
++		if (name[0] == '?') {
++			ptype = SDTPT_IS_ENABLED;
++			name++;
++		} else
++			ptype = SDTPT_OFFSETS;
++
++		for (prov = sdt_providers; prov->dtmp_pref != NULL; prov++) {
++			char	*prefix = prov->dtmp_pref;
++			int	len = strlen(prefix);
++
++			if (strncmp(name, prefix, len) == 0) {
++				name += len;
++				break;
++			}
++		}
++
++		nname = kmalloc(len = strlen(name) + 1, GFP_KERNEL);
++		if (nname == NULL) {
++			probes_skipped++;
++			continue;
++		}
++
++		for (i = j = 0; name[j] != '\0'; i++) {
++			if (name[j] == '_' && name[j + 1] == '_') {
++				nname[i] = '-';
++				j += 2;
++			} else
++				nname[i] = name[j++];
++		}
++
++		nname[i] = '\0';
++
++		sdp = kzalloc(sizeof(struct sdt_probe), GFP_KERNEL);
++		if (sdp == NULL) {
++			probes_skipped++;
++			continue;
++		}
++
++		sdp->sdp_loadcnt = 1; /* FIXME */
++		sdp->sdp_module = mp;
++		sdp->sdp_name = nname;
++		sdp->sdp_namelen = len;
++		sdp->sdp_provider = prov;
++		sdp->sdp_ptype = ptype;
++
++		sdp->sdp_argdesc = sdt_setup_args(sdpd, &sdp->sdp_nargdesc);
++
++		id = dtrace_probe_lookup(prov->dtmp_id, modname,
++					 sdpd->sdpd_func, nname);
++		if (id != DTRACE_IDNONE) {
++			prv = dtrace_probe_arg(prov->dtmp_id, id);
++			ASSERT(prv != NULL);
++
++			sdp->sdp_next = prv->sdp_next;
++			sdp->sdp_id = id;
++			prv->sdp_next = sdp;
++		} else {
++			sdp->sdp_id = dtrace_probe_create(prov->dtmp_id,
++							  modname,
++							  sdpd->sdpd_func,
++							  nname, SDT_AFRAMES,
++							  sdp);
++
++			/*
++			 * If we failed to create the probe just skip it.
++			 */
++			if (sdp->sdp_id == DTRACE_IDNONE) {
++				kfree(sdp);
++				probes_skipped++;
++				continue;
++			}
++
++			PDATA(mp)->sdt_probe_cnt++;
++		}
++
++		sdp->sdp_patchpoint = (asm_instr_t *)sdpd->sdpd_offset;
++
++		sdt_provide_probe_arch(sdp, mp, idx);
++
++		sdp->sdp_hashnext = sdt_probetab[
++					SDT_ADDR2NDX(sdp->sdp_patchpoint)];
++		sdt_probetab[SDT_ADDR2NDX(sdp->sdp_patchpoint)] = sdp;
++	}
++
++	if (probes_skipped != 0)
++		pr_warn("sdt: Failed to provide %d probes in %s (out of memory)\n",
++			probes_skipped, mp->name);
++}
++
++int sdt_enable(void *arg, dtrace_id_t id, void *parg)
++{
++	struct sdt_probe	*sdp = parg;
++	struct sdt_probe	*curr;
++
++	/*
++	 * Ensure that we have a reference to the module.
++	 */
++	if (!try_module_get(sdp->sdp_module))
++		return -EAGAIN;
++
++	/*
++	 * If at least one other enabled probe exists for this module, drop the
++	 * reference we took above, because we only need one to prevent the
++	 * module from being unloaded.
++	 */
++	PDATA(sdp->sdp_module)->enabled_cnt++;
++	if (PDATA(sdp->sdp_module)->enabled_cnt > 1)
++		module_put(sdp->sdp_module);
++
++	for (curr = sdp; curr != NULL; curr = curr->sdp_next)
++		sdt_enable_arch(curr, id, arg);
++
++	return 0;
++}
++
++void sdt_disable(void *arg, dtrace_id_t id, void *parg)
++{
++	struct sdt_probe	*sdp = parg;
++	struct sdt_probe	*curr;
++
++	for (curr = sdp; curr != NULL; curr = curr->sdp_next)
++		sdt_disable_arch(curr, id, arg);
++
++	/*
++	 * If we are disabling a probe, we know it was enabled, and therefore
++	 * we know that we have a reference on the module to prevent it from
++	 * being unloaded.  If we disable the last probe on the module, we can
++	 * drop the reference.
++	 */
++	PDATA(sdp->sdp_module)->enabled_cnt--;
++	if (PDATA(sdp->sdp_module)->enabled_cnt == 0)
++		module_put(sdp->sdp_module);
++}
++
++void sdt_getargdesc(void *arg, dtrace_id_t id, void *parg,
++		    struct dtrace_argdesc *desc)
++{
++	struct sdt_probe	*sdp = parg;
++
++	desc->dtargd_native[0] = '\0';
++	desc->dtargd_xlate[0] = '\0';
++
++	while ((sdp->sdp_ptype == SDTPT_IS_ENABLED) &&
++	       (sdp->sdp_next != NULL))
++		sdp = sdp->sdp_next;
++
++	if (sdp->sdp_nargdesc <= desc->dtargd_ndx) {
++		desc->dtargd_ndx = DTRACE_ARGNONE;
++		return;
++	}
++
++	if (sdp->sdp_argdesc[desc->dtargd_ndx].sda_native != NULL)
++		strlcpy(desc->dtargd_native,
++			sdp->sdp_argdesc[desc->dtargd_ndx].sda_native,
++			sizeof(desc->dtargd_native));
++
++	if (sdp->sdp_argdesc[desc->dtargd_ndx].sda_xlate != NULL)
++		strlcpy(desc->dtargd_xlate,
++			sdp->sdp_argdesc[desc->dtargd_ndx].sda_xlate,
++			sizeof(desc->dtargd_xlate));
++
++	desc->dtargd_mapping = sdp->sdp_argdesc[desc->dtargd_ndx].sda_mapping;
++}
++
++void sdt_destroy(void *arg, dtrace_id_t id, void *parg)
++{
++	struct sdt_probe *sdp = parg;
++
++	PDATA(sdp->sdp_module)->sdt_probe_cnt--;
++
++	while (sdp != NULL) {
++		struct sdt_probe *old = sdp, *last, *hash;
++		int		 ndx;
++		size_t		 i;
++
++		ndx = SDT_ADDR2NDX(sdp->sdp_patchpoint);
++		last = NULL;
++		hash = sdt_probetab[ndx];
++
++		while (hash != sdp) {
++			ASSERT(hash != NULL);
++			last = hash;
++			hash = hash->sdp_hashnext;
++		}
++
++		if (last != NULL)
++			last->sdp_hashnext = sdp->sdp_hashnext;
++		else
++			sdt_probetab[ndx] = sdp->sdp_hashnext;
++
++		for (i = 0; i < sdp->sdp_nargdesc; i++) {
++			kfree(sdp->sdp_argdesc[i].sda_native);
++			kfree(sdp->sdp_argdesc[i].sda_xlate);
++		}
++		kfree(sdp->sdp_argdesc);
++		kfree(sdp->sdp_name);
++		sdp = sdp->sdp_next;
++		kfree(old);
++	}
++}
++
++static int sdt_open(struct inode *inode, struct file *file)
++{
++	return -EAGAIN;
++}
++
++static int sdt_close(struct inode *inode, struct file *file)
++{
++	return 0;
++}
++
++static const struct file_operations sdt_fops = {
++	.owner  = THIS_MODULE,
++	.open   = sdt_open,
++	.release = sdt_close,
++};
++
++static struct miscdevice sdt_dev = {
++	.minor = DT_DEV_SDT_MINOR,
++	.name = "sdt",
++	.nodename = "dtrace/provider/sdt",
++	.fops = &sdt_fops,
++};
++
++int sdt_dev_init(void)
++{
++	int ret = 0;
++
++	ret = misc_register(&sdt_dev);
++	if (ret) {
++		pr_err("%s: Can't register misc device %d\n",
++		       sdt_dev.name, sdt_dev.minor);
++		return ret;
++	}
++
++	if (sdt_probetab_size == 0)
++		sdt_probetab_size = SDT_PROBETAB_SIZE;
++
++	sdt_probetab_mask = sdt_probetab_size - 1;
++	sdt_probetab = vzalloc(sdt_probetab_size * sizeof(struct sdt_probe *));
++	if (sdt_probetab == NULL)
++		return -ENOMEM;
++
++	sdt_dev_init_arch();
++
++	return ret;
++}
++
++void sdt_dev_exit(void)
++{
++	sdt_dev_exit_arch();
++
++	vfree(sdt_probetab);
++
++	misc_deregister(&sdt_dev);
++}
+diff --git a/dtrace/sdt_impl.h b/dtrace/sdt_impl.h
+new file mode 100644
+index 000000000000..e5b7f4f80270
+--- /dev/null
++++ b/dtrace/sdt_impl.h
+@@ -0,0 +1,87 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Dynamic Tracing for Linux - Statically Defined Tracing provider
++ *
++ * Copyright (c) 2010, 2017, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#ifndef _SDT_IMPL_H_
++#define _SDT_IMPL_H_
++
++#include <linux/sdt.h>
++#include <asm/dtrace_arch.h>
++#include <dtrace/sdt_arch.h>
++
++extern struct module		*dtrace_kmod;
++
++struct sdt_argdesc;
++
++enum fasttrap_probe_type {
++	SDTPT_NONE = 0,
++	SDTPT_OFFSETS,
++	SDTPT_IS_ENABLED
++};
++
++struct sdt_probe {
++	struct dtrace_mprovider	*sdp_provider;	/* provider */
++	char			*sdp_name;	/* name of probe */
++	int			sdp_namelen;	/* length of allocated name */
++	dtrace_id_t		sdp_id;		/* probe ID */
++	struct module		*sdp_module;	/* modctl for module */
++	int			sdp_loadcnt;	/* load count for module */
++	int			sdp_primary;	/* non-zero if primary mod */
++	enum fasttrap_probe_type sdp_ptype;	/* probe type */
++	asm_instr_t		*sdp_patchpoint;/* patch point */
++	asm_instr_t		sdp_patchval;	/* instruction to patch */
++	asm_instr_t		sdp_savedval;	/* saved instruction value */
++	struct sdt_argdesc	*sdp_argdesc;	/* arguments for this probe */
++	size_t			sdp_nargdesc;	/* number of arguments */
++	struct sdt_probe	*sdp_next;	/* next probe */
++	struct sdt_probe	*sdp_hashnext;	/* next on hash */
++};
++
++struct sdt_argdesc {
++	int			sda_mapping;
++	char			*sda_native;
++	char			*sda_xlate;
++};
++
++extern struct dtrace_mprovider	sdt_providers[];
++extern struct sdt_probe		**sdt_probetab;
++extern int			sdt_probetab_size;
++extern int			sdt_probetab_mask;
++
++#define SDT_ADDR2NDX(addr)	((((uintptr_t)(addr)) >> 4) & \
++					sdt_probetab_mask)
++
++extern void sdt_provide_probe_arch(struct sdt_probe *, struct module *, int);
++extern int sdt_provide_module_arch(void *, struct module *);
++extern void sdt_enable_arch(struct sdt_probe *, dtrace_id_t, void *);
++extern void sdt_disable_arch(struct sdt_probe *, dtrace_id_t, void *);
++
++extern void sdt_provide_module(void *, struct module *);
++extern void sdt_destroy_module(void *, struct module *);
++extern int sdt_enable(void *, dtrace_id_t, void *);
++extern void sdt_disable(void *, dtrace_id_t, void *);
++extern void sdt_getargdesc(void *, dtrace_id_t, void *,
++			   struct dtrace_argdesc *);
++extern uint64_t sdt_getarg(void *, dtrace_id_t, void *, int, int);
++extern void sdt_destroy(void *, dtrace_id_t, void *);
++
++extern int sdt_dev_init(void);
++extern void sdt_dev_exit(void);
++
++extern int sdt_dev_init_arch(void);
++extern void sdt_dev_exit_arch(void);
++
++#endif /* _SDT_IMPL_H_ */
+diff --git a/dtrace/sdt_mod.c b/dtrace/sdt_mod.c
+new file mode 100644
+index 000000000000..1de9e72396aa
+--- /dev/null
++++ b/dtrace/sdt_mod.c
+@@ -0,0 +1,154 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	sdt_mod.c
++ * DESCRIPTION:	DTrace - SDT provider kernel module
++ *
++ * Copyright (c) 2010, 2017, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/module.h>
++
++#include "dtrace.h"
++#include "dtrace_dev.h"
++#include "sdt_impl.h"
++
++MODULE_AUTHOR("Kris Van Hees (kris.van.hees@oracle.com)");
++MODULE_DESCRIPTION("Profile Interrupt Tracing");
++MODULE_VERSION("v0.1");
++MODULE_LICENSE("GPL");
++
++static struct dtrace_pattr vtrace_attr = {
++{ DTRACE_STABILITY_UNSTABLE, DTRACE_STABILITY_UNSTABLE, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_UNSTABLE, DTRACE_STABILITY_UNSTABLE, DTRACE_CLASS_ISA },
++};
++
++static struct dtrace_pattr info_attr = {
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
++};
++
++static struct dtrace_pattr fc_attr = {
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++};
++
++static struct dtrace_pattr fpu_attr = {
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_CPU },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
++};
++
++static struct dtrace_pattr fsinfo_attr = {
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++};
++
++static struct dtrace_pattr stab_attr = {
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++};
++
++static struct dtrace_pattr sdt_attr = {
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
++};
++
++static struct dtrace_pattr xpv_attr = {
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_PLATFORM },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_PLATFORM },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_PLATFORM },
++};
++
++static struct dtrace_pattr iscsi_attr = {
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++};
++
++static struct dtrace_pattr perf_attr = {
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_ISA },
++};
++
++static struct dtrace_pops sdt_pops = {
++	.dtps_provide = NULL,
++	.dtps_provide_module = sdt_provide_module,
++	.dtps_destroy_module = sdt_destroy_module,
++	.dtps_enable = sdt_enable,
++	.dtps_disable = sdt_disable,
++	.dtps_suspend = NULL,
++	.dtps_resume = NULL,
++	.dtps_getargdesc = sdt_getargdesc,
++#ifdef CONFIG_SPARC64
++	.dtps_getargval = NULL,
++#else
++	.dtps_getargval = sdt_getarg,
++#endif
++	.dtps_usermode = NULL,
++	.dtps_destroy = sdt_destroy,
++};
++
++struct dtrace_mprovider sdt_providers[] = {
++  { "vtrace", "__vtrace_", &vtrace_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "sysinfo", "__cpu_sysinfo_", &info_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "vminfo", "__cpu_vminfo_", &info_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "fpuinfo", "__fpuinfo_", &fpu_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "sched", "__sched_", &stab_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "proc", "__proc_", &stab_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "io", "__io_", &stab_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "ip", "__ip_", &stab_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "lockstat", "__lockstat_", &stab_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "tcp", "__tcp_", &stab_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "udp", "__udp_", &stab_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "mib", "__mib_", &stab_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "fsinfo", "__fsinfo_", &fsinfo_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "iscsi", "__iscsi_", &iscsi_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "nfsv3", "__nfsv3_", &stab_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "nfsv4", "__nfsv4_", &stab_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "xpv", "__xpv_", &xpv_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "fc", "__fc_", &fc_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "srp", "__srp_", &fc_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "sysevent", "__sysevent_", &stab_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "perf", "__perf_", &perf_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { "sdt", NULL, &sdt_attr, DTRACE_PRIV_KERNEL, &sdt_pops, 0 },
++  { NULL }
++};
++
++DT_MULTI_PROVIDER_MODULE(sdt, sdt_providers)
+-- 
+2.32.0
+

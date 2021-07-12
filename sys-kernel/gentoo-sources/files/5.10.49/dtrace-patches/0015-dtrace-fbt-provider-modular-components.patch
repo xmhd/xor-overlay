@@ -1,0 +1,683 @@
+From f08e0f83e00b6fe59d6186c08d8ec750f78d4f64 Mon Sep 17 00:00:00 2001
+From: Kris Van Hees <kris.van.hees@oracle.com>
+Date: Mon, 19 Nov 2018 18:12:44 +0000
+Subject: [PATCH 15/20] dtrace: fbt provider, modular components
+
+This uses the fbt machinery added in the previous commit.
+
+Signed-off-by: Kris Van Hees <kris.van.hees@oracle.com>
+Signed-off-by: Nick Alcock <nick.alcock@oracle.com>
+Signed-off-by: Tomas Jedlicka <tomas.jedlicka@oracle.com>
+Signed-off-by: Eugene Loh <eugene.loh@oracle.com>
+Signed-off-by: David Mc Lean <david.mclean@oracle.com>
+Signed-off-by: Vincent Lim <vincent.lim@oracle.com>
+---
+ arch/x86/dtrace/Makefile.arch             |   2 +
+ arch/x86/dtrace/fbt_x86_64.c              | 156 ++++++++++++
+ arch/x86/dtrace/include/dtrace/fbt_arch.h |  42 ++++
+ dtrace/Makefile                           |   2 +
+ dtrace/fbt_dev.c                          | 281 ++++++++++++++++++++++
+ dtrace/fbt_impl.h                         |  52 ++++
+ dtrace/fbt_mod.c                          |  56 +++++
+ 7 files changed, 591 insertions(+)
+ create mode 100644 arch/x86/dtrace/fbt_x86_64.c
+ create mode 100644 arch/x86/dtrace/include/dtrace/fbt_arch.h
+ create mode 100644 dtrace/fbt_dev.c
+ create mode 100644 dtrace/fbt_impl.h
+ create mode 100644 dtrace/fbt_mod.c
+
+diff --git a/arch/x86/dtrace/Makefile.arch b/arch/x86/dtrace/Makefile.arch
+index e4655557e06a..906fa8c7e17c 100644
+--- a/arch/x86/dtrace/Makefile.arch
++++ b/arch/x86/dtrace/Makefile.arch
+@@ -8,8 +8,10 @@ ccflags-y	+= -I$(srctree)/arch/x86/dtrace/include -Idtrace
+ 
+ dtrace-obj	+= dtrace_asm_x86_64.o dtrace_isa_x86_64.o
+ fasttrap-obj	+= fasttrap_x86_64.o
++fbt-obj		+= fbt_x86_64.o
+ sdt-obj		+= sdt_x86_64.o
+ 
+ dtrace-y	+= $(addprefix $(DTARCHDIR)/, $(dtrace-obj))
+ fasttrap-y	+= $(addprefix $(DTARCHDIR)/, $(fasttrap-obj))
++fbt-y		+= $(addprefix $(DTARCHDIR)/, $(fbt-obj))
+ sdt-y		+= $(addprefix $(DTARCHDIR)/, $(sdt-obj))
+diff --git a/arch/x86/dtrace/fbt_x86_64.c b/arch/x86/dtrace/fbt_x86_64.c
+new file mode 100644
+index 000000000000..a8a05292be7e
+--- /dev/null
++++ b/arch/x86/dtrace/fbt_x86_64.c
+@@ -0,0 +1,156 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	fbt_x86_64.c
++ * DESCRIPTION:	DTrace - FBT provider implementation for x86
++ *
++ * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/dtrace_fbt.h>
++#include <linux/vmalloc.h>
++#include <asm/dtrace_util.h>
++
++#include "dtrace.h"
++#include "dtrace_dev.h"
++#include "fbt_impl.h"
++
++/*
++ * Use 0xf0 (LOCK Prefix) and X86_TRAP_UD for Invalid Opcode traps to be used.
++ * Use 0xcc (INT 3) and X86_TRAP_BP for Breakpoint traps to be used.
++ */
++#define FBT_ENTRY_PATCHVAL		0xcc
++#define FBT_ENTRY_TRAP			X86_TRAP_BP
++#define FBT_RETURN_PATCHVAL		0xcc
++#define FBT_RETURN_TRAP			X86_TRAP_BP
++
++static uint8_t fbt_invop(struct pt_regs *regs)
++{
++	struct fbt_probe *fbp = fbt_probetab[FBT_ADDR2NDX(regs->ip)];
++
++	for (; fbp != NULL; fbp = fbp->fbp_hashnext) {
++		if ((uintptr_t)fbp->fbp_patchpoint == regs->ip) {
++			struct pt_regs *old = this_cpu_core->cpu_dtrace_regs;
++
++			this_cpu_core->cpu_dtrace_regs = regs;
++			if (fbp->fbp_roffset == 0) {
++				dtrace_probe(fbp->fbp_id, regs->di, regs->si,
++					     regs->dx, regs->cx, regs->r8,
++					     regs->r9, 0);
++			} else {
++				dtrace_probe(fbp->fbp_id, fbp->fbp_roffset,
++					     regs->ax, 0, 0, 0, 0, 0);
++			}
++
++			this_cpu_core->cpu_dtrace_regs = old;
++
++			return fbp->fbp_rval;
++		}
++	}
++
++	return 0;
++}
++
++uint64_t fbt_getarg(void *arg, dtrace_id_t id, void *parg, int argno,
++		    int aframes)
++{
++	struct pt_regs  *regs = this_cpu_core->cpu_dtrace_regs;
++	uint64_t	*st;
++	uint64_t	val;
++
++	if (regs == NULL)
++		return 0;
++
++	switch (argno) {
++	case 0:
++		return regs->di;
++	case 1:
++		return regs->si;
++	case 2:
++		return regs->dx;
++	case 3:
++		return regs->cx;
++	case 4:
++		return regs->r8;
++	case 5:
++		return regs->r9;
++	}
++
++	ASSERT(argno > 5);
++
++	st = (uint64_t *)regs->sp;
++	DTRACE_CPUFLAG_SET(CPU_DTRACE_NOFAULT);
++	/*
++	 * Skip the topmost slot of the stack because that holds the return
++	 * address for the call to the function we are entering.  At this point
++	 * the BP has not been pushed yet, so we are still working within the
++	 * caller's stack frame.
++	 */
++	val = st[1 + argno - 6];
++	DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_NOFAULT);
++
++	return val;
++}
++
++void fbt_provide_probe_arch(struct fbt_probe *fbp, int probetype, int stype)
++{
++	fbp->fbp_patchval = probetype == FBT_ENTRY ? FBT_ENTRY_PATCHVAL
++						   : FBT_RETURN_PATCHVAL;
++	fbp->fbp_savedval = *fbp->fbp_patchpoint;
++	fbp->fbp_rval = probetype == FBT_ENTRY ? DTRACE_INVOP_PUSH_BP
++					       : DTRACE_INVOP_RET;
++}
++
++int fbt_can_patch_return_arch(asm_instr_t *addr)
++{
++	return 1;
++}
++
++int fbt_provide_module_arch(void *arg, struct module *mp)
++{
++	return 1;
++}
++
++void fbt_destroy_module(void *arg, struct module *mp)
++{
++}
++
++void fbt_enable_arch(struct fbt_probe *fbp, dtrace_id_t id, void *arg)
++{
++	dtrace_invop_enable(fbp->fbp_patchpoint, fbp->fbp_patchval);
++}
++
++void fbt_disable_arch(struct fbt_probe *fbp, dtrace_id_t id, void *arg)
++{
++	dtrace_invop_disable(fbp->fbp_patchpoint, fbp->fbp_savedval);
++}
++
++int fbt_dev_init_arch(void)
++{
++	fbt_probetab_mask = fbt_probetab_size - 1;
++	fbt_probetab = dtrace_vzalloc_try(fbt_probetab_size *
++					  sizeof(struct fbt_probe *));
++
++	if (fbt_probetab == NULL)
++		return -ENOMEM;
++
++	return dtrace_invop_add(fbt_invop);
++}
++
++void fbt_dev_exit_arch(void)
++{
++	vfree(fbt_probetab);
++	fbt_probetab_mask = 0;
++	fbt_probetab_size = 0;
++
++	dtrace_invop_remove(fbt_invop);
++}
+diff --git a/arch/x86/dtrace/include/dtrace/fbt_arch.h b/arch/x86/dtrace/include/dtrace/fbt_arch.h
+new file mode 100644
+index 000000000000..7e90b2b75bba
+--- /dev/null
++++ b/arch/x86/dtrace/include/dtrace/fbt_arch.h
+@@ -0,0 +1,42 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Dynamic Tracing for Linux - FBT Implementation defines
++ *
++ * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++/*
++ * Note: The contents of this file are private to the implementation of the
++ * DTrace subsystem and are subject to change at any time without notice.
++ */
++
++#ifndef _X86_64_FBT_ARCH_H
++#define _X86_64_FBT_ARCH_H
++
++#define FBT_AFRAMES	7
++
++struct fbt_probe {
++	char			*fbp_name;	/* name of probe */
++	dtrace_id_t		fbp_id;		/* probe ID */
++	struct module		*fbp_module;	/* defining module */
++	int			fbp_primary;	/* non-zero if primary mod */
++	asm_instr_t		*fbp_patchpoint;/* patch point */
++	asm_instr_t		fbp_patchval;	/* instruction to patch */
++	asm_instr_t		fbp_savedval;	/* saved instruction value */
++	uintptr_t		fbp_roffset;	/* relative offset */
++	int			fbp_rval;
++	struct fbt_probe	*fbp_next;	/* next probe */
++	struct fbt_probe	*fbp_hashnext;	/* next on hash */
++};
++
++#endif /* _X86_64_FBT_ARCH_H */
+diff --git a/dtrace/Makefile b/dtrace/Makefile
+index c7e3fc512a6c..35b8b098123f 100644
+--- a/dtrace/Makefile
++++ b/dtrace/Makefile
+@@ -4,6 +4,7 @@
+ 
+ obj-$(CONFIG_DT_CORE)		+= dtrace.o
+ obj-$(CONFIG_DT_FASTTRAP)	+= fasttrap.o
++obj-$(CONFIG_DT_FBT)		+= fbt.o
+ obj-$(CONFIG_DT_PROFILE)	+= profile.o
+ obj-$(CONFIG_DT_SDT)		+= sdt.o
+ obj-$(CONFIG_DT_SYSTRACE)	+= systrace.o
+@@ -19,6 +20,7 @@ dtrace-y			:= dtrace_mod.o dtrace_dev.o \
+ 				   dtrace_ptofapi.o dtrace_predicate.o \
+ 				   dtrace_spec.o dtrace_state.o dtrace_util.o
+ fasttrap-y			:= fasttrap_mod.o fasttrap_dev.o
++fbt-y				:= fbt_mod.o fbt_dev.o
+ profile-y			:= profile_mod.o profile_dev.o
+ sdt-y				:= sdt_mod.o sdt_dev.o
+ systrace-y			:= systrace_mod.o systrace_dev.o
+diff --git a/dtrace/fbt_dev.c b/dtrace/fbt_dev.c
+new file mode 100644
+index 000000000000..281fd749aae7
+--- /dev/null
++++ b/dtrace/fbt_dev.c
+@@ -0,0 +1,281 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	fbt_dev.c
++ * DESCRIPTION:	DTrace - FBT provider device driver
++ *
++ * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/fs.h>
++#include <linux/miscdevice.h>
++#include <linux/kallsyms.h>
++#include <linux/slab.h>
++#include <linux/vmalloc.h>
++#include <linux/dtrace_fbt.h>
++
++#include "dtrace.h"
++#include "dtrace_dev.h"
++#include "fbt_impl.h"
++
++#define FBT_PROBETAB_SIZE	0x8000		/* 32k entries -- 128K total */
++
++struct fbt_probe	**fbt_probetab;
++int			fbt_probetab_size = FBT_PROBETAB_SIZE;
++int			fbt_probetab_mask;
++
++static void *fbt_provide_probe(struct module *mp, char *func, int probetype,
++			       int stype, asm_instr_t *addr, uintptr_t off,
++			       void *pfbt, void *arg)
++{
++	struct fbt_probe *fbp;
++	struct fbt_probe *prev;
++	int		 *skipped = arg;
++
++	switch (probetype) {
++	case FBT_ENTRY:
++		fbp = kzalloc(sizeof(struct fbt_probe), GFP_KERNEL);
++		fbp->fbp_name = kstrdup(func, GFP_KERNEL);
++		if (fbp->fbp_name == NULL)
++			goto err_probe;
++
++		fbp->fbp_id = dtrace_probe_create(fbt_id, mp->name, func,
++						  "entry", FBT_AFRAMES, fbp);
++		if (fbp->fbp_id == DTRACE_IDNONE)
++			goto err_name;
++
++		fbp->fbp_module = mp;
++		fbp->fbp_primary = 1; /* FIXME */
++		fbp->fbp_roffset = off;
++		fbp->fbp_patchpoint = addr;
++		fbt_provide_probe_arch(fbp, probetype, stype);
++
++		fbp->fbp_hashnext = fbt_probetab[FBT_ADDR2NDX(fbp->fbp_patchpoint)];
++		fbt_probetab[FBT_ADDR2NDX(fbp->fbp_patchpoint)] = fbp;
++
++		PDATA(mp)->fbt_probe_cnt++;
++
++		return fbp;
++	case FBT_RETURN:
++
++		/* Check if we are able to patch this return probe. */
++		if (!fbt_can_patch_return_arch(addr))
++			return pfbt;
++
++		fbp = kzalloc(sizeof(struct fbt_probe), GFP_KERNEL);
++		fbp->fbp_name = kstrdup(func, GFP_KERNEL);
++		if (fbp->fbp_name == NULL)
++			goto err_probe;
++
++		prev = (struct fbt_probe *)pfbt;
++		if (prev != NULL) {
++			prev->fbp_next = fbp;
++			fbp->fbp_id = prev->fbp_id;
++		} else {
++			fbp->fbp_id = dtrace_probe_create(fbt_id, mp->name,
++							  func, "return",
++							  FBT_AFRAMES, fbp);
++			if (fbp->fbp_id == DTRACE_IDNONE)
++				goto err_name;
++		}
++
++		fbp->fbp_module = mp;
++		fbp->fbp_primary = 1; /* FIXME */
++		fbp->fbp_roffset = off;
++		fbp->fbp_patchpoint = addr;
++		fbt_provide_probe_arch(fbp, probetype, stype);
++
++		fbp->fbp_hashnext = fbt_probetab[FBT_ADDR2NDX(fbp->fbp_patchpoint)];
++		fbt_probetab[FBT_ADDR2NDX(fbp->fbp_patchpoint)] = fbp;
++
++		PDATA(mp)->fbt_probe_cnt++;
++
++		return fbp;
++	default:
++		pr_info("FBT: Invalid probe type %d (%d) for %s\n",
++			probetype, stype, func);
++
++		return NULL;
++	}
++
++err_name:
++	kfree(fbp->fbp_name);
++err_probe:
++	kfree(fbp);
++	(*skipped)++;
++
++	return NULL;
++}
++
++void fbt_provide_module(void *arg, struct module *mp)
++{
++	struct module_use	*use;
++	int			probes_skipped = 0;
++
++	/* If module setup has failed then do not provide anything. */
++	if (PDATA(mp) == NULL)
++		return;
++
++	/*
++	 * Nothing to do if the module FBT probes were already created.
++	 */
++	if (PDATA(mp)->fbt_probe_cnt != 0)
++		return;
++
++	/*
++	 * Do not try to instrument DTrace itself and its modules:
++	 *      - dtrace module
++	 *      - all modules depending on dtrace
++	 */
++	if (!strncmp(mp->name, "dtrace", 7))
++		return;
++
++	list_for_each_entry(use, &mp->target_list, target_list) {
++		if (!strncmp(use->target->name, "dtrace", 7))
++			return;
++	}
++
++	/*
++	 * Provide probes.
++	 */
++	if (!fbt_provide_module_arch(arg, mp))
++		return;
++
++	dtrace_fbt_init((fbt_add_probe_fn)fbt_provide_probe, mp,
++			&probes_skipped);
++
++	if (probes_skipped != 0)
++		pr_warn("fbt: Failed to provide %d probes in %s (out of memory)\n",
++			probes_skipped, mp->name);
++}
++
++int fbt_enable(void *arg, dtrace_id_t id, void *parg)
++{
++	struct fbt_probe *fbp = parg;
++	struct fbt_probe *curr;
++
++	/*
++	 * Ensure that we have a reference to the module.
++	 */
++	if (!try_module_get(fbp->fbp_module))
++		return -EAGAIN;
++
++	/*
++	 * If at least one other enabled probe exists for this module, drop the
++	 * reference we took above, because we only need one to prevent the
++	 * module from being unloaded.
++	 */
++	PDATA(fbp->fbp_module)->enabled_cnt++;
++	if (PDATA(fbp->fbp_module)->enabled_cnt > 1)
++		module_put(fbp->fbp_module);
++
++	for (curr = fbp; curr != NULL; curr = curr->fbp_next)
++		fbt_enable_arch(curr, id, arg);
++
++	return 0;
++}
++
++void fbt_disable(void *arg, dtrace_id_t id, void *parg)
++{
++	struct fbt_probe *fbp = parg;
++	struct fbt_probe *curr;
++
++	for (curr = fbp; curr != NULL; curr = curr->fbp_next)
++		fbt_disable_arch(curr, id, arg);
++
++	/*
++	 * If we are disabling a probe, we know it was enabled, and therefore
++	 * we know that we have a reference on the module to prevent it from
++	 * being unloaded.  If we disable the last probe on the module, we can
++	 * drop the reference.
++	 */
++	PDATA(fbp->fbp_module)->enabled_cnt--;
++	if (PDATA(fbp->fbp_module)->enabled_cnt == 0)
++		module_put(fbp->fbp_module);
++}
++
++void fbt_destroy(void *arg, dtrace_id_t id, void *parg)
++{
++	struct fbt_probe *fbp = parg;
++	struct fbt_probe *hbp, *lst, *nxt;
++	int		 ndx;
++	struct module	 *mp = fbp->fbp_module;
++
++	do {
++		nxt = fbp->fbp_next;
++
++		ndx = FBT_ADDR2NDX(fbp->fbp_patchpoint);
++		lst = NULL;
++		hbp = fbt_probetab[ndx];
++
++		while (hbp != fbp) {
++			ASSERT(hbp != NULL);
++
++			lst = hbp;
++			hbp = hbp->fbp_hashnext;
++		}
++
++		if (lst != NULL)
++			lst->fbp_hashnext = fbp->fbp_hashnext;
++		else
++			fbt_probetab[ndx] = fbp->fbp_hashnext;
++
++		kfree(fbp->fbp_name);
++		kfree(fbp);
++
++		PDATA(mp)->fbt_probe_cnt--;
++
++		fbp = nxt;
++	} while (fbp != NULL);
++}
++
++static int fbt_open(struct inode *inode, struct file *file)
++{
++	return -EAGAIN;
++}
++
++static int fbt_close(struct inode *inode, struct file *file)
++{
++	return 0;
++}
++
++static const struct file_operations fbt_fops = {
++	.owner  = THIS_MODULE,
++	.open   = fbt_open,
++	.release = fbt_close,
++};
++
++static struct miscdevice fbt_dev = {
++	.minor = DT_DEV_FBT_MINOR,
++	.name = "fbt",
++	.nodename = "dtrace/provider/fbt",
++	.fops = &fbt_fops,
++};
++
++int fbt_dev_init(void)
++{
++	int ret = 0;
++
++	ret = misc_register(&fbt_dev);
++	if (ret)
++		pr_err("%s: Can't register misc device %d\n",
++		       fbt_dev.name, fbt_dev.minor);
++
++	return fbt_dev_init_arch();
++}
++
++void fbt_dev_exit(void)
++{
++	fbt_dev_exit_arch();
++
++	misc_deregister(&fbt_dev);
++}
+diff --git a/dtrace/fbt_impl.h b/dtrace/fbt_impl.h
+new file mode 100644
+index 000000000000..85f83e704988
+--- /dev/null
++++ b/dtrace/fbt_impl.h
+@@ -0,0 +1,52 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Dynamic Tracing for Linux - Function Boundary Tracing provider
++ *
++ * Copyright (c) 2010, 2017, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#ifndef _FBT_H_
++#define _FBT_H_
++
++#include <asm/dtrace_arch.h>
++#include <dtrace/fbt_arch.h>
++
++#define FBT_ADDR2NDX(addr)	((((uintptr_t)(addr)) >> 4) & \
++					fbt_probetab_mask)
++
++extern struct fbt_probe		**fbt_probetab;
++extern int			fbt_probetab_size;
++extern int			fbt_probetab_mask;
++
++extern void fbt_provide_probe_arch(struct fbt_probe *, int, int);
++extern void fbt_enable_arch(struct fbt_probe *, dtrace_id_t, void *);
++extern void fbt_disable_arch(struct fbt_probe *, dtrace_id_t, void *);
++extern int fbt_can_patch_return_arch(asm_instr_t *);
++
++extern int fbt_provide_module_arch(void *, struct module *);
++extern void fbt_provide_module(void *, struct module *);
++extern void fbt_destroy_module(void *, struct module *);
++extern int fbt_enable(void *, dtrace_id_t, void *);
++extern void fbt_disable(void *, dtrace_id_t, void *);
++extern uint64_t fbt_getarg(void *, dtrace_id_t, void *, int, int);
++extern void fbt_destroy(void *, dtrace_id_t, void *);
++
++extern dtrace_provider_id_t	fbt_id;
++
++extern int fbt_dev_init_arch(void);
++extern void fbt_dev_exit_arch(void);
++
++extern int fbt_dev_init(void);
++extern void fbt_dev_exit(void);
++
++#endif /* _FBT_H_ */
+diff --git a/dtrace/fbt_mod.c b/dtrace/fbt_mod.c
+new file mode 100644
+index 000000000000..3da13d71809d
+--- /dev/null
++++ b/dtrace/fbt_mod.c
+@@ -0,0 +1,56 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * FILE:	fbt_mod.c
++ * DESCRIPTION:	DTrace - FBT provider kernel module
++ *
++ * Copyright (c) 2010, 2017, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/module.h>
++
++#include "dtrace.h"
++#include "dtrace_dev.h"
++#include "fbt_impl.h"
++
++MODULE_AUTHOR("Kris Van Hees (kris.van.hees@oracle.com)");
++MODULE_DESCRIPTION("Function Boundary Tracing");
++MODULE_VERSION("v0.1");
++MODULE_LICENSE("GPL");
++
++static const struct dtrace_pattr fbt_attr = {
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
++{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
++{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
++};
++
++static struct dtrace_pops fbt_pops = {
++	.dtps_provide = NULL,
++	.dtps_provide_module = fbt_provide_module,
++	.dtps_destroy_module = fbt_destroy_module,
++	.dtps_enable = fbt_enable,
++	.dtps_disable = fbt_disable,
++	.dtps_suspend = NULL,
++	.dtps_resume = NULL,
++	.dtps_getargdesc = NULL,
++#ifdef CONFIG_X86_64
++	.dtps_getargval = fbt_getarg,
++#else
++	.dtps_getargval = NULL,
++#endif
++	.dtps_usermode = NULL,
++	.dtps_destroy = fbt_destroy
++};
++
++DT_PROVIDER_MODULE(fbt, DTRACE_PRIV_KERNEL)
+-- 
+2.32.0
+

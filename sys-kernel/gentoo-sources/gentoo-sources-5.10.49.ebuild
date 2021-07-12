@@ -110,6 +110,7 @@ GENTOO_PATCHES=(
 	2900_tmp513-Fix-build-issue-by-selecting-CONFIG_REG.patch
 	2920_sign-file-patch-for-libressl.patch
 	4567_distro-Gentoo-Kconfig.patch
+	5000_shiftfs-ubuntu-20.04.patch
 #	5010_enable-cpu-optimizations-universal.patch
 )
 
@@ -117,11 +118,12 @@ PAX_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/pax-patches"
 
 # TODO
 PAX_PATCHES=(
-	0001-NOWRITEEXEC-and-PAX-features-MPROTECT-EMUTRAMP.patch
+
 )
 
-DTRACE_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/dtrace-patches/"
+DTRACE_PATCHES_DIR="${FILESDIR}/${KERNEL_VERSION}/dtrace-patches"
 
+# TODO
 DTRACE_PATCHES=(
 
 )
@@ -409,8 +411,6 @@ src_prepare() {
 		echo "CONFIG_KEXEC_FILE=n" >> .config
 		echo 'CONFIG_KEXEC_SIG=n' >> .config
 	fi
-
-	# === END HARDENING OPTS
 
 	# mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
 	if use mcelog; then
