@@ -1,5 +1,0 @@
-#
-# Not to worry regarding this mix-in!
-#
-# I am supporting sysvinit+OpenRC as default, with systemd and s6 as alternatives. Runit could be worth looking into as well.
-#

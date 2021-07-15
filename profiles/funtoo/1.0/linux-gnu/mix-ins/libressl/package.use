@@ -1,3 +1,0 @@
-# cryptsetup requires that the OpenSSL USE is set, even if LibreSSL is the SSL provider.
-# TODO: can we reorder the USE?
-sys-fs/cryptsetup openssl

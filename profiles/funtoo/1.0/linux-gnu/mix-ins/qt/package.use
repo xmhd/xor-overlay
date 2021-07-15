@@ -1,6 +1,0 @@
-# break circular dep
-#(dev-libs/double-conversion-3.1.4-r1:0/3::nokit, ebuild scheduled for merge) depends on
-# (dev-util/cmake-3.15.5:0/0::core-kit, ebuild scheduled for merge) (buildtime)
-#  (dev-qt/qtcore-5.12.5-r1:5/5.12::nokit, ebuild scheduled for merge) (buildtime)
-#   (dev-libs/double-conversion-3.1.4-r1:0/3::nokit, ebuild scheduled for merge) (buildtime_slot_op)
-dev-util/cmake -qt5
