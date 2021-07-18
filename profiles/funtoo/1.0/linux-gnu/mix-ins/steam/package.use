@@ -1,0 +1,3 @@
+# required by steam-meta (argument)
+>=dev-libs/libxml2-2.9.9-r1 python
+net-dns/avahi -python

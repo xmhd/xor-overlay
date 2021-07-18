@@ -1,0 +1,4 @@
+USE="-dbus"
+
+# TODO:
+#INSTALL_MASK=""

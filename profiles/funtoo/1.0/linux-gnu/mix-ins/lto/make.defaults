@@ -1,0 +1,7 @@
+# TODO
+#CFLAGS="${CFLAGS} -flto=${MAKEOPTS} -fuse-linker-plugin"
+#CXXFLAGS="${CFLAGS}"
+#LDFLAGS="${LDFLAGS} -flto=${MAKEOPTS} -fuse-linker-plugin"
+
+# TODO
+USE="lto"

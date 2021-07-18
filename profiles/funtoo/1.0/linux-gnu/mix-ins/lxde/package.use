@@ -1,0 +1,7 @@
+media-libs/gd fontconfig
+lxde-base/lxpanel wifi
+
+#######################
+# Break circular deps #
+#######################
+net-dns/avahi -gtk

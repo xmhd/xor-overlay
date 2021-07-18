@@ -1,0 +1,14 @@
+# xor (2019-09-30)
+# Unmask sanitize on amd64/x86-64.
+sys-devel/gcc -sanitize
+
+
+# xor (2019-09-30)
+# Unmask vtv on amd64/x86-64 - has been unmasked on Gentoo amd64 since 2015/2016.
+sys-devel/gcc -vtv
+
+
+# xor (2019-09-30)
+# Unmask pie in gcc on amd64/x86-64.
+# Masking leftover from Gentoo-land, and now we're using TemptorSent's gcc ebui>
+sys-devel/gcc -pie

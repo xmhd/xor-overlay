@@ -1,0 +1,13 @@
+#############################
+# Break circular dependency #
+#############################
+
+# (media-libs/libwebp-1.0.3:0/7::nokit, ebuild scheduled for merge) depends on
+#  (media-libs/tiff-4.0.10-r2:0/0::nokit, ebuild scheduled for merge) (buildtime_slot_op)
+#   (media-libs/libwebp-1.0.3:0/7::nokit, ebuild scheduled for merge) (buildtime_slot_op)
+#
+# It might be possible to break this cycle
+# by applying any of the following changes:
+# - media-libs/tiff-4.0.10-r2 (Change USE: -webp)
+# - media-libs/libwebp-1.0.3 (Change USE: -tiff)
+media-libs/tiff -webp

@@ -1,0 +1,6 @@
+# add udisks for gvfs. #FL-6149
+gnome-base/gvfs udisks
+
+lxqt-base/lxqt-meta powermanagement
+>=x11-libs/libxcb-1.11-r1 xkb
+>=dev-libs/libpcre-8.36 pcre16

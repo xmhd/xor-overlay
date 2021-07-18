@@ -1,0 +1,6 @@
+# TODO
+#CFLAGS
+#CXXFLAGS
+#LDFLAGS
+# ETC
+USE="graphite"
