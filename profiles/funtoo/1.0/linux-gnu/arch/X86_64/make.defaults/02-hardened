@@ -1,2 +1,0 @@
-# TODO: implement per arch mix-ins for hardened.
-USE="-pic"

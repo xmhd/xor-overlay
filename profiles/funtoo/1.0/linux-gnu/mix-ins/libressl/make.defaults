@@ -1,1 +1,0 @@
-USE="-openssl libressl -curl_ssl_openssl curl_ssl_libressl"

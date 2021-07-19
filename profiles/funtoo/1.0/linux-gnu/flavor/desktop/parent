@@ -1,8 +1,0 @@
-../core
-../../mix-ins/x11
-../../mix-ins/dbus
-../../mix-ins/audio
-../../mix-ins/graphics
-../../mix-ins/video
-../../mix-ins/media
-../../mix-ins/console-extras
