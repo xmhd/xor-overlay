@@ -73,6 +73,10 @@ _setup-allowed-flags() {
                 -mindirect-branch-register
 		-mretpoline
 
+		# Intel CET
+		-fcf-protection
+		'-fcf-protection=*'
+
 		# CPPFLAGS and LDFLAGS
 		'-[DUILR]*' '-Wl,*'
 
