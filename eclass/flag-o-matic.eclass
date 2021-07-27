@@ -23,6 +23,8 @@ inherit toolchain-funcs
 
 [[ ${EAPI} == [567] ]] && inherit eutils
 
+# @FUNCTION: all-flag-vars
+# @DESCRIPTION:
 # Return all the flag variables that our high level funcs operate on.
 all-flag-vars() {
 	echo {ADA,C,CPP,CXX,CCAS,F,FC,LD}FLAGS
@@ -117,7 +119,10 @@ _setup-allowed-flags() {
 	)
 }
 
-# inverted filters for hardened compiler.  This is trying to unpick
+# @FUNCTION: _filter-hardened
+# @INTERNAL
+# @DESCRIPTION:
+# Inverted filters for hardened compiler.  This is trying to unpick
 # the hardened compiler defaults.
 _filter-hardened() {
 	local f
@@ -151,6 +156,9 @@ _filter-hardened() {
 	done
 }
 
+# @FUNCTION: _filter-var
+# @INTERNAL
+# @DESCRIPTION:
 # Remove occurrences of strings from variable given in $1
 # Strings removed are matched as globs, so for example
 # '-O*' would remove -O1, -O2 etc.
@@ -343,6 +351,11 @@ replace-cpu-flags() {
 	return 0
 }
 
+# @FUNCTION: _is_flagq
+# @USAGE: <variable> <flag>
+# @INTERNAL
+# @DESCRIPTION:
+# Returns shell true if <flag> is in a given <variable>, else returns shell false.
 _is_flagq() {
 	local x var="$1[*]"
 	for x in ${!var} ; do
