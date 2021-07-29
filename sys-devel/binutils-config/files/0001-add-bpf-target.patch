@@ -1,0 +1,48 @@
+diff -Naur a/src/binutils-config b/src/binutils-config
+--- a/src/binutils-config	2021-02-28 04:38:55.000000000 -0500
++++ b/src/binutils-config	2021-07-29 14:01:27.965719116 -0400
+@@ -126,7 +126,7 @@
+ 	#
+ 	BINPATH=""
+ 	BINPATH_LINKS=""
+-	if [[ ${TARGET} != ${HOST} ]] ; then
++	if [[ ${TARGET} != ${HOST} ]] || [[ ${TARGET} != "bpf-unknown-none" ]] ; then
+ 		#
+ 		# Newer paths: /usr/${HOST}/${TARGET}/...
+ 		# Older paths: /usr/${TARGET}/...
+@@ -173,7 +173,7 @@
+ 	for x in * ; do
+ 		atomic_ln "${BINPATH}/${x}" "${ROOT}/${BINPATH_LINKS}" "${x}"
+ 		atomic_ln "${BINPATH_LINKS}/${x}" "${EROOT}/usr/bin" "${TARGET}-${x}"
+-		if [[ ${TARGET} == ${HOST} ]] ; then
++		if [[ ${TARGET} == ${HOST} ]] || [[ ${TARGET} == "bpf-unknown-none" ]] ; then
+ 			if [[ ${USE_NATIVE_LINKS} == yes ]]; then
+ 				atomic_ln "${TARGET}-${x}" "${EROOT}/usr/bin" "${x}"
+ 			else
+@@ -194,7 +194,7 @@
+ 	#
+ 	: ${LIBPATH:=${EPREFIX}/usr/lib/binutils/${TARGET}/${VER}}
+ 	cd "${ROOT}/${LIBPATH}" || exit 1
+-	if [[ ${TARGET} == ${HOST} ]] ; then
++	if [[ ${TARGET} == ${HOST} ]] || [[ ${TARGET} == "bpf-unknown-none" ]] ; then
+ 		dstlib=${EROOT}/usr/${HOST}/lib
+ 	else
+ 		dstlib=${EROOT}/usr/${HOST}/${TARGET}/lib
+@@ -236,7 +236,7 @@
+ 	# Make sure proper paths get updated
+ 	#
+ 	local env_update_flag="--no-ldconfig"
+-	if [[ ${TARGET} == ${HOST} ]] ; then
++	if [[ ${TARGET} == ${HOST} ]] || [[ ${TARGET} == "bpf-unknown-none" ]]; then
+ 		# Delete old config now that binutils-libs installs these files.
+ 		# Note: This skips ldconfig update if env.d had LDPATH, but meh.
+ 		# Most people have upgraded to ld.so.conf.d, and someone else will
+@@ -266,7 +266,7 @@
+ 	#
+ 	# Regen env.d if need/can be
+ 	#
+-	if [[ ${ROOT} == "/" ]] && [[ ${TARGET} == ${HOST} ]] ; then
++	if [[ ${ROOT} == "/" ]] && [[ ${TARGET} == ${HOST} ]] || [[ ${TARGET} == "bpf-unknown-none" ]] ; then
+ 		env-update ${env_update_flag}
+ 		echo
+ 		ewarn "Please remember to run:"
