@@ -603,7 +603,7 @@ src_prepare() {
 		# Enable LINK_NOW by default
 		if use link_now; then
 			eapply "${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches/01_all_ENABLE_DEFAULT_LINK_NOW-z-now.patch"
-			gcc_hard_flags+=" -DENABLE_DEFAULT_LINK_NOW "
+			gcc_hard_flags+=" -DENABLE_DEFAULT_BIND_NOW "
 		fi
 
 		# Enable Stack Clash Protection by default
