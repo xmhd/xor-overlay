@@ -23,7 +23,7 @@ IUSE="$IUSE +system-bootstrap"
 IUSE="$IUSE custom-cflags openmp altivec fixed-point graphite lto pch +quad" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +stack_protector_strong stack_protector_all" # Base hardening flags
-IUSE="$IUSE cet +fortify_source +link_now +pie vtv" # Extra hardening flags
+IUSE="$IUSE cet +fortify_source +bind_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
 IUSE="$IUSE nptl systemtap valgrind zstd" # TODO: sort these flags
@@ -610,10 +610,10 @@ src_prepare() {
 			eapply "${GENTOO_PATCHES_DIR}/01_all_default-fortify-source.patch"
 		fi
 
-		# Enable LINK_NOW by default
-		if use link_now; then
-			eapply "${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches/01_all_ENABLE_DEFAULT_LINK_NOW-z-now.patch"
-			gcc_hard_flags+=" -DENABLE_DEFAULT_LINK_NOW "
+		# Enable BIND_NOW by default
+		if use bind_now; then
+			eapply "${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches/01_all_ENABLE_DEFAULT_BIND_NOW-z-now.patch"
+			gcc_hard_flags+=" -DENABLE_DEFAULT_BIND_NOW "
 		fi
 
 		# Enable Stack Clash Protection by default
