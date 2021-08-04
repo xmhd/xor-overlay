@@ -125,6 +125,16 @@ GENTOO_PATCHES=(
 	35_all_remove-cyclades.patch
 )
 
+CAIRN_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches"
+
+CAIRN_PATCHES=(
+#	01_all_ENABLE_DEFAULT_BIND_NOW-z-now.patch
+#	02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch
+#	03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch
+#	04_all_ENABLE_DEFAULT_CET.patch
+	05_all_disable_float128_cuda.patch
+)
+
 ALPINE_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/alpine-patches"
 
 # Disable a few of these as they will be toggled by USE flag, i.e 0003, 004, 0006 + 0007
@@ -559,7 +569,13 @@ src_prepare() {
 		# Gentoo Linux patches
 		einfo "Applying Gentoo Linux patches ..."
 		for my_patch in ${GENTOO_PATCHES[*]} ; do
-		    eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
+			eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
+		done
+
+		# Cairn Linux patches
+		einfo "Applying Cairn Linux patches ..."
+		for my_patch in ${CAIRN_PATCHES[*]} ; do
+			eapply "${CAIRN_PATCHES_DIR}/${my_patch}"
 		done
 
 		# Alpine Linux patches
@@ -578,6 +594,11 @@ src_prepare() {
 		# TODO: disable pie in STAGE1_LDFLAGS? bug #618908
 		# This will allow us to build older gcc with a pie enabled modern gcc.
 
+		# Enable FORTIFY_SOURCE by default
+		if use fortify_source; then
+			eapply "${GENTOO_PATCHES_DIR}/01_all_default-fortify-source.patch"
+		fi
+
 		# Todo
 		if use dev_extra_warnings ; then
 			eapply "${GENTOO_PATCHES_DIR}/02_all_default-warn-format-security.patch"
@@ -588,6 +609,18 @@ src_prepare() {
 			einfo "Additional warnings enabled by default, this may break some tests and compilations with -Werror."
 		fi
 
+		# Enable BIND_NOW by default
+		if use bind_now; then
+			eapply "${CAIRN_PATCHES_DIR}/01_all_ENABLE_DEFAULT_BIND_NOW-z-now.patch"
+			gcc_hard_flags+=" -DENABLE_DEFAULT_BIND_NOW "
+		fi
+
+		# Enable Stack Clash Protection by default
+		if use stack_clash_protection; then
+			eapply "${CAIRN_PATCHES_DIR}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch"
+			gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
+		fi
+
 		# -fstack-protector is initially set =-1 in GCC.
 		# =0 TODO
 		# =1 TODO
@@ -595,34 +628,17 @@ src_prepare() {
 		# =3 -strong
 		# This ebuild defaults to -strong, and if USE=hardened then set it to -strong
 		if use stack_protector_all; then
-			eapply "${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch"
+			eapply "${CAIRN_PATCHES_DIR}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch"
 			gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
 		fi
 
 		# Enable CET by default
 		if use cet ; then
-			eapply "${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches/04_all_ENABLE_DEFAULT_CET.patch"
+			eapply "${CAIRN_PATCHES_DIR}/04_all_ENABLE_DEFAULT_CET.patch"
 			gcc_hard_flags+=" -DENABLE_DEFAULT_CET"
 		fi
 
-		# Enable FORTIFY_SOURCE by default
-		if use fortify_source; then
-			eapply "${GENTOO_PATCHES_DIR}/01_all_default-fortify-source.patch"
-		fi
-
-		# Enable BIND_NOW by default
-		if use bind_now; then
-			eapply "${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches/01_all_ENABLE_DEFAULT_BIND_NOW-z-now.patch"
-			gcc_hard_flags+=" -DENABLE_DEFAULT_BIND_NOW "
-		fi
-
-		# Enable Stack Clash Protection by default
-		if use stack_clash_protection; then
-			eapply "${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch"
-			gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
-		fi
-
-		    # GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
+		# GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
 		sed -e '/^ALL_CFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CFLAGS = |ALL_CFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in || die "failed to write HARD_CFLAGS to gcc Makefile"
 		sed -e '/^ALL_CXXFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CXXFLAGS = |ALL_CXXFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in || die "failed to write HARD_CXXFLAGS to gcc Makefile"
 
