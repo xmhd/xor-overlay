@@ -231,6 +231,10 @@ src_prepare() {
 	# copy the kconfig file into the kernel sources tree
 	cp "${DISTDIR}"/alpine-kconfig-* "${S}"/.config
 
+	### TWEAK CONFIG ###
+
+	# this is horrible.... TODO: change the echo shite to sed
+
 	if use custom-cflags; then
 
 		# get the march from Portage
@@ -364,10 +368,6 @@ src_prepare() {
 			;;
 		esac
 	fi
-
-	### TWEAK CONFIG ###
-
-	# this is horrible.... TODO: change the echo shite to sed
 
 	# Do not configure Debian devs certificates
 	echo 'CONFIG_SYSTEM_TRUSTED_KEYS=""' >> .config
