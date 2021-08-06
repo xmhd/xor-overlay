@@ -1,8 +1,8 @@
-# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-PYTHON_COMPAT=( python3_{7,8,9,10} )
+
+PYTHON_COMPAT=( python3_{7..10} )
 
 inherit eutils flag-o-matic python-single-r1 toolchain-funcs
 
@@ -12,41 +12,25 @@ if [[ ${CTARGET} == ${CHOST} ]] ; then
 		export CTARGET=${CATEGORY#cross-}
 	fi
 fi
-is_cross() { [[ ${CHOST} != ${CTARGET} ]] ; }
 
-case ${PV} in
-9999*)
-	# live git tree
-	EGIT_REPO_URI="https://sourceware.org/git/binutils-gdb.git"
-	inherit git-r3
-	SRC_URI=""
-	;;
-*.*.50.2???????)
-	# weekly snapshots
-	SRC_URI="ftp://sourceware.org/pub/gdb/snapshots/current/gdb-weekly-${PV}.tar.xz"
-	;;
-*)
-	# Normal upstream release
-	SRC_URI="mirror://gnu/gdb/${P}.tar.xz
-		ftp://sourceware.org/pub/gdb/releases/${P}.tar.xz"
-	;;
-esac
+is_cross() {
+	[[ ${CHOST} != ${CTARGET} ]] ;
+}
 
-PATCH_VER=""
-PATCH_DEV=""
 DESCRIPTION="GNU debugger"
 HOMEPAGE="https://sourceware.org/gdb/"
-SRC_URI="${SRC_URI}
-	${PATCH_DEV:+https://dev.gentoo.org/~${PATCH_DEV}/distfiles/${P}-patches-${PATCH_VER}.tar.xz}
-	${PATCH_VER:+mirror://gentoo/${P}-patches-${PATCH_VER}.tar.xz}
+SRC_URI="
+	mirror://gnu/gdb/${P}.tar.xz
+	ftp://sourceware.org/pub/gdb/releases/${P}.tar.xz
 "
 
 LICENSE="GPL-2 LGPL-2"
+KEYWORDS="~amd64"
+
 SLOT="0"
-if [[ ${PV} != 9999* ]] ; then
-	KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~riscv ~s390 ~sparc ~x86 ~x64-cygwin ~amd64-linux ~x86-linux ~x64-macos ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
-fi
+
 IUSE="cet lzma multitarget nls +python +server source-highlight test vanilla xml xxhash"
+
 REQUIRED_USE="
 	python? ( ${PYTHON_REQUIRED_USE} )
 "
@@ -54,7 +38,6 @@ REQUIRED_USE="
 # ia64 kernel crashes when gdb testsuite is running
 RESTRICT="
 	ia64? ( test )
-
 	!test? ( test )
 "
 
@@ -73,7 +56,11 @@ RDEPEND="
 		dev-libs/xxhash
 	)
 "
-DEPEND="${RDEPEND}"
+
+DEPEND="
+	${RDEPEND}
+"
+
 BDEPEND="
 	app-arch/xz-utils
 	sys-apps/texinfo
@@ -103,6 +90,9 @@ src_prepare() {
 	# avoid using ancient termcap from host on Prefix systems
 	sed -i -e 's/termcap tinfow/tinfow/g' \
 		gdb/configure{.ac,} || die
+
+	# finally, apply any user patches
+	eapply_user
 }
 
 gdb_branding() {
