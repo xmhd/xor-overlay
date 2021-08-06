@@ -6,17 +6,6 @@ PYTHON_COMPAT=( python3_{7..10} )
 
 inherit eutils flag-o-matic python-single-r1 toolchain-funcs
 
-export CTARGET=${CTARGET:-${CHOST}}
-if [[ ${CTARGET} == ${CHOST} ]] ; then
-	if [[ ${CATEGORY} == cross-* ]] ; then
-		export CTARGET=${CATEGORY#cross-}
-	fi
-fi
-
-is_cross() {
-	[[ ${CHOST} != ${CTARGET} ]] ;
-}
-
 DESCRIPTION="GNU debugger"
 HOMEPAGE="https://sourceware.org/gdb/"
 SRC_URI="
@@ -77,8 +66,26 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-10.2-DW_LLE-riscv64.patch
 )
 
+is_cross() {
+        [[ ${CHOST} != ${CTARGET} ]] ;
+}
+
 pkg_setup() {
+
+	# export branding
+	# TODO: hardened etc?
+	export GDB_BRANDING="Cairn Linux ${PV}"
+
+	# setup python if required
 	use python && python-single-r1_pkg_setup
+
+	# cross compile logic
+	export CTARGET=${CTARGET:-${CHOST}}
+	if [[ ${CTARGET} == ${CHOST} ]] ; then
+		if [[ ${CATEGORY} == cross-* ]] ; then
+			export CTARGET=${CATEGORY#cross-}
+		fi
+	fi
 }
 
 src_prepare() {
@@ -88,21 +95,10 @@ src_prepare() {
 	export CC_FOR_BUILD=$(tc-getBUILD_CC)
 
 	# avoid using ancient termcap from host on Prefix systems
-	sed -i -e 's/termcap tinfow/tinfow/g' \
-		gdb/configure{.ac,} || die
+	sed -i -e 's/termcap tinfow/tinfow/g' gdb/configure{.ac,} || die
 
 	# finally, apply any user patches
 	eapply_user
-}
-
-gdb_branding() {
-	printf "Gentoo ${PV} "
-	if ! use vanilla && [[ -n ${PATCH_VER} ]] ; then
-		printf "p${PATCH_VER}"
-	else
-		printf "vanilla"
-	fi
-	[[ -n ${EGIT_COMMIT} ]] && printf " ${EGIT_COMMIT}"
 }
 
 src_configure() {
@@ -114,8 +110,8 @@ src_configure() {
 		# gnulib's or gdb's configure.
 		--disable-dependency-tracking
 
-		--with-pkgversion="$(gdb_branding)"
-		--with-bugurl='https://bugs.gentoo.org/'
+		--with-pkgversion="${GDB_BRANDING}"
+		--with-bugurl='https://bugs.cairnlinux.org/'
 		--disable-werror
 		# Disable modules that are in a combined binutils/gdb tree. #490566
 		--disable-{binutils,etc,gas,gold,gprof,ld}
