@@ -104,7 +104,7 @@ src_prepare() {
 src_configure() {
 	strip-unsupported-flags
 
-	local myconf=(
+	local conf_gdb=(
 		# portage's econf() does not detect presence of --d-d-t
 		# because it greps only top-level ./configure. But not
 		# gnulib's or gdb's configure.
@@ -125,8 +125,9 @@ src_configure() {
 		# But the check does not quite work on i686: bug #760926.
 		$(use_enable cet)
 	)
+
 	local sysroot="${EPREFIX}/usr/${CTARGET}"
-	is_cross && myconf+=(
+	is_cross && conf_gdb+=(
 		--with-sysroot="${sysroot}"
 		--includedir="${sysroot}/usr/include"
 		--with-gdb-datadir="\${datadir}/gdb/${CTARGET}"
@@ -138,10 +139,10 @@ src_configure() {
 	# "auto" value when things are turned on, which is triggered
 	# whenever no --enable or --disable is given
 	if is_cross || use !server ; then
-		myconf+=( --disable-gdbserver )
+		conf_gdb+=( --disable-gdbserver )
 	fi
 
-	myconf+=(
+	conf_gdb+=(
 		--enable-64-bit-bfd
 		--disable-install-libbfd
 		--disable-install-libiberty
@@ -168,13 +169,13 @@ src_configure() {
 	if use sparc-solaris || use x86-solaris ; then
 		# disable largefile support
 		# https://sourceware.org/ml/gdb-patches/2014-12/msg00058.html
-		myconf+=( --disable-largefile )
+		conf_gdb+=( --disable-largefile )
 	fi
 
 	# source-highlight is detected with pkg-config: bug #716558
 	export ac_cv_path_pkg_config_prog_path="$(tc-getPKG_CONFIG)"
 
-	econf "${myconf[@]}"
+	econf "${conf_gdb[@]}"
 }
 
 src_install() {
