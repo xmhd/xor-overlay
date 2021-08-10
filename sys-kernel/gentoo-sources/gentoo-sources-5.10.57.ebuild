@@ -695,9 +695,8 @@ pkg_postinst() {
 				--force \
 				--no-hostonly \
 				--add="base biosdevname fs-lib i18n kernel-modules network qemu qemu-net rootfs-block shutdown terminfo udev-rules usrmount" \
-				--omit="bootchart busybox caps convertfs dash debug dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh network-manager rpmversion securityfs ssh-client stratis syslog url-lib" \
+				--omit="bootchart busybox caps convertfs dash debug dmraid dmsquash-live dmsquash-live-ntfs fcoe fcoe-uefi fstab-sys gensplash ifcfg img-lib livenet mksh network-manager rpmversion securityfs ssh-client stratis syslog url-lib" \
 				$(usex btrfs "-a btrfs" "-o btrfs") \
-				$(usex dmraid "-a dmraid -a dm" "-o dmraid") \
 				$(usex hardened "-o resume" "-a resume") \
 				$(usex iscsi "-a iscsi" "-o iscsi") \
 				$(usex lvm "-a lvm -a dm" "-o lvm") \
