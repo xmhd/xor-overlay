@@ -64,3 +64,4 @@ index 1590c49..5eab462 100644
 +	&shmem_user_xattr_handler,
  	NULL
  };
+ 

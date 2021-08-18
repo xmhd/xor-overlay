@@ -6,9 +6,9 @@
  source "Documentation/Kconfig"
 +
 +source "distro/Kconfig"
---- /dev/null	2021-06-08 16:56:49.698138501 -0400
-+++ b/distro/Kconfig	2021-06-08 17:11:33.377999003 -0400
-@@ -0,0 +1,263 @@
+--- /dev/null	2021-08-09 07:18:54.945580285 -0400
++++ b/distro/Kconfig	2021-08-09 19:15:34.418191114 -0400
+@@ -0,0 +1,267 @@
 +menu "Gentoo Linux"
 +
 +config GENTOO_LINUX
@@ -138,8 +138,8 @@
 +	select NET
 +	select NET_NS
 +	select PROC_FS
-+	select SECCOMP
-+	select SECCOMP_FILTER
++	select SECCOMP if HAVE_ARCH_SECCOMP
++	select SECCOMP_FILTER if HAVE_ARCH_SECCOMP_FILTER
 +	select SIGNALFD
 +	select SYSFS
 +	select TIMERFD
@@ -166,30 +166,32 @@
 +
 +endmenu
 +
-+menu "Enable Kernel Self Protection Project Recommendations"
-+	visible if GENTOO_LINUX
-+
-+config GENTOO_KERNEL_SELF_PROTECTION
-+	bool "Architecture Independant Kernel Self Protection Project Recommendations"
-+
++menuconfig GENTOO_KERNEL_SELF_PROTECTION
++	bool "Kernel Self Protection Project"
++	depends on GENTOO_LINUX
 +	help
-+  	Recommended Kernel settings based on the suggestions from the Kernel Self Protection Project
-+	See: https://kernsec.org/wiki/index.php/Kernel_Self_Protection_Project/Recommended_Settings
-+	Note, there may be additional settings for which the CONFIG_ setting is invisible in menuconfig due 
-+	to unmet dependencies. Search for GENTOO_KERNEL_SELF_PROTECTION_{X86_64, ARM64, X86_32, ARM} for 
-+	dependency information on your specific architecture.
-+	Note 2: Please see the URL above for numeric settings, e.g. CONFIG_DEFAULT_MMAP_MIN_ADDR=65536 
-+	for X86_64
++		Recommended Kernel settings based on the suggestions from the Kernel Self Protection Project
++		See: https://kernsec.org/wiki/index.php/Kernel_Self_Protection_Project/Recommended_Settings
++		Note, there may be additional settings for which the CONFIG_ setting is invisible in menuconfig due 
++		to unmet dependencies. Search for GENTOO_KERNEL_SELF_PROTECTION_COMMON and search for 
++		GENTOO_KERNEL_SELF_PROTECTION_{X86_64, ARM64, X86_32, ARM} for dependency information on your 
++		specific architecture.
++		Note 2: Please see the URL above for numeric settings, e.g. CONFIG_DEFAULT_MMAP_MIN_ADDR=65536 
++		for X86_64
 +
-+	depends on GENTOO_LINUX && !ACPI_CUSTOM_METHOD && !COMPAT_BRK && !DEVKMEM && !PROC_KCORE && !COMPAT_VDSO && !KEXEC && !HIBERNATION && !LEGACY_PTYS && !X86_X32 && !MODIFY_LDT_SYSCALL
++if GENTOO_KERNEL_SELF_PROTECTION
++config GENTOO_KERNEL_SELF_PROTECTION_COMMON
++	bool "Enable Kernel Self Protection Project Recommendations"
++
++	depends on GENTOO_LINUX && !ACPI_CUSTOM_METHOD && !COMPAT_BRK && !DEVKMEM && !PROC_KCORE && !COMPAT_VDSO && !KEXEC && !HIBERNATION && !LEGACY_PTYS && !X86_X32 && !MODIFY_LDT_SYSCALL && GCC_PLUGINS
 +
 +	select BUG
 +	select STRICT_KERNEL_RWX
 +	select DEBUG_WX
 +	select STACKPROTECTOR
 +	select STACKPROTECTOR_STRONG
-+	select STRICT_DEVMEM
-+	select IO_STRICT_DEVMEM
++	select STRICT_DEVMEM if DEVMEM=y
++	select IO_STRICT_DEVMEM if DEVMEM=y
 +	select SYN_COOKIES
 +	select DEBUG_CREDENTIALS
 +	select DEBUG_NOTIFIERS
@@ -197,8 +199,8 @@
 +	select DEBUG_SG
 +	select BUG_ON_DATA_CORRUPTION
 +	select SCHED_STACK_END_CHECK
-+	select SECCOMP
-+	select SECCOMP_FILTER
++	select SECCOMP if HAVE_ARCH_SECCOMP
++	select SECCOMP_FILTER if HAVE_ARCH_SECCOMP_FILTER
 +	select SECURITY_YAMA
 +	select SLAB_FREELIST_RANDOM
 +	select SLAB_FREELIST_HARDENED
@@ -214,7 +216,6 @@
 +	select FORTIFY_SOURCE
 +	select SECURITY_DMESG_RESTRICT
 +	select PANIC_ON_OOPS
-+	select CONFIG_GCC_PLUGINS
 +	select GCC_PLUGIN_LATENT_ENTROPY
 +	select GCC_PLUGIN_STRUCTLEAK
 +	select GCC_PLUGIN_STRUCTLEAK_BYREF_ALL
@@ -222,18 +223,22 @@
 +	select GCC_PLUGIN_RANDSTRUCT
 +	select GCC_PLUGIN_RANDSTRUCT_PERFORMANCE
 +
-+menu "Architecture Specific Self Protection Project Recommendations"
++	help
++		Search for GENTOO_KERNEL_SELF_PROTECTION_{X86_64, ARM64, X86_32, ARM} for dependency 
++		information on your specific architecture.  Note 2: Please see the URL above for 
++		numeric settings, e.g. CONFIG_DEFAULT_MMAP_MIN_ADDR=65536 for X86_64
 +
 +config GENTOO_KERNEL_SELF_PROTECTION_X86_64
-+	bool "X86_64 KSPP Settings"
++	bool "X86_64 KSPP Settings" if GENTOO_KERNEL_SELF_PROTECTION_COMMON
 +
-+	depends on !X86_MSR && X86_64
++	depends on !X86_MSR && X86_64 && GENTOO_KERNEL_SELF_PROTECTION
 +	default n
 +	
 +	select RANDOMIZE_BASE
 +	select RANDOMIZE_MEMORY
++	select RELOCATABLE
 +	select LEGACY_VSYSCALL_NONE
-+ select PAGE_TABLE_ISOLATION
++ 	select PAGE_TABLE_ISOLATION
 +
 +
 +config GENTOO_KERNEL_SELF_PROTECTION_ARM64
@@ -243,6 +248,7 @@
 +	default n
 +
 +	select RANDOMIZE_BASE
++	select RELOCATABLE
 +	select ARM64_SW_TTBR0_PAN
 +	select CONFIG_UNMAP_KERNEL_AT_EL0
 +
@@ -255,6 +261,7 @@
 +	select HIGHMEM64G
 +	select X86_PAE
 +	select RANDOMIZE_BASE
++	select RELOCATABLE
 +	select PAGE_TABLE_ISOLATION
 +
 +config GENTOO_KERNEL_SELF_PROTECTION_ARM
@@ -267,10 +274,7 @@
 +	select STRICT_MEMORY_RWX
 +	select CPU_SW_DOMAIN_PAN
 +
-+endmenu
-+
-+endmenu
-+
++endif
 +endmenu
 diff --git a/security/Kconfig b/security/Kconfig
 index 7561f6f99..01f0bf73f 100644
