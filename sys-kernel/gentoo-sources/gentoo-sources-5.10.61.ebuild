@@ -540,9 +540,12 @@ src_configure() {
 		cp "${T}"/.config "${WORKDIR}"/build/.config || die "failed to copy .config into build dir"
 
 		local targets=( olddefconfig prepare modules_prepare scripts )
+
+		# DTrace has an additional target for the ctf archive
 		if use dtrace; then
 			targets+=( ctf )
 		fi
+
 		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" "${targets[@]}" || die "kernel configure failed"
 	fi
 }
@@ -554,6 +557,8 @@ src_compile() {
 	fi
 }
 
+# this can likely be done a bit better
+# TODO: create backups of kernel + initramfs if same ver exists?
 install_kernel_and_friends() {
 
 	install -d "${D}"/boot
@@ -583,6 +588,7 @@ src_install() {
 
 	# if we didn't USE=build-kernel - we're done.
 	# The kernel source tree is left in an unconfigured state - you can't compile 3rd-party modules against it yet.
+	# TODO: implement stripping down of leftover kernel sources to the absolute minimum if USE=-install-sources
 	if use build-kernel; then
 		make prepare || die
 		make modules_prepare || die
@@ -647,6 +653,7 @@ pkg_postinst() {
 
 	# callback emerge, performed to rebuild external kernel modules (e.g. zfs, nvidia).
 	# note: the (usex zfs "foo" "" ) logic is to keep zfs + zfs-kmod in lockstep.
+	# TODO: PYTHON_TARGETS are not respected here, investigate further.
 	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel; then
 		emerge \
 			--ask=n \
