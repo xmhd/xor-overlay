@@ -53,9 +53,7 @@ RDEPEND="
 		sys-boot/plymouth[libkms,udev]
 	)
 	sign-modules? (
-		|| ( dev-libs/openssl
-		     dev-libs/libressl
-		)
+		dev-libs/openssl
 		sys-apps/kmod
 	)
 	zfs? ( sys-fs/zfs )
