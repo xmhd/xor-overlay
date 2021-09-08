@@ -178,6 +178,11 @@ pkg_pretend() {
 			die "USE=custom-cflags is currently amd64 + x86 only"
 		fi
 	fi
+
+	# not fully implemented yet
+	if use dracut; then
+		die "USE=dracut is not fully implemented yet"
+	fi
 }
 
 pkg_setup() {
