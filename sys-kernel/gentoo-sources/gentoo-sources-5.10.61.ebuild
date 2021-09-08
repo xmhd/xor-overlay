@@ -194,7 +194,7 @@ pkg_setup() {
 src_unpack() {
 
 	# unpack the kernel sources to ${WORKDIR}
-	unpack ${KERNEL_ARCHIVE} || die "failed to unpack kernel sources"
+	unpack ${KERNEL_ARCHIVE}
 }
 
 src_prepare() {
