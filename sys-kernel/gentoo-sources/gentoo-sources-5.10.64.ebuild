@@ -29,15 +29,15 @@ BDEPEND="
 	sys-devel/bc
 	debug? ( dev-util/pahole )
 	sys-devel/flex
-	build-kernel? (
-		dracut? ( sys-kernel/dracut )
-		!dracut? ( >=sys-kernel/genkernel-4.2.0 )
-	)
 	virtual/libelf
 	virtual/yacc
 "
 
 RDEPEND="
+	build-kernel? (
+		!dracut? ( >=sys-kernel/genkernel-4.2.0 )
+		dracut? ( sys-kernel/dracut )
+	)
 	btrfs? ( sys-fs/btrfs-progs )
 	compress-modules? ( sys-apps/kmod[lzma] )
 	firmware? (
@@ -669,7 +669,9 @@ pkg_postinst() {
 	# though dracut can be used by setting USE=dracut
 	if use build-kernel; then
 
+		# default to genkernel
 		if  ! use dracut; then
+
 			# setup dirs for genkernel
 			mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log}
 
