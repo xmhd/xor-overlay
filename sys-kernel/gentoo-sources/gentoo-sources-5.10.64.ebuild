@@ -685,6 +685,7 @@ pkg_postinst() {
 				--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
 				--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
 				--all-ramdisk-modules \
+				--busybox \
 				$(usex btrfs "--btrfs" "--no-btrfs") \
 				$(usex debug "--loglevel=5" "--loglevel=1") \
 				$(usex e2fs "--e2fsprogs" "--no-e2fsprogs") \
