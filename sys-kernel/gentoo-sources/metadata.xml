@@ -10,7 +10,6 @@
 		<flag name="cet">Enable support for Intel Control Flow Enforcement Technology in the kernel</flag>
 		<flag name="clang">TODO</flag>
 		<flag name="compress-modules">Compress kernel modules as part of kernel build</flag>
-		<flag name="dracut">Initramfs creation via Dracut</flag>
 		<flag name="dtrace">Enable support for DTrace in the kernel</flag>
 		<flag name="e2fs">Enable support for EXT file systems in the kernel + initramfs</flag>
 		<flag name="firmware">Include firmware in the initramfs</flag>
@@ -26,10 +25,9 @@
 		<flag name="numa">Enable NUMA balancing in the kernel</flag>
 		<flag name="page-table-isolation">Remove kernel mapping in user mode</flag>
 		<flag name="pax">Enforces writable pages to be non-executable, and executable pages to be non-writable</flag>
-		<flag name="plymouth">Enable support for plymouth in the kernel + initramfs</flag>
 		<flag name="retpoline">Avoid speculative indirect branches in kernel</flag>
 		<flag name="sign-modules">Sign the kernel modules as part of the build-kernel process</flag>
-		<flag name="udev">Include udev rules in the initramfs</flag>
+		<flag name="udev-rules">Include udev rules in the initramfs</flag>
 		<flag name="xfs">Enable support for xfs in the kernel + initramfs</flag>
 		<flag name="zfs">Enable support for zfs in the kernel + initramfs</flag>
 	</use>
