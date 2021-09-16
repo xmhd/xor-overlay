@@ -139,11 +139,6 @@ pkg_pretend() {
 	# perform sanity checks that only apply to source builds.
 	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel; then
 
-		# to run callback emerge we need to make sure a few FEATURES are disabled/enabled
-		if has ebuild-locks ${FEATURES} || ! has parallel-install ${FEATURES}; then
-			die 'callback emerge for external module rebuilds requires FEATURES="-ebuild-locks parallel-install"'
-		fi
-
 		# Ensure we have enough disk space to compile
 		CHECKREQS_DISK_BUILD="5G"
 		check-reqs_pkg_setup
@@ -637,19 +632,6 @@ pkg_postinst() {
 	# if there's a modules folder for these sources, generate modules.dep and map files
 	if [[ -d "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} ]]; then
 		depmod -a ${KERNEL_FULL_VERSION}
-	fi
-
-	# callback emerge, performed to rebuild external kernel modules (e.g. zfs, nvidia).
-	# note: the (usex zfs "foo" "" ) logic is to keep zfs + zfs-kmod in lockstep.
-	# TODO: PYTHON_TARGETS are not respected here, investigate further.
-	if [[ ${MERGE_TYPE} != binary ]] && use build-kernel; then
-		emerge \
-			--ask=n \
-			--color=y \
-			--usepkg=n \
-			--quiet-build=y \
-			$(usex zfs "zfs" "" ) \
-			@module-rebuild
 	fi
 
 	# rebuild the initramfs on post_install
