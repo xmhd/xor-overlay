@@ -575,8 +575,8 @@ src_install() {
 		rm -rf "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/Documentation || die "failed to remove kernel docs"
 	fi
 
-	# if we didn't USE=build-kernel - we're done.
-	# The kernel source tree is left in an unconfigured state - you can't compile 3rd-party modules against it yet.
+	# if USE=-build-kernel - we're done.
+	# The kernel source tree is left in an unconfigured state - you can't compile external kernel modules against it yet.
 	# TODO: implement stripping down of leftover kernel sources to the absolute minimum if USE=-install-sources
 	if use build-kernel; then
 
