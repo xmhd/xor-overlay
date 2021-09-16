@@ -15,7 +15,7 @@ SLOT="${PV}"
 RESTRICT="binchecks mirror strip"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress-modules debug +install-sources minimal symlink"
+IUSE="build-kernel clang compress-modules debug doc +install-sources minimal symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
@@ -563,20 +563,29 @@ src_install() {
 	# change to installed kernel sources directory
 	cd "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}
 
-	# prepare for real-world use and 3rd-party module building:
+	# clean-up kernel source tree
 	make mrproper || die "failed to prepare kernel sources"
 
 	# copy kconfig into place
 	cp "${T}"/.config .config || die "failed to copy kconfig from ${TEMPDIR}"
 
+	# only install docs if USE=doc
+	# TODO: look into compressing these docs and installing to /usr/share/doc if USE=doc
+	if ! use doc; then
+		rm -rf "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/Documentation || die "failed to remove kernel docs"
+	fi
+
 	# if we didn't USE=build-kernel - we're done.
 	# The kernel source tree is left in an unconfigured state - you can't compile 3rd-party modules against it yet.
 	# TODO: implement stripping down of leftover kernel sources to the absolute minimum if USE=-install-sources
 	if use build-kernel; then
+
+		# prepare the sources for real world use and external module building
 		make prepare || die
 		make modules_prepare || die
 		make scripts || die
 
+		# standard target for installing modules to /lib/modules/${KERNEL_FULL_VERSION}
 		local targets=( modules_install )
 
 		# ARM / ARM64 requires dtb
