@@ -50,6 +50,7 @@ RDEPEND="
 	>=dev-libs/mpfr-2.4.2:0=
 	>=dev-libs/mpc-0.8.1:0=
 	sys-libs/zlib[${MULTILIB_USEDEP}]
+	sanitize? ( virtual/libcrypt )
 	zstd? ( app-arch/zstd )
 "
 
