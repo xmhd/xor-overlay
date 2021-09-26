@@ -1406,8 +1406,6 @@ create_revdep_rebuild_entry() {
 # when installing gcc, it dumps internal libraries into /usr/lib
 # instead of the private gcc lib path
 gcc_movelibs() {
-	# older versions of gcc did not support --print-multi-os-directory
-	tc_version_is_at_least 3.2 || return 0
 
 	# For non-target libs which are for CHOST and not CTARGET, we want to
 	# move them to the compiler-specific CHOST internal dir.  This is stuff
