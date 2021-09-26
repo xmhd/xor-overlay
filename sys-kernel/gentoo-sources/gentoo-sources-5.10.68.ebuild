@@ -569,12 +569,6 @@ src_install() {
 	# copy kconfig into place
 	cp "${T}"/.config .config || die "failed to copy kconfig from ${TEMPDIR}"
 
-	# only install docs if USE=doc
-	# TODO: look into compressing these docs and installing to /usr/share/doc if USE=doc
-	if ! use doc; then
-		rm -rf "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/Documentation || die "failed to remove kernel docs"
-	fi
-
 	# if USE=-build-kernel - we're done.
 	# The kernel source tree is left in an unconfigured state - you can't compile external kernel modules against it yet.
 	# TODO: implement stripping down of leftover kernel sources to the absolute minimum if USE=-install-sources
