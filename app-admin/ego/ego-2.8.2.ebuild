@@ -32,6 +32,10 @@ PDEPEND="
 	dev-python/requests[${PYTHON_USEDEP}]
 "
 
+PATCHES=(
+	0001-python-ego-profile.py-fix-per-arch-mix-ins.patch
+)
+
 src_unpack() {
 	unpack ${A}
 	mv "${WORKDIR}/funtoo-${PN}"-??????? "${S}" || die
