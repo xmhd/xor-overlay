@@ -35,6 +35,7 @@ PDEPEND="
 PATCHES=(
 	"${FILESDIR}"/0001-python-ego-profile.py-fix-per-arch-mix-ins.patch
 	"${FILESDIR}"/0002-modules-sync.ego-fix-for-update_repos_conf.patch
+	"${FILESDIR}"/0003-remove-special-python-kit-logic-it-is-just-another-k.patch
 )
 
 src_unpack() {
