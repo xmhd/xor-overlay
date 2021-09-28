@@ -11,7 +11,7 @@ HOMEPAGE="http://www.funtoo.org/Package:Ego"
 SRC_URI="https://www.github.com/funtoo/ego/tarball/${PVR} -> ego-${PVR}.tar.gz"
 
 LICENSE="GPL-2"
-KEYWORDS="*"
+KEYWORDS="~amd64"
 
 SLOT="0"
 
