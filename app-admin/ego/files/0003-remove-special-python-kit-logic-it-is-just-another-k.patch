@@ -1,16 +1,16 @@
-From aed1d526408dda7a4ae0e85f3b445a966390fc15 Mon Sep 17 00:00:00 2001
+From 201867c05be13ba94a987f57f9a93c23bfe7a5d3 Mon Sep 17 00:00:00 2001
 From: Dave Hughes <davidhughes205@gmail.com>
 Date: Wed, 29 Sep 2021 00:32:58 +0100
 Subject: [PATCH 3/3] remove 'special' python-kit logic, it is 'just another
  kit'
 
 ---
- modules/profile.ego   |  6 ------
+ modules/profile.ego   |  8 --------
  python/ego/profile.py | 19 -------------------
- 2 files changed, 25 deletions(-)
+ 2 files changed, 27 deletions(-)
 
 diff --git a/modules/profile.ego b/modules/profile.ego
-index be0ca6a..161c6c7 100644
+index be0ca6a..df3817d 100644
 --- a/modules/profile.ego
 +++ b/modules/profile.ego
 @@ -64,12 +64,6 @@ class Module(EgoModule):
@@ -26,6 +26,15 @@ index be0ca6a..161c6c7 100644
  	def short_list(self):
  		Output.header("Enabled Profiles")
  		for key in [ ProfileType.ARCH, ProfileType.BUILD, ProfileType.SUBARCH, ProfileType.FLAVOR, ProfileType.MIX_IN ]:
+@@ -99,8 +93,6 @@ class Module(EgoModule):
+ 		self.short_list()
+ 		if not self.config.metadata_exists():
+ 			self._no_repo_available()
+-		else:
+-			self.python_info()
+ 
+ 		for specifier in self.tree.get_children([ProfileType.FLAVOR, ProfileType.MIX_IN]):
+ 
 diff --git a/python/ego/profile.py b/python/ego/profile.py
 index 6ec44e7..c09cce2 100644
 --- a/python/ego/profile.py
