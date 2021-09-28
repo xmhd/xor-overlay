@@ -34,6 +34,7 @@ PDEPEND="
 
 PATCHES=(
 	0001-python-ego-profile.py-fix-per-arch-mix-ins.patch
+	0002-modules-sync.ego-fix-for-update_repos_conf.patch
 )
 
 src_unpack() {
