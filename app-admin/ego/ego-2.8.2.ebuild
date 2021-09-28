@@ -17,12 +17,12 @@ SLOT="0"
 
 IUSE="zsh-completion"
 
-RDEPEND="
+DEPEND="
 	$PYTHON_DEPS
 	!sys-boot/boot-update
 "
 
-DEPEND="
+RDEPEND="
 	${RDEPEND}
 "
 
