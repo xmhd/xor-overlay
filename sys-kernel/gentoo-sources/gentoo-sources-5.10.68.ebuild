@@ -123,8 +123,8 @@ get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
 	for subdir in $PF $P linux; do
 		certdir=/etc/kernel/certs/$subdir
-		if [ -d $certdir ]; then
-			if [ ! -e $certdir/signing_key.pem ]; then
+		if [[ -d $certdir ]]; then
+			if [[ ! -e $certdir/signing_key.pem ]]; then
 				eerror "$certdir exists but missing signing key; exiting."
 				exit 1
 			fi
@@ -455,7 +455,7 @@ src_prepare() {
 	if use sign-modules; then
 		certs_dir=$(get_certs_dir)
 		echo
-		if [ -z "$certs_dir" ]; then
+		if [[ -z "$certs_dir" ]]; then
 			eerror "No certs dir found in /etc/kernel/certs; aborting."
 			die
 		else
