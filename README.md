@@ -20,7 +20,7 @@ This overlay contains packages for software that:
 
 ### Installing ###
 
-* Add an entry under repos.conf in portage with sync-type = git and sync-uri = $URL, and perform an emerge --sync
+* Add an entry under repos.conf in portage with sync-type = git and sync-uri = $uri, and perform an emerge --sync
 * There is no tested layman support, use repos.conf
 
 ### TLDR; Changelog for packages forked from main repositories ###
@@ -48,6 +48,7 @@ This overlay contains packages for software that:
 ### TLDR; Changelog for eclasses forked from main repositories ###
 
 * flag-o-matic - don't strip stack-clash-protection and retpoline flags.
+* linux-mod - add USE=build-kernel and logic for regenerating initramfs on pkg_postinst of external kmods.
 
 ### TLDR; Changelog for profiles in this repository ###
 
