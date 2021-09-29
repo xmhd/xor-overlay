@@ -51,6 +51,14 @@ src_unpack() {
 	fi
 }
 
+src_prepare() {
+	if [[ ${PV} != 9999* ]]; then
+		eapply "${FILESDIR}"/0001-python-ego-profile.py-fix-per-arch-mix-ins.patch
+		eapply "${FILESDIR}"/0002-modules-sync.ego-fix-for-update_repos_conf.patch
+		eapply "${FILESDIR}"/0003-remove-special-python-kit-logic-it-is-just-another-k.patch
+	fi
+}
+
 src_install() {
 	exeinto /usr/share/ego/modules
 	doexe $S/modules/*.ego
