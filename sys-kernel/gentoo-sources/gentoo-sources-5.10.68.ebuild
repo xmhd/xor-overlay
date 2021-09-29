@@ -119,12 +119,16 @@ DTRACE_PATCHES=(
 
 )
 
+echo2config() {
+	echo "$1" >> .config || die "could not echo \"$1\" to .config file"
+}
+
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
 	for subdir in $PF $P linux; do
 		certdir=/etc/kernel/certs/$subdir
-		if [ -d $certdir ]; then
-			if [ ! -e $certdir/signing_key.pem ]; then
+		if [[ -d $certdir ]]; then
+			if [[ ! -e $certdir/signing_key.pem ]]; then
 				eerror "$certdir exists but missing signing key; exiting."
 				exit 1
 			fi
@@ -171,7 +175,8 @@ pkg_pretend() {
 pkg_setup() {
 
 	# will interfere with Makefile if set
-	unset ARCH; unset LDFLAGS
+	unset ARCH
+	unset LDFLAGS
 }
 
 src_unpack() {
@@ -215,7 +220,7 @@ src_prepare() {
 	sed -i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
 
 	# copy the kconfig file into the kernel sources tree
-	cp "${DISTDIR}"/alpine-kconfig-* "${S}"/.config
+	cp "${DISTDIR}"/alpine-kconfig-* "${S}"/.config || die "couldn't copy alpine linux kernel config"
 
 	### TWEAK CONFIG ###
 
@@ -230,162 +235,162 @@ src_prepare() {
 		case ${MARCH} in
 			*native)
 				if grep -q "AuthenticAMD" /proc/cpuinfo; then
-					echo "CONFIG_MNATIVE_AMD=y" >> .config
+					echo2config "CONFIG_MNATIVE_AMD=y"
 				elif grep -q "GenuineIntel" /proc/cpuinfo; then
-					echo "CONFIG_MNATIVE_INTEL=y" >> .config
+					echo2config "CONFIG_MNATIVE_INTEL=y"
 				fi
 			;;
 			*x86-64)
-				echo "CONFIG_GENERIC_CPU=y" >> .config
+				echo2config "CONFIG_GENERIC_CPU=y"
 			;;
 			*x86-64-v2)
-				echo "CONFIG_GENERIC_CPU2=y" >> .config
+				echo2config "CONFIG_GENERIC_CPU2=y"
 			;;
 			*x86-64-v3)
-				echo "CONFIG_GENERIC_CPU3=y" >> .config
+				echo2config "CONFIG_GENERIC_CPU3=y"
 			;;
 			*x86-64-v4)
-				echo "CONFIG_GENERIC_CPU4=y" >> .config
+				echo2config "CONFIG_GENERIC_CPU4=y"
 			;;
 			*k8)
-				echo "CONFIG_MK8=y" >> .config
+				echo2config "CONFIG_MK8=y"
 			;;
 			*k8-sse3)
-				echo "CONFIG_MK8SSE3=y" >> .config
+				echo2config "CONFIG_MK8SSE3=y"
 			;;
 			*amdfam10)
-				echo "CONFIG_MK10=y" >> .config
+				echo2config "CONFIG_MK10=y"
 			;;
 			*barcelona)
-				echo "CONFIG_MBARCELONA=y" >> .config
+				echo2config "CONFIG_MBARCELONA=y"
 			;;
 			*btver1)
-				echo "CONFIG_MBOBCAT=y" >> .config
+				echo2config "CONFIG_MBOBCAT=y"
 			;;
 			*btver2)
-				echo "CONFIG_MJAGUAR=y" >> .config
+				echo2config "CONFIG_MJAGUAR=y"
 			;;
 			*bdver1)
-				echo "CONFIG_MBULLDOZER=y" >> .config
+				echo2config "CONFIG_MBULLDOZER=y"
 			;;
 			*bdver2)
-				echo "CONFIG_MPILEDRIVER=y" >> .config
+				echo2config "CONFIG_MPILEDRIVER=y"
 			;;
 			*bdver3)
-				echo "CONFIG_MSTEAMROLLER=y" >> .config
+				echo2config "CONFIG_MSTEAMROLLER=y"
 			;;
 			*bdver4)
-				echo "CONFIG_MEXCAVATOR=y" >> .config
+				echo2config "CONFIG_MEXCAVATOR=y"
 			;;
 			*znver1)
-				echo "CONFIG_MZEN=y" >> .config
+				echo2config "CONFIG_MZEN=y" 
 			;;
 			*znver2)
-				echo "CONFIG_MZEN2=y" >> .config
+				echo2config "CONFIG_MZEN2=y"
 			;;
 			*znver3)
-				echo "CONFIG_MZEN3=y" >> .config
+				echo2config "CONFIG_MZEN3=y"
 			;;
 			*core2)
-				echo "CONFIG_MCORE2=y" >> .config
+				echo2config "CONFIG_MCORE2=y"
 			;;
 			*atom | *bonnell)
-				echo "CONFIG_MATOM=y" >> .config
+				echo2config "CONFIG_MATOM=y"
 			;;
 			*silvermont)
-				echo "CONFIG_MSILVERMONT=y" >> .config
+				echo2config "CONFIG_MSILVERMONT=y"
 			;;
 			*goldmont)
-				echo "CONFIG_MGOLDMONT=y" >> .config
+				echo2config "CONFIG_MGOLDMONT=y"
 			;;
 			*goldmont-plus)
-				echo "CONFIG_MGOLDMONTPLUS=y" >> .config
+				echo2config "CONFIG_MGOLDMONTPLUS=y"
 			;;
 			*nehalem)
-				echo "CONFIG_MNEHALEM=y" >> .config
+				echo2config "CONFIG_MNEHALEM=y"
 			;;
 			*westmere)
-				echo "CONFIG_MWESTMERE=y" >> .config
+				echo2config "CONFIG_MWESTMERE=y"
 			;;
 			*sandybridge)
-				echo "CONFIG_MSANDYBRIDGE=y" >> .config
+				echo2config "CONFIG_MSANDYBRIDGE=y"
 			;;
 			*ivybridge)
-				echo "CONFIG_MIVYBRIDGE=y" >> .config
+				echo2config "CONFIG_MIVYBRIDGE=y"
 			;;
 			*haswell)
-				echo "CONFIG_MHASWELL=y" >> .config
+				echo2config "CONFIG_MHASWELL=y"
 			;;
 			*broadwell)
-				echo "CONFIG_MBROADWELL=y" >> .config
+				echo2config "CONFIG_MBROADWELL=y"
 			;;
 			*skylake)
-				echo "CONFIG_MSKYLAKE=y" >> .config
+				echo2config "CONFIG_MSKYLAKE=y"
 			;;
 			*skylake-avx512)
-				echo "CONFIG_MSKYLAKEX=y" >> .config
+				echo2config "CONFIG_MSKYLAKEX=y"
 			;;
 			*cannonlake)
-				echo "CONFIG_MCANNONLAKE=y" >> .config
+				echo2config "CONFIG_MCANNONLAKE=y"
 			;;
 			*icelake-client)
-				echo "CONFIG_MICELAKE=y" >> .config
+				echo2config "CONFIG_MICELAKE=y"
 			;;
 			*cascadelake)
-				echo "CONFIG_MCASCADELAKE=y" >> .config
+				echo2config "CONFIG_MCASCADELAKE=y"
 			;;
 			*cooperlake)
-				echo "CONFIG_MCOOPERLAKE=y" >> .config
+				echo2config "CONFIG_MCOOPERLAKE=y"
 			;;
 			*tigerlake)
-				echo "CONFIG_MTIGERLAKE=y" >> .config
+				echo2config "CONFIG_MTIGERLAKE=y"
 			;;
 			*sapphirerapids)
-				echo "CONFIG_MSAPPHIRERAPIDS=y" >> .config
+				echo2config "CONFIG_MSAPPHIRERAPIDS=y"
 			;;
 			*rocketlake)
-				echo "CONFIG_MROCKETLAKE=y" >> .config
+				echo2config "CONFIG_MROCKETLAKE=y"
 			;;
 			*alderlake)
-				echo "CONFIG_MALDERLAKE=y" >> .config
+				echo2config "CONFIG_MALDERLAKE=y"
 			;;
 			*)
-				echo "CONFIG_GENERIC_CPU=y" >> .config
+				echo2config "CONFIG_GENERIC_CPU=y"
 			;;
 		esac
 	fi
 
 	# Do not configure Debian devs certificates
-	echo 'CONFIG_SYSTEM_TRUSTED_KEYS=""' >> .config
+	echo2config 'CONFIG_SYSTEM_TRUSTED_KEYS=""'
 
 	# enable IKCONFIG so that /proc/config.gz can be used for various checks
 	# TODO: Maybe not a good idea for USE=hardened, look into this...
-	echo "CONFIG_IKCONFIG=y" >> .config
-	echo "CONFIG_IKCONFIG_PROC=y" >> .config
+	echo2config "CONFIG_IKCONFIG=y"
+	echo2config "CONFIG_IKCONFIG_PROC=y"
 
 	# enable kernel module compression
 	if use compress-modules; then
-		echo "CONFIG_MODULE_COMPRESS=y" >> .config
-		echo "CONFIG_MODULE_COMPRESS_GZIP=n" >> .config
-		echo "CONFIG_MODULE_COMPRESS_XZ=y" >> .config
+		echo2config "CONFIG_MODULE_COMPRESS=y"
+		echo2config "CONFIG_MODULE_COMPRESS_GZIP=n"
+		echo2config "CONFIG_MODULE_COMPRESS_XZ=y"
 	else
-		echo "CONFIG_MODULE_COMPRESS=n" >> .config
+		echo2config "CONFIG_MODULE_COMPRESS=n"
 	fi
 
 	# only enable debugging symbols etc if USE=debug...
 	if use debug; then
-		echo "CONFIG_DEBUG_INFO=y" >> .config
+		echo2config "CONFIG_DEBUG_INFO=y"
 	else
-		echo "CONFIG_DEBUG_INFO=n" >> .config
+		echo2config "CONFIG_DEBUG_INFO=n"
 	fi
 
 	if use hardened; then
 
-		echo "CONFIG_GENTOO_KERNEL_SELF_PROTECTION=y" >> .config
+		echo2config "CONFIG_GENTOO_KERNEL_SELF_PROTECTION=y"
 
 		# disable gcc plugins on clang
 		if use clang; then
-			echo "CONFIG_GCC_PLUGINS=n" >> .config
+			echo2config "CONFIG_GCC_PLUGINS=n"
 		fi
 
 		# main hardening options complete... anything after this point is a focus on disabling potential attack vectors
@@ -393,60 +398,60 @@ src_prepare() {
 
 		# Kexec is a syscall that enables loading/booting into a new kernel from the currently running kernel.
 		# This has been used in numerous exploits of various systems over the years, so we disable it.
-		echo 'CONFIG_KEXEC=n' >> .config
-		echo "CONFIG_KEXEC_FILE=n" >> .config
-		echo 'CONFIG_KEXEC_SIG=n' >> .config
+		echo2config 'CONFIG_KEXEC=n'
+		echo2config "CONFIG_KEXEC_FILE=n"
+		echo2config 'CONFIG_KEXEC_SIG=n'
 	fi
 
 	# mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
 	if use mcelog; then
-		echo "CONFIG_X86_MCELOG_LEGACY=y" >> .config
+		echo2config "CONFIG_X86_MCELOG_LEGACY=y"
 	fi
 
 	if use memcg; then
-		echo "CONFIG_MEMCG=y" >> .config
+		echo2config "CONFIG_MEMCG=y"
 	else
-		echo "CONFIG_MEMCG=n" >> .config
+		echo2config "CONFIG_MEMCG=n"
 	fi
 
 	if use numa; then
-		echo "CONFIG_NUMA_BALANCING=y" >> .config
+		echo2config "CONFIG_NUMA_BALANCING=y"
 	else
-		echo "CONFIG_NUMA_BALANCING=n" >> .config
+		echo2config "CONFIG_NUMA_BALANCING=n"
 	fi
 
 	if use pax; then
-		echo "CONFIG_PAX=y" >> .config
-		echo "CONFIG_PAX_NOEXEC=y" >> .config
-		echo "CONFIG_PAX_EMUTRAMP=y" >> .config
-		echo "CONFIG_PAX_MPROTECT=y" >> .config
+		echo2config "CONFIG_PAX=y"
+		echo2config "CONFIG_PAX_NOEXEC=y"
+		echo2config "CONFIG_PAX_EMUTRAMP=y"
+		echo2config "CONFIG_PAX_MPROTECT=y"
 	fi
 
 	if use page-table-isolation; then
-		echo "CONFIG_PAGE_TABLE_ISOLATION=y" >> .config
+		echo2config "CONFIG_PAGE_TABLE_ISOLATION=y"
 		if use arm64; then
-			echo "CONFIG_UNMAP_KERNEL_AT_EL0=y" >> .config
+			echo2config "CONFIG_UNMAP_KERNEL_AT_EL0=y"
 		fi
 	else
-		echo "CONFIG_PAGE_TABLE_ISOLATION=n" >> .config
+		echo2config "CONFIG_PAGE_TABLE_ISOLATION=n"
 		if use arm64; then
-			echo "CONFIG_UNMAP_KERNEL_AT_EL0=n" >> .config
+			echo2config "CONFIG_UNMAP_KERNEL_AT_EL0=n"
 		fi
 	fi
 
 	if use retpoline; then
 		if use amd64 || use arm64 || use ppc64 || use x86; then
-			echo "CONFIG_RETPOLINE=y" >> .config
+			echo2config "CONFIG_RETPOLINE=y"
 		elif use arm; then
-			echo "CONFIG_CPU_SPECTRE=y" >> .config
-			echo "CONFIG_HARDEN_BRANCH_PREDICTOR=y" >> .config
+			echo2config "CONFIG_CPU_SPECTRE=y"
+			echo2config "CONFIG_HARDEN_BRANCH_PREDICTOR=y"
 		fi
 	else
 		if use amd64 || use arm64 || use ppc64 || use x86; then
-			echo "CONFIG_RETPOLINE=n" >> .config
+			echo2config "CONFIG_RETPOLINE=n"
 		elif use arm; then
-			echo "CONFIG_CPU_SPECTRE=n" >> .config
-			echo "CONFIG_HARDEN_BRANCH_PREDICTOR=n" >> .config
+			echo2config "CONFIG_CPU_SPECTRE=n"
+			echo2config "CONFIG_HARDEN_BRANCH_PREDICTOR=n"
 		fi
 
 	fi
@@ -454,28 +459,28 @@ src_prepare() {
 	# sign kernel modules via
 	if use sign-modules; then
 		certs_dir=$(get_certs_dir)
-		echo
-		if [ -z "$certs_dir" ]; then
+		echo2config
+		if [[ -z "$certs_dir" ]]; then
 			eerror "No certs dir found in /etc/kernel/certs; aborting."
 			die
 		else
 			einfo "Using certificate directory of $certs_dir for kernel module signing."
 		fi
-		echo
+		echo2config
 		# turn on options for signing modules.
 		# first, remove existing configs and comments:
-		echo 'CONFIG_MODULE_SIG=""' >> .config
+		echo2config 'CONFIG_MODULE_SIG=""'
 
 		# now add our settings:
-		echo 'CONFIG_MODULE_SIG=y' >> .config
-		echo 'CONFIG_MODULE_SIG_FORCE=n' >> .config
-		echo 'CONFIG_MODULE_SIG_ALL=n' >> .config
-		echo 'CONFIG_MODULE_SIG_HASH="sha512"' >> .config
-		echo 'CONFIG_MODULE_SIG_KEY="${certs_dir}/signing_key.pem"' >> .config
-		echo 'CONFIG_SYSTEM_TRUSTED_KEYRING=y' >> .config
-		echo 'CONFIG_SYSTEM_EXTRA_CERTIFICATE=y' >> .config
-		echo 'CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE="4096"' >> .config
-		echo "CONFIG_MODULE_SIG_SHA512=y" >> .config
+		echo2config 'CONFIG_MODULE_SIG=y'
+		echo2config 'CONFIG_MODULE_SIG_FORCE=n'
+		echo2config 'CONFIG_MODULE_SIG_ALL=n'
+		echo2config 'CONFIG_MODULE_SIG_HASH="sha512"'
+		echo2config 'CONFIG_MODULE_SIG_KEY="${certs_dir}/signing_key.pem"'
+		echo2config 'CONFIG_SYSTEM_TRUSTED_KEYRING=y'
+		echo2config 'CONFIG_SYSTEM_EXTRA_CERTIFICATE=y'
+		echo2config 'CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE="4096"'
+		echo2config "CONFIG_MODULE_SIG_SHA512=y"
 
 		# print some info to warn user
 		ewarn "This kernel will ALLOW non-signed modules to be loaded with a WARNING."
@@ -621,7 +626,7 @@ pkg_postinst() {
 	if use symlink; then
 		# delete the existing symlink if one exists
 		if [[ -h "${EROOT}"/usr/src/linux ]]; then
-			rm "${EROOT}"/usr/src/linux
+			rm "${EROOT}"/usr/src/linux || die "couldn't delete /usr/src/linux symlink"
 		fi
 		# and now symlink the newly installed sources
 		ewarn ""
@@ -629,19 +634,19 @@ pkg_postinst() {
 		ewarn ""
 		ewarn "/usr/src/linux symlink automatically set to linux-${KERNEL_FULL_VERSION}"
 		ewarn ""
-		ln -sf "${EROOT}"/usr/src/linux-${KERNEL_FULL_VERSION} "${EROOT}"/usr/src/linux
+		ln -sf "${EROOT}"/usr/src/linux-${KERNEL_FULL_VERSION} "${EROOT}"/usr/src/linux || die "couldn't create /usr/src/linux symlink"
 	fi
 
 	# if there's a modules folder for these sources, generate modules.dep and map files
 	if [[ -d "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} ]]; then
-		depmod -a ${KERNEL_FULL_VERSION}
+		depmod -a ${KERNEL_FULL_VERSION} || die "couldn't run depmod -a"
 	fi
 
 	# rebuild the initramfs on post_install
 	if use build-kernel; then
 
 		# setup dirs for genkernel
-		mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log}
+		mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log} || die "couldn't create setup directories for genkernel"
 
 		genkernel \
 			--color \
