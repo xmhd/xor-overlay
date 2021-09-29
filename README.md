@@ -7,7 +7,7 @@ This overlay contains packages for software that:
 * aren't yet packaged for Gentoo Linux
 * are missing features due to the maintainer not wishing to carry a minimal patchset
 * does not have long-term-support releases
-* require modification for being as compatible with musl
+* require modification/patching for musl compatibility
 * unsupported-ish upstream
 
 ### Copyright ###
@@ -56,9 +56,10 @@ This overlay contains packages for software that:
 * No support for prefix on Windows, MacOS etc.
 * glibc and musl supported.
 * Further system hardening.
-* NO UCLIBC/-NG SUPPORT - move to musl.
+* No uclibc{-ng} SUPPORT - move to musl.
 * sysvinit+OpenRC supported as a first class citizens.
 * eudev supported as a first class citizen.
+* elogind supported as a first class citizen.
 * ZFS supported as a first class citizen.
 * Sane defaults for desktop/workstation users.
 * Link-time-optimization support.
