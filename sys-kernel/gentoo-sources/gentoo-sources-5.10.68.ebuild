@@ -220,7 +220,7 @@ src_prepare() {
 	sed -i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
 
 	# copy the kconfig file into the kernel sources tree
-	cp "${DISTDIR}"/alpine-kconfig-* "${S}"/.config
+	cp "${DISTDIR}"/alpine-kconfig-* "${S}"/.config || die "couldn't copy alpine linux kernel config"
 
 	### TWEAK CONFIG ###
 
@@ -626,7 +626,7 @@ pkg_postinst() {
 	if use symlink; then
 		# delete the existing symlink if one exists
 		if [[ -h "${EROOT}"/usr/src/linux ]]; then
-			rm "${EROOT}"/usr/src/linux
+			rm "${EROOT}"/usr/src/linux || die "couldn't delete /usr/src/linux symlink"
 		fi
 		# and now symlink the newly installed sources
 		ewarn ""
@@ -634,19 +634,19 @@ pkg_postinst() {
 		ewarn ""
 		ewarn "/usr/src/linux symlink automatically set to linux-${KERNEL_FULL_VERSION}"
 		ewarn ""
-		ln -sf "${EROOT}"/usr/src/linux-${KERNEL_FULL_VERSION} "${EROOT}"/usr/src/linux
+		ln -sf "${EROOT}"/usr/src/linux-${KERNEL_FULL_VERSION} "${EROOT}"/usr/src/linux || die "couldn't create /usr/src/linux symlink"
 	fi
 
 	# if there's a modules folder for these sources, generate modules.dep and map files
 	if [[ -d "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} ]]; then
-		depmod -a ${KERNEL_FULL_VERSION}
+		depmod -a ${KERNEL_FULL_VERSION} || die "couldn't run depmod -a"
 	fi
 
 	# rebuild the initramfs on post_install
 	if use build-kernel; then
 
 		# setup dirs for genkernel
-		mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log}
+		mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log} || die "couldn't create setup directories for genkernel"
 
 		genkernel \
 			--color \
