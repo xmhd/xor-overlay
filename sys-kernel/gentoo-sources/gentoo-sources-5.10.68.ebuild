@@ -119,8 +119,8 @@ DTRACE_PATCHES=(
 
 )
 
-echo2config() {
-	echo "$1" >> .config || die "could not echo \"$1\" to .config file"
+tweak_config() {
+	echo "$1" >> .config || die "failed to tweak \"$1\" in the kernel config"
 }
 
 get_certs_dir() {
@@ -220,11 +220,9 @@ src_prepare() {
 	sed -i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
 
 	# copy the kconfig file into the kernel sources tree
-	cp "${DISTDIR}"/alpine-kconfig-* "${S}"/.config || die "couldn't copy alpine linux kernel config"
+	cp "${DISTDIR}"/alpine-kconfig-* "${S}"/.config || die "failed to copy kconfig to kernel source tree"
 
 	### TWEAK CONFIG ###
-
-	# this is horrible.... TODO: change the echo shite to sed
 
 	if use custom-cflags; then
 
@@ -235,162 +233,162 @@ src_prepare() {
 		case ${MARCH} in
 			*native)
 				if grep -q "AuthenticAMD" /proc/cpuinfo; then
-					echo2config "CONFIG_MNATIVE_AMD=y"
+					tweak_config "CONFIG_MNATIVE_AMD=y"
 				elif grep -q "GenuineIntel" /proc/cpuinfo; then
-					echo2config "CONFIG_MNATIVE_INTEL=y"
+					tweak_config "CONFIG_MNATIVE_INTEL=y"
 				fi
 			;;
 			*x86-64)
-				echo2config "CONFIG_GENERIC_CPU=y"
+				tweak_config "CONFIG_GENERIC_CPU=y"
 			;;
 			*x86-64-v2)
-				echo2config "CONFIG_GENERIC_CPU2=y"
+				tweak_config "CONFIG_GENERIC_CPU2=y"
 			;;
 			*x86-64-v3)
-				echo2config "CONFIG_GENERIC_CPU3=y"
+				tweak_config "CONFIG_GENERIC_CPU3=y"
 			;;
 			*x86-64-v4)
-				echo2config "CONFIG_GENERIC_CPU4=y"
+				tweak_config "CONFIG_GENERIC_CPU4=y"
 			;;
 			*k8)
-				echo2config "CONFIG_MK8=y"
+				tweak_config "CONFIG_MK8=y"
 			;;
 			*k8-sse3)
-				echo2config "CONFIG_MK8SSE3=y"
+				tweak_config "CONFIG_MK8SSE3=y"
 			;;
 			*amdfam10)
-				echo2config "CONFIG_MK10=y"
+				tweak_config "CONFIG_MK10=y"
 			;;
 			*barcelona)
-				echo2config "CONFIG_MBARCELONA=y"
+				tweak_config "CONFIG_MBARCELONA=y"
 			;;
 			*btver1)
-				echo2config "CONFIG_MBOBCAT=y"
+				tweak_config "CONFIG_MBOBCAT=y"
 			;;
 			*btver2)
-				echo2config "CONFIG_MJAGUAR=y"
+				tweak_config "CONFIG_MJAGUAR=y"
 			;;
 			*bdver1)
-				echo2config "CONFIG_MBULLDOZER=y"
+				tweak_config "CONFIG_MBULLDOZER=y"
 			;;
 			*bdver2)
-				echo2config "CONFIG_MPILEDRIVER=y"
+				tweak_config "CONFIG_MPILEDRIVER=y"
 			;;
 			*bdver3)
-				echo2config "CONFIG_MSTEAMROLLER=y"
+				tweak_config "CONFIG_MSTEAMROLLER=y"
 			;;
 			*bdver4)
-				echo2config "CONFIG_MEXCAVATOR=y"
+				tweak_config "CONFIG_MEXCAVATOR=y"
 			;;
 			*znver1)
-				echo2config "CONFIG_MZEN=y" 
+				tweak_config "CONFIG_MZEN=y"
 			;;
 			*znver2)
-				echo2config "CONFIG_MZEN2=y"
+				tweak_config "CONFIG_MZEN2=y"
 			;;
 			*znver3)
-				echo2config "CONFIG_MZEN3=y"
+				tweak_config "CONFIG_MZEN3=y"
 			;;
 			*core2)
-				echo2config "CONFIG_MCORE2=y"
+				tweak_config "CONFIG_MCORE2=y"
 			;;
 			*atom | *bonnell)
-				echo2config "CONFIG_MATOM=y"
+				tweak_config "CONFIG_MATOM=y"
 			;;
 			*silvermont)
-				echo2config "CONFIG_MSILVERMONT=y"
+				tweak_config "CONFIG_MSILVERMONT=y"
 			;;
 			*goldmont)
-				echo2config "CONFIG_MGOLDMONT=y"
+				tweak_config "CONFIG_MGOLDMONT=y"
 			;;
 			*goldmont-plus)
-				echo2config "CONFIG_MGOLDMONTPLUS=y"
+				tweak_config "CONFIG_MGOLDMONTPLUS=y"
 			;;
 			*nehalem)
-				echo2config "CONFIG_MNEHALEM=y"
+				tweak_config "CONFIG_MNEHALEM=y"
 			;;
 			*westmere)
-				echo2config "CONFIG_MWESTMERE=y"
+				tweak_config "CONFIG_MWESTMERE=y"
 			;;
 			*sandybridge)
-				echo2config "CONFIG_MSANDYBRIDGE=y"
+				tweak_config "CONFIG_MSANDYBRIDGE=y"
 			;;
 			*ivybridge)
-				echo2config "CONFIG_MIVYBRIDGE=y"
+				tweak_config "CONFIG_MIVYBRIDGE=y"
 			;;
 			*haswell)
-				echo2config "CONFIG_MHASWELL=y"
+				tweak_config "CONFIG_MHASWELL=y"
 			;;
 			*broadwell)
-				echo2config "CONFIG_MBROADWELL=y"
+				tweak_config "CONFIG_MBROADWELL=y"
 			;;
 			*skylake)
-				echo2config "CONFIG_MSKYLAKE=y"
+				tweak_config "CONFIG_MSKYLAKE=y"
 			;;
 			*skylake-avx512)
-				echo2config "CONFIG_MSKYLAKEX=y"
+				tweak_config "CONFIG_MSKYLAKEX=y"
 			;;
 			*cannonlake)
-				echo2config "CONFIG_MCANNONLAKE=y"
+				tweak_config "CONFIG_MCANNONLAKE=y"
 			;;
 			*icelake-client)
-				echo2config "CONFIG_MICELAKE=y"
+				tweak_config "CONFIG_MICELAKE=y"
 			;;
 			*cascadelake)
-				echo2config "CONFIG_MCASCADELAKE=y"
+				tweak_config "CONFIG_MCASCADELAKE=y"
 			;;
 			*cooperlake)
-				echo2config "CONFIG_MCOOPERLAKE=y"
+				tweak_config "CONFIG_MCOOPERLAKE=y"
 			;;
 			*tigerlake)
-				echo2config "CONFIG_MTIGERLAKE=y"
+				tweak_config "CONFIG_MTIGERLAKE=y"
 			;;
 			*sapphirerapids)
-				echo2config "CONFIG_MSAPPHIRERAPIDS=y"
+				tweak_config "CONFIG_MSAPPHIRERAPIDS=y"
 			;;
 			*rocketlake)
-				echo2config "CONFIG_MROCKETLAKE=y"
+				tweak_config "CONFIG_MROCKETLAKE=y"
 			;;
 			*alderlake)
-				echo2config "CONFIG_MALDERLAKE=y"
+				tweak_config "CONFIG_MALDERLAKE=y"
 			;;
 			*)
-				echo2config "CONFIG_GENERIC_CPU=y"
+				tweak_config "CONFIG_GENERIC_CPU=y"
 			;;
 		esac
 	fi
 
 	# Do not configure Debian devs certificates
-	echo2config 'CONFIG_SYSTEM_TRUSTED_KEYS=""'
+	tweak_config 'CONFIG_SYSTEM_TRUSTED_KEYS=""'
 
 	# enable IKCONFIG so that /proc/config.gz can be used for various checks
 	# TODO: Maybe not a good idea for USE=hardened, look into this...
-	echo2config "CONFIG_IKCONFIG=y"
-	echo2config "CONFIG_IKCONFIG_PROC=y"
+	tweak_config "CONFIG_IKCONFIG=y"
+	tweak_config "CONFIG_IKCONFIG_PROC=y"
 
 	# enable kernel module compression
 	if use compress-modules; then
-		echo2config "CONFIG_MODULE_COMPRESS=y"
-		echo2config "CONFIG_MODULE_COMPRESS_GZIP=n"
-		echo2config "CONFIG_MODULE_COMPRESS_XZ=y"
+		tweak_config "CONFIG_MODULE_COMPRESS=y"
+		tweak_config "CONFIG_MODULE_COMPRESS_GZIP=n"
+		tweak_config "CONFIG_MODULE_COMPRESS_XZ=y"
 	else
-		echo2config "CONFIG_MODULE_COMPRESS=n"
+		tweak_config "CONFIG_MODULE_COMPRESS=n"
 	fi
 
 	# only enable debugging symbols etc if USE=debug...
 	if use debug; then
-		echo2config "CONFIG_DEBUG_INFO=y"
+		tweak_config "CONFIG_DEBUG_INFO=y"
 	else
-		echo2config "CONFIG_DEBUG_INFO=n"
+		tweak_config "CONFIG_DEBUG_INFO=n"
 	fi
 
 	if use hardened; then
 
-		echo2config "CONFIG_GENTOO_KERNEL_SELF_PROTECTION=y"
+		tweak_config "CONFIG_GENTOO_KERNEL_SELF_PROTECTION=y"
 
 		# disable gcc plugins on clang
 		if use clang; then
-			echo2config "CONFIG_GCC_PLUGINS=n"
+			tweak_config "CONFIG_GCC_PLUGINS=n"
 		fi
 
 		# main hardening options complete... anything after this point is a focus on disabling potential attack vectors
@@ -398,60 +396,60 @@ src_prepare() {
 
 		# Kexec is a syscall that enables loading/booting into a new kernel from the currently running kernel.
 		# This has been used in numerous exploits of various systems over the years, so we disable it.
-		echo2config 'CONFIG_KEXEC=n'
-		echo2config "CONFIG_KEXEC_FILE=n"
-		echo2config 'CONFIG_KEXEC_SIG=n'
+		tweak_config 'CONFIG_KEXEC=n'
+		tweak_config "CONFIG_KEXEC_FILE=n"
+		tweak_config 'CONFIG_KEXEC_SIG=n'
 	fi
 
 	# mcelog is deprecated, but there are still some valid use cases and requirements for it... so stick it behind a USE flag for optional kernel support.
 	if use mcelog; then
-		echo2config "CONFIG_X86_MCELOG_LEGACY=y"
+		tweak_config "CONFIG_X86_MCELOG_LEGACY=y"
 	fi
 
 	if use memcg; then
-		echo2config "CONFIG_MEMCG=y"
+		tweak_config "CONFIG_MEMCG=y"
 	else
-		echo2config "CONFIG_MEMCG=n"
+		tweak_config "CONFIG_MEMCG=n"
 	fi
 
 	if use numa; then
-		echo2config "CONFIG_NUMA_BALANCING=y"
+		tweak_config "CONFIG_NUMA_BALANCING=y"
 	else
-		echo2config "CONFIG_NUMA_BALANCING=n"
+		tweak_config "CONFIG_NUMA_BALANCING=n"
 	fi
 
 	if use pax; then
-		echo2config "CONFIG_PAX=y"
-		echo2config "CONFIG_PAX_NOEXEC=y"
-		echo2config "CONFIG_PAX_EMUTRAMP=y"
-		echo2config "CONFIG_PAX_MPROTECT=y"
+		tweak_config "CONFIG_PAX=y"
+		tweak_config "CONFIG_PAX_NOEXEC=y"
+		tweak_config "CONFIG_PAX_EMUTRAMP=y"
+		tweak_config "CONFIG_PAX_MPROTECT=y"
 	fi
 
 	if use page-table-isolation; then
-		echo2config "CONFIG_PAGE_TABLE_ISOLATION=y"
+		tweak_config "CONFIG_PAGE_TABLE_ISOLATION=y"
 		if use arm64; then
-			echo2config "CONFIG_UNMAP_KERNEL_AT_EL0=y"
+			tweak_config "CONFIG_UNMAP_KERNEL_AT_EL0=y"
 		fi
 	else
-		echo2config "CONFIG_PAGE_TABLE_ISOLATION=n"
+		tweak_config "CONFIG_PAGE_TABLE_ISOLATION=n"
 		if use arm64; then
-			echo2config "CONFIG_UNMAP_KERNEL_AT_EL0=n"
+			tweak_config "CONFIG_UNMAP_KERNEL_AT_EL0=n"
 		fi
 	fi
 
 	if use retpoline; then
 		if use amd64 || use arm64 || use ppc64 || use x86; then
-			echo2config "CONFIG_RETPOLINE=y"
+			tweak_config "CONFIG_RETPOLINE=y"
 		elif use arm; then
-			echo2config "CONFIG_CPU_SPECTRE=y"
-			echo2config "CONFIG_HARDEN_BRANCH_PREDICTOR=y"
+			tweak_config "CONFIG_CPU_SPECTRE=y"
+			tweak_config "CONFIG_HARDEN_BRANCH_PREDICTOR=y"
 		fi
 	else
 		if use amd64 || use arm64 || use ppc64 || use x86; then
-			echo2config "CONFIG_RETPOLINE=n"
+			tweak_config "CONFIG_RETPOLINE=n"
 		elif use arm; then
-			echo2config "CONFIG_CPU_SPECTRE=n"
-			echo2config "CONFIG_HARDEN_BRANCH_PREDICTOR=n"
+			tweak_config "CONFIG_CPU_SPECTRE=n"
+			tweak_config "CONFIG_HARDEN_BRANCH_PREDICTOR=n"
 		fi
 
 	fi
@@ -459,28 +457,28 @@ src_prepare() {
 	# sign kernel modules via
 	if use sign-modules; then
 		certs_dir=$(get_certs_dir)
-		echo2config
+		tweak_config
 		if [[ -z "$certs_dir" ]]; then
 			eerror "No certs dir found in /etc/kernel/certs; aborting."
 			die
 		else
 			einfo "Using certificate directory of $certs_dir for kernel module signing."
 		fi
-		echo2config
+		tweak_config
 		# turn on options for signing modules.
 		# first, remove existing configs and comments:
-		echo2config 'CONFIG_MODULE_SIG=""'
+		tweak_config 'CONFIG_MODULE_SIG=""'
 
 		# now add our settings:
-		echo2config 'CONFIG_MODULE_SIG=y'
-		echo2config 'CONFIG_MODULE_SIG_FORCE=n'
-		echo2config 'CONFIG_MODULE_SIG_ALL=n'
-		echo2config 'CONFIG_MODULE_SIG_HASH="sha512"'
-		echo2config 'CONFIG_MODULE_SIG_KEY="${certs_dir}/signing_key.pem"'
-		echo2config 'CONFIG_SYSTEM_TRUSTED_KEYRING=y'
-		echo2config 'CONFIG_SYSTEM_EXTRA_CERTIFICATE=y'
-		echo2config 'CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE="4096"'
-		echo2config "CONFIG_MODULE_SIG_SHA512=y"
+		tweak_config 'CONFIG_MODULE_SIG=y'
+		tweak_config 'CONFIG_MODULE_SIG_FORCE=n'
+		tweak_config 'CONFIG_MODULE_SIG_ALL=n'
+		tweak_config 'CONFIG_MODULE_SIG_HASH="sha512"'
+		tweak_config 'CONFIG_MODULE_SIG_KEY="${certs_dir}/signing_key.pem"'
+		tweak_config 'CONFIG_SYSTEM_TRUSTED_KEYRING=y'
+		tweak_config 'CONFIG_SYSTEM_EXTRA_CERTIFICATE=y'
+		tweak_config 'CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE="4096"'
+		tweak_config "CONFIG_MODULE_SIG_SHA512=y"
 
 		# print some info to warn user
 		ewarn "This kernel will ALLOW non-signed modules to be loaded with a WARNING."
@@ -626,7 +624,7 @@ pkg_postinst() {
 	if use symlink; then
 		# delete the existing symlink if one exists
 		if [[ -h "${EROOT}"/usr/src/linux ]]; then
-			rm "${EROOT}"/usr/src/linux || die "couldn't delete /usr/src/linux symlink"
+			rm "${EROOT}"/usr/src/linux || die "failed to delete existing /usr/src/linux symlink"
 		fi
 		# and now symlink the newly installed sources
 		ewarn ""
@@ -634,19 +632,19 @@ pkg_postinst() {
 		ewarn ""
 		ewarn "/usr/src/linux symlink automatically set to linux-${KERNEL_FULL_VERSION}"
 		ewarn ""
-		ln -sf "${EROOT}"/usr/src/linux-${KERNEL_FULL_VERSION} "${EROOT}"/usr/src/linux || die "couldn't create /usr/src/linux symlink"
+		ln -sf "${EROOT}"/usr/src/linux-${KERNEL_FULL_VERSION} "${EROOT}"/usr/src/linux || die "failed to create /usr/src/linux symlink"
 	fi
 
 	# if there's a modules folder for these sources, generate modules.dep and map files
 	if [[ -d "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} ]]; then
-		depmod -a ${KERNEL_FULL_VERSION} || die "couldn't run depmod -a"
+		depmod -a ${KERNEL_FULL_VERSION} || die "failed to run depmod -a"
 	fi
 
 	# rebuild the initramfs on post_install
 	if use build-kernel; then
 
 		# setup dirs for genkernel
-		mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log} || die "couldn't create setup directories for genkernel"
+		mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log} || die "failed to create setup directories for genkernel"
 
 		genkernel \
 			--color \
