@@ -57,6 +57,8 @@ src_prepare() {
 		eapply "${FILESDIR}"/0002-modules-sync.ego-fix-for-update_repos_conf.patch
 		eapply "${FILESDIR}"/0003-remove-special-python-kit-logic-it-is-just-another-k.patch
 	fi
+
+	eapply_user
 }
 
 src_install() {
