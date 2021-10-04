@@ -76,7 +76,7 @@ REQUIRED_USE="
 
 GCC_MAJOR="${PV%%.*}"
 # Version of archive before patches.
-GCC_ARCHIVE_VER="10.3.0"
+GCC_ARCHIVE_VER="${PV%%_*}"
 # GCC release archive
 GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
 
