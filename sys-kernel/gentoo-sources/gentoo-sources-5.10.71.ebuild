@@ -100,6 +100,7 @@ GENTOO_PATCHES=(
 	2000_BT-Check-key-sizes-only-if-Secure-Simple-Pairing-enabled.patch
 	2900_tmp513-Fix-build-issue-by-selecting-CONFIG_REG.patch
 	2920_sign-file-patch-for-libressl.patch
+	3000_Support-printing-firmware-info.patch
 	4567_distro-Gentoo-Kconfig.patch
 	5000_shiftfs-ubuntu-20.04.patch
 #	5010_enable-cpu-optimizations-universal.patch
@@ -367,7 +368,7 @@ src_prepare() {
 	tweak_config "CONFIG_IKCONFIG_PROC=y"
 
 	# enable kernel module compression
-	if use compress-modules; then
+	if use compress; then
 		tweak_config "CONFIG_MODULE_COMPRESS=y"
 		tweak_config "CONFIG_MODULE_COMPRESS_GZIP=n"
 		tweak_config "CONFIG_MODULE_COMPRESS_XZ=y"

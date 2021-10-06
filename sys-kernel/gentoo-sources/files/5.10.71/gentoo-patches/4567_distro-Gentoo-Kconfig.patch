@@ -6,9 +6,9 @@
  source "Documentation/Kconfig"
 +
 +source "distro/Kconfig"
---- /dev/null	2021-08-09 07:18:54.945580285 -0400
-+++ b/distro/Kconfig	2021-08-09 19:15:34.418191114 -0400
-@@ -0,0 +1,267 @@
+--- /dev/null	2021-08-24 15:34:24.700702871 -0400
++++ b/distro/Kconfig	2021-08-24 15:49:16.965525424 -0400
+@@ -0,0 +1,281 @@
 +menu "Gentoo Linux"
 +
 +config GENTOO_LINUX
@@ -65,6 +65,7 @@
 +	select NET_NS
 +	select PID_NS
 +	select SYSVIPC
++	select USER_NS
 +	select UTS_NS
 +
 +	help
@@ -145,7 +146,6 @@
 +	select TIMERFD
 +	select TMPFS_POSIX_ACL
 +	select TMPFS_XATTR
-+	select USER_NS
 +
 +	select ANON_INODES
 +	select BLOCK
@@ -275,6 +275,20 @@
 +	select CPU_SW_DOMAIN_PAN
 +
 +endif
++
++config GENTOO_PRINT_FIRMWARE_INFO
++	bool "Print firmware information that the kernel attempts to load"
++
++	depends on GENTOO_LINUX
++	default y
++
++	help
++		Enable this option to print information about firmware that the kernel
++		is attempting to load.  This information can be accessible via the
++		dmesg command-line utility
++
++		See the settings that become available for more details and fine-tuning.
++
 +endmenu
 diff --git a/security/Kconfig b/security/Kconfig
 index 7561f6f99..01f0bf73f 100644

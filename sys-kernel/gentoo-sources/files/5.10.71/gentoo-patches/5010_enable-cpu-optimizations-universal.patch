@@ -1,7 +1,7 @@
 From 4af44fbc97bc51eb742f0d6555bde23cf580d4e3 Mon Sep 17 00:00:00 2001
 From: graysky <graysky@archlinux.us>
 Date: Sun, 6 Jun 2021 09:41:36 -0400
-Subject: [PATCH] more uarches for kernel 5.8+
+Subject: [PATCH] more uarches for kernel 5.8-5.14
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -86,7 +86,7 @@ See the following experimental evidence supporting this statement:
 https://github.com/graysky2/kernel_gcc_patch
 
 REQUIREMENTS
-linux version >=5.8
+linux version 5.8-5.14
 gcc version >=9.0 or clang version >=9.0
 
 ACKNOWLEDGMENTS
@@ -219,7 +219,7 @@ index 814fe0d349b0..8acf6519d279 100644
 +
 +config MZEN3
 +	bool "AMD Zen 3"
-+	depends on ( CC_IS_GCC && GCC_VERSION >= 100300 ) || ( CC_IS_CLANG && CLANG_VERSION >= 120000 )
++	depends on (CC_IS_GCC && GCC_VERSION >= 100300) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
 +	help
 +	  Select this for AMD Family 19h Zen 3 processors.
 +
@@ -378,7 +378,7 @@ index 814fe0d349b0..8acf6519d279 100644
 +
 +config MCOOPERLAKE
 +	bool "Intel Cooper Lake"
-+	depends on ( CC_IS_GCC && GCC_VERSION > 100100 ) || ( CC_IS_CLANG && CLANG_VERSION >= 100000 )
++	depends on (CC_IS_GCC && GCC_VERSION > 100100) || (CC_IS_CLANG && CLANG_VERSION >= 100000)
 +	select X86_P6_NOP
 +	help
 +
@@ -388,7 +388,7 @@ index 814fe0d349b0..8acf6519d279 100644
 +
 +config MTIGERLAKE
 +	bool "Intel Tiger Lake"
-+	depends on  ( CC_IS_GCC && GCC_VERSION > 100100 ) || ( CC_IS_CLANG && CLANG_VERSION >= 100000 )
++	depends on  (CC_IS_GCC && GCC_VERSION > 100100) || (CC_IS_CLANG && CLANG_VERSION >= 100000)
 +	select X86_P6_NOP
 +	help
 +
@@ -398,7 +398,7 @@ index 814fe0d349b0..8acf6519d279 100644
 +
 +config MSAPPHIRERAPIDS
 +	bool "Intel Sapphire Rapids"
-+	depends on ( CC_IS_GCC && GCC_VERSION > 110000 ) || ( CC_IS_CLANG && CLANG_VERSION >= 120000 )
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
 +	select X86_P6_NOP
 +	help
 +
@@ -408,7 +408,7 @@ index 814fe0d349b0..8acf6519d279 100644
 +
 +config MROCKETLAKE
 +	bool "Intel Rocket Lake"
-+	depends on ( CC_IS_GCC && GCC_VERSION > 110000 ) || ( CC_IS_CLANG && CLANG_VERSION >= 120000 )
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
 +	select X86_P6_NOP
 +	help
 +
@@ -418,7 +418,7 @@ index 814fe0d349b0..8acf6519d279 100644
 +
 +config MALDERLAKE
 +	bool "Intel Alder Lake"
-+	depends on ( CC_IS_GCC && GCC_VERSION > 110000 ) || ( CC_IS_CLANG && CLANG_VERSION >= 120000 )
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
 +	select X86_P6_NOP
 +	help
 +
@@ -435,7 +435,7 @@ index 814fe0d349b0..8acf6519d279 100644
  
 +config GENERIC_CPU2
 +	bool "Generic-x86-64-v2"
-+	depends on ( CC_IS_GCC && GCC_VERSION > 110000 ) || ( CC_IS_CLANG && LANG_VERSION >= 120000 )
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
 +	depends on X86_64
 +	help
 +	  Generic x86-64 CPU.
@@ -443,7 +443,7 @@ index 814fe0d349b0..8acf6519d279 100644
 +
 +config GENERIC_CPU3
 +	bool "Generic-x86-64-v3"
-+	depends on ( CC_IS_GCC && GCC_VERSION > 110000 ) || ( CC_IS_CLANG && LANG_VERSION >= 120000 )
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
 +	depends on X86_64
 +	help
 +	  Generic x86-64-v3 CPU with v3 instructions.
@@ -451,7 +451,7 @@ index 814fe0d349b0..8acf6519d279 100644
 +
 +config GENERIC_CPU4
 +	bool "Generic-x86-64-v4"
-+	depends on ( CC_IS_GCC && GCC_VERSION > 110000 ) || ( CC_IS_CLANG && LANG_VERSION >= 120000 )
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
 +	depends on X86_64
 +	help
 +	  Generic x86-64 CPU with v4 instructions.
