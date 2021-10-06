@@ -8,7 +8,7 @@
 		<flag name="build-kernel">Build a kernel and modules from the kernel sources</flag>
 		<flag name="btrfs">Enable support for btrfs in the kernel + initramfs</flag>
 		<flag name="cet">Enable support for Intel Control Flow Enforcement Technology in the kernel</flag>
-		<flag name="clang">TODO</flag>
+		<flag name="clang">Build the kernel with the Clang compiler</flag>
 		<flag name="compress">Compress kernel, modules and initramfs</flag>
 		<flag name="doc">Install Linux kernel documentation</flag>
 		<flag name="dtrace">Enable support for DTrace in the kernel</flag>
