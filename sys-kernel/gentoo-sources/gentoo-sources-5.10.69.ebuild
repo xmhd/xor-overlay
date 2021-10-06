@@ -15,13 +15,13 @@ SLOT="${PV}"
 RESTRICT="binchecks mirror strip"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress-modules debug doc +install-sources minimal symlink"
+IUSE="build-kernel clang compress debug doc +install-sources minimal symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
-IUSE="${IUSE} hardened +page-table-isolation pax +retpoline selinux sign-modules"
+IUSE="${IUSE} cet hardened +page-table-isolation pax +retpoline selinux sign-modules"
 # initramfs
-IUSE="${IUSE} btrfs e2fs firmware luks lvm mdadm microcode udev-rules xfs zfs"
+IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth zfs"
 # misc kconfig tweaks
 IUSE="${IUSE} dtrace mcelog +memcg +numa"
 
@@ -34,9 +34,9 @@ BDEPEND="
 "
 
 RDEPEND="
-	build-kernel? ( >=sys-kernel/genkernel-4.2.0 )
+	build-kernel? ( sys-kernel/dracut )
 	btrfs? ( sys-fs/btrfs-progs )
-	compress-modules? ( sys-apps/kmod[lzma] )
+	compress? ( sys-apps/kmod[lzma] )
 	firmware? (
 		sys-kernel/linux-firmware
 	)
@@ -642,34 +642,31 @@ pkg_postinst() {
 
 	# rebuild the initramfs on post_install
 	if use build-kernel; then
+		einfo ">>> Dracut: building initramfs"
 
-		# setup dirs for genkernel
-		mkdir -p "${WORKDIR}"/genkernel/{tmp,cache,log} || die "failed to create setup directories for genkernel"
+		local dracut_args=(
+			--no-hostonly
+			--force
+			--kver="${KERNEL_FULL_VERSION}"
+			--kmoddir="${EROOT}/lib/modules/${KERNEL_FULL_VERSION}"
+			$(usex btrfs "--add=btrfs" "--omit=btrfs" )
+			$(usex compress "--compress=xz" "--no-compress" )
+			$(usex debug "--stdlog=6" "--stdlog=1" )
+			$(usex firmware "--fwdir=/lib/firmware" "" )
+			$(usex luks "--add=crypt" "--omit=crypt" )
+			$(usex lvm "--add=lvm --lvmconf" "--omit=lvm --nolvmconf" )
+			$(usex mdadm "--add=mdraid --mdadmconf" "--omit=mdraid --nomdadmconf" )
+			$(usex microcode "--early-microcode" "--no-early-microcode" )
+			$(usex plymouth "--add=plymouth" "--omit=plymouth" )
+			$(usex selinux "--add=selinux" "--omit=selinux" )
+			$(usex systemd "" "" )
+			$(usex zfs "--add=zfs" "--omit=zfs" )
+		)
 
-		genkernel \
-			--color \
-			--makeopts="${MAKEOPTS}" \
-			--logfile="${WORKDIR}/genkernel/log/genkernel.log" \
-			--cachedir="${WORKDIR}/genkernel/cache" \
-			--tmpdir="${WORKDIR}/genkernel/tmp" \
-			--kernel-config="/boot/config-${KERNEL_FULL_VERSION}" \
-			--kerneldir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
-			--kernel-outputdir="/usr/src/linux-${KERNEL_FULL_VERSION}" \
-			--all-ramdisk-modules \
-			--busybox \
-			$(usex btrfs "--btrfs" "--no-btrfs") \
-			$(usex debug "--loglevel=5" "--loglevel=1") \
-			$(usex e2fs "--e2fsprogs" "--no-e2fsprogs") \
-			$(usex firmware "--firmware" "--no-firmware") \
-			$(usex luks "--luks" "--no-luks") \
-			$(usex lvm "--lvm" "--no-lvm") \
-			$(usex mdadm "--mdadm" "--no-mdadm") \
-			$(usex mdadm "--mdadm-config=/etc/mdadm.conf" "") \
-			$(usex microcode "--microcode-initramfs" "--no-microcode-initramfs") \
-			$(usex udev-rules "--udev-rules" "--no-udev-rules") \
-			$(usex xfs "--xfsprogs" "--no-xfsprogs") \
-			$(usex zfs "--zfs" "--no-zfs") \
-			initramfs || die "failed to build initramfs"
+		dracut ${dracut_args[@]} "${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} || die "failed to build initramfs"
+
+		einfo ""
+		einfo ">>> Dracut: Finished building initramfs"
 	fi
 
 	# warn about the issues with running a hardened kernel
