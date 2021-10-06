@@ -28,6 +28,7 @@
 		<flag name="plymouth">Enable support for Plymouth bootsplash in the kernel + initramfs</flag>
 		<flag name="retpoline">Avoid speculative indirect branches in kernel</flag>
 		<flag name="sign-modules">Sign the kernel modules as part of the build-kernel process</flag>
+		<flag name="udev">Include udev rules in the initramfs</flag>
 		<flag name="zfs">Enable support for zfs in the kernel + initramfs</flag>
 	</use>
 </pkgmetadata>

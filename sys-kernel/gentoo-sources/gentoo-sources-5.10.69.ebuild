@@ -649,6 +649,8 @@ pkg_postinst() {
 			--force
 			--kver="${KERNEL_FULL_VERSION}"
 			--kmoddir="${EROOT}/lib/modules/${KERNEL_FULL_VERSION}"
+			--add="base"
+			--omit="bootchart convertfs dmraid qemu qemu-net"
 			$(usex btrfs "--add=btrfs" "--omit=btrfs" )
 			$(usex compress "--compress=xz" "--no-compress" )
 			$(usex debug "--stdlog=6" "--stdlog=1" )
