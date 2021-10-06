@@ -21,7 +21,7 @@ IUSE="${IUSE} custom-cflags"
 # security
 IUSE="${IUSE} cet hardened +page-table-isolation pax +retpoline selinux sign-modules"
 # initramfs
-IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth zfs"
+IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth udev zfs"
 # misc kconfig tweaks
 IUSE="${IUSE} dtrace mcelog +memcg +numa"
 
@@ -660,6 +660,7 @@ pkg_postinst() {
 			$(usex plymouth "--add=plymouth" "--omit=plymouth" )
 			$(usex selinux "--add=selinux" "--omit=selinux" )
 			$(usex systemd "" "" )
+			$(usex udev "--add=udev-rules" "--omit=udev-rules" )
 			$(usex zfs "--add=zfs" "--omit=zfs" )
 		)
 
