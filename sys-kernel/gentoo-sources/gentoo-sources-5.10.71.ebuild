@@ -169,10 +169,10 @@ pkg_pretend() {
 		fi
 	fi
 
-	# theoretically this should work on USE=x86 but it hasn't been tested.
+	# theoretically, this _should_ work on x86 but it hasn't been tested.
 	if use custom-cflags; then
 		if ! use amd64; then
-			die "USE=custom-cflags is currently amd64 + x86 only"
+			die "USE=custom-cflags is currently amd64 only"
 		fi
 	fi
 }
