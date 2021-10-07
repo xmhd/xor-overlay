@@ -671,10 +671,11 @@ pkg_postinst() {
 			$(usex systemd "--add=systemd" "--omit=systemd" )
 			$(usex udev "--add=udev-rules" "--omit=udev-rules" )
 			$(usex zfs "--add=zfs" "--omit=zfs" )
+			"${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION}
 		)
 
-		# call dracut, pass it the args we stored in ${dracut_args} and pass it the output file path.
-		dracut ${dracut_args[@]} "${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} || die "failed to build initramfs"
+		# call dracut and pass it the args we stored in ${dracut_args}
+		dracut ${dracut_args[@]} || die "failed to build initramfs"
 
 		einfo ""
 		einfo ">>> Dracut: Finished building initramfs"
