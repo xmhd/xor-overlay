@@ -45,6 +45,10 @@ RDEPEND="
 	mdadm? ( sys-fs/mdadm )
 	mcelog? ( app-admin/mcelog )
 	pax? ( app-misc/pax-utils )
+	plymouth? (
+		x11-libs/libdrm[libkms]
+		sys-boot/plymouth[libkms,udev]
+	)
 	sign-modules? (
 		dev-libs/openssl
 		sys-apps/kmod
