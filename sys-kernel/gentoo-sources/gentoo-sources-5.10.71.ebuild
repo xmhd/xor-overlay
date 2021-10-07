@@ -649,7 +649,7 @@ pkg_postinst() {
 	if use build-kernel; then
 		einfo ">>> Dracut: building initramfs"
 
-		dracut_modules_omit="bootchart convertfs qemu qemu-net"
+		dracut_modules_omit="bootchart convertfs qemu"
 
 		local dracut_args=(
 			--no-hostonly
@@ -668,7 +668,7 @@ pkg_postinst() {
 			$(usex microcode "--early-microcode" "--no-early-microcode" )
 			$(usex plymouth "--add=plymouth" "--omit=plymouth" )
 			$(usex selinux "--add=selinux" "--omit=selinux" )
-			$(usex systemd "" "" )
+			$(usex systemd "--add=systemd" "--omit=systemd" )
 			$(usex udev "--add=udev-rules" "--omit=udev-rules" )
 			$(usex zfs "--add=zfs" "--omit=zfs" )
 		)
