@@ -647,38 +647,51 @@ pkg_postinst() {
 
 	# rebuild the initramfs on post_install
 	if use build-kernel; then
-		einfo ">>> Dracut: building initramfs"
+		ewarn ">>> Dracut: building initramfs"
 
+		dracut_modules_add="base"
 		dracut_modules_omit="bootchart convertfs qemu"
 
-		local dracut_args=(
-			--no-hostonly
-			--force
-			--kver="${KERNEL_FULL_VERSION}"
-			--kmoddir="${EROOT}/lib/modules/${KERNEL_FULL_VERSION}"
-			--add="base"
-			--omit="${dracut_modules_omit[@]}"
-			$(usex btrfs "--add=btrfs" "--omit=btrfs" )
-			$(usex compress "--compress=xz" "--no-compress" )
-			$(usex debug "--stdlog=6" "--stdlog=1" )
-			$(usex firmware "--fwdir=/lib/firmware" "" )
-			$(usex luks "--add=crypt" "--omit=crypt" )
-			$(usex lvm "--add=lvm --lvmconf" "--omit=lvm --nolvmconf" )
-			$(usex mdadm "--add=mdraid --mdadmconf" "--omit=mdraid --nomdadmconf" )
-			$(usex microcode "--early-microcode" "--no-early-microcode" )
-			$(usex plymouth "--add=plymouth" "--omit=plymouth" )
-			$(usex selinux "--add=selinux" "--omit=selinux" )
-			$(usex systemd "--add=systemd" "--omit=systemd" )
-			$(usex udev "--add=udev-rules" "--omit=udev-rules" )
-			$(usex zfs "--add=zfs" "--omit=zfs" )
-			"${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION}
-		)
+		# call dracut and pass it arguments for the initramfs build
+		dracut \
+			--no-hostonly \
+			--force \
+			--kmoddir="${EROOT}/lib/modules/${KERNEL_FULL_VERSION}" \
+			--add="${dracut_modules_add[@]}" \
+			--omit="${dracut_modules_omit[@]}" \
+			$(usex btrfs "--add=btrfs" "--omit=btrfs" ) \
+			$(usex compress "--compress=xz" "--no-compress" ) \
+			$(usex debug "--stdlog=5" "--stdlog=1" ) \
+			$(usex firmware "--fwdir=/lib/firmware" "" ) \
+			$(usex luks "--add=crypt" "--omit=crypt" ) \
+			$(usex lvm "--add=lvm --lvmconf" "--omit=lvm --nolvmconf" ) \
+			$(usex mdadm "--add=mdraid --mdadmconf" "--omit=mdraid --nomdadmconf" ) \
+			$(usex microcode "--early-microcode" "--no-early-microcode" ) \
+			$(usex plymouth "--add=plymouth" "--omit=plymouth" ) \
+			$(usex selinux "--add=selinux" "--omit=selinux" ) \
+			$(usex systemd "--add=systemd" "--omit=systemd" ) \
+			$(usex udev "--add=udev-rules" "--omit=udev-rules" ) \
+			$(usex zfs "--add=zfs" "--omit=zfs" ) \
+			"${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} ${KERNEL_FULL_VERSION} || die ">>> Dracut: building initramfs failed"
 
-		# call dracut and pass it the args we stored in ${dracut_args}
-		dracut ${dracut_args[@]} || die "failed to build initramfs"
-
-		einfo ""
-		einfo ">>> Dracut: Finished building initramfs"
+		ewarn ">>> Dracut: Finished building initramfs"
+		ewarn ""
+		ewarn "Required kernel parameters:"
+		ewarn ""
+		ewarn "    root=/dev/ROOT"
+		ewarn ""
+		ewarn "    Where ROOT is the device node for your root partition as the"
+		ewarn "    one specified in /etc/fstab"
+		ewarn ""
+		ewarn "Additional kernel parameters that *may* be required to boot properly..."
+		ewarn ""
+		ewarn "If you use hibernation:"
+		ewarn ""
+		ewarn "    resume=/dev/SWAP"
+		ewarn ""
+		ewarn "    Where $SWAP is the swap device used by hibernate software of your choice."
+		ewarn ""
+		ewarn "    Please consult "man 7 dracut.kernel" for additional kernel arguments."
 	fi
 
 	# warn about the issues with running a hardened kernel
