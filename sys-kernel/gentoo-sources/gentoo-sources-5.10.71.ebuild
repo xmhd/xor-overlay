@@ -21,7 +21,7 @@ IUSE="${IUSE} custom-cflags"
 # security
 IUSE="${IUSE} cet hardened +page-table-isolation pax +retpoline selinux sign-modules"
 # initramfs
-IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth udev zfs"
+IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth systemd udev zfs"
 # misc kconfig tweaks
 IUSE="${IUSE} dtrace mcelog +memcg +numa"
 
