@@ -671,6 +671,7 @@ pkg_postinst() {
 			$(usex zfs "--add=zfs" "--omit=zfs" )
 		)
 
+		# call dracut, pass it the args we stored in ${dracut_args} and pass it the output file path.
 		dracut ${dracut_args[@]} "${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} || die "failed to build initramfs"
 
 		einfo ""
