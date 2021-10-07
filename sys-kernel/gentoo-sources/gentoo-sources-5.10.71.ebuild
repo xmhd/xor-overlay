@@ -649,13 +649,15 @@ pkg_postinst() {
 	if use build-kernel; then
 		einfo ">>> Dracut: building initramfs"
 
+		dracut_modules_omit="bootchart convertfs qemu qemu-net"
+
 		local dracut_args=(
 			--no-hostonly
 			--force
 			--kver="${KERNEL_FULL_VERSION}"
 			--kmoddir="${EROOT}/lib/modules/${KERNEL_FULL_VERSION}"
 			--add="base"
-			--omit="bootchart convertfs dmraid qemu qemu-net"
+			--omit="${dracut_modules_omit[@]}"
 			$(usex btrfs "--add=btrfs" "--omit=btrfs" )
 			$(usex compress "--compress=xz" "--no-compress" )
 			$(usex debug "--stdlog=6" "--stdlog=1" )
