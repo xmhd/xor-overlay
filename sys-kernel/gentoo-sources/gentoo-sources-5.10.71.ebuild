@@ -695,18 +695,20 @@ pkg_postinst() {
 
 	# warn about the issues with running a hardened kernel
 	if use hardened; then
-		ewarn "Hardened patches have been applied to the kernel and KCONFIG options have been set."
-		ewarn "These KCONFIG options and patches change kernel behavior."
+		ewarn ""
+		ewarn "Hardened patches have been applied to the kernel and kconfig options have been set."
+		ewarn "These kconfig options and patches change kernel behavior."
+		ewarn ""
 		ewarn "Changes include:"
-		ewarn "Increased entropy for Address Space Layout Randomization"
+		ewarn "    Increased entropy for Address Space Layout Randomization"
 		if ! use clang; then
-			ewarn "GCC plugins"
+			ewarn "    GCC plugins"
 		fi
-		ewarn "Memory allocation"
-		ewarn "... and more"
+		ewarn "    Memory allocation"
+		ewarn "    ... and more"
 		ewarn ""
 		if use pax; then
-			ewarn "W^X (writable or executable) TODO"
+			ewarn "    W^X (writable or executable) TODO"
 			ewarn ""
 		fi
 		ewarn "These changes will stop certain programs from functioning"
