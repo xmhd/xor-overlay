@@ -16,7 +16,8 @@ SLOT="${PV%%_*}"
 
 RESTRICT="strip"
 
-IUSE="ada bpf +cxx d go +fortran jit objc objc++ objc-gc " # Languages
+IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
+IUSE="$IUSE bpf nvptx"
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE +system-bootstrap"
@@ -1285,6 +1286,17 @@ src_configure() {
 		cd "${WORKDIR}"/build-bpf || die "failed to cd to bpf build directory"
 
 		# TODO
+	fi
+
+	if use nvptx; then
+
+                # setup build directory
+                mkdir "${WORKDIR}"/build-nvptx || die "failed to create nvptx build directory"
+
+                # cd to build directory
+                cd "${WORKDIR}"/build-nvptx || die "failed to cd to nvptx build directory"
+
+                # TODO
 	fi
 
 	is_crosscompile && gcc_conf_cross_post
