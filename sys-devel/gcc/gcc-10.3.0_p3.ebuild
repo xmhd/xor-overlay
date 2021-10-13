@@ -16,7 +16,7 @@ SLOT="${PV%%_*}"
 
 RESTRICT="strip"
 
-IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
+IUSE="ada bpf +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE +system-bootstrap"
@@ -1276,6 +1276,17 @@ src_configure() {
 	# finally run ./configure!
 	../gcc-${GCC_ARCHIVE_VER}/configure "${confgcc[@]}" || die "failed to run configure"
 
+	if use bpf; then
+
+		# setup build directory
+		mkdir "${WORKDIR}"/build-bpf || die "failed to create bpf build directory"
+
+		# cd to build directory
+		cd "${WORKDIR}"/build-bpf || die "failed to cd to bpf build directory"
+
+		# TODO
+	fi
+
 	is_crosscompile && gcc_conf_cross_post
 }
 
@@ -1286,6 +1297,8 @@ gcc_conf_cross_post() {
 }
 
 src_compile() {
+
+	cd "${WORKDIR}"/build || die "failed to cd to build directory"
 
 	touch "${S}"/gcc/c-gperf.h
 
