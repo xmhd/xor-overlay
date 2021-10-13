@@ -53,6 +53,8 @@ RDEPEND="
 	sys-libs/zlib[${MULTILIB_USEDEP}]
 	sanitize? ( virtual/libcrypt )
 	zstd? ( app-arch/zstd )
+	bpf? ( sys-devel/binutils[bpf] )
+	nvptx? ( sys-devel/nvptx-tools )
 "
 
 DEPEND="
