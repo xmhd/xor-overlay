@@ -1287,7 +1287,14 @@ src_configure() {
 		# cd to build directory
 		cd "${WORKDIR}"/build-bpf || die "failed to cd to bpf build directory"
 
+		conf_bpf=(
+			--disable-pie
+			--disable-ssp
+		)
+
 		# TODO
+
+		../gcc-${GCC_ARCHIVE_VER}/configure "${conf_bpf[@]" || die "failed to configure gcc-bpf"
 	fi
 
 	if use nvptx; then
@@ -1298,7 +1305,14 @@ src_configure() {
                 # cd to build directory
                 cd "${WORKDIR}"/build-nvptx || die "failed to cd to nvptx build directory"
 
+		conf_nvptx=(
+			--disable-pie
+			--disable-ssp
+		)
+
                 # TODO
+
+		../gcc-${GCC_ARCHIVE_VER}/configure "${conf_nvptx}" || die "failed to configure gcc-nvptx"
 	fi
 
 	is_crosscompile && gcc_conf_cross_post
