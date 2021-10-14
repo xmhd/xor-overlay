@@ -17,7 +17,7 @@ SLOT="${PV%%_*}"
 RESTRICT="strip"
 
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
-IUSE="$IUSE bpf nvptx"
+IUSE="$IUSE bpf nvptx" # 'foreign' target support
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE +system-bootstrap"
@@ -497,6 +497,14 @@ pkg_setup() {
 
 	# TARGET_LIBC finished - export.
 	export TARGET_LIBC
+
+	if use bpf; then
+		export GCC_BPF_TARGET="bpf-unknown-none"
+	fi
+
+	if use nvptx; then
+		export GCC_NVPTX_TARGET="nvptx-none"
+	fi
 
 	# Disable gcc info regeneration -- it ships with generated info pages already.
 	# Our custom version/urls/etc... trigger it.
@@ -1293,9 +1301,26 @@ src_configure() {
 		# cd to build directory
 		cd "${WORKDIR}"/build-bpf || die "failed to cd to bpf build directory"
 
+		bpf_target_tools=(
+			AR_FOR_TARGET=${GCC_BPF_TARGET}-ar
+			AS_FOR_TARGET=${GCC_BPF_TARGET}-as
+			LD_FOR_TARGET=${GCC_BPF_TARGET}-ld
+			NM_FOR_TARGET=${GCC_BPF_TARGET}-nm
+			OBJDUMP_FOR_TARGET=${GCC_BPF_TARGET}-objdump
+			RANLIB_FOR_TARGET=${GCC_BPF_TARGET}-ranlib
+			READELF_FOR_TARGET=${GCC_BPF_TARGET}-readelf
+			STRIP_FOR_TARGET=${GCC_BPF_TARGET}-strip
+		)
+
 		conf_bpf=(
+			--target=${GCC_BPF_TARGET}
+			--enable-languages=c
+			--with-system-zlib
+			--without-included-gettext
+			--disable-werror
 			--disable-pie
 			--disable-ssp
+			${bpf_target_tools[@]}
 		)
 
 		# TODO
@@ -1312,6 +1337,7 @@ src_configure() {
                 cd "${WORKDIR}"/build-nvptx || die "failed to cd to nvptx build directory"
 
 		conf_nvptx=(
+			--target=${GCC_NVPTX_TARGET}
 			--disable-pie
 			--disable-ssp
 		)
