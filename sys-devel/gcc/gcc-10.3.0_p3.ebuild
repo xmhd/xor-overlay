@@ -1294,7 +1294,7 @@ src_configure() {
 
 		# TODO
 
-		../gcc-${GCC_ARCHIVE_VER}/configure "${conf_bpf[@]" || die "failed to configure gcc-bpf"
+		../gcc-${GCC_ARCHIVE_VER}/configure "${conf_bpf[@]}" || die "failed to configure gcc-bpf"
 	fi
 
 	if use nvptx; then
