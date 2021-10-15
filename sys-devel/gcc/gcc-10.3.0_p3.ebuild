@@ -719,7 +719,7 @@ src_configure() {
 	confgcc+=(
 		--prefix=${PREFIX}
 		--bindir=${BINPATH}
-		--includedir=${LIBPATH}/include
+		--includedir=${INCLUDEPATH}
 		--datadir=${DATAPATH}
 		--mandir=${DATAPATH}/man
 		--infodir=${DATAPATH}/info
