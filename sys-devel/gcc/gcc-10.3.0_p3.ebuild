@@ -707,7 +707,7 @@ src_configure() {
 
 	confgcc+=(
 		--with-bugurl="http://bugs.cairnlinux.org"
-		--with-pkgversion="$GCC_BRANDING"
+		--with-pkgversion="${GCC_BRANDING}"
 	)
 
 	# === END BRANDING ===
