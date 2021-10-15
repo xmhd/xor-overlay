@@ -1326,6 +1326,9 @@ src_configure() {
 		)
 
 		conf_bpf=(
+			--with-bugurl="http://bugs.cairnlinux.org"
+			--with-pkgversion="${GCC_BRANDING}"
+
 			--target=bpf
 			--prefix=${PREFIX_BPF}
 			--bindir=${BINPATH_BPF}
@@ -1358,6 +1361,9 @@ src_configure() {
                 cd "${WORKDIR}"/build-nvptx || die "failed to cd to nvptx build directory"
 
 		conf_nvptx=(
+			--with-bugurl="http://bugs.cairnlinux.org"
+			--with-pkgversion="${GCC_BRANDING}"
+
 			--target=${GCC_NVPTX_TARGET}
 			--prefix=${PREFIX_NVPTX}
 			--bindir=${BINPATH_NVPTX}
