@@ -412,7 +412,7 @@ pkg_setup() {
 	# Set PATH for PREFIX, LIB, INCLUDE, BIN, DATA and STDCXX_INC.
 	export PREFIX=/usr
 	LIBPATH=${PREFIX}/lib/gcc/${CTARGET}/${GCC_CONFIG_VER}
-	INCLUDEPATH=${LIBPATH}/include}
+	INCLUDEPATH=${LIBPATH}/include
 
 	if is_crosscompile; then
 		# cross
@@ -499,11 +499,24 @@ pkg_setup() {
 	export TARGET_LIBC
 
 	if use bpf; then
-		export GCC_BPF_TARGET="bpf-unknown-none"
+		GCC_BPF_TARGET="bpf-unknown-none"
+
+		PREFIX_BPF=/usr
+		LIBPATH_BPF=${PREFIX_BPF}/lib/gcc/${GCC_BPF_TARGET}/${GCC_CONFIG_VER}
+		INCLUDEPATH_BPF=${LIBPATH_BPF}/include
+		BINPATH_BPF=${PREFIX_BPF}/${GCC_BPF_TARGET}/gcc-bin/${GCC_CONFIG_VER}
+		DATAPATH_BPF=${PREFIX_BPF}/share/gcc-data/${GCC_BPF_TARGET}/${GCC_CONFIG_VER}
 	fi
 
 	if use nvptx; then
-		export GCC_NVPTX_TARGET="nvptx-none"
+		GCC_NVPTX_TARGET="nvptx-none"
+
+		PREFIX_NVPTX=/usr
+		LIBPATH_NVPTX=${PREFIX_NVPTX}/lib/gcc/${GCC_NVPTX_TARGET}/${GCC_CONFIG_VER}
+		INCLUDEPATH_NVPTX=${LIBPATH_NVPTX}/include
+		BINPATH_NVPTX=${PREFIX_NVPTX}/${GCC_NVPTX_TARGET}/gcc-bin/${GCC_CONFIG_VER}
+		DATAPATH_NVPTX=${PREFIX_NVPTX}/share/gcc-data/${GCC_NVPTX_TARGET}/${GCC_CONFIG_VER}
+		STDCXX_INCDIR_NVPTX=${LIBPATH_NVPTX}/include/g++-v${GCC_BRANCH_VER}
 	fi
 
 	# Disable gcc info regeneration -- it ships with generated info pages already.
@@ -1302,24 +1315,32 @@ src_configure() {
 		cd "${WORKDIR}"/build-bpf || die "failed to cd to bpf build directory"
 
 		bpf_target_tools=(
-			AR_FOR_TARGET=${GCC_BPF_TARGET}-ar
-			AS_FOR_TARGET=${GCC_BPF_TARGET}-as
-			LD_FOR_TARGET=${GCC_BPF_TARGET}-ld
-			NM_FOR_TARGET=${GCC_BPF_TARGET}-nm
-			OBJDUMP_FOR_TARGET=${GCC_BPF_TARGET}-objdump
-			RANLIB_FOR_TARGET=${GCC_BPF_TARGET}-ranlib
-			READELF_FOR_TARGET=${GCC_BPF_TARGET}-readelf
-			STRIP_FOR_TARGET=${GCC_BPF_TARGET}-strip
+			AR_FOR_TARGET=${TARGET}-ar
+			AS_FOR_TARGET=${TARGET}-as
+			LD_FOR_TARGET=${TARGET}-ld
+			NM_FOR_TARGET=${TARGET}-nm
+			OBJDUMP_FOR_TARGET=${TARGET}-objdump
+			RANLIB_FOR_TARGET=${TARGET}-ranlib
+			READELF_FOR_TARGET=${TARGET}-readelf
+			STRIP_FOR_TARGET=${TARGET}-strip
 		)
 
 		conf_bpf=(
-			--target=${GCC_BPF_TARGET}
+			--target=bpf
+			--prefix=${PREFIX_BPF}
+			--bindir=${BINPATH_BPF}
+			--includedir=${INCLUDEPATH_BPF}
+			--datadir=${DATAPATH_BPF}
+			--mandir=${DATAPATH_BPF}/man
+			--infodir=${DATAPATH_BPF}/info
+
 			--enable-languages=c
 			--with-system-zlib
 			--without-included-gettext
 			--disable-werror
 			--disable-pie
 			--disable-ssp
+
 			${bpf_target_tools[@]}
 		)
 
@@ -1338,6 +1359,14 @@ src_configure() {
 
 		conf_nvptx=(
 			--target=${GCC_NVPTX_TARGET}
+			--prefix=${PREFIX_NVPTX}
+			--bindir=${BINPATH_NVPTX}
+			--includedir=${INCLUDEPATH_NVPTX}
+			--datadir=${DATAPATH_NVPTX}
+			--mandir=${DATAPATH_NVPTX}/man
+			--infodir=${DATAPATH_NVPTX}/info
+			--with-gxx-include-dir=${STDCXX_INCDIR_NVPTX}
+
 			--disable-pie
 			--disable-ssp
 		)
