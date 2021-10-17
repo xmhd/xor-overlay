@@ -528,10 +528,11 @@ pkg_setup() {
 src_unpack() {
 
 	# unpack gcc sources
-	unpack $GCC_A
+	unpack ${GCC_A} || die "failed to unpack gcc sources"
 
 	# logic for unpacking any required Ada bootstrap compilers when existing compiler isn't Ada compatible.
-	if use ada && use bootstrap && ! is_crosscompile; then
+	# TODO: this logic is currently hidden behind USE=ada, but it should be changed to a generic bootstrap tarball.
+	if use ada && use bootstrap && ! use system-bootstrap && ! is_crosscompile; then
 		# create gnatboot directory
 		mkdir "${WORKDIR}"/gnatboot || die "Failed to create gnatboot directory"
 
