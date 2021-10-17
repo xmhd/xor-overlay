@@ -1653,9 +1653,6 @@ src_install() {
 	# This one comes with binutils
 	find "${ED}" -name libiberty.a -delete
 
-	# prune empty dirs left behind
-	find "${ED}" -depth -type d -delete
-
 	# === LINK BINARIES
 
 	dodir /usr/bin
@@ -1732,6 +1729,9 @@ src_install() {
 		einfo "Deleting '${D}${DATAPATH}/info/dir'"
 		rm "${D}${DATAPATH}"/info/dir || die
 	fi
+
+	# prune empty dirs left behind
+	find "${ED}" -depth -type d -delete
 
 	# libstdc++.la: Delete as it doesn't add anything useful: g++ itself
 	# handles linkage correctly in the dynamic & static case.  It also just
