@@ -1343,6 +1343,9 @@ src_configure() {
 			--without-included-gettext
 			--disable-werror
 
+			$(usex lto "--enable-lto" "--disable-lto" )
+			$(usex quad "--enable-libquadmath" "--disable-libquadmath" )
+
 			${bpf_target_tools[@]}
 		)
 
