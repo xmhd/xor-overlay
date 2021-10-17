@@ -1436,7 +1436,7 @@ src_compile() {
 
 	# WIP
 	if use bpf; then
-		cd build-bpf || die "failed to cd to build-bpf directory"
+		cd "${WORKDIR}"/build-bpf || die "failed to cd to build-bpf directory"
 
 		touch "${S}"/gcc/c-gperf.h
 
