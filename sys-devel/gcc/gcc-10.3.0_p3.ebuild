@@ -807,7 +807,7 @@ src_configure() {
 		# Similarly, it is strongly recommended to use an older version of GNAT to build GNAT.
 		# More recent versions of GNAT than the version built are not guaranteed to work and will often fail during the build with compilation errors.
 		# Note that configure does not test whether the GNAT installation works and has a sufficiently recent version; if too old a GNAT version is installed and --enable-languages=ada is used, the build will fail.
-		if use bootstrap && ! is_crosscompile; then
+		if use bootstrap && ! use system-bootstrap && ! is_crosscompile; then
 			export GNATBOOT="${WORKDIR}"/gnatboot/usr
 			PATH="${GNATBOOT}"/bin:${PATH}
 			confgcc+=(
