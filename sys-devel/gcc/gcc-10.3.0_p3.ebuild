@@ -1537,7 +1537,7 @@ gcc_movelibs() {
 	# move them to the compiler-specific CHOST internal dir.  This is stuff
 	# that you want to link against when building tools rather than building
 	# code to run on the target.
-	if tc_version_is_at_least 5 && is_crosscompile ; then
+	if tc_version_is_at_least 5 && is_crosscompile; then
 		dodir "${HOSTLIBPATH#${EPREFIX}}"
 		mv "${ED}"/usr/$(get_libdir)/libcc1* "${D}${HOSTLIBPATH}" || die
 	fi
@@ -1624,10 +1624,10 @@ fix_libtool_libdir_paths() {
 
 src_install() {
 
-	# === PRE-MAKE ===
+# PRE-MAKE INSTALL SECTION:
 
 	# Change to the build directory
-	cd "${WORKDIR}"/build
+	cd "${WORKDIR}"/build || die "failed to change to build directory"
 
 	# Don't allow symlinks in private gcc include dir as this can break the build
 	find gcc/include*/ -type l -delete
@@ -1642,20 +1642,12 @@ src_install() {
 			&& rm -f "${x}"
 	done < <(find gcc/include*/ -name '*.h')
 
-	# === MAKE ===
+# MAKE INSTALL SECTION:
 
 	# Do the 'make install' from the build directory
-	S="${WORKDIR}"/build emake -j1 DESTDIR="${D}" install || die
+	S="${WORKDIR}"/build emake -j1 DESTDIR="${D}" install || die "make install failed"
 
-	# ???
-	# todo: move to CLEAN-UP section
-
-	# Punt some tools which are really only useful while building gcc
-	find "${ED}" -name install-tools -prune -type d -exec rm -rf "{}" \;
-	# This one comes with binutils
-	find "${ED}" -name libiberty.a -delete
-
-	# === POST-MAKE ===
+# POST-MAKE INSTALL SECTION
 
 	# Move the libraries to the proper location
 	gcc_movelibs
@@ -1670,6 +1662,17 @@ src_install() {
 	dodir /etc/env.d/gcc
 	create_gcc_env_entry
 	create_revdep_rebuild_entry
+
+# CLEAN-UP SECTION
+
+	# Punt some tools which are really only useful while building gcc
+	find "${ED}" -name install-tools -prune -type d -exec rm -rf "{}" \;
+
+	# This one comes with binutils
+	find "${ED}" -name libiberty.a -delete
+
+	# prune empty dirs left behind
+	find "${ED}" -depth -type d -delete
 
 	# === LINK BINARIES
 
@@ -1730,8 +1733,6 @@ src_install() {
 	# non-native binary stripping.
 	is_crosscompile && tc_supports_dostrip && dostrip -x "${LIBPATH}"
 
-	# === CLEAN-UP ===
-
 	cd "${S}"
 	if is_crosscompile; then
 		rm -rf "${ED}"/usr/share/{man,info}
@@ -1749,9 +1750,6 @@ src_install() {
 		einfo "Deleting '${D}${DATAPATH}/info/dir'"
 		rm "${D}${DATAPATH}"/info/dir || die
 	fi
-
-	# prune empty dirs left behind
-	find "${ED}" -depth -type d -delete 2>/dev/null
 
 	# libstdc++.la: Delete as it doesn't add anything useful: g++ itself
 	# handles linkage correctly in the dynamic & static case.  It also just
@@ -1810,11 +1808,13 @@ src_install() {
 	done
 	popd >/dev/null
 
-	# Don't scan .gox files for executable stacks - false positives
-	export QA_EXECSTACK="usr/lib*/go/*/*.gox"
-	export QA_WX_LOAD="usr/lib*/go/*/*.gox"
+	if use go; then
+		# Don't scan .gox files for executable stacks - false positives
+		export QA_EXECSTACK="usr/lib*/go/*/*.gox"
+		export QA_WX_LOAD="usr/lib*/go/*/*.gox"
+	fi
 
-	# Disable RANDMMAP so PCH works. #301299
+	# Disable RANDMMAP so PCH works. Gentoo Linux #301299
 	if [[ ! is_crosscompile ]]; then
 		pax-mark -r "${D}${PREFIX}/libexec/gcc/${CTARGET}/${GCC_CONFIG_VER}/cc1"
 		pax-mark -r "${D}${PREFIX}/libexec/gcc/${CTARGET}/${GCC_CONFIG_VER}/cc1plus"
