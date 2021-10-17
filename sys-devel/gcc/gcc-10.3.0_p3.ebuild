@@ -1341,8 +1341,6 @@ src_configure() {
 			--with-system-zlib
 			--without-included-gettext
 			--disable-werror
-			--disable-pie
-			--disable-ssp
 
 			${bpf_target_tools[@]}
 		)
@@ -1372,9 +1370,6 @@ src_configure() {
 			--mandir=${DATAPATH_NVPTX}/man
 			--infodir=${DATAPATH_NVPTX}/info
 			--with-gxx-include-dir=${STDCXX_INCDIR_NVPTX}
-
-			--disable-pie
-			--disable-ssp
 		)
 
                 # TODO
