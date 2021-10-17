@@ -1438,6 +1438,21 @@ src_compile() {
 			ewarn "Skipping libstdc++ manpage generation since you don't have doxygen installed"
 		fi
 	fi
+
+	# WIP
+	if use bpf; then
+		cd build-bpf || die "failed to cd to build-bpf directory"
+
+		touch "${S}"/gcc/c-gperf.h
+
+		einfo "Compiling ${PN} (${GCC_BPF_TARGET})..."
+
+		emake -C "${WORKDIR}"/build-bpf \
+			STAGE1_CFLAGS="${STAGE1_CFLAGS}" \
+			BOOT_CFLAGS="${BOOT_CFLAGS}" \
+			LIBPATH="${LIBPATH}" \
+			all || die "TODO"
+	fi
 }
 
 src_test() {
