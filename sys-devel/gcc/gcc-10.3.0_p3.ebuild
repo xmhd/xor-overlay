@@ -796,6 +796,8 @@ src_configure() {
 	# oh boy...
 	if use ada; then
 		GCC_LANG+=",ada"
+		# TODO: move this to pkg_setup
+		#
 		# Straight from the manual...
 		#
 		# In order to build GNAT, the Ada compiler, you need a working GNAT compiler (GCC version 4.7 or later).
@@ -868,62 +870,64 @@ src_configure() {
 		# Enable build warnings by default with cross-compilers when system paths are included (e.g. via -I flags).
 		confgcc+=( --enable-poison-system-directories )
 
-	# three stage bootstrapping doesnt quite work when you cant run the resulting binaries natively!
-	confgcc+=( --disable-bootstrap )
+		# three stage bootstrapping doesnt quite work when you cant run the resulting binaries natively!
+		confgcc+=( --disable-bootstrap )
 
-	# Force disable for is_crosscompile as the configure script can be dumb - Gentoo Linux bug #359855
-	confgcc+=( --disable-libgomp )
+		# Force disable for is_crosscompile as the configure script can be dumb - Gentoo Linux bug #359855
+		confgcc+=( --disable-libgomp )
 
-	# Configure anything required by a particular TARGET_LIBC...
+		# Configure anything required by a particular TARGET_LIBC...
 
-	# Todo
-	if [[ ${TARGET_LIBC} == dietlibc* ]]; then
-		confgcc+=( --disable-libstdcxx-time )
-	fi
-
-	# Todo
-	if [[ ${TARGET_LIBC} == uclibc* ]]; then
-		# Enable shared library support only on targets that support it: Gentoo Linux bug #291870
-		if ! echo '#include <features.h>' |  $(tc-getCPP ${CTARGET}) -E -dD - 2>/dev/null |  grep -q __HAVE_SHARED__
-		then
-			confgcc+=( --disable-shared )
+		# Todo
+		if [[ ${TARGET_LIBC} == dietlibc* ]]; then
+			confgcc+=( --disable-libstdcxx-time )
 		fi
-	fi
 
-	# Todo
-	if [[ ${TARGET_LIBC} == avr* ]]; then
-		confgcc+=(
-			--disable-__cxa_atexit
-			--enable-shared
-			--disable-threads
-		)
-	fi
-
-	# Todo
-	if [[ ${TARGET_LIBC} == x86_64-*-mingw* ||  ${TARGET_LIBC} == *-w64-mingw* ]]; then
-		confgcc+=( --disable-threads --enable-shared )
-	fi
-
-	# Handle bootstrapping cross-compiler and libc in lock-step
-	if ! has_version ${CATEGORY}/${TARGET_LIBC}; then
-		# we are building with a libc that is not yet installed:
-		# libquadmath requires a libc, Gentoo Linux bug #734820
-		confgcc+=(
-			--disable-shared
-			--disable-libatomic
-			--disable-libquadmath
-			--disable-threads
-			--without-headers
-			--disable-libstdcxx
-		)
-		# By default gcc looks at glibc's headers to detect long-double support.
-		# This does not work for --disable-headers mode.
-		# >=glibc-2.4 is good enough for float128.
-		# This option appeared in gcc-4.2.
-		# Gentoo Linux bug # 738248
-		if [[ ${TARGET_LIBC} == glibc ]]; then
-			confgcc+=( --with-long-double-128 )
+		# Todo
+		if [[ ${TARGET_LIBC} == uclibc* ]]; then
+			# Enable shared library support only on targets that support it: Gentoo Linux bug #291870
+			if ! echo '#include <features.h>' |  $(tc-getCPP ${CTARGET}) -E -dD - 2>/dev/null |  grep -q __HAVE_SHARED__
+			then
+				confgcc+=( --disable-shared )
+			fi
 		fi
+
+		# Todo
+		if [[ ${TARGET_LIBC} == avr* ]]; then
+			confgcc+=(
+				--disable-__cxa_atexit
+				--enable-shared
+				--disable-threads
+			)
+		fi
+
+		# Todo
+		if [[ ${TARGET_LIBC} == x86_64-*-mingw* ||  ${TARGET_LIBC} == *-w64-mingw* ]]; then
+			confgcc+=( --disable-threads --enable-shared )
+		fi
+
+		# Handle bootstrapping cross-compiler and libc in lock-step
+		if ! has_version ${CATEGORY}/${TARGET_LIBC}; then
+			# we are building with a libc that is not yet installed:
+			# libquadmath requires a libc, Gentoo Linux bug #734820
+			confgcc+=(
+				--disable-shared
+				--disable-libatomic
+				--disable-libquadmath
+				--disable-threads
+				--without-headers
+				--disable-libstdcxx
+			)
+
+			# By default gcc looks at glibc's headers to detect long-double support.
+			# This does not work for --disable-headers mode.
+			# >=glibc-2.4 is good enough for float128.
+			# This option appeared in gcc-4.2.
+			# Gentoo Linux bug # 738248
+
+			if [[ ${TARGET_LIBC} == glibc ]]; then
+				confgcc+=( --with-long-double-128 )
+			fi
 		elif has_version "${CATEGORY}/${TARGET_LIBC}[headers-only]"; then
 			# libc installed, but has USE="crosscompile_opts_headers-only" to only install headers:
 			confgcc+=(
