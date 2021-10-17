@@ -19,7 +19,7 @@ RESTRICT="strip"
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE bpf nvptx" # 'foreign' target support
 IUSE="$IUSE debug test" # Run tests
-IUSE="$IUSE doc nls vanilla hardened +multilib multiarch" # docs/i18n/system flags
+IUSE="$IUSE doc nls hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE +system-bootstrap"
 IUSE="$IUSE custom-cflags openmp fixed-point graphite lto pch +quad" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
@@ -73,7 +73,6 @@ REQUIRED_USE="
 	objc++? ( cxx )
 	fortran? ( quad )
 	?? ( checking_release checking_yes checking_all )
-	?? ( hardened vanilla )
 	?? ( stack_protector_strong stack_protector_all )
 "
 
@@ -345,11 +344,9 @@ pkg_setup() {
 	# 8) Configure GCC_TARGET and export.
 	# 9) Configure TARGET_LIBC and export.
 
-	# Export GCC branding
-	# TODO: implement alpha, beta and git brandings possibly? specific bug tracker/JIRA for specific versions?
-	if ! use hardened && ! use vanilla; then
+	if ! use hardened; then
 		export GCC_BRANDING="Cairn Linux ${PV}"
-	elif use hardened && ! use vanilla; then
+	elif use hardened; then
 		export GCC_BRANDING="Cairn Linux Hardened ${PV}"
 	fi
 
@@ -592,92 +589,77 @@ src_prepare() {
 	# Prevent new texinfo from breaking old versions (see #198182, #464008)
 	eapply "${FILESDIR}/gcc-configure-texinfo.patch" || die "patch fail"
 
-	# === OSDIRNAMES ===
-
 	setup_multilib_osdirnames
 
-	# Only modify sources if USE="-vanilla"
-	if ! use vanilla; then
+	# Gentoo Linux patches
+	einfo "Applying Gentoo Linux patches ..."
+	for my_patch in ${GENTOO_PATCHES[*]} ; do
+		eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
+	done
 
-		# Gentoo Linux patches
-		einfo "Applying Gentoo Linux patches ..."
-		for my_patch in ${GENTOO_PATCHES[*]} ; do
-			eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
+	# Cairn Linux patches
+	einfo "Applying Cairn Linux patches ..."
+	for my_patch in ${CAIRN_PATCHES[*]} ; do
+		eapply "${CAIRN_PATCHES_DIR}/${my_patch}"
+	done
+
+	# Alpine Linux patches
+	# most of these are musl compatibility fixes, so hide it behind elibc_musl || cross*-musl*
+	if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
+		einfo "Applying Alpine Linux patches ..."
+		for my_patch in ${ALPINE_PATCHES[*]} ; do
+			eapply "${ALPINE_PATCHES_DIR}/${my_patch}"
 		done
-
-		# Cairn Linux patches
-		einfo "Applying Cairn Linux patches ..."
-		for my_patch in ${CAIRN_PATCHES[*]} ; do
-			eapply "${CAIRN_PATCHES_DIR}/${my_patch}"
-		done
-
-		# Alpine Linux patches
-		# most of these are musl compatibility fixes, so hide it behind elibc_musl || cross*-musl*
-		if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
-			einfo "Applying Alpine Linux patches ..."
-			for my_patch in ${ALPINE_PATCHES[*]} ; do
-				eapply "${ALPINE_PATCHES_DIR}/${my_patch}"
-			done
-		fi
-
-		# === HARDENING ===
-		# TODO: write a blurb
-		local gcc_hard_flags=""
-
-		# TODO: disable pie in STAGE1_LDFLAGS? bug #618908
-		# This will allow us to build older gcc with a pie enabled modern gcc.
-
-		# Enable FORTIFY_SOURCE by default
-		if use fortify_source; then
-			eapply "${GENTOO_PATCHES_DIR}/01_all_default-fortify-source.patch"
-		fi
-
-		# Todo
-		if use dev_extra_warnings ; then
-			eapply "${GENTOO_PATCHES_DIR}/02_all_default-warn-format-security.patch"
-			eapply "${GENTOO_PATCHES_DIR}/03_all_default-warn-trampolines.patch"
-			if use test ; then
-				ewarn "USE=dev_extra_warnings enables warnings by default which are known to break gcc's tests!"
-			fi
-			einfo "Additional warnings enabled by default, this may break some tests and compilations with -Werror."
-		fi
-
-		# Enable BIND_NOW by default
-		if use bind_now; then
-			eapply "${CAIRN_PATCHES_DIR}/01_all_ENABLE_DEFAULT_BIND_NOW-z-now.patch"
-			gcc_hard_flags+=" -DENABLE_DEFAULT_BIND_NOW "
-		fi
-
-		# Enable Stack Clash Protection by default
-		if use stack_clash_protection; then
-			eapply "${CAIRN_PATCHES_DIR}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch"
-			gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
-		fi
-
-		# -fstack-protector is initially set =-1 in GCC.
-		# =0 TODO
-		# =1 TODO
-		# =2 -all
-		# =3 -strong
-		# This ebuild defaults to -strong, and if USE=hardened then set it to -strong
-		if use stack_protector_all; then
-			eapply "${CAIRN_PATCHES_DIR}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch"
-			gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
-		fi
-
-		# Enable CET by default
-		if use cet ; then
-			eapply "${CAIRN_PATCHES_DIR}/04_all_ENABLE_DEFAULT_CET.patch"
-			gcc_hard_flags+=" -DENABLE_DEFAULT_CET"
-		fi
-
-		# GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
-		sed -e '/^ALL_CFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CFLAGS = |ALL_CFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in || die "failed to write HARD_CFLAGS to gcc Makefile"
-		sed -e '/^ALL_CXXFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CXXFLAGS = |ALL_CXXFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in || die "failed to write HARD_CXXFLAGS to gcc Makefile"
-
-		# write HARD_CFLAGS back to the gcc Makefile.
-		sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die "failed to write CFLAGS to gcc Makefile"
 	fi
+
+	local gcc_hard_flags=""
+
+	# TODO: disable pie in STAGE1_LDFLAGS? Gentoo Linux #618908
+	# This will allow us to build older gcc with a pie enabled modern gcc.
+
+	# Enable FORTIFY_SOURCE by default
+	if use fortify_source; then
+		eapply "${GENTOO_PATCHES_DIR}/01_all_default-fortify-source.patch"
+	fi
+
+	# TODO
+	if use dev_extra_warnings ; then
+		eapply "${GENTOO_PATCHES_DIR}/02_all_default-warn-format-security.patch"
+		eapply "${GENTOO_PATCHES_DIR}/03_all_default-warn-trampolines.patch"
+
+		einfo "Additional warnings enabled by default, this may break some tests and compilations with -Werror."
+	fi
+
+	# Enable BIND_NOW by default
+	if use bind_now; then
+		eapply "${CAIRN_PATCHES_DIR}/01_all_ENABLE_DEFAULT_BIND_NOW-z-now.patch"
+		gcc_hard_flags+=" -DENABLE_DEFAULT_BIND_NOW "
+	fi
+
+	# Enable Stack Clash Protection by default
+	if use stack_clash_protection; then
+		eapply "${CAIRN_PATCHES_DIR}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch"
+		gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
+	fi
+
+	# TODO
+	if use stack_protector_all; then
+		eapply "${CAIRN_PATCHES_DIR}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch"
+		gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
+	fi
+
+	# Enable CET by default
+	if use cet; then
+		eapply "${CAIRN_PATCHES_DIR}/04_all_ENABLE_DEFAULT_CET.patch"
+		gcc_hard_flags+=" -DENABLE_DEFAULT_CET"
+	fi
+
+	# GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
+	sed -e '/^ALL_CFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CFLAGS = |ALL_CFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in || die "failed to write HARD_CFLAGS to gcc Makefile"
+	sed -e '/^ALL_CXXFLAGS/iHARD_CFLAGS = '  -e 's|^ALL_CXXFLAGS = |ALL_CXXFLAGS = $(HARD_CFLAGS) |' -i "${S}"/gcc/Makefile.in || die "failed to write HARD_CXXFLAGS to gcc Makefile"
+
+	# write HARD_CFLAGS back to the gcc Makefile.
+	sed -i -e "/^HARD_CFLAGS = /s|=|= ${gcc_hard_flags} |" "${S}"/gcc/Makefile.in || die "failed to write CFLAGS to gcc Makefile"
 
 	# apply any user patches
 	eapply_user
@@ -1647,7 +1629,7 @@ src_install() {
 	# Do the 'make install' from the build directory
 	S="${WORKDIR}"/build emake -j1 DESTDIR="${D}" install || die "make install failed"
 
-# POST-MAKE INSTALL SECTION
+# POST-MAKE INSTALL SECTION:
 
 	# Move the libraries to the proper location
 	gcc_movelibs
@@ -1663,7 +1645,7 @@ src_install() {
 	create_gcc_env_entry
 	create_revdep_rebuild_entry
 
-# CLEAN-UP SECTION
+# CLEAN-UP SECTION:
 
 	# Punt some tools which are really only useful while building gcc
 	find "${ED}" -name install-tools -prune -type d -exec rm -rf "{}" \;
