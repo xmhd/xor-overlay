@@ -431,6 +431,11 @@ pkg_setup() {
 	if use bootstrap && ! is_crosscompile || ! tc-is-cross-compiler; then
 		# equivalent of adding -fcf-protection to BOOT_CFLAGS
 		use cet && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-cet"
+		# 'bootstrap-debug' verifies that gcc generates the same executable code,
+		# whether or not it is asked to emit debug info and is enabled by default.
+		# 'bootstrap-debug-big' saves internal compiler dumps during stage2 and stage3
+		# and compares them as well, at greater cost in terms of disk space.
+		use debug && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-debug-big"
 		# equivalent of adding -flto to BOOT_CFLAGS
 		use lto && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
 	fi
