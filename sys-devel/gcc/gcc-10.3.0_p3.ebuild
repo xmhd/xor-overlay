@@ -401,7 +401,7 @@ pkg_setup() {
 		fi
 	fi
 
-	# Todo
+	# TODO
 	: ${TARGET_ABI:=${ABI}}
 	: ${TARGET_MULTILIB_ABIS:=${MULTILIB_ABIS}}
 	: ${TARGET_DEFAULT_ABI:=${DEFAULT_ABI}}
@@ -427,44 +427,35 @@ pkg_setup() {
 	STAGE1_CFLAGS="${STAGE1_CFLAGS:--O2 -pipe}"
 
 	# Flags to be used for stages two and three.
-	# TODO: allow custom optimisation levels -O3 and -Os
 	BOOT_CFLAGS="${BOOT_CFLAGS:--O2 -pipe $(get_abi_CFLAGS ${TARGET_DEFAULT_ABI})}"
 
-	# The following blocks of code will configure BUILD_CONFIG and GCC_TARGET.
-	#
-	# This ebuild will perform 'lean' bootstraps by default, and 'regular' bootstraps when USE=debug.
-	#
 	# 'Lean' and 'regular' bootstraps have the same build sequence, except the object files from stage one & stage two
 	# of the three stage bootstrap process are deleted as soon as they are no longer required.
 	#
-	# Further additions are made to BUILD_CONFIG and GCC_TARGET for profiled or lto bootstraps.
-	#
-	# TODO: not entirely happy with this - there are additional BUILD_CONFIG options that can and should be added,
-	# e.g. bootstrap-debug, bootstrap-cet.
-	#
-	# TODO: not sure if this works with cross compile? investigate?
-	if use lto && use bootstrap; then
-	    BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto-lean"
+	# BUILD_CONFIG is used for bringing additional customisation into the build.
+	if use bootstrap && ! is_crosscompile || ! tc-is-cross-compiler; then
+		# equivalent of adding -fcf-protection to BOOT_CFLAGS
+		$(usex cet "${BUILD_CONFIG:+${BUILD_CONFIG} } bootstrap-cet" "" )
+		# equivalent of adding -flto to BOOT_CFLAGS
+		$(usex lto "${BUILD_CONFIG:+${BUILD_CONFIG} } bootstrap-lto" "" )
 	fi
 
 	# BUILD_CONFIG finished - export.
 	export BUILD_CONFIG
 
-	# Now for GCC_TARGET... only perform a three stage and any additional bootstraps if != cross_compile || != cross_compiler.
-	if ! is_crosscompile || ! tc-is-cross-compiler && use bootstrap; then
-		if use pgo; then
-			GCC_TARGET="profiledbootstrap-lean"
-		else
-			GCC_TARGET="bootstrap-lean"
-		fi
+	# GCC_TARGET is used for setting the make target.
+	if use bootstrap && ! is_crosscompile || ! tc-is-cross-compiler; then
+		# either regular bootstrap or profiled bootstrap
+		$(usex pgo "GCC_TARGET=profiledbootstrap-lean" "GCC_TARGET=bootstrap-lean" )
 	else
-	    GCC_TARGET="all"
+		# USE=-bootstrap , thus --disable-bootstrap will be passed in configure
+		GCC_TARGET="all"
 	fi
 
 	# GCC_TARGET finished - export.
 	export GCC_TARGET
 
-	# Setup TARGET_LIBC...
+	# TARGET_LIBC setup ...
 	case ${CTARGET} in
 		*-linux)
 			TARGET_LIBC=no-idea;;
