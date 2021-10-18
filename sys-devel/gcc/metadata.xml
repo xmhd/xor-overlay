@@ -11,8 +11,7 @@
 		<flag name="objc">Enable support for the objective-c programming language</flag>
 		<flag name="objc++">Enable support for the objective-c++ programming language</flag>
 		<flag name="objc-gc">Enable support for the objective-c programming language's garbage collector</flag>
-		<flag name="stack_protector_strong">Enable default stack smashing protection at level STRONG</flag>
-		<flag name="stack_protector_all">Enable default stack smashing protection at level ALL</flag>
+		<flag name="ssp">Enable default stack smashing protection</flag>
 		<flag name="libssp">TODO</flag>
 		<flag name="pie">Enable default building of position independent executables</flag>
 		<flag name="fortify_source">TODO</flag>

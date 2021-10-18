@@ -22,7 +22,7 @@ IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE custom-cflags openmp fixed-point graphite lto pch +quad-math" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo +system-bootstrap" # Bootstrap flags
-IUSE="$IUSE libssp +stack_protector_strong stack_protector_all" # Base hardening flags
+IUSE="$IUSE libssp +ssp" # Base hardening flags
 IUSE="$IUSE cet +fortify_source +bind_now +pie vtv" # Extra hardening flags
 IUSE="$IUSE +stack_clash_protection" # Stack clash protector added in gcc-8
 IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
@@ -72,7 +72,6 @@ REQUIRED_USE="
 	objc++? ( cxx )
 	fortran? ( quad-math )
 	?? ( checking_release checking_yes checking_all )
-	?? ( stack_protector_strong stack_protector_all )
 "
 
 GCC_MAJOR="${PV%%.*}"
@@ -630,7 +629,7 @@ src_prepare() {
 	fi
 
 	# TODO
-	if use stack_protector_all; then
+	if use ssp && use hardened; then
 		eapply "${CAIRN_PATCHES_DIR}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch"
 		gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
 	fi
@@ -1209,7 +1208,7 @@ src_configure() {
 	fi
 
 	# Default building of SSP executables.
-	if use stack_protector_strong || use stack_protector_all; then
+	if use ssp; then
 		confgcc+=( --enable-default-ssp )
 	else
 		confgcc+=( --disable-default-ssp )
