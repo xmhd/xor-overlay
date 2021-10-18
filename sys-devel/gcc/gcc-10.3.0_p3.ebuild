@@ -25,7 +25,7 @@ IUSE="$IUSE +bootstrap pgo +system-bootstrap" # Bootstrap flags
 IUSE="$IUSE +pie libssp +ssp" # Base hardening flags
 IUSE="$IUSE cet +fortify_source +bind_now vtv" # Extra hardening flags
 IUSE="$IUSE +scp" # Stack clash protector added in gcc-8
-IUSE="$IUSE sanitize dev_extra_warnings" # Dev flags
+IUSE="$IUSE asan sanitize ubsan dev_extra_warnings" # Dev flags
 IUSE="$IUSE nptl systemtap valgrind zstd" # TODO: sort these flags
 IUSE="$IUSE +checking_release checking_yes checking_all" # gcc internal checking
 
@@ -67,10 +67,12 @@ PDEPEND="
 
 REQUIRED_USE="
 	ada? ( cxx )
+	asan? ( sanitize )
 	cet? ( amd64 )
 	go? ( cxx )
 	objc++? ( cxx )
 	fortran? ( quad-math )
+	ubsan? ( sanitize )
 	?? ( checking_release checking_yes checking_all )
 "
 
@@ -429,6 +431,8 @@ pkg_setup() {
 
 	# BUILD_CONFIG is used for bringing additional customisation into the build.
 	if use bootstrap && ! is_crosscompile || ! tc-is-cross-compiler; then
+		# equivalent of adding -fsanitize=address to BOOT_CFLAGS
+		use asan && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-asan"
 		# equivalent of adding -fcf-protection to BOOT_CFLAGS
 		use cet && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-cet"
 		# 'bootstrap-debug' verifies that gcc generates the same executable code,
@@ -438,6 +442,8 @@ pkg_setup() {
 		use debug && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-debug-big"
 		# equivalent of adding -flto to BOOT_CFLAGS
 		use lto && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
+		# equivalent of adding -fsanitize=undefined to BOOT_CFLAGS
+		use ubsan && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-ubsan"
 	fi
 
 	# BUILD_CONFIG finished - export.
