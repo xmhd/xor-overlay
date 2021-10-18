@@ -16,7 +16,7 @@
 		<flag name="pie">Enable default building of position independent executables</flag>
 		<flag name="fortify_source">TODO</flag>
 		<flag name="bind_now">TODO</flag>
-		<flag name="stack_clash_protection">TODO</flag>
+		<flag name="scp">TODO</flag>
 		<flag name="sanitize">TODO</flag>
 		<flag name="vtv">TODO</flag>
 		<flag name="dev_extra_warnings">TODO</flag>
