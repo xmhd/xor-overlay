@@ -429,15 +429,12 @@ pkg_setup() {
 	# Flags to be used for stages two and three.
 	BOOT_CFLAGS="${BOOT_CFLAGS:--O2 -pipe $(get_abi_CFLAGS ${TARGET_DEFAULT_ABI})}"
 
-	# 'Lean' and 'regular' bootstraps have the same build sequence, except the object files from stage one & stage two
-	# of the three stage bootstrap process are deleted as soon as they are no longer required.
-	#
 	# BUILD_CONFIG is used for bringing additional customisation into the build.
 	if use bootstrap && ! is_crosscompile || ! tc-is-cross-compiler; then
 		# equivalent of adding -fcf-protection to BOOT_CFLAGS
-		$(usex cet "${BUILD_CONFIG:+${BUILD_CONFIG} } bootstrap-cet" "" )
+		use cet && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} } bootstrap-cet"
 		# equivalent of adding -flto to BOOT_CFLAGS
-		$(usex lto "${BUILD_CONFIG:+${BUILD_CONFIG} } bootstrap-lto" "" )
+		use lto && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} } bootstrap-lto"
 	fi
 
 	# BUILD_CONFIG finished - export.
@@ -446,7 +443,7 @@ pkg_setup() {
 	# GCC_TARGET is used for setting the make target.
 	if use bootstrap && ! is_crosscompile || ! tc-is-cross-compiler; then
 		# either regular bootstrap or profiled bootstrap
-		$(usex pgo "GCC_TARGET=profiledbootstrap-lean" "GCC_TARGET=bootstrap-lean" )
+		use pgo && GCC_TARGET="profiledbootstrap" || GCC_TARGET="bootstrap"
 	else
 		# USE=-bootstrap , thus --disable-bootstrap will be passed in configure
 		GCC_TARGET="all"
