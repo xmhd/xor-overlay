@@ -21,7 +21,7 @@ IUSE="$IUSE bpf nvptx" # 'foreign' target support
 IUSE="$IUSE debug test" # Run tests
 IUSE="$IUSE doc nls hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE +system-bootstrap"
-IUSE="$IUSE custom-cflags openmp fixed-point graphite lto pch +quad" # Optimizations/features flags
+IUSE="$IUSE custom-cflags openmp fixed-point graphite lto pch +quad-math" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo" # Bootstrap flags
 IUSE="$IUSE libssp +stack_protector_strong stack_protector_all" # Base hardening flags
 IUSE="$IUSE cet +fortify_source +bind_now +pie vtv" # Extra hardening flags
@@ -71,7 +71,7 @@ REQUIRED_USE="
 	cet? ( amd64 )
 	go? ( cxx )
 	objc++? ( cxx )
-	fortran? ( quad )
+	fortran? ( quad-math )
 	?? ( checking_release checking_yes checking_all )
 	?? ( stack_protector_strong stack_protector_all )
 "
@@ -1197,7 +1197,7 @@ src_configure() {
 		confgcc+=( --disable-default-pie )
 	fi
 
-	if use quad; then
+	if use quad-math; then
 		confgcc+=( --enable-libquadmath )
 	else
 		confgcc+=( --disable-libquadmath )
@@ -1318,7 +1318,7 @@ src_configure() {
 			--disable-werror
 
 			$(usex lto "--enable-lto" "--disable-lto" )
-			$(usex quad "--enable-libquadmath" "--disable-libquadmath" )
+			$(usex quad-math "--enable-libquadmath" "--disable-libquadmath" )
 
 			${bpf_target_tools[@]}
 		)

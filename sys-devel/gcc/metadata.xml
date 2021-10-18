@@ -33,7 +33,7 @@
 		<flag name="lto">TODO</flag>
 		<flag name="pgo">TODO</flag>
 		<flag name="fixed-point">TODO</flag>
-		<flag name="quad">TODO</flag>
+		<flag name="quad-math">TODO</flag>
 		<flag name="bootstrap">TODO</flag>
 		<flag name="system-bootstrap">TODO</flag>
 		<flag name="generic_host">TODO</flag>
