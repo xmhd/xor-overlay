@@ -432,9 +432,9 @@ pkg_setup() {
 	# BUILD_CONFIG is used for bringing additional customisation into the build.
 	if use bootstrap && ! is_crosscompile || ! tc-is-cross-compiler; then
 		# equivalent of adding -fcf-protection to BOOT_CFLAGS
-		use cet && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} } bootstrap-cet"
+		use cet && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-cet"
 		# equivalent of adding -flto to BOOT_CFLAGS
-		use lto && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} } bootstrap-lto"
+		use lto && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-lto"
 	fi
 
 	# BUILD_CONFIG finished - export.
@@ -1254,7 +1254,7 @@ src_configure() {
 	confgcc+=( "$@" ${EXTRA_ECONF} )
 
 	# Pass BUILD_CONFIG to ./configure.
-	confgcc+=( --with-build-config=${BUILD_CONFIG} )
+	confgcc+=( --with-build-config="${BUILD_CONFIG}" )
 
 	# Create build directory...
 	mkdir -p "${WORKDIR}"/build || die "create build directory failed"
