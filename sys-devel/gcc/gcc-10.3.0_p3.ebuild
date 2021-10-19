@@ -667,35 +667,16 @@ src_prepare() {
 
 src_configure() {
 
-	### INFO ###
-
-	# Configure procedure is as follows
-	#
-	# 1) Branding
-	# 2) General (paths etc)
-	# 3) Languages
-	# 4) CHOST / CBUILD / CTARGET
-	# 5) Cross compiling
-	# 6) libc
-	# 7) Arch
-	# 8) Features and libraries
-
-	# gcc_conf is our array of opts to pass to ./configure
 	local conf_gcc
 
-	# === BRANDING ===
+# BRANDING:
 
 	conf_gcc+=(
 		--with-bugurl="http://bugs.cairnlinux.org"
 		--with-pkgversion="${GCC_BRANDING}"
 	)
 
-	# === END BRANDING ===
-
-	# === GENERAL CONFIGURATION ===
-
-	# Set up paths
-	#--libdir=${LIBPATH}/lib <<< todo: investigate
+# PATHS
 	conf_gcc+=(
 		--prefix=${PREFIX}
 		--bindir=${BINPATH}
@@ -705,31 +686,22 @@ src_configure() {
 		--infodir=${DATAPATH}/info
 		--with-gxx-include-dir=${STDCXX_INCDIR}
 		# Stick the python scripts in their own slotted directory (Gentoo Linux bug #279252)
-		#
-		#  Specifies where to install the Python modules used for aot-compile.
-		# DIR should not include the prefix used in installation.
-		# e.g. --with-python-dir=/lib/python2.5/site-packages == /usr/lib/python2.5/site-packages
-		#
-		# This should translate into "/share/gcc-data/${CTARGET}/${GCC_CONFIG_VER}/python"
 		--with-python-dir=${DATAPATH/$PREFIX/}/python
 	)
 
-	# TODO
 	conf_gcc+=(
 		--enable-obsolete
 		--disable-werror
 		--enable-secureplt
 		--with-system-zlib
-
+		--without-included-gettext
 		--disable-libunwind-exceptions
-	)
 
-	# Allow gcc to search for clock funcs in the main c library.
-	# If it can't find them, then tough cookies, we aren't going to link in -lrt to all c++ programs.
-	# Gentoo Linux bug #411681
-	if use cxx; then
-		conf_gcc+=( --enable-libstdcxx-time )
-	fi
+		# Allow gcc to search for clock funcs in the main c library.
+		# If it can't find them, then tough cookies, we aren't going to link in -lrt to all c++ programs.
+		# Gentoo Linux bug #411681
+		$(use_enable cxx libstdcxx-time)
+	)
 
 	# These checks perform internal consistency checks within gcc, but adds error checking of the requested complexity.
 	#
@@ -754,12 +726,8 @@ src_configure() {
 		conf_gcc+=( --enable-checking=no )
 	fi
 
-	# === END GENERAL CONFIGURATION ===
-
-	# === LANGUAGE CONFIGURATION ===
-
+# LANG
 	# C/C++ used for stage1 compiler
-	# TODO: can this be changed to c only?
 	local GCC_LANG="c,c++"
 
 	if use objc; then
@@ -818,125 +786,27 @@ src_configure() {
 		--disable-libgcj
 	)
 
-	# === END LANGUAGE CONFIGURATION ===
-
-	# === CHOST / CBUILD / CTARGET ===
-
-	# Set the CHOST.
+# HOST/BUILD/TARGET:
 	conf_gcc+=( --host=${CHOST} )
 
-	# Set the CTARGET if we are cross compiling.
+	# Straight from the manual:
+	# GCC has logic to correctly determine the correct value for --target on nearly all native systems.
+	# Therefore, we highly recommend you not provide a configure target when configuring a nativecompiler.
 	if is_crosscompile || tc-is-cross-compiler; then
-		# Straight from the GCC install doc:
-		# "GCC has code to correctly determine the correct value for target for nearly all native systems.
-		# Therefore, we highly recommend you not provide a configure target when configuring a native compiler."
 		conf_gcc+=( --target=${CTARGET} )
 	fi
 
-	# TODO: set CBUILD etc for is_canadian_cross and is_cross_build
+	# TODO: is_canadian_cross ?
 
 	# Pass CBUILD if one exists
-	# Note: can be incorporated to the above.
 	if [[ -n ${CBUILD} ]]; then
 		conf_gcc+=( --build=${CBUILD} )
 	fi
 
-	# === END CHOST / CBUILD / CTARGET CONFIGURATION ===
-
-	# === CROSS COMPILER ===
-
-	if is_crosscompile; then
-		# Enable build warnings by default with cross-compilers when system paths are included (e.g. via -I flags).
-		conf_gcc+=( --enable-poison-system-directories )
-
-		# three stage bootstrapping doesnt quite work when you cant run the resulting binaries natively!
-		conf_gcc+=( --disable-bootstrap )
-
-		# Force disable for is_crosscompile as the configure script can be dumb - Gentoo Linux bug #359855
-		conf_gcc+=( --disable-libgomp )
-
-		# Configure anything required by a particular TARGET_LIBC...
-
-		# Todo
-		if [[ ${TARGET_LIBC} == dietlibc* ]]; then
-			conf_gcc+=( --disable-libstdcxx-time )
-		fi
-
-		# Todo
-		if [[ ${TARGET_LIBC} == uclibc* ]]; then
-			# Enable shared library support only on targets that support it: Gentoo Linux bug #291870
-			if ! echo '#include <features.h>' |  $(tc-getCPP ${CTARGET}) -E -dD - 2>/dev/null |  grep -q __HAVE_SHARED__
-			then
-				conf_gcc+=( --disable-shared )
-			fi
-		fi
-
-		# Todo
-		if [[ ${TARGET_LIBC} == avr* ]]; then
-			conf_gcc+=(
-				--disable-__cxa_atexit
-				--enable-shared
-				--disable-threads
-			)
-		fi
-
-		# Todo
-		if [[ ${TARGET_LIBC} == x86_64-*-mingw* ||  ${TARGET_LIBC} == *-w64-mingw* ]]; then
-			conf_gcc+=( --disable-threads --enable-shared )
-		fi
-
-		# Handle bootstrapping cross-compiler and libc in lock-step
-		if ! has_version ${CATEGORY}/${TARGET_LIBC}; then
-			# we are building with a libc that is not yet installed:
-			# libquadmath requires a libc, Gentoo Linux bug #734820
-			conf_gcc+=(
-				--disable-shared
-				--disable-libatomic
-				--disable-libquadmath
-				--disable-threads
-				--without-headers
-				--disable-libstdcxx
-			)
-
-			# By default gcc looks at glibc's headers to detect long-double support.
-			# This does not work for --disable-headers mode.
-			# >=glibc-2.4 is good enough for float128.
-			# This option appeared in gcc-4.2.
-			# Gentoo Linux bug # 738248
-
-			if [[ ${TARGET_LIBC} == glibc ]]; then
-				conf_gcc+=( --with-long-double-128 )
-			fi
-		elif has_version "${CATEGORY}/${TARGET_LIBC}[headers-only]"; then
-			# libc installed, but has USE="crosscompile_opts_headers-only" to only install headers:
-			conf_gcc+=(
-				--disable-shared
-				--disable-libatomic
-				--with-sysroot=${PREFIX}/${CTARGET}
-				--disable-libstdcxx
-			)
-		else
-			# libc is installed:
-			conf_gcc+=(
-				--with-sysroot=${PREFIX}/${CTARGET}
-				--enable-libstdcxx-time
-			)
-		fi
-
-	else
-		# handle bootstrap here as we can only perform a three stage and any additional bootstraps if native...
-		# three stage bootstrapping doesnt quite work when you cant run the resulting binaries natively!
-		if use bootstrap; then
-			conf_gcc+=( --enable-bootstrap )
-		else
-			conf_gcc+=( --disable-bootstrap )
-		fi
-
-		if use openmp; then
-			conf_gcc+=( --enable-libgomp )
-		else
-			conf_gcc+=( --disable-libgomp )
-		fi
+# BOOTSTRAP NATIVE:
+	if ! is_crosscompile; then
+		$(use_enable bootstrap)
+		$(use_enable openmp libgomp)
 
 		if tc-is-static-only; then
 			conf_gcc+=( --disable-shared )
@@ -946,54 +816,118 @@ src_configure() {
 
 		# CHOST specific options
 		case ${CHOST} in
-			mingw*|*-mingw*)
+		mingw*|*-mingw*)
 			# mingw requires win32 threads
 			conf_gcc+=( --enable-threads=win32 )
 			;;
-			*)
+		*)
 			# default to posix threads for all other CHOST
 			conf_gcc+=( --enable-threads=posix )
 			;;
 		esac
-	fi
+# BOOTSTRAP CROSS-COMPILER:
+	elif is_crosscompile; then
+		# Enable build warnings by default with cross-compilers when system paths are included (e.g. via -I flags).
+		conf_gcc+=( --enable-poison-system-directories )
 
-	# === END CROSS COMPILER ===
+		# three stage bootstrapping doesnt quite work when you cant run the resulting binaries natively!
+		conf_gcc+=( --disable-bootstrap )
 
-	# === LIBC CONFIGURATION ===
+		# Force disable for is_crosscompile as the configure script can be dumb - Gentoo Linux bug #359855
+		conf_gcc+=( --disable-libgomp )
 
-	# __cxa_atexit is "essential for fully standards-compliant handling of destructors", but apparently requires glibc.
-	case ${CTARGET} in
-		*-uclibc*)
-			if use nptl ; then
+		case ${TARGET_LIBC} in
+			dietlibc*)
+				conf_gcc+=( --disable-libstdcxx-time )
+				;;
+			uclibc*)
+				# Enable shared library support only on targets that support it: Gentoo Linux bug #291870
+				if ! echo '#include <features.h>' |  $(tc-getCPP ${CTARGET}) -E -dD - 2>/dev/null |  grep -q __HAVE_SHARED__
+				then
+					conf_gcc+=( --disable-shared )
+				fi
+				;;
+			avr*)
+				conf_gcc+=( --disable-__cxa_atexit --enable-shared --disable-threads )
+				;;
+			x86_64-*mingw*|*-w64-mingw*)
+				conf_gcc+=( --enable-shared --disable-threads)
+				;;
+		esac
+
+		if [[ -n ${TARGET_LIBC} ]]; then
+			# libc not yet installed
+			if ! has_version ${CATEGORY}/${TARGET_LIBC}; then
 				conf_gcc+=(
-					--disable-__cxa_atexit
-					$(use_enable nptl tls)
+					--disable-shared
+					# requires libc
+					--disable-libatomic
+					# libquadmath requires libc (Gentoo Linux #734820)
+					--disable-libquadmath
+					--disable-threads
+					--without-headers
+					--disable-libstdcxx
+				)
+
+				# By default gcc looks at glibc's headers to detect long-double support.
+				# This does not work for --disable-headers mode.
+				# >=glibc-2.4 is good enough for float128.
+				# This option appeared in gcc-4.2.
+				# Gentoo Linux bug # 738248
+
+				if [[ ${TARGET_LIBC} == glibc ]]; then
+					conf_gcc+=( --with-long-double-128 )
+				fi
+			# only libc headers are installed
+			elif has_version "${CATEGORY}/${TARGET_LIBC}[headers-only]"; then
+				conf_gcc+=(
+					--disable-shared
+					--disable-libatomic
+					--with-sysroot=${PREFIX}/${CTARGET}
+					--disable-libstdcxx
+				)
+			else
+				# libc is installed
+				conf_gcc+=(
+					--with-sysroot=${PREFIX}/${CTARGET}
+					--enable-libstdcxx-time
 				)
 			fi
-		;;
-		*-elf|*-eabi)
-			conf_gcc+=( --with-newlib )
-		;;
-		*-musl*)
-			conf_gcc+=( --enable-__cxa_atexit )
-		;;
-		*-gnu*)
+		fi
+	fi
+
+# LIBC:
+	# __cxa_atexit is "essential for fully standards-compliant handling of destructors", but apparently requires glibc.
+	case ${CTARGET} in
+	*-uclibc*)
+		if use nptl ; then
 			conf_gcc+=(
-				--enable-__cxa_atexit
-				--enable-clocale=gnu
+				--disable-__cxa_atexit
+				$(use_enable nptl tls)
 			)
+		fi
 		;;
-		*-freebsd*)
-			conf_gcc+=( --enable-__cxa_atexit )
+	*-elf|*-eabi)
+		conf_gcc+=( --with-newlib )
 		;;
-		*-solaris*)
-			conf_gcc+=( --enable-__cxa_atexit )
+	*-musl*)
+		conf_gcc+=( --enable-__cxa_atexit )
+		;;
+	*-gnu*)
+		conf_gcc+=(
+			--enable-__cxa_atexit
+			--enable-clocale=gnu
+		)
+		;;
+	*-freebsd*)
+		conf_gcc+=( --enable-__cxa_atexit )
+		;;
+	*-solaris*)
+		conf_gcc+=( --enable-__cxa_atexit )
 		;;
 	esac
 
-	# === ARCH CONFIGURATION ===
-
-	# multilib
+# ARCH:
 	if use multilib; then
 		conf_gcc+=( --enable-multilib )
 	else
@@ -1003,6 +937,8 @@ src_configure() {
 		# below will break that on us.
 		conf_gcc+=( --disable-multilib )
 	fi
+
+	$(use_enable multiarch)
 
 	# translate our notion of multilibs into gcc's
 	local abi list
@@ -1016,13 +952,6 @@ src_configure() {
 				conf_gcc+=( --with-multilib-list=${list:1} )
 			;;
 		esac
-	fi
-
-	# multiarch
-	if use multiarch; then
-		conf_gcc+=( --enable-multiarch )
-	else
-		conf_gcc+=( --disable-multiarch )
 	fi
 
 	if use custom-cflags; then
@@ -1144,118 +1073,30 @@ src_configure() {
 			;;
 	esac
 
-	# === END ARCH CONFIGURATION ===
-
-	# === FEATURE / LIBRARY CONFIGURATION ===
-
-	# ada
-	if use ada; then
-		conf_gcc+=( --disable-libada )
-	fi
-
-	# MIPS only, masked by default in profiles and unmasked for MIPS profile
-	if use fixed-point; then
-		conf_gcc+=( --enable-fixed-point )
-	else
-		conf_gcc+=( --disable-fixed-point )
-	fi
-
-	# graphite todo
-	if use graphite; then
-		conf_gcc+=( --with-isl --disable-isl-version-check )
-	else
-		conf_gcc+=( --without-isl )
-	fi
-
-	if use jit && ! is_crosscompile; then
-		conf_gcc+=( --enable-host-shared )
-	else
-		conf_gcc+=( --disable-host-shared )
-	fi
-
+# FEATURES:
 	# can this be shit canned? is solaris only, and i have better things to do with my time than support that
 	use libssp || export gcc_cv_libc_provides_ssp=yes
 	if use libssp; then
 		conf_gcc+=( --enable-libssp )
 	fi
 
-	# lto todo
-	if use lto; then
-		conf_gcc+=( --enable-lto )
-	else
-		conf_gcc+=( --disable-lto )
-	fi
-
-	if use nls ; then
-		conf_gcc+=(
-			--enable-nls
-			--without-included-gettext
-		)
-	else
-		conf_gcc+=( --disable-nls )
-	fi
-
-	if ! use pch; then
-		conf_gcc+=( --disable-libstdcxx-pch )
-	fi
-
-	# Default building of PIE executables.
-	if use pie; then
-		conf_gcc+=( --enable-default-pie )
-	else
-		conf_gcc+=( --disable-default-pie )
-	fi
-
-	if use quad-math; then
-		conf_gcc+=( --enable-libquadmath )
-	else
-		conf_gcc+=( --disable-libquadmath )
-	fi
-
-	if use sanitize; then
-		conf_gcc+=( --enable-libsanitizer )
-	else
-		conf_gcc+=( --disable-libsanitizer )
-	fi
-
-	# Default building of SSP executables.
-	if use ssp; then
-		conf_gcc+=( --enable-default-ssp )
-	else
-		conf_gcc+=( --disable-default-ssp )
-	fi
-
-	if use systemtap; then
-		conf_gcc+=( --enable-systemtap )
-	else
-		conf_gcc+=( --disable-systemtap )
-	fi
-
-	# valgrind toolsuite provides various debugging and profiling tools
-	if use valgrind; then
-		conf_gcc+=( --enable-valgrind --enable-valgrind-annotations )
-	else
-		conf_gcc+=( --disable-valgrind --disable-valgrind-annotations )
-	fi
-
-	if use vtv; then
-		conf_gcc+=( --enable-vtable-verify --enable-libvtv )
-	else
-		conf_gcc+=( --disable-vtable-verify --disable-libvtv )
-	fi
-
-	# gcc has support for compressing lto bytecode using zstd
-	if use zstd; then
-		conf_gcc+=( --with-zstd )
-	else
-		conf_gcc+=( --without-zstd )
-	fi
-
-	if use cet ; then
-		conf_gcc+=( --enable-cet )
-	else
-		conf_gcc+=( --disable-cet )
-	fi
+	$(usex ada "--disable-libada" "")
+	$(use_enable cet)
+	$(use_enable fixed-point)
+	$(usex graphite "--with-isl --disable-isl-version-check" "--without-isl")
+	$(use_enable jit host-shared)
+	$(use_enable lto)
+	$(use_enable nls)
+	$(use_enable pie default-pie)
+	$(use_enable quad-math libquadmath)
+	$(use_enable sanitize libsanitizer)
+	$(use_enable ssp default-ssp)
+	$(use_enable systemtap)
+	$(use_enable valgrind)
+	$(use_enable valgrind valgrind-annotations)
+	$(use_enable vtv vtable-verify)
+	$(use_enable vtv libvtv)
+	$(use_with zstd)
 
 	# === END FEATURE / LIBRARY CONFIGURATION ===
 
