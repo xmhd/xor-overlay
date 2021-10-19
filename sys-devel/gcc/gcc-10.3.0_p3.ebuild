@@ -319,7 +319,7 @@ setup_multilib_osdirnames() {
 			sed_args+=( -r -e 's:[$][(]if.*,(.*)[)]:\1:' )
 		fi
 
-		sed -i "${sed_args[@]}" "${S}"/gcc/config/${config} || die
+		sed -i "${sed_args[@]}" "${S}"/gcc/config/${config} || die "failed to set osdirnames"
 	fi
 }
 
