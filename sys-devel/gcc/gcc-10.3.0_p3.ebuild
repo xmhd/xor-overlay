@@ -18,7 +18,7 @@ RESTRICT="strip"
 
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE bpf nvptx" # 'foreign' target support
-IUSE="$IUSE debug test" # Run tests
+IUSE="$IUSE debug  test" # Run tests
 IUSE="$IUSE doc nls hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE custom-cflags openmp fixed-point graphite lto pch +quad-math" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo +system-bootstrap" # Bootstrap flags
@@ -807,12 +807,7 @@ src_configure() {
 	if ! is_crosscompile; then
 		$(use_enable bootstrap)
 		$(use_enable openmp libgomp)
-
-		if tc-is-static-only; then
-			conf_gcc+=( --disable-shared )
-		else
-			conf_gcc+=( --enable-shared )
-		fi
+		tc-is-static-only && conf_gcc+=( --disable-shared ) || gcc_conf+=( --enable-shared )
 
 		# CHOST specific options
 		case ${CHOST} in
