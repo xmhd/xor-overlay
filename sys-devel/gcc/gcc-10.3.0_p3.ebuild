@@ -222,10 +222,6 @@ SRC_URI+="
 	nvptx? ( https://github.com/mirror/newlib-cygwin/archive/refs/tags/newlib-${NEWLIB_VER}.tar.gz )
 "
 
-if [[ ${CATEGORY} != cross-* ]] ; then
-	PDEPEND="${PDEPEND} elibc_glibc? ( >=sys-libs/glibc-2.8 )"
-fi
-
 tc-is-cross-compiler() {
 	[[ ${CBUILD:-${CHOST}} != ${CHOST} ]]
 }
