@@ -65,6 +65,14 @@ PDEPEND="
 	>=sys-devel/libtool-2.4.3
 "
 
+if [[ ${CATEGORY} != cross-* ]] ; then
+	PDEPEND="
+		${PDEPEND}
+		elibc_glibc? ( >=sys-libs/glibc-2.8 )
+		elibc_musl? ( sys-libs/musl )
+	"
+fi
+
 REQUIRED_USE="
 	ada? ( cxx )
 	asan? ( sanitize )
