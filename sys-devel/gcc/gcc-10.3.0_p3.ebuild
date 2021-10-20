@@ -334,26 +334,14 @@ tc_version_is_at_least() {
 
 pkg_setup() {
 
-	### INFO ###
-
-	# Set up procedure is as follows:
-	#
-	# 1) Branding
-	# 2) Unset GCC_SPECS and LANGUAGES.
-	# 3) Set GCC_BRANCH_VER and GCC_CONFIG_VER.
-	# 4) Capture / Filter / Downgrade FLAGS and ARCH where applicable.
-	# 5) Set globals for TARGET_ABI, TARGET_DEFAULT_ABI and TARGET_MULTILIB_ABIS.
-	# 6) Set and export STAGE1_CFLAGS and BOOT_CFLAGS.
-	# 7) Configure BUILD_CONFIG and export.
-	# 8) Configure GCC_TARGET and export.
-	# 9) Configure TARGET_LIBC and export.
-
+# BRANDING:
 	if ! use hardened; then
 		export GCC_BRANDING="Cairn Linux ${PV}"
 	elif use hardened; then
 		export GCC_BRANDING="Cairn Linux Hardened ${PV}"
 	fi
 
+# GCC_SPECS + LANGUAGES:
 	# we don't want to use the installed compiler's specs to build gcc!
 	unset GCC_SPECS
 	# Gentoo Linux bug #265283
@@ -370,6 +358,7 @@ pkg_setup() {
 	GCC_BRANCH_VER=${SLOT}
 	GCC_CONFIG_VER=${GCC_ARCHIVE_VER}
 
+# CAPTURE / FILTER FLAGS:
 	# Capture -march, -mcpu, -mtune and -mfpu options to do some initial configuration and optionally pass to build later.
 	MARCH="${MARCH:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-march="?([-_[:alnum:]]+).*/\1/p')}"
 	MCPU="${MCPU:-$(printf -- "${CFLAGS}" | sed -rne 's/.*-mcpu="?([-_[:alnum:]]+).*/\1/p')}"
@@ -395,6 +384,7 @@ pkg_setup() {
 	unset CPPFLAGS
 	unset LDFLAGS
 
+# TODO:
 	# Export default CTARGET.
 	# If CATEGORY == cross-*, export new CTARGET.
 	[[ ${CATEGORY} == cross-* ]] && CTARGET=${CATEGORY/cross-}
@@ -405,11 +395,12 @@ pkg_setup() {
 		fi
 	fi
 
-	# TODO
+# ABI:
 	: ${TARGET_ABI:=${ABI}}
 	: ${TARGET_MULTILIB_ABIS:=${MULTILIB_ABIS}}
 	: ${TARGET_DEFAULT_ABI:=${DEFAULT_ABI}}
 
+# PATHS:
 	# Set PATH for PREFIX, LIB, INCLUDE, BIN, DATA and STDCXX_INC.
 	export PREFIX=/usr
 	LIBPATH=${PREFIX}/lib/gcc/${CTARGET}/${GCC_CONFIG_VER}
@@ -427,12 +418,14 @@ pkg_setup() {
 	DATAPATH=${PREFIX}/share/gcc-data/${CTARGET}/${GCC_CONFIG_VER}
 	STDCXX_INCDIR=${LIBPATH}/include/g++-v${GCC_BRANCH_VER}
 
+# STAGE1 / BOOT CFLAGS:
 	# Flags to be used to build stage one compiler.
 	STAGE1_CFLAGS="${STAGE1_CFLAGS:--O2 -pipe}"
 
 	# Flags to be used for stages two and three.
 	BOOT_CFLAGS="${BOOT_CFLAGS:--O2 -pipe $(get_abi_CFLAGS ${TARGET_DEFAULT_ABI})}"
 
+# BUILD_CONFIG:
 	# BUILD_CONFIG is used for bringing additional customisation into the build.
 	if use bootstrap && ! is_crosscompile || ! tc-is-cross-compiler; then
 		# equivalent of adding -fsanitize=address to BOOT_CFLAGS
@@ -453,6 +446,7 @@ pkg_setup() {
 	# BUILD_CONFIG finished - export.
 	export BUILD_CONFIG
 
+# GCC_TARGET:
 	# GCC_TARGET is used for setting the make target.
 	if use bootstrap && ! is_crosscompile || ! tc-is-cross-compiler; then
 		# either regular bootstrap or profiled bootstrap
@@ -465,6 +459,7 @@ pkg_setup() {
 	# GCC_TARGET finished - export.
 	export GCC_TARGET
 
+# TARGET_LIBC:
 	# TARGET_LIBC setup ...
 	case ${CTARGET} in
 		*-linux)
@@ -496,6 +491,7 @@ pkg_setup() {
 	# TARGET_LIBC finished - export.
 	export TARGET_LIBC
 
+# 'FOREIGN' TARGETS:
 	if use bpf; then
 		GCC_BPF_TARGET="bpf-unknown-none"
 
@@ -540,25 +536,24 @@ src_unpack() {
 		# extract the gnat bootstrap compiler and move it to GNATBOOT directory
 		case $(tc-arch) in
 			x86)
-			die "GNAT_X86_BOOTSTRAP support not yet implemented"
+				die "GNAT_X86_BOOTSTRAP support not yet implemented"
 			;;
 			amd64)
-			unpack ${GNAT_AMD64_BOOTSTRAP}.tar.xz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
+				unpack ${GNAT_AMD64_BOOTSTRAP}.tar.xz || die "Failed to unpack AMD64 GNAT bootstrap compiler"
 			;;
 			arm)
-			die "GNAT_ARM_BOOTSTRAP support not yet implemented"
+				die "GNAT_ARM_BOOTSTRAP support not yet implemented"
 			;;
 			arm64)
-			die "GNAT_ARM64_BOOTSTRAP support not yet implemented"
+				die "GNAT_ARM64_BOOTSTRAP support not yet implemented"
 			;;
 			ppc)
-			die "GNAT_PPC_BOOTSTRAP support not yet implemented"
+				die "GNAT_PPC_BOOTSTRAP support not yet implemented"
 			;;
 			ppc64)
-			die "GNAT_PPC64_BOOTSTRAP support not yet implemented"
+				die "GNAT_PPC64_BOOTSTRAP support not yet implemented"
 			;;
 		esac
-		# done
 	fi
 }
 
@@ -809,8 +804,8 @@ src_configure() {
 
 # BOOTSTRAP NATIVE:
 	if ! is_crosscompile; then
-		$(use_enable bootstrap)
-		$(use_enable openmp libgomp)
+		conf_gcc+=( $(use_enable bootstrap) )
+		conf_gcc+=( $(use_enable openmp libgomp) )
 		tc-is-static-only && conf_gcc+=( --disable-shared ) || gcc_conf+=( --enable-shared )
 
 		# CHOST specific options
@@ -899,12 +894,7 @@ src_configure() {
 	# __cxa_atexit is "essential for fully standards-compliant handling of destructors", but apparently requires glibc.
 	case ${CTARGET} in
 	*-uclibc*)
-		if use nptl ; then
-			conf_gcc+=(
-				--disable-__cxa_atexit
-				$(use_enable nptl tls)
-			)
-		fi
+		conf_gcc+=( $(usex nptl "--enable-tls --disable-__cxa_atexit" "--enable-__cxa_atexit --disable-tls") )
 		;;
 	*-elf|*-eabi)
 		conf_gcc+=( --with-newlib )
@@ -937,7 +927,7 @@ src_configure() {
 		conf_gcc+=( --disable-multilib )
 	fi
 
-	$(use_enable multiarch)
+	conf_gcc+=( $(use_enable multiarch) )
 
 	# translate our notion of multilibs into gcc's
 	local abi list
@@ -1079,23 +1069,25 @@ src_configure() {
 		conf_gcc+=( --enable-libssp )
 	fi
 
-	$(usex ada "--disable-libada" "")
-	$(use_enable cet)
-	$(use_enable fixed-point)
-	$(usex graphite "--with-isl --disable-isl-version-check" "--without-isl")
-	$(use_enable jit host-shared)
-	$(use_enable lto)
-	$(use_enable nls)
-	$(use_enable pie default-pie)
-	$(use_enable quad-math libquadmath)
-	$(use_enable sanitize libsanitizer)
-	$(use_enable ssp default-ssp)
-	$(use_enable systemtap)
-	$(use_enable valgrind)
-	$(use_enable valgrind valgrind-annotations)
-	$(use_enable vtv vtable-verify)
-	$(use_enable vtv libvtv)
-	$(use_with zstd)
+	conf_gcc+=(
+		$(usex ada "--disable-libada" "")
+		$(use_enable cet)
+		$(use_enable fixed-point)
+		$(usex graphite "--with-isl --disable-isl-version-check" "--without-isl")
+		$(use_enable jit host-shared)
+		$(use_enable lto)
+		$(use_enable nls)
+		$(use_enable pie default-pie)
+		$(use_enable quad-math libquadmath)
+		$(use_enable sanitize libsanitizer)
+		$(use_enable ssp default-ssp)
+		$(use_enable systemtap)
+		$(use_enable valgrind)
+		$(use_enable valgrind valgrind-annotations)
+		$(use_enable vtv vtable-verify)
+		$(use_enable vtv libvtv)
+		$(use_with zstd)
+	)
 
 	# === END FEATURE / LIBRARY CONFIGURATION ===
 
