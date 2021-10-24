@@ -50,31 +50,6 @@ S="${WORKDIR}/${PN}-${BINUTILS_VER}"
 GENTOO_PATCHES_DIR="${FILESDIR}/${BINUTILS_VER}/gentoo-patches"
 
 GENTOO_PATCHES=(
-	0001-Revert-Remove-newline-that-isn-t-in-the-tarball.patch
-	0002-Reset-development-back-to-true.patch
-	0004-ld-Remove-x86-ISA-level-run-time-tests.patch
-	0006-Gentoo-gold-ld-add-support-for-poisoned-system-direc.patch
-	0007-Gentoo-libiberty-install-PIC-version-of-libiberty.a.patch
-	0008-Gentoo-opcodes-link-against-libbfd.la-for-rpath-deps.patch
-	0009-Gentoo-add-with-extra-soversion-suffix-option.patch
-	0010-Gentoo-ld-enable-new-dtags-by-default-for-linux-gnu-.patch
-	0011-Gentoo-Pass-hash-style-sysv-to-ld-in-the-testsuite.patch
-	0012-PR27382-build-failure-if-fileno-is-a-macro.patch
-	0013-IBM-Z-Implement-instruction-set-extensions.patch
-	0014-binutils-Avoid-renaming-over-existing-files.patch
-	0015-Reinstate-various-pieces-backed-out-from-smart_renam.patch
-	0016-PR27456-lstat-in-rename.c-on-MinGW.patch
-	0017-Use-make_tempname-file-descriptor-in-smart_rename.patch
-	0018-Re-Use-make_tempname-file-descriptor-in-smart_rename.patch
-	0019-PR27441-inconsistency-in-weak-definitions.patch
-	0020-PowerPC64-undefined-weak-visibility-vs-GOT-optimisat.patch
-	0021-Add-install-dependencies-for-ld-bfd-and-libctf-bfd.patch
-	0022-DWARF-Check-version-3-for-DW_FORM_ref_addr.patch
-	0023-PE-Windows-x86_64-Fix-weak-undef-symbols-after-image.patch
-	0024-AArch64-Fix-Atomic-LD64-ST64-classification.patch
-	0025-AArch64-Fix-Diagnostic-messaging-for-LD-ST-Exclusive.patch
-	0026-Make-objcopy-p-work-when-an-output-file-is-specified.patch
-	0028-GCC_CET_HOST_FLAGS-Check-if-host-supports-multi-byte.patch
 	9999-Gentoo-We-make-a-release.patch
 )
 
