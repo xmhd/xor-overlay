@@ -50,7 +50,7 @@ S="${WORKDIR}/${PN}-${BINUTILS_VER}"
 GENTOO_PATCHES_DIR="${FILESDIR}/${BINUTILS_VER}/gentoo-patches"
 
 GENTOO_PATCHES=(
-	9999-Gentoo-We-make-a-release.patch
+#	9999-Gentoo-We-make-a-release.patch
 )
 
 is_cross() {
