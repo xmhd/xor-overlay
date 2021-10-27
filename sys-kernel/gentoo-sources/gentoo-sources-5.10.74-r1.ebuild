@@ -15,7 +15,7 @@ SLOT="${PV}"
 RESTRICT="binchecks mirror strip"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress debug doc +install-sources minimal symlink"
+IUSE="build-kernel clang compress debug doc install-headers minimal symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
@@ -57,7 +57,7 @@ RDEPEND="
 "
 
 REQUIRED_USE="
-	!build-kernel? ( install-sources )
+	build-kernel? ( install-headers )
 "
 
 # linux kernel upstream
@@ -583,7 +583,7 @@ src_install() {
 
 	elif use build-kernel; then
 
-		if use install-sources; then
+		if use install-headers; then
 
 			# standard target for installing modules to /lib/modules/${KERNEL_FULL_VERSION}
 			local targets=( modules_install )

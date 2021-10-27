@@ -14,7 +14,7 @@
 		<flag name="dtrace">Enable support for DTrace in the kernel</flag>
 		<flag name="firmware">Include firmware in the initramfs</flag>
 		<flag name="hardened">Apply kernel hardening patch set and CONFIG_* tweaks</flag>
-		<flag name="install-sources">Install the entire kernel sources tree</flag>
+		<flag name="install-headers">Install the kernel headers, scripts and tools required for building out-of-tree kernel modules</flag>
 		<flag name="luks">Enable support for luks in the kernel + initramfs</flag>
 		<flag name="lvm">Enable support for lvm in the kernel + initramfs</flag>
 		<flag name="mcelog">Enable support for mcelog in the kernel</flag>
