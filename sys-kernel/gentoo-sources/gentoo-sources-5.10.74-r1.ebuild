@@ -57,7 +57,7 @@ RDEPEND="
 "
 
 REQUIRED_USE="
-	build-kernel? ( install-headers )
+	install-headers? ( build-kernel )
 	sign-modules? (
 			build-kernel
 			install-headers
