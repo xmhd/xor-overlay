@@ -167,12 +167,19 @@ pkg_pretend() {
 			ewarn "sys-kernel/linux-firmware not found installed on your system."
 			ewarn "This package provides firmware that may be needed for your hardware to work."
 		fi
+
+		# kernel headers are required to build out-of-tree modules
+		if ! use install-headers; then
+			ewarn "USE='build-kernel -install-headers' detected ..."
+			ewarn "You will not be able to build out-of-tree kernel modules with this configuration."
+			ewarn "Set USE=build-kernel install-headers' for this to work."
+		fi
 	fi
 
 	# theoretically, this _should_ work on x86 but it hasn't been tested.
 	if use custom-cflags; then
 		if ! use amd64; then
-			die "USE=custom-cflags is currently amd64 only"
+			die "USE='custom-cflags' is currently amd64 only"
 		fi
 	fi
 }
