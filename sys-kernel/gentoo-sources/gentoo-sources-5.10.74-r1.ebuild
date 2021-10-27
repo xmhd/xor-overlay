@@ -58,6 +58,10 @@ RDEPEND="
 
 REQUIRED_USE="
 	build-kernel? ( install-headers )
+	sign-modules? (
+			build-kernel
+			install-headers
+	)
 "
 
 # linux kernel upstream
@@ -637,6 +641,7 @@ src_install() {
 			cp "${WORKDIR}"/build/Module.symvers "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die "failed to install Module.symvers"
 			cp "${WORKDIR}"/build/arch/x86/boot/bzImage "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/x86/boot/bzImage || die "failed to install bzImage"
 
+			# USE=sign-modules depends on the scripts directory being available
 			if use sign-modules; then
 				for kmod in $(find "${D}"/lib/modules -iname *.ko); do
 					# $certs_dir defined previously in this function.
