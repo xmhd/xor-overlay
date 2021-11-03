@@ -568,9 +568,9 @@ install_kernel_and_friends() {
 	install -d "${D}"/boot
 	local kern_arch=$(tc-arch-kernel)
 
-	cp "${WORKDIR}"/build/arch/${kern_arch}/boot/bzImage "${D}"/boot/vmlinuz-${KERNEL_FULL_VERSION} || die "failed to install kernel to /boot"
-	cp "${T}"/.config "${D}"/boot/config-${KERNEL_FULL_VERSION} || die "failed to install kernel config to /boot"
-	cp "${WORKDIR}"/build/System.map "${D}"/boot/System.map-${KERNEL_FULL_VERSION} || die "failed to install System.map to /boot"
+	cp "${WORKDIR}"/build/arch/${kern_arch}/boot/bzImage "${ED}"/boot/vmlinuz-${KERNEL_FULL_VERSION} || die "failed to install kernel to /boot"
+	cp "${T}"/.config "${ED}"/boot/config-${KERNEL_FULL_VERSION} || die "failed to install kernel config to /boot"
+	cp "${WORKDIR}"/build/System.map "${ED}"/boot/System.map-${KERNEL_FULL_VERSION} || die "failed to install System.map to /boot"
 }
 
 src_install() {
@@ -578,24 +578,27 @@ src_install() {
 	# 'standard' install of gentoo-sources that most consumers are used to
 	# i.e. install sources to /usr/src/linux-${KERNEL_FULL_VERSION} and manually compile the kernel.
 	if ! use build-kernel; then
-		# create sources directory if required
-		dodir /usr/src
+
+		# create kernel sources directory
+		dodir /usr/src/linux-${KERNEL_FULL_VERSION}
 
 		# copy kernel sources into place
 		cp -a "${S}" "${D}"/usr/src/linux-${KERNEL_FULL_VERSION} || die "failed to install kernel sources"
-
-		# change to installed kernel sources directory
-		cd "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}
 
 		# clean-up kernel source tree
 		make mrproper || die "failed to prepare kernel sources"
 
 		# copy kconfig into place
-		cp "${T}"/.config .config || die "failed to copy kconfig from ${TEMPDIR}"
+		cp "${T}"/.config "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to install kconfig"
 
 	# let Portage handle the compilation, testing and installing of the kernel + initramfs,
 	# and optionally installing kernel headers + signing the kernel modules.
 	elif use build-kernel; then
+
+		# TODO: USE=build-kernel without USE=install-headers, i.e. for small containers
+		# ... maybe incoporate some [[ ${MERGE_TYPE} != foobar ]] so that headers can
+		# be installed on a build server for emerging out-of-tree modules but the end consumer
+		# e.g. container doesn't get the headers ...
 
 		if use install-headers; then
 
@@ -608,6 +611,7 @@ src_install() {
 			fi
 
 			emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
+			install_kernel_and_friends
 
 			local kern_arch=$(tc-arch-kernel)
 			dodir /usr/src/linux-${KERNEL_FULL_VERSION}
@@ -632,7 +636,7 @@ src_install() {
 			cp -p -R "${WORKDIR}"/mod_prep/* "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}
 
 			# copy kconfig into place
-			cp "${T}"/.config "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to copy kconfig from ${TEMPDIR}"
+			cp "${T}"/.config "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to install kconfig"
 
 			# module symlink fix-up:
 			rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to remove old kernel source symlink"
