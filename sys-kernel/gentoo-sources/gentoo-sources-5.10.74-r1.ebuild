@@ -8,7 +8,7 @@ DESCRIPTION="Linux kernel sources with some additional patches."
 HOMEPAGE="https://kernel.org"
 
 LICENSE="GPL-2"
-KEYWORDS=""
+KEYWORDS="amd64"
 
 SLOT="${PV}"
 
