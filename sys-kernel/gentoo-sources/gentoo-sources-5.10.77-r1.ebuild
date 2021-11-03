@@ -761,3 +761,12 @@ pkg_postinst() {
 		ewarn ""
 	fi
 }
+
+pkg_postrm() {
+
+	# clean-up the generated initramfs for this kernel ...
+	# ... firstly checking that it exists, otherwise we're done.
+	if [[ -f "${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} ]]; then
+		rm -f "${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} || die "failed to remove initramfs-${KERNEL_FULL_VERSION}"
+	fi
+}
