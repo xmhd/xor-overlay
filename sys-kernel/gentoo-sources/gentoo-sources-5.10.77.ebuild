@@ -631,6 +631,9 @@ src_install() {
 			rm -rf "${WORKDIR}"/mod_prep/source
 			cp -p -R "${WORKDIR}"/mod_prep/* "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}
 
+			# copy kconfig into place
+			cp "${T}"/.config .config || die "failed to copy kconfig from ${TEMPDIR}"
+
 			# module symlink fix-up:
 			rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to remove old kernel source symlink"
 			rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/build || die "failed to remove old kernel build symlink"
