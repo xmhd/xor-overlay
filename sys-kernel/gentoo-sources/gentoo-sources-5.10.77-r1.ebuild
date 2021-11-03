@@ -764,9 +764,17 @@ pkg_postinst() {
 
 pkg_postrm() {
 
-	# clean-up the generated initramfs for this kernel ...
-	# ... firstly checking that it exists, otherwise we're done.
-	if use build-kernel && [[ -f "${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} ]]; then
-		rm -f "${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} || die "failed to remove initramfs-${KERNEL_FULL_VERSION}"
+	# these clean-ups only apply if USE=build-kernel
+	if use build-kernel; then
+
+		# clean-up the generated initramfs for this kernel ...
+		if [[ -f "${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} ]]; then
+			rm -f "${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} || die "failed to remove initramfs-${KERNEL_FULL_VERSION}"
+		fi
+
+		# clean-up leftover kernel modules for this kernel ...
+		if [[ -d "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} ]]; then
+			rm -f "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} || die "failed to remove /lib/modules/${KERNEL_FULL_VERSION}"
+		fi
 	fi
 }
