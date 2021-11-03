@@ -575,7 +575,8 @@ install_kernel_and_friends() {
 
 src_install() {
 
-	# todo
+	# 'standard' install of gentoo-sources that most consumers are used to
+	# i.e. install sources to /usr/src/linux-${KERNEL_FULL_VERSION} and manually compile the kernel.
 	if ! use build-kernel; then
 		# create sources directory if required
 		dodir /usr/src
@@ -592,6 +593,8 @@ src_install() {
 		# copy kconfig into place
 		cp "${T}"/.config .config || die "failed to copy kconfig from ${TEMPDIR}"
 
+	# let Portage handle the compilation, testing and installing of the kernel + initramfs,
+	# and optionally installing kernel headers + signing the kernel modules.
 	elif use build-kernel; then
 
 		if use install-headers; then
@@ -636,7 +639,7 @@ src_install() {
 			ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${ED}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to create kernel source symlink"
 			ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${ED}"/lib/modules/${KERNEL_FULL_VERSION}/build || die "failed to create kernel build symlink"
 
-			# Fixes FL-14
+			# Install System.map, Module.symvers and bzImage - required for building out-of-tree kernel modules:
 			cp "${WORKDIR}"/build/System.map "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die "failed to install System.map"
 			cp "${WORKDIR}"/build/Module.symvers "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die "failed to install Module.symvers"
 			cp "${WORKDIR}"/build/arch/x86/boot/bzImage "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/x86/boot/bzImage || die "failed to install bzImage"
