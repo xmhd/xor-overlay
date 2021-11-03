@@ -774,7 +774,7 @@ pkg_postrm() {
 
 		# clean-up leftover kernel modules for this kernel ...
 		if [[ -d "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} ]]; then
-			rm -f "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} || die "failed to remove /lib/modules/${KERNEL_FULL_VERSION}"
+			rm -rf "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} || die "failed to remove /lib/modules/${KERNEL_FULL_VERSION}"
 		fi
 	fi
 }
