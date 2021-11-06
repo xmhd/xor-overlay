@@ -531,15 +531,13 @@ src_prepare() {
 
 	# Enable FORTIFY_SOURCE by default
 	if use fortify_source; then
-#		eapply "${GENTOO_PATCHES_DIR}/01_all_default-fortify-source.patch"
-
-		einfo "TODO"
+		eapply "${GCC_PATCHES_DIR}/1001_all_default-fortify-source.patch"
 	fi
 
 	# TODO
 	if use dev_extra_warnings ; then
-#		eapply "${GENTOO_PATCHES_DIR}/02_all_default-warn-format-security.patch"
-#		eapply "${GENTOO_PATCHES_DIR}/03_all_default-warn-trampolines.patch"
+		eapply "${GCC_PATCHES_DIR}/1002_all_default-warn-format-security.patch"
+		eapply "${GCC_PATCHES_DIR}/1003_all_default-warn-trampolines.patch"
 
 		einfo "Additional warnings enabled by default, this may break some tests and compilations with -Werror."
 	fi
