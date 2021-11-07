@@ -101,6 +101,8 @@ GCC_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/patches"
 # Disable a few of these as they will be toggled by USE flag
 GCC_PATCHES=(
 	gcc-distro-specs.patch
+	testsuite-glibc-warnings.patch
+	testsuite-hardening-format.patch
 )
 
 GENTOO_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/gentoo-patches"
