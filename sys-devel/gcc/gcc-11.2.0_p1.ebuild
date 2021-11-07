@@ -23,7 +23,7 @@ IUSE="$IUSE doc nls hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE custom-cflags openmp fixed-point graphite lto pch +quad-math" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo +system-bootstrap" # Bootstrap flags
 IUSE="$IUSE +pie libssp +ssp" # Base hardening flags
-IUSE="$IUSE cet +fortify_source +bind_now vtv" # Extra hardening flags
+IUSE="$IUSE cet +fortify_source +bind_now +relro vtv" # Extra hardening flags
 IUSE="$IUSE +scp" # Stack clash protector added in gcc-8
 IUSE="$IUSE asan sanitize ubsan dev_extra_warnings" # Dev flags
 IUSE="$IUSE nptl systemtap valgrind zstd" # TODO: sort these flags
@@ -532,7 +532,9 @@ src_prepare() {
 
 	# Enable FORTIFY_SOURCE by default
 	if use fortify_source; then
-		eapply "${GCC_PATCHES_DIR}/1001_all_default-fortify-source.patch"
+#		eapply "${GCC_PATCHES_DIR}/1001_all_default-fortify-source.patch"
+
+		gcc_hard_flags+=" -DDIST_DEFAULT_FORTIFY_SOURCE "
 	fi
 
 	# TODO
@@ -545,7 +547,12 @@ src_prepare() {
 
 	# Enable BIND_NOW by default
 	if use bind_now; then
-		gcc_hard_flags+=" -DDIST_DEFAULT_BIND_NOW -DDIST_DEFAULT_RELRO "
+		gcc_hard_flags+=" -DDIST_DEFAULT_BIND_NOW "
+	fi
+
+	# Enable relro by default
+	if use relro; then
+		gcc_hard_flags+=" -DDIST_DEFAULT_RELRO "
 	fi
 
 	# Enable Stack Clash Protection by default

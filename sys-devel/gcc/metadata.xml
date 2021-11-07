@@ -16,6 +16,7 @@
 		<flag name="pie">Enable default building of position independent executables</flag>
 		<flag name="fortify_source">TODO</flag>
 		<flag name="bind_now">TODO</flag>
+		<flag name="relro">TODO</flag>
 		<flag name="scp">TODO</flag>
 		<flag name="sanitize">TODO</flag>
 		<flag name="asan">TODO</flag>
