@@ -100,6 +100,7 @@ GCC_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/patches"
 
 # Disable a few of these as they will be toggled by USE flag
 GCC_PATCHES=(
+	gcc-distro-specs.patch
 #	1001_all_default-fortify-source.patch
 #	1002_all_default-warn-format-security.patch
 #	1003_all_default-warn-trampolines.patch
@@ -544,26 +545,24 @@ src_prepare() {
 
 	# Enable BIND_NOW by default
 	if use bind_now; then
-#		eapply "${CAIRN_PATCHES_DIR}/01_all_ENABLE_DEFAULT_BIND_NOW-z-now.patch"
-		gcc_hard_flags+=" -DENABLE_DEFAULT_BIND_NOW "
+		gcc_hard_flags+=" -DDIST_DEFAULT_BIND_NOW -DDIST_DEFAULT_RELRO "
 	fi
 
 	# Enable Stack Clash Protection by default
 	if use scp; then
-#		eapply "${CAIRN_PATCHES_DIR}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch"
-		gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
+		gcc_hard_flags+=" -DDIST_DEFAULT_STACK_CLASH "
 	fi
 
 	# TODO
-	if use ssp && use hardened; then
-#		eapply "${CAIRN_PATCHES_DIR}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch"
-		gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
+	if use ssp && ! use hardened; then
+		gcc_hard_flags+=" -DDIST_DEFAULT_SSP "
+	elif use ssp && use hardened; then
+		gcc_hard_flags+=" -DDIST_DEFAULT_SSP -DDIST_DEFAULT_SSP_ALL "
 	fi
 
 	# Enable CET by default
 	if use cet; then
-#		eapply "${CAIRN_PATCHES_DIR}/04_all_ENABLE_DEFAULT_CET.patch"
-		gcc_hard_flags+=" -DENABLE_DEFAULT_CET"
+		gcc_hard_flags+=" -DDIST_DEFAULT_CF_PROTECTION "
 	fi
 
 	# GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
