@@ -101,6 +101,11 @@ GCC_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/patches"
 # Disable a few of these as they will be toggled by USE flag
 GCC_PATCHES=(
 	gcc-distro-specs.patch
+)
+
+GENTOO_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/gentoo-patches"
+
+GENTOO_PATCHES=(
 #	1001_all_default-fortify-source.patch
 #	1002_all_default-warn-format-security.patch
 #	1003_all_default-warn-trampolines.patch
@@ -520,9 +525,14 @@ src_prepare() {
 
 	setup_multilib_osdirnames
 
-	einfo "Applying Gentoo Linux patches ..."
+	einfo "Applying patches ..."
 	for my_patch in ${GCC_PATCHES[*]} ; do
 		eapply "${GCC_PATCHES_DIR}/${my_patch}"
+	done
+
+	einfo "Applying Gentoo Linux patches ..."
+	for my_patch in ${GENTOO_PATCHES[*]} ; do
+		eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
 	done
 
 	local gcc_hard_flags=""
@@ -532,16 +542,12 @@ src_prepare() {
 
 	# Enable FORTIFY_SOURCE by default
 	if use fortify_source; then
-#		eapply "${GCC_PATCHES_DIR}/1001_all_default-fortify-source.patch"
-
 		gcc_hard_flags+=" -DDIST_DEFAULT_FORTIFY_SOURCE "
 	fi
 
 	# TODO
 	if use dev_extra_warnings ; then
-		eapply "${GCC_PATCHES_DIR}/1002_all_default-warn-format-security.patch"
-		eapply "${GCC_PATCHES_DIR}/1003_all_default-warn-trampolines.patch"
-
+		gcc_hard_flags+=" -DDIST_DEFAULT_FORMAT_SECURITY "
 		einfo "Additional warnings enabled by default, this may break some tests and compilations with -Werror."
 	fi
 
