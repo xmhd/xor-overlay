@@ -110,7 +110,6 @@ GENTOO_PATCHES=(
 	2920_sign-file-patch-for-libressl.patch
 	3000_Support-printing-firmware-info.patch
 	4567_distro-Gentoo-Kconfig.patch
-	5000_shiftfs-ubuntu-20.04.patch
 #	5010_enable-cpu-optimizations-universal.patch
 )
 

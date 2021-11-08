@@ -124,7 +124,6 @@
 +	select BPF_SYSCALL
 +	select CGROUP_BPF
 +	select CGROUPS
-+	select CHECKPOINT_RESTORE
 +	select CRYPTO_HMAC 
 +	select CRYPTO_SHA256
 +	select CRYPTO_USER_API_HASH
@@ -136,6 +135,7 @@
 +	select FILE_LOCKING
 +	select INOTIFY_USER
 +	select IPV6
++	select KCMP
 +	select NET
 +	select NET_NS
 +	select PROC_FS

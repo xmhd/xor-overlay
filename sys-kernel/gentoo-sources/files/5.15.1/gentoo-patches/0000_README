@@ -43,45 +43,9 @@ EXPERIMENTAL
 Individual Patch Descriptions:
 --------------------------------------------------------------------------
 
-Patch:  1000_linux-5.12.1.patch
+Patch:  1000_linux-5.15.1.patch
 From:   http://www.kernel.org
-Desc:   Linux 5.12.1
-
-Patch:  1001_linux-5.12.2.patch
-From:   http://www.kernel.org
-Desc:   Linux 5.12.2
-
-Patch:  1002_linux-5.12.3.patch
-From:   http://www.kernel.org
-Desc:   Linux 5.12.3
-
-Patch:  1003_linux-5.12.4.patch
-From:   http://www.kernel.org
-Desc:   Linux 5.12.4
-
-Patch:  1004_linux-5.12.5.patch
-From:   http://www.kernel.org
-Desc:   Linux 5.12.5
-
-Patch:  1005_linux-5.12.6.patch
-From:   http://www.kernel.org
-Desc:   Linux 5.12.6
-
-Patch:  1006_linux-5.12.7.patch
-From:   http://www.kernel.org
-Desc:   Linux 5.12.7
-
-Patch:  1007_linux-5.12.8.patch
-From:   http://www.kernel.org
-Desc:   Linux 5.12.8
-
-Patch:  1008_linux-5.12.9.patch
-From:   http://www.kernel.org
-Desc:   Linux 5.12.9
-
-Patch:  1009_linux-5.12.10.patch
-From:   http://www.kernel.org
-Desc:   Linux 5.12.10
+Desc:   Linux 5.15.1
 
 Patch:  1500_XATTR_USER_PREFIX.patch
 From:   https://bugs.gentoo.org/show_bug.cgi?id=470644
@@ -103,18 +67,22 @@ Patch:  2920_sign-file-patch-for-libressl.patch
 From:   https://bugs.gentoo.org/717166
 Desc:   sign-file: full functionality with modern LibreSSL
 
+Patch:  3000_Support-printing-firmware-info.patch
+From:   https://bugs.gentoo.org/732852
+Desc:   Print firmware info (Reqs CONFIG_GENTOO_PRINT_FIRMWARE_INFO). Thanks to Georgy Yakovlev
+
 Patch:  4567_distro-Gentoo-Kconfig.patch
 From:   Tom Wijsman <TomWij@gentoo.org>
 Desc:   Add Gentoo Linux support config settings and defaults.
 
-Patch:  5010_enable-cpu-optimizations-universal.patch
-From:   https://github.com/graysky2/kernel_gcc_patch/
-Desc:   Kernel >= 5.8 patch enables gcc = v9+ optimizations for additional CPUs.
-
-Patch:  5020_BMQ-and-PDS-io-scheduler-v5.12-r0.patch
+Patch:  5020_BMQ-and-PDS-io-scheduler-v5.15-r0.patch
 From:   https://gitlab.com/alfredchen/linux-prjc
 Desc:   BMQ(BitMap Queue) Scheduler. A new CPU scheduler developed from PDS(incld). Inspired by the scheduler in zircon.
 
-Patch:  5021_BMQ-and-PDS-gentoo-defaults-v5.12-r0.patch
+Patch:  5021_BMQ-and-PDS-gentoo-defaults.patch
 From:   https://gitweb.gentoo.org/proj/linux-patches.git/
 Desc:   Set defaults for BMQ. Add archs as people test, default to N
+
+Patch:  5010_enable-cpu-optimizations-universal.patch
+From:   https://github.com/graysky2/kernel_compiler_patch
+Desc:   Kernel >= 5.15 patch enables gcc = v11.1+ optimizations for additional CPUs.
