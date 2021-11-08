@@ -385,6 +385,7 @@ src_prepare() {
 	if use compress; then
 		tweak_config "CONFIG_MODULE_COMPRESS=y"
 		tweak_config "CONFIG_MODULE_COMPRESS_GZIP=n"
+		tweak_config "CONFIG_MODULE_COMPRESS_ZSTD=n"
 		tweak_config "CONFIG_MODULE_COMPRESS_XZ=y"
 	else
 		tweak_config "CONFIG_MODULE_COMPRESS=n"
