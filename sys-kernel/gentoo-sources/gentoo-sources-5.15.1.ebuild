@@ -715,7 +715,7 @@ pkg_postinst() {
 			$(usex systemd "--add=systemd" "--omit=systemd" ) \
 			$(usex udev "--add=udev-rules" "--omit=udev-rules" ) \
 			$(usex zfs "--add=zfs" "--omit=zfs" ) \
-			"${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION} ${KERNEL_FULL_VERSION} || die ">>> Dracut: building initramfs failed"
+			"${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION}.img ${KERNEL_FULL_VERSION} || die ">>> Dracut: building initramfs failed"
 
 		ewarn ">>> Dracut: Finished building initramfs"
 		ewarn ""
