@@ -86,7 +86,10 @@ RDEPEND="${DEPEND}
 
 # PDEPEND in this form is needed to trick portage suggest
 # enabling dist-kernel if only 1 package have it set, without suggesting to disable
-PDEPEND="dist-kernel? ( ~sys-fs/zfs-kmod-${PV}[dist-kernel] )"
+PDEPEND="
+	build-kernel? ( ~sys-fs/zfs-kmod-${PV}[build-kernel] )
+	dist-kernel? ( ~sys-fs/zfs-kmod-${PV}[dist-kernel] )
+"
 
 # temporary block new coreutils
 # https://github.com/openzfs/zfs/issues/11900

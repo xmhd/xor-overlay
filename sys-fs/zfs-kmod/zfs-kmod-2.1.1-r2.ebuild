@@ -50,14 +50,17 @@ BDEPEND="
 if [[ ${PV} != "9999" ]] ; then
 	BDEPEND+="
 		verify-sig? ( app-crypt/openpgp-keys-openzfs )
-		build-kernel? ( <sys-kernel/gentoo-sources-${ZFS_KERNEL_DEP}:=[build-kernel?] )
+		build-kernel? ( <sys-kernel/gentoo-sources-${ZFS_KERNEL_DEP}:=[build-kernel] )
 		dist-kernel? ( <virtual/dist-kernel-${ZFS_KERNEL_DEP}:= )
 	"
 fi
 
 # PDEPEND in this form is needed to trick portage suggest
 # enabling dist-kernel if only 1 package have it set
-PDEPEND="dist-kernel? ( ~sys-fs/zfs-${PV}[dist-kernel] )"
+PDEPEND="
+	build-kernel? ( ~sys-fs/zfs-${PV}[build-kernel] )
+	dist-kernel? ( ~sys-fs/zfs-${PV}[dist-kernel] )
+"
 
 RESTRICT="debug? ( strip ) test"
 
