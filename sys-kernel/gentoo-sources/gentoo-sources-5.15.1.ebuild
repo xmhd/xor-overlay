@@ -383,12 +383,12 @@ src_prepare() {
 
 	# enable kernel module compression
 	if use compress; then
-		tweak_config "CONFIG_MODULE_COMPRESS=y"
+		tweak_config "CONFIG_MODULE_COMPRESS_NONE=n"
 		tweak_config "CONFIG_MODULE_COMPRESS_GZIP=n"
 		tweak_config "CONFIG_MODULE_COMPRESS_ZSTD=n"
 		tweak_config "CONFIG_MODULE_COMPRESS_XZ=y"
 	else
-		tweak_config "CONFIG_MODULE_COMPRESS=n"
+		tweak_config "CONFIG_MODULE_COMPRESS_NONE=y"
 	fi
 
 	# only enable debugging symbols etc if USE=debug...
