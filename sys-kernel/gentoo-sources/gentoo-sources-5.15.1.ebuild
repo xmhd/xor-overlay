@@ -133,14 +133,14 @@ tweak_config() {
 
 get_certs_dir() {
 	# find a certificate dir in /etc/kernel/certs/ that contains signing cert for modules.
-	for subdir in $PF $P linux; do
-		certdir=/etc/kernel/certs/$subdir
-		if [[ -d $certdir ]]; then
-			if [[ ! -e $certdir/signing_key.pem ]]; then
+	for subdir in ${PF} ${P} linux; do
+		certdir=/etc/kernel/certs/${subdir}
+		if [[ -d ${certdir} ]]; then
+			if [[ ! -e ${certdir}/signing_key.pem ]]; then
 				eerror "$certdir exists but missing signing key; exiting."
 				exit 1
 			fi
-			echo $certdir
+			echo ${certdir}
 			return
 		fi
 	done
@@ -235,7 +235,7 @@ src_prepare() {
 	sed -i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
 
 	# copy the kconfig file into the kernel sources tree
-	cp "${DISTDIR}"/alpine-kconfig-* "${S}"/.config || die "failed to copy kconfig to kernel source tree"
+	cp "${DISTDIR}"/alpine-kconfig-* "${S}"/.config || die "failed to install .config to kernel source tree"
 
 	### TWEAK CONFIG ###
 
@@ -373,7 +373,7 @@ src_prepare() {
 		esac
 	fi
 
-	# Do not configure Debian devs certificates
+	# Do not configure trusted certificates
 	tweak_config 'CONFIG_SYSTEM_TRUSTED_KEYS=""'
 
 	# enable IKCONFIG so that /proc/config.gz can be used for various checks
@@ -719,22 +719,6 @@ pkg_postinst() {
 			"${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION}.img ${KERNEL_FULL_VERSION} || die ">>> Dracut: building initramfs failed"
 
 		ewarn ">>> Dracut: Finished building initramfs"
-		ewarn ""
-		ewarn "Required kernel parameters:"
-		ewarn ""
-		ewarn "    root=/dev/$ROOT"
-		ewarn ""
-		ewarn "    Where $ROOT is the device node for your root partition."
-		ewarn ""
-		ewarn "Additional kernel parameters that *may* be required to boot properly..."
-		ewarn ""
-		ewarn "If you use hibernation:"
-		ewarn ""
-		ewarn "    resume=/dev/$SWAP"
-		ewarn ""
-		ewarn "    Where $SWAP is the name of your swap device."
-		ewarn ""
-		ewarn "    Please consult "man 7 dracut.kernel" for additional kernel arguments."
 	fi
 
 	# warn about the issues with running a hardened kernel
