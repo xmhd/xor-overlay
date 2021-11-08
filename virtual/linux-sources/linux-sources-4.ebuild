@@ -8,9 +8,10 @@ KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~
 
 SLOT="0"
 
-IUSE="firmware"
+IUSE="build-kernel firmware"
 
 RDEPEND="
+	build-kernel? ( sys-kernel/gentoo-sources[build-kernel] )
 	firmware? ( sys-kernel/linux-firmware )
 	|| (
 		sys-kernel/gentoo-sources
