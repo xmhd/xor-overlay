@@ -43,7 +43,7 @@ SRC_URI="
 
 LICENSE="GPL-2"
 SLOT="$(ver_cut 1)"
-KEYWORDS="amd64 arm64 ppc64 x86"
+KEYWORDS="~amd64 ~arm64 ~ppc64 ~x86"
 IUSE="alsa debug cups doc examples headless-awt javafx +jbootstrap +pch selinux source"
 
 COMMON_DEPEND="
@@ -176,6 +176,9 @@ src_configure() {
 
 	# Work around -fno-common ( GCC10 default ), bug #706638
 	append-flags -fcommon
+
+	# Strip some flags users may set, but should not. #818502
+	filter-flags -fexceptions
 
 	tc-export_build_env CC CXX PKG_CONFIG STRIP
 
