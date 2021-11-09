@@ -576,8 +576,8 @@ Index: b/gcc/testsuite/g++.old-deja/g++.pt/memtemp23.C
  };
 Index: b/gcc/testsuite/g++.old-deja/g++.pt/memtemp24.C
 ===================================================================
---- a/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp24.C
-+++ b/src/gcc/testsuite/g++.old-deja/g++.pt/memtemp24.C
+--- a/gcc/testsuite/g++.old-deja/g++.pt/memtemp24.C
++++ b/gcc/testsuite/g++.old-deja/g++.pt/memtemp24.C
 @@ -13,7 +13,7 @@ struct S
  
    template <class U>
