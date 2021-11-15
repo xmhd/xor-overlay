@@ -23,7 +23,7 @@ HOMEPAGE="https://openjdk.java.net"
 LICENSE="GPL-2"
 KEYWORDS="~amd64"
 
-IUSE="alsa cups debug doc examples gentoo-vm headless-awt javafx +jbootstrap +pch selinux source systemtap"
+IUSE="alsa +bootstrap cups debug doc examples gentoo-vm headless-awt javafx +pch selinux source systemtap"
 
 COMMON_DEPEND="
 	media-libs/freetype:2=
@@ -86,7 +86,7 @@ pkg_pretend() {
 		# This function is certainly not exact but should be close enough to be useful.
 		local M
 		M=2048
-		M=$(( $(usex jbootstrap 2 1) * ${M} ))
+		M=$(( $(usex bootstrap 2 1) * ${M} ))
 		M=$(( $(usex debug 3 1) * ${M} ))
 		M=$(( $(usex doc 320 0) + $(usex source 128 0) + 192 + ${M} ))
 
@@ -217,7 +217,7 @@ src_compile() {
 		LOG=debug
 		ALL_NAMED_TESTS= # Build error
 		$(usex doc docs '')
-		$(usex jbootstrap bootcycle-images product-images)
+		$(usex bootstrap bootcycle-images product-images)
 	)
 	emake "${myemakeargs[@]}" -j1 #nowarn
 }
