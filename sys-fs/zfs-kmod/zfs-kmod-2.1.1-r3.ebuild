@@ -66,6 +66,11 @@ RESTRICT="debug? ( strip ) test"
 
 DOCS=( AUTHORS COPYRIGHT META README.md )
 
+PATCHES=(
+	"${FILESDIR}/2.1.1-SEEK_DATA-SEEK_HOLE.patch"
+	"${FILESDIR}/2.1.1-restore-dirty-dnode-logic.patch"
+)
+
 pkg_pretend() {
 	use rootfs || return 0
 
