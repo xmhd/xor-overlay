@@ -15,7 +15,6 @@ RDEPEND="
 	firmware? ( sys-kernel/linux-firmware )
 	|| (
 		sys-kernel/gentoo-sources
-		sys-kernel/dummy-sources
 		sys-kernel/vanilla-sources
 		sys-kernel/git-sources
 		sys-kernel/hardened-sources
