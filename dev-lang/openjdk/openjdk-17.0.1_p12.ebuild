@@ -90,7 +90,7 @@ pkg_pretend() {
 		M=$(( $(usex debug 3 1) * ${M} ))
 		M=$(( $(usex doc 320 0) + $(usex source 128 0) + 192 + ${M} ))
 
-		CHECKREQS_DISK_BUILD=${M}M check-reqs_pkg_${EBUILD_PHASE}
+		CHECKREQS_DISK_BUILD=${M}M check-reqs_pkg_setup
 
 		if has ccache ${FEATURES}; then
 			die "FEATURES=ccache doesn't work with ${PN}"
