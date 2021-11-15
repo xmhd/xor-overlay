@@ -1,26 +1,34 @@
-# Copyright 1999-2021 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
 
-inherit check-reqs eapi7-ver flag-o-matic java-pkg-2 java-vm-2 multiprocessing pax-utils toolchain-funcs
+inherit autotools check-reqs flag-o-matic java-pkg-2 java-vm-2 multiprocessing pax-utils toolchain-funcs
 
-MY_PV="${PV//_p/+}"
-SLOT="$(ver_cut 1)"
+MY_PV="${PV/_p/+}"
+FULL_VERSION="${PV%_p*}"
+SLOT=$(get_major_version)
+# First release of major jdk releases do not contain u at end jdk<slot>.
+# so 15.0.0 would fetch jdk-15-ga.tar.gz  from jdk15, 15.0.1 jdk-15.0.1-ga.tar.gz from jdk15u
+if [ $(get_after_major_version $FULL_VERSION) = "0.0" ]; then
+	SRC_URI="https://github.com/openjdk/jdk${SLOT}/archive/jdk-${SLOT}-ga.tar.gz -> ${P}.tar.gz"
+	S="${WORKDIR}/jdk${SLOT}-jdk-${SLOT}-ga"
+else
+	SRC_URI="https://github.com/openjdk/jdk${SLOT}u/archive/jdk-${FULL_VERSION}-ga.tar.gz -> ${P}.tar.gz"
+	S="${WORKDIR}/jdk${SLOT}u-jdk-${FULL_VERSION}-ga"
+fi
 
 DESCRIPTION="Open source implementation of the Java programming language"
 HOMEPAGE="https://openjdk.java.net"
-SRC_URI="https://github.com/openjdk/jdk${SLOT}u/archive/refs/tags/jdk-${MY_PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-2"
-KEYWORDS="~amd64 ~arm ~arm64 ~ppc64"
+KEYWORDS="~amd64"
 
 IUSE="alsa cups debug doc examples gentoo-vm headless-awt javafx +jbootstrap +pch selinux source systemtap"
 
 COMMON_DEPEND="
 	media-libs/freetype:2=
 	media-libs/giflib:0/7
-	media-libs/harfbuzz:=
 	media-libs/libpng:0=
 	media-libs/lcms:2=
 	sys-libs/zlib
@@ -71,8 +79,6 @@ DEPEND="
 
 REQUIRED_USE="javafx? ( alsa !headless-awt )"
 
-S="${WORKDIR}/jdk${SLOT}u-jdk-${MY_PV//+/-}"
-
 # The space required to build varies wildly depending on USE flags,
 # ranging from 2GB to 16GB. This function is certainly not exact but
 # should be close enough to be useful.
@@ -89,7 +95,7 @@ openjdk_check_requirements() {
 pkg_pretend() {
 	openjdk_check_requirements
 	if [[ ${MERGE_TYPE} != binary ]]; then
-		has ccache ${FEATURES} && die "FEATURES=ccache doesn't work with ${PN}, bug #677876"
+		has ccache ${FEATURES} && die "FEATURES=ccache doesn't work with ${PN}"
 	fi
 }
 
@@ -97,7 +103,7 @@ pkg_setup() {
 	openjdk_check_requirements
 	java-vm-2_pkg_setup
 
-	JAVA_PKG_WANT_BUILD_VM="openjdk-${SLOT} openjdk-bin-${SLOT}"
+	JAVA_PKG_WANT_BUILD_VM="openjdk-${SLOT} openjdk-bin-${SLOT} openjdk-$((SLOT-1)) openjdk-bin-$((SLOT-1))"
 	JAVA_PKG_WANT_SOURCE="${SLOT}"
 	JAVA_PKG_WANT_TARGET="${SLOT}"
 
@@ -151,24 +157,18 @@ src_configure() {
 	# Work around -fno-common ( GCC10 default ), bug #713180
 	append-flags -fcommon
 
-	# Strip some flags users may set, but should not. #818502
-	filter-flags -fexceptions
-
 	# Enabling full docs appears to break doc building. If not
 	# explicitly disabled, the flag will get auto-enabled if pandoc and
 	# graphviz are detected. pandoc has loads of dependencies anyway.
 
 	local myconf=(
 		--disable-ccache
-		--disable-warnings-as-errors
 		--enable-full-docs=no
 		--with-boot-jdk="${JDK_HOME}"
 		--with-extra-cflags="${CFLAGS}"
 		--with-extra-cxxflags="${CXXFLAGS}"
 		--with-extra-ldflags="${LDFLAGS}"
-		--with-freetype=system
 		--with-giflib=system
-		--with-harfbuzz=system
 		--with-lcms=system
 		--with-libjpeg=system
 		--with-libpng=system
@@ -182,6 +182,7 @@ src_configure() {
 		--with-version-string="${PV%_p*}"
 		--with-version-build="${PV#*_p}"
 		--with-zlib=system
+		--disable-warnings-as-errors
 		--enable-dtrace=$(usex systemtap yes no)
 		--enable-headless-only=$(usex headless-awt yes no)
 		$(tc-is-clang && echo "--with-toolchain-type=clang")
@@ -215,7 +216,7 @@ src_compile() {
 	local myemakeargs=(
 		JOBS=$(makeopts_jobs)
 		LOG=debug
-		CFLAGS_WARNINGS_ARE_ERRORS= # No -Werror
+		ALL_NAMED_TESTS= # Build error
 		$(usex doc docs '')
 		$(usex jbootstrap bootcycle-images product-images)
 	)

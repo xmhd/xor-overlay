@@ -3,14 +3,16 @@
 
 EAPI=6
 
-inherit check-reqs eapi7-ver flag-o-matic java-pkg-2 java-vm-2 multiprocessing pax-utils toolchain-funcs
+inherit autotools check-reqs flag-o-matic java-pkg-2 java-vm-2 multiprocessing pax-utils toolchain-funcs
 
-MY_PV="${PV//_p/+}"
-SLOT="$(ver_cut 1)"
+# we need -ga tag to fetch tarball and unpack it, but exact number everywhere else to
+# set build version properly
+MY_PV="${PV%_p*}-ga"
+SLOT="${MY_PV%%[.+]*}"
 
 DESCRIPTION="Open source implementation of the Java programming language"
 HOMEPAGE="https://openjdk.java.net"
-SRC_URI="https://github.com/openjdk/jdk${SLOT}u/archive/refs/tags/jdk-${MY_PV}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://hg.${PN}.java.net/jdk-updates/jdk${SLOT}u/archive/jdk-${MY_PV}.tar.bz2 -> ${P}.tar.bz2"
 
 LICENSE="GPL-2"
 KEYWORDS="~amd64 ~arm ~arm64 ~ppc64"
@@ -64,14 +66,12 @@ DEPEND="
 	|| (
 		dev-java/openjdk-bin:${SLOT}
 		dev-java/openjdk:${SLOT}
-		dev-java/openjdk-bin:$((SLOT-1))[gentoo-vm]
-		dev-java/openjdk:$((SLOT-1))[gentoo-vm]
 	)
 "
 
 REQUIRED_USE="javafx? ( alsa !headless-awt )"
 
-S="${WORKDIR}/jdk${SLOT}u-jdk-${MY_PV//+/-}"
+S="${WORKDIR}/jdk${SLOT}u-jdk-${MY_PV}"
 
 # The space required to build varies wildly depending on USE flags,
 # ranging from 2GB to 16GB. This function is certainly not exact but
@@ -155,16 +155,12 @@ src_configure() {
 	# Work around -fno-common ( GCC10 default ), bug #713180
 	append-flags -fcommon
 
-	# Strip some flags users may set, but should not. #818502
-	filter-flags -fexceptions
-
 	# Enabling full docs appears to break doc building. If not
 	# explicitly disabled, the flag will get auto-enabled if pandoc and
 	# graphviz are detected. pandoc has loads of dependencies anyway.
 
 	local myconf=(
 		--disable-ccache
-		--disable-warnings-as-errors
 		--enable-full-docs=no
 		--with-boot-jdk="${JDK_HOME}"
 		--with-extra-cflags="${CFLAGS}"
