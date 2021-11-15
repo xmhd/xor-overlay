@@ -110,7 +110,6 @@ pkg_pretend() {
 }
 
 pkg_setup() {
-	openjdk_check_requirements
 	java-vm-2_pkg_setup
 
 	JAVA_PKG_WANT_BUILD_VM="openjdk-${SLOT} openjdk-bin-${SLOT} openjdk-$((SLOT-1)) openjdk-bin-$((SLOT-1))"
