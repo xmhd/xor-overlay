@@ -12,7 +12,8 @@ DESCRIPTION="Open source implementation of the Java programming language"
 HOMEPAGE="https://openjdk.java.net"
 
 SRC_URI+="
-	https://github.com/openjdk/jdk${SLOT}u/archive/jdk-${FULL_VERSION}-ga.tar.gz -> ${P}.tar.gz
+	https://github.com/openjdk/jdk${SLOT}u/archive/jdk-${PV%_p*}-ga.tar.gz -> ${P}.tar.gz
+
 	!system-bootstrap? (
 		amd64? (
 			elibc_glibc? ( https://github.com/adoptium/temurin${SLOT}-binaries/releases/download/jdk-17.0.1%2B12/OpenJDK${SLOT}U-jdk_x64_linux_hotspot_${MY_PV//+/_}.tar.gz )
@@ -20,8 +21,6 @@ SRC_URI+="
 		)
 	)
 "
-
-S="${WORKDIR}/jdk${SLOT}u-jdk-${PV/_p/-}"
 
 LICENSE="GPL-2-with-classpath-exception"
 KEYWORDS="~amd64"
@@ -83,6 +82,8 @@ REQUIRED_USE="
 	javafx? ( alsa !headless-awt )
 "
 
+S="${WORKDIR}/jdk${SLOT}u-jdk-${PV/_p/-}"
+
 pkg_pretend() {
 
 	if [[ ${MERGE_TYPE} != binary ]]; then
@@ -111,6 +112,12 @@ pkg_setup() {
 
 	java-vm-2_pkg_setup
 	java-pkg-2_pkg_setup
+
+	VENDOR="Gentoo Linux"
+	VENDOR_URL="https://gentoo.org"
+	VENDOR_BUG_URL="https://bugs.gentoo.org"
+	VENDOR_VM_BUG_URL="https://bugs.openjdk.java.net"
+	VENDOR_VERSION_STRING="${PVR}"
 }
 
 src_prepare() {
@@ -150,11 +157,11 @@ src_configure() {
 		--with-libjpeg=system
 		--with-libpng=system
 		--with-native-debug-symbols=$(usex debug internal none)
-		--with-vendor-name="Gentoo"
-		--with-vendor-url="https://gentoo.org"
-		--with-vendor-bug-url="https://bugs.gentoo.org"
-		--with-vendor-vm-bug-url="https://bugs.openjdk.java.net"
-		--with-vendor-version-string="${PVR}"
+		--with-vendor-name="${VENDOR}"
+		--with-vendor-url="${VENDOR_URL}"
+		--with-vendor-bug-url="${VENDOR_BUG_URL}"
+		--with-vendor-vm-bug-url="${VENDOR_VM_BUG_URL}"
+		--with-vendor-version-string="${VENDOR_VERSION_STRING}"
 		--with-version-pre=""
 		--with-version-string="${PV%_p*}"
 		--with-version-build="${PV#*_p}"
