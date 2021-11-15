@@ -20,10 +20,19 @@ fi
 DESCRIPTION="Open source implementation of the Java programming language"
 HOMEPAGE="https://openjdk.java.net"
 
+SRC_URI+="
+	!system-bootstrap? (
+		amd64? (
+			elibc_glibc? ( https://github.com/adoptium/temurin${SLOT}-binaries/releases/download/jdk-17.0.1%2B12/OpenJDK${SLOT}U-jdk_x64_linux_hotspot_${MY_PV//+/_}.tar.gz )
+			elibc_musl? ( https://github.com/adoptium/temurin${SLOT}-binaries/releases/download/jdk-17.0.1%2B12/OpenJDK${SLOT}U-jdk_x64_alpine-linux_hotspot_${MY_PV//+/_}.tar.gz )
+		)
+	)
+"
+
 LICENSE="GPL-2"
 KEYWORDS="~amd64"
 
-IUSE="alsa +bootstrap cups debug doc examples gentoo-vm headless-awt javafx +pch selinux source systemtap"
+IUSE="alsa +bootstrap cups debug doc examples gentoo-vm headless-awt javafx +pch selinux source system-bootstrap systemtap"
 
 COMMON_DEPEND="
 	media-libs/freetype:2=
@@ -76,7 +85,9 @@ DEPEND="
 	)
 "
 
-REQUIRED_USE="javafx? ( alsa !headless-awt )"
+REQUIRED_USE="
+	javafx? ( alsa !headless-awt )
+"
 
 pkg_pretend() {
 
