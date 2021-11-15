@@ -2,12 +2,8 @@
 <!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
 <pkgmetadata>
 	<maintainer type="person">
-		<email>gyakovlev@gentoo.org</email>
-		<name>Georgy Yakovlev</name>
-	</maintainer>
-	<maintainer type="project">
-		<email>java@gentoo.org</email>
-		<name>Java</name>
+		<email>xor@cairnlinux.org</email>
+		<name>Dave Hughes</name>
 	</maintainer>
 	<longdescription>
 		Java™ is the world's leading programming language and platform.
@@ -18,6 +14,7 @@
 		<slot name="11">Java™ version 11</slot>
 	</slots>
 	<use>
+		<flag name="bootstrap">Build OpenJDK twice, the second time using the result of the first</flag>
 		<flag name="headless-awt">Don't install the X backend for AWT, needed by some GUIs</flag>
 		<flag name="gentoo-vm">Allow this JDK to be recognised by Gentoo (package manager, eselect, java-config, EXPERIMENTAL!)</flag>
 		<flag name="javafx" restrict="&lt;=dev-java/openjdk-9">Provide JavaFX support via <pkg>dev-java/openjfx</pkg></flag>
