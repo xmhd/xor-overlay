@@ -29,7 +29,7 @@ SRC_URI+="
 	)
 "
 
-LICENSE="GPL-2"
+LICENSE="GPL-2-with-classpath-exception"
 KEYWORDS="~amd64"
 
 IUSE="alsa +bootstrap cups debug doc examples gentoo-vm headless-awt javafx +pch selinux source system-bootstrap systemtap"
