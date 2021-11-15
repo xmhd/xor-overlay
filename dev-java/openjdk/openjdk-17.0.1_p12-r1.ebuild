@@ -78,28 +78,28 @@ DEPEND="
 
 REQUIRED_USE="javafx? ( alsa !headless-awt )"
 
-# The space required to build varies wildly depending on USE flags,
-# ranging from 2GB to 16GB. This function is certainly not exact but
-# should be close enough to be useful.
-openjdk_check_requirements() {
-	local M
-	M=2048
-	M=$(( $(usex bootstrap 2 1) * $M ))
-	M=$(( $(usex debug 3 1) * $M ))
-	M=$(( $(usex doc 320 0) + $(usex source 128 0) + 192 + $M ))
-
-	CHECKREQS_DISK_BUILD=${M}M check-reqs_pkg_${EBUILD_PHASE}
-}
-
 pkg_pretend() {
-	openjdk_check_requirements
+
 	if [[ ${MERGE_TYPE} != binary ]]; then
-		has ccache ${FEATURES} && die "FEATURES=ccache doesn't work with ${PN}"
+
+		# Required disk space to build varies (2GB to 16GB) depending on USE flags.
+		# This function is certainly not exact but should be close enough to be useful.
+		local M
+		M=2048
+		M=$(( $(usex jbootstrap 2 1) * ${M} ))
+		M=$(( $(usex debug 3 1) * ${M} ))
+		M=$(( $(usex doc 320 0) + $(usex source 128 0) + 192 + ${M} ))
+
+		CHECKREQS_DISK_BUILD=${M}M check-reqs_pkg_setup
+
+		if has ccache ${FEATURES} ; then
+			die "FEATURES=ccache doesn't work with ${PN}"
+		fi
 	fi
 }
 
 pkg_setup() {
-	openjdk_check_requirements
+
 	java-vm-2_pkg_setup
 
 	JAVA_PKG_WANT_BUILD_VM="openjdk-${SLOT} openjdk-bin-${SLOT} openjdk-$((SLOT-1)) openjdk-bin-$((SLOT-1))"
