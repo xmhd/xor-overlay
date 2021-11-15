@@ -118,6 +118,12 @@ pkg_setup() {
 	VENDOR_BUG_URL="https://bugs.gentoo.org"
 	VENDOR_VM_BUG_URL="https://bugs.openjdk.java.net"
 	VENDOR_VERSION_STRING="${PVR}"
+
+	if ! use system-bootstrap; then
+		export JAVA_HOME="${WORKDIR}/jdk-${MY_PV}"
+
+		echo ${JAVA_HOME}
+	fi
 }
 
 src_prepare() {
