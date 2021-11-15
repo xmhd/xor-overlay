@@ -7,20 +7,12 @@ inherit autotools check-reqs flag-o-matic java-pkg-2 java-vm-2 multiprocessing p
 MY_PV="${PV/_p/+}"
 FULL_VERSION="${PV%_p*}"
 SLOT=$(get_major_version)
-# First release of major jdk releases do not contain u at end jdk<slot>.
-# so 15.0.0 would fetch jdk-15-ga.tar.gz  from jdk15, 15.0.1 jdk-15.0.1-ga.tar.gz from jdk15u
-if [ $(get_after_major_version $FULL_VERSION) = "0.0" ]; then
-	SRC_URI="https://github.com/openjdk/jdk${SLOT}/archive/jdk-${SLOT}-ga.tar.gz -> ${P}.tar.gz"
-	S="${WORKDIR}/jdk${SLOT}-jdk-${SLOT}-ga"
-else
-	SRC_URI="https://github.com/openjdk/jdk${SLOT}u/archive/jdk-${FULL_VERSION}-ga.tar.gz -> ${P}.tar.gz"
-	S="${WORKDIR}/jdk${SLOT}u-jdk-${FULL_VERSION}-ga"
-fi
 
 DESCRIPTION="Open source implementation of the Java programming language"
 HOMEPAGE="https://openjdk.java.net"
 
 SRC_URI+="
+	https://github.com/openjdk/jdk${SLOT}u/archive/jdk-${FULL_VERSION}-ga.tar.gz -> ${P}.tar.gz
 	!system-bootstrap? (
 		amd64? (
 			elibc_glibc? ( https://github.com/adoptium/temurin${SLOT}-binaries/releases/download/jdk-17.0.1%2B12/OpenJDK${SLOT}U-jdk_x64_linux_hotspot_${MY_PV//+/_}.tar.gz )
@@ -28,6 +20,8 @@ SRC_URI+="
 		)
 	)
 "
+
+S="${WORKDIR}/jdk${SLOT}u-jdk-${PV/_p/-}"
 
 LICENSE="GPL-2-with-classpath-exception"
 KEYWORDS="~amd64"
@@ -116,7 +110,7 @@ pkg_setup() {
 	JAVA_PKG_WANT_TARGET="${SLOT}"
 
 	java-vm-2_pkg_setup
-	java-pkg-2-pkg_setup
+	java-pkg-2_pkg_setup
 }
 
 src_prepare() {
