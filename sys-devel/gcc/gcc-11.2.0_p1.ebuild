@@ -1105,11 +1105,11 @@ src_configure() {
 
 	if use nvptx; then
 
-                # setup build directory
-                mkdir "${WORKDIR}"/build-nvptx || die "failed to create nvptx build directory"
+		# setup build directory
+		mkdir "${WORKDIR}"/build-nvptx || die "failed to create nvptx build directory"
 
-                # cd to build directory
-                cd "${WORKDIR}"/build-nvptx || die "failed to cd to nvptx build directory"
+		# cd to build directory
+		cd "${WORKDIR}"/build-nvptx || die "failed to cd to nvptx build directory"
 
 		conf_nvptx=(
 			--with-bugurl="http://bugs.cairnlinux.org"
@@ -1125,7 +1125,7 @@ src_configure() {
 			--with-gxx-include-dir=${STDCXX_INCDIR_NVPTX}
 		)
 
-                # TODO
+		# TODO
 
 		../gcc-${GCC_ARCHIVE_VER}/configure "${conf_nvptx}" || die "failed to configure gcc-nvptx"
 	fi

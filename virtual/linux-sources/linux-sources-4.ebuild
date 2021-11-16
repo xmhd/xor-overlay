@@ -17,7 +17,6 @@ RDEPEND="
 		sys-kernel/gentoo-sources
 		sys-kernel/vanilla-sources
 		sys-kernel/git-sources
-		sys-kernel/hardened-sources
 		sys-kernel/mips-sources
 		sys-kernel/pf-sources
 		sys-kernel/rt-sources
@@ -26,6 +25,5 @@ RDEPEND="
 		sys-kernel/gentoo-kernel
 		sys-kernel/gentoo-kernel-bin
 		sys-kernel/vanilla-kernel
-		sys-kernel/bliss-kernel-bin
 	)
 "

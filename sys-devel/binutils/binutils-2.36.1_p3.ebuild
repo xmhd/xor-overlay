@@ -310,9 +310,7 @@ src_configure() {
 
 	# Prevent makeinfo from running if doc is unset.
 	if ! use doc ; then
-                sed -i \
-                        -e '/^MAKEINFO/s:=.*:= true:' \
-                        Makefile || die
+		sed -i -e '/^MAKEINFO/s:=.*:= true:'  Makefile || die
 	fi
 
 	if use bpf; then
@@ -368,9 +366,9 @@ src_compile() {
 		emake info
 	fi
 
-        # we nuke the manpages when we're left with junk
-        # (like when we bootstrap, no perl -> no manpages)
-        find . -name '*.1' -a -size 0 -delete
+	# we nuke the manpages when we're left with junk
+	# (like when we bootstrap, no perl -> no manpages)
+	find . -name '*.1' -a -size 0 -delete
 
 	if use bpf; then
 		cd "${WORKDIR}"/build-bpf
@@ -551,7 +549,6 @@ src_install() {
 			rm -r "${ED}"/usr/$(get_libdir)/binutils/${BPF_TARGET}/${BINUTILS_VER}/lib
 		fi
 
-
 		if ! [[ -e "${EROOT}"/env.d/binutils/config-${BPF_TARGET} ]] ;then
 			# Generate an env.d entry for this binutils
 			insinto /etc/env.d/binutils
@@ -629,21 +626,21 @@ pkg_postrm() {
 
 	local current_profile_bpf=$(binutils-config -c ${BPF_TARGET})
 
-        # If no other versions exist, then uninstall for this target ... otherwise, switch to the newest version
-        # Note: only do this if this version is unmerged.  We rerun binutils-config if this is a remerge, as
-        # we want the mtimes on the symlinks updated (if it is the same as the current selected profile).
-        if [[ ! -e ${EPREFIX}/usr/${BPF_TARGET}/binutils-bin/${BINUTILS_VER}/ld ]] && [[ ${current_profile_bpf} == ${BPF_TARGET}-${BINUTILS_VER} ]] ; then
-                local choice=$(binutils-config -l | grep ${BPF_TARGET} | awk '{print $2}')
-                choice=${choice//$'\n'/ }
-                choice=${choice/* }
-                if [[ -z ${choice} ]] ; then
-                        binutils-config -u ${BPF_TARGET}
-                else
-                        binutils-config ${choice}
-                fi
-        elif [[ $(CHOST=${BPF_TARGET} binutils-config -c) == ${BPF_TARGET}-${BINUTILS_VER} ]] ; then
-                binutils-config ${BPF_TARGET}-${BINUTILS_VER}
-        fi
+	# If no other versions exist, then uninstall for this target ... otherwise, switch to the newest version
+	# Note: only do this if this version is unmerged.  We rerun binutils-config if this is a remerge, as
+	# we want the mtimes on the symlinks updated (if it is the same as the current selected profile).
+	if [[ ! -e ${EPREFIX}/usr/${BPF_TARGET}/binutils-bin/${BINUTILS_VER}/ld ]] && [[ ${current_profile_bpf} == ${BPF_TARGET}-${BINUTILS_VER} ]] ; then
+		local choice=$(binutils-config -l | grep ${BPF_TARGET} | awk '{print $2}')
+		choice=${choice//$'\n'/ }
+		choice=${choice/* }
+		if [[ -z ${choice} ]] ; then
+			binutils-config -u ${BPF_TARGET}
+		else
+			binutils-config ${choice}
+		fi
+	elif [[ $(CHOST=${BPF_TARGET} binutils-config -c) == ${BPF_TARGET}-${BINUTILS_VER} ]] ; then
+		binutils-config ${BPF_TARGET}-${BINUTILS_VER}
+	fi
 }
 
 # Note [slotting support]

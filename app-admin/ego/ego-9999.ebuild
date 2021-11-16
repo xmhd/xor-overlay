@@ -19,7 +19,6 @@ else
 	KEYWORDS="~amd64"
 fi
 
-
 LICENSE="GPL-2"
 
 SLOT="0"
