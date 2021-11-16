@@ -3,3 +3,4 @@
 # Keep them sorted
 
 build-kernel - Enable automated building of kernel, initramfs, and subslot rebuilds for out-of-tree modules.
+cet - Enable support for Intel Control Flow Enforcement Technology.
