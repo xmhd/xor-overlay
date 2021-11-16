@@ -1,0 +1,5 @@
+# Distributed under the terms of the GNU General Public License v2
+
+# Keep them sorted
+
+build-kernel - Enable automated building of kernel, initramfs, and subslot rebuilds for out-of-tree modules.
