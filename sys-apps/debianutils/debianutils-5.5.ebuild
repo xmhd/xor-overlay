@@ -2,20 +2,18 @@
 
 EAPI=7
 
-inherit flag-o-matic
+inherit autotools flag-o-matic
 
 DESCRIPTION="A selection of tools from Debian"
 HOMEPAGE="https://packages.qa.debian.org/d/debianutils.html"
+SRC_URI="mirror://debian/pool/main/d/${PN}/${PN}_${PV}.orig.tar.xz"
+
 LICENSE="BSD GPL-2 SMAIL"
+KEYWORDS="amd64 arm arm64 x86"
 
 SLOT="0"
 
 IUSE="+installkernel static"
-
-if [[ ${PV} != 9999 ]]; then
-	SRC_URI="mirror://debian/pool/main/d/${PN}/${PN}_${PV}.tar.xz"
-	KEYWORDS="alpha amd64 arm arm64 hppa ia64 m68k mips ppc ppc64 riscv s390 sparc x86"
-fi
 
 DEPEND="
 	installkernel? (
@@ -28,9 +26,15 @@ PATCHES=(
 	"${FILESDIR}"/${PN}-3.4.2-no-bs-namespace.patch
 )
 
-src_unpack() {
-	unpack ${PN}_${PV}.tar.xz
-	mv ${PN} ${PN}-${PV}
+src_prepare() {
+
+	# Avoid adding po4a dependency, upstream refreshes manpages.
+	sed -i -e '/SUBDIRS/s|po4a||' Makefile.am || die
+
+	# apply any user patches
+	eapply_user
+
+	eautoreconf
 }
 
 src_configure() {
@@ -39,20 +43,18 @@ src_configure() {
 }
 
 src_install() {
-	into /
-	dobin tempfile run-parts
 
-	if use installkernel ; then
-		dosbin installkernel
-	fi
+	into /
+	dobin run-parts
+	use installkernel && dosbin installkernel
 
 	into /usr
 	dobin ischroot
 	dosbin savelog
 
-	doman ischroot.1 tempfile.1 run-parts.8 savelog.8
+	doman ischroot.1 run-parts.8 savelog.8
 	use installkernel && doman installkernel.8
-	cd debian || die
-	dodoc changelog control
+
+	dodoc CHANGELOG
 	keepdir /etc/kernel/postinst.d
 }
