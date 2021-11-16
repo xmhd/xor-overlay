@@ -11,7 +11,6 @@ SLOT="0"
 IUSE="build-kernel firmware"
 
 RDEPEND="
-	build-kernel? ( sys-kernel/gentoo-sources[build-kernel] )
 	firmware? ( sys-kernel/linux-firmware )
 	|| (
 		sys-kernel/gentoo-sources
