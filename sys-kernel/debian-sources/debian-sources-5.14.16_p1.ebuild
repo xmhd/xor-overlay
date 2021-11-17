@@ -63,11 +63,11 @@ REQUIRED_USE="
 
 KERNEL_VERSION="${PV%%_*}"
 KERNEL_EXTRAVERSION="-debian"
-KERNEL_FULL_VERSION="${PV}${KERNEL_EXTRAVERSION}"
+KERNEL_FULL_VERSION="${KERNEL_VERSION}${KERNEL_EXTRAVERSION}"
 
 DEBIAN_UPSTREAM="https://ftp.debian.org/debian/pool/main/l/linux"
-KERNEL_ARCHIVE="linux_5.14.16.orig.tar.xz"
-PATCH_ARCHIVE="linux_5.14.16-1.debian.tar.xz"
+KERNEL_ARCHIVE="linux_${KERNEL_VERSION}.orig.tar.xz"
+PATCH_ARCHIVE="linux_${PV/_p/-}.debian.tar.xz"
 
 SRC_URI="
 	${DEBIAN_UPSTREAM}/${KERNEL_ARCHIVE}
