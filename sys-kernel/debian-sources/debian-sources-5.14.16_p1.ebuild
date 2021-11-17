@@ -157,6 +157,7 @@ src_prepare() {
 # PATCH:
 
 	# todo
+	einfo "Applying Debian patches ..."
 	for deb_patch in $( get_patch_list "${WORKDIR}/debian/patches/series" ); do
 		eapply "${WORKDIR}"/debian/patches/${deb_patch}
 	done
@@ -186,7 +187,7 @@ src_prepare() {
 	fi
 
 	# Copy 'config-extract' tool to the work directory
-	cp "${FILESDIR}"/config-extract ${S} || die "failed to install config-extract to sources directory"
+	cp "${FILESDIR}"/config-extract . || die "failed to install config-extract to sources directory"
 
 	# ... and make it executable
 	chmod +x config-extract || die "failed to set +x on config-extract"
@@ -224,7 +225,7 @@ src_prepare() {
 
 	if use hardened; then
 
-		tweak_config "CONFIG_GENTOO_KERNEL_SELF_PROTECTION=y"
+		# TODO: HARDENING
 
 		# disable gcc plugins on clang
 		if use clang; then
@@ -374,7 +375,7 @@ src_configure() {
 
 		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" "${targets[@]}" || die "kernel configure failed"
 
-		cp -R "${WORKDIR}"/build "${WORKDIR}"/mod_prep
+		cp -a "${WORKDIR}"/build "${WORKDIR}"/mod_prep
 	fi
 }
 
@@ -412,8 +413,10 @@ src_install() {
 		# clean-up kernel source tree
 		make mrproper || die "failed to prepare kernel sources"
 
+		cp -a "${WORKDIR}"/debian "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION} || die "failed to copy Debian archive to kernel source tree"
+
 		# copy kconfig into place
-		cp "${T}"/.config "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to install kconfig"
+		cp "${T}"/.config "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to install kernel config"
 
 	# let Portage handle the compilation, testing and installing of the kernel + initramfs,
 	# and optionally installing kernel headers + signing the kernel modules.
