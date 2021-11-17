@@ -573,10 +573,8 @@ src_prepare() {
 	fi
 
 	# TODO
-	if use ssp && ! use hardened; then
+	if use ssp; then
 		gcc_hard_flags+=" -DDIST_DEFAULT_SSP "
-	elif use ssp && use hardened; then
-		gcc_hard_flags+=" -DDIST_DEFAULT_SSP -DDIST_DEFAULT_SSP_ALL "
 	fi
 
 	# Enable CET by default
