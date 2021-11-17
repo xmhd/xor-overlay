@@ -463,11 +463,11 @@ src_prepare() {
 	if use sign-modules; then
 		certs_dir=$(get_certs_dir)
 		tweak_config
-		if [[ -z "$certs_dir" ]]; then
+		if [[ -z "${certs_dir}" ]]; then
 			eerror "No certs dir found in /etc/kernel/certs; aborting."
 			die
 		else
-			einfo "Using certificate directory of $certs_dir for kernel module signing."
+			einfo "Using certificate directory of ${certs_dir} for kernel module signing."
 		fi
 		tweak_config
 		# turn on options for signing modules.
@@ -596,7 +596,7 @@ src_install() {
 			targets+=( dtbs_install )
 		fi
 
-		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
+		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}"/boot "${targets[@]}"
 		install_kernel_and_friends
 
 		local kern_arch=$(tc-arch-kernel)
