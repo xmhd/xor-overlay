@@ -15,7 +15,7 @@ SLOT="${PV}"
 RESTRICT="binchecks mirror strip"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress debug doc install-headers minimal symlink"
+IUSE="build-kernel clang compress debug doc minimal symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
@@ -57,11 +57,7 @@ RDEPEND="
 "
 
 REQUIRED_USE="
-	install-headers? ( build-kernel )
-	sign-modules? (
-			build-kernel
-			install-headers
-	)
+	sign-modules? ( build-kernel )
 "
 
 # linux kernel upstream
@@ -169,13 +165,6 @@ pkg_pretend() {
 		if ! use firmware; then
 			ewarn "sys-kernel/linux-firmware not found installed on your system."
 			ewarn "This package provides firmware that may be needed for your hardware to work."
-		fi
-
-		# kernel headers are required to build out-of-tree modules
-		if ! use install-headers; then
-			ewarn "USE='build-kernel -install-headers' detected ..."
-			ewarn "You will not be able to build out-of-tree kernel modules with this configuration."
-			ewarn "Set USE=build-kernel install-headers' for this to work."
 		fi
 	fi
 
@@ -595,74 +584,68 @@ src_install() {
 	# and optionally installing kernel headers + signing the kernel modules.
 	elif use build-kernel; then
 
-		# TODO: USE=build-kernel without USE=install-headers, i.e. for small containers
 		# ... maybe incoporate some [[ ${MERGE_TYPE} != foobar ]] so that headers can
 		# be installed on a build server for emerging out-of-tree modules but the end consumer
 		# e.g. container doesn't get the headers ...
 
-		if use install-headers; then
+		# standard target for installing modules to /lib/modules/${KERNEL_FULL_VERSION}
+		local targets=( modules_install )
 
-			# standard target for installing modules to /lib/modules/${KERNEL_FULL_VERSION}
-			local targets=( modules_install )
+		# ARM / ARM64 requires dtb
+		if (use arm || use arm64); then
+			targets+=( dtbs_install )
+		fi
 
-			# ARM / ARM64 requires dtb
-			if (use arm || use arm64); then
-				targets+=( dtbs_install )
-			fi
+		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
+		install_kernel_and_friends
 
-			emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}/boot" "${targets[@]}"
-			install_kernel_and_friends
+		local kern_arch=$(tc-arch-kernel)
+		dodir /usr/src/linux-${KERNEL_FULL_VERSION}
+		mv include scripts "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die
 
-			local kern_arch=$(tc-arch-kernel)
-			dodir /usr/src/linux-${KERNEL_FULL_VERSION}
-			mv include scripts "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die
+		dodir /usr/src/linux-${KERNEL_FULL_VERSION}/arch/${kern_arch}
+		mv arch/${kern_arch}/include "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/${kern_arch}/ || die
 
-			dodir /usr/src/linux-${KERNEL_FULL_VERSION}/arch/${kern_arch}
-			mv arch/${kern_arch}/include "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/${kern_arch}/ || die
+		# some arches need module.lds linker script to build external modules
+		if [[ -f arch/${kern_arch}/kernel/module.lds ]]; then
+			mv arch/${kern_arch}/kernel/module.lds "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/${kern_arch}/kernel/
+		fi
 
-			# some arches need module.lds linker script to build external modules
-			if [[ -f arch/${kern_arch}/kernel/module.lds ]]; then
-				mv arch/${kern_arch}/kernel/module.lds "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/${kern_arch}/kernel/
-			fi
+		# remove everything but Makefile* and Kconfig*
+		find -type f '!' '(' -name 'Makefile*' -o -name 'Kconfig*' ')' -delete || die
+		find -type l -delete || die
+		cp -p -R * "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die
 
-			# remove everything but Makefile* and Kconfig*
-			find -type f '!' '(' -name 'Makefile*' -o -name 'Kconfig*' ')' -delete || die
-			find -type l -delete || die
-			cp -p -R * "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die
+		# todo mod_prep
+		find "${WORKDIR}"/mod_prep -type f '(' -name Makefile -o -name '*.[ao]' -o '(' -name '.*' -a -not -name '.config' ')' ')' -delete || die
+		rm -rf "${WORKDIR}"/mod_prep/source
+		cp -p -R "${WORKDIR}"/mod_prep/* "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}
 
-			# todo mod_prep
-			find "${WORKDIR}"/mod_prep -type f '(' -name Makefile -o -name '*.[ao]' -o '(' -name '.*' -a -not -name '.config' ')' ')' -delete || die
-			rm -rf "${WORKDIR}"/mod_prep/source
-			cp -p -R "${WORKDIR}"/mod_prep/* "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}
+		# copy kconfig into place
+		cp "${T}"/.config "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to install kconfig"
 
-			# copy kconfig into place
-			cp "${T}"/.config "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to install kconfig"
+		# module symlink fix-up:
+		rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to remove old kernel source symlink"
+		rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/build || die "failed to remove old kernel build symlink"
 
-			# module symlink fix-up:
-			rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to remove old kernel source symlink"
-			rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/build || die "failed to remove old kernel build symlink"
+		# Set-up module symlinks:
+		ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${ED}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to create kernel source symlink"
+		ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${ED}"/lib/modules/${KERNEL_FULL_VERSION}/build || die "failed to create kernel build symlink"
 
-			# Set-up module symlinks:
-			ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${ED}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to create kernel source symlink"
-			ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${ED}"/lib/modules/${KERNEL_FULL_VERSION}/build || die "failed to create kernel build symlink"
+		# Install System.map, Module.symvers and bzImage - required for building out-of-tree kernel modules:
+		cp "${WORKDIR}"/build/System.map "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die "failed to install System.map"
+		cp "${WORKDIR}"/build/Module.symvers "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die "failed to install Module.symvers"
+		cp "${WORKDIR}"/build/arch/x86/boot/bzImage "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/x86/boot/bzImage || die "failed to install bzImage"
 
-			# Install System.map, Module.symvers and bzImage - required for building out-of-tree kernel modules:
-			cp "${WORKDIR}"/build/System.map "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die "failed to install System.map"
-			cp "${WORKDIR}"/build/Module.symvers "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die "failed to install Module.symvers"
-			cp "${WORKDIR}"/build/arch/x86/boot/bzImage "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/x86/boot/bzImage || die "failed to install bzImage"
-
-			# USE=sign-modules depends on the scripts directory being available
-			if use sign-modules; then
-				for kmod in $(find "${D}"/lib/modules -iname *.ko); do
-					# $certs_dir defined previously in this function.
-					"${WORKDIR}"/build/scripts/sign-file sha512 ${certs_dir}/signing_key.pem ${certs_dir}/signing_key.x509 ${kmod} || die "failed to sign kernel modules"
-				done
-				# install the sign-file executable for future use.
-				exeinto /usr/src/linux-${KERNEL_FULL_VERSION}/scripts
-				doexe "${WORKDIR}"/build/scripts/sign-file
-			fi
-		else
-			ewarn "TODO"
+		# USE=sign-modules depends on the scripts directory being available
+		if use sign-modules; then
+			for kmod in $(find "${D}"/lib/modules -iname *.ko); do
+				# $certs_dir defined previously in this function.
+				"${WORKDIR}"/build/scripts/sign-file sha512 ${certs_dir}/signing_key.pem ${certs_dir}/signing_key.x509 ${kmod} || die "failed to sign kernel modules"
+			done
+			# install the sign-file executable for future use.
+			exeinto /usr/src/linux-${KERNEL_FULL_VERSION}/scripts
+			doexe "${WORKDIR}"/build/scripts/sign-file
 		fi
 	fi
 }
