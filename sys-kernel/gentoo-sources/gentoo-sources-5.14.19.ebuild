@@ -569,7 +569,7 @@ src_install() {
 	if ! use build-kernel; then
 
 		# create kernel sources directory
-		dodir /usr/src/linux-${KERNEL_FULL_VERSION}
+		dodir /usr/src
 
 		# copy kernel sources into place
 		cp -a "${S}" "${D}"/usr/src/linux-${KERNEL_FULL_VERSION} || die "failed to install kernel sources"
