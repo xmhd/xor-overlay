@@ -23,27 +23,22 @@ This overlay contains packages for software that:
 * Add an entry under repos.conf in portage with sync-type = git and sync-uri = $uri, and perform an emerge --sync
 * There is no tested layman support, use repos.conf
 
-### TLDR; Changelog for packages forked from main repositories ###
+### TLDR; ###
 
-* Python - link-time-optmization and profile-guided-optimization support added to ebuilds
-* sysvinit - Added fix to inittab to support shutting down containers from host
-* All JetBrains software - up-to-date working releases
+* ego - Configuration tool from Funtoo Linux by Daniel Robbins. Replaces eselect-profile from Gentoo Linux
+* gcc - TODO
+* binutils - TODO
+* gdb - TODO
+* glibc - TODO
+* debian-sources - TODO
+* DTrace - tracer from Solaris, FreeBSD and Oracle Linux
+* JetBrains IDEs - TODO
 * nm-applet - Removed hard dependency on polkit as it is not required
 * libsecret - Removed hard dependency on gnome-keyring and added USE flag to support multiple providers of
   FreeDesktop.org libsecret service (e.g. keepassx, gnome-keyring)
-* gentoo-sources - Linux kernel sources with additional patches and optional compilation, module signing etc
-* icecream - up-to-date releases
-* OpenJDK - forked to add older OpenJDK versions and add musl support
+* sysvinit - Added fix to inittab to support shutting down containers from host
+* Python - link-time-optmization and profile-guided-optimization support added to ebuilds
 * debianutils - removed gentoo-installkernel stuff from ebuild as we use Debian' installkernel script
-
-### TLDR; Changelog for packages not in the main repositories ###
-
-* ego - Configuration tool from Funtoo Linux by Daniel Robbins. Replaces eselect-profile from Gentoo Linux
-* gcc - Refactored logic which will all reside inside the ebuild rather than toolchain.eclass, so that additional patch
-  sets can be easily added etc
-* DTrace - tracer from Solaris & BSD, supported in Oracle Linux and now Gentoo Linux
-* MangoHUD - GUI overlay for displaying CPU + GPU temperatures, FPS etc during gaming.
-* PyWal - Match your terminal font colours to your wallpaper.
 
 ### TLDR; Changelog for eclasses forked from main repositories ###
 

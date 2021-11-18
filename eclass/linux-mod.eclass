@@ -177,7 +177,7 @@ RDEPEND="
 	${MODULES_OPTIONAL_USE}${MODULES_OPTIONAL_USE:+? (}
 		kernel_linux? (
 			sys-apps/kmod[tools]
-			build-kernel? ( sys-kernel/gentoo-sources:=[build-kernel] )
+			build-kernel? ( sys-kernel/debian-sources:=[build-kernel] )
 			dist-kernel? ( virtual/dist-kernel:= )
 		)
 	${MODULES_OPTIONAL_USE:+)}"

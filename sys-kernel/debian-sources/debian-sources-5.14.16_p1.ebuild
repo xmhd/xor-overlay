@@ -399,7 +399,7 @@ install_kernel_and_friends() {
 
 src_install() {
 
-	# 'standard' install of gentoo-sources that most consumers are used to
+	# 'standard' install of kernel sources that most consumers are used to ...
 	# i.e. install sources to /usr/src/linux-${KERNEL_FULL_VERSION} and manually compile the kernel.
 	if ! use build-kernel; then
 

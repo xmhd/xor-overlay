@@ -50,7 +50,7 @@ BDEPEND="
 if [[ ${PV} != "9999" ]] ; then
 	BDEPEND+="
 		verify-sig? ( app-crypt/openpgp-keys-openzfs )
-		build-kernel? ( <sys-kernel/gentoo-sources-${ZFS_KERNEL_DEP}:=[build-kernel] )
+		build-kernel? ( <sys-kernel/debian-sources-${ZFS_KERNEL_DEP}:=[build-kernel] )
 		dist-kernel? ( <virtual/dist-kernel-${ZFS_KERNEL_DEP}:= )
 	"
 fi

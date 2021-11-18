@@ -13,6 +13,7 @@ IUSE="build-kernel firmware"
 RDEPEND="
 	firmware? ( sys-kernel/linux-firmware )
 	|| (
+		sys-kernel/debian-sources
 		sys-kernel/gentoo-sources
 		sys-kernel/vanilla-sources
 		sys-kernel/git-sources
