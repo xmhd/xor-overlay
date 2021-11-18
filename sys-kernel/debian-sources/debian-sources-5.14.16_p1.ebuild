@@ -162,6 +162,9 @@ src_prepare() {
 		eapply "${WORKDIR}"/debian/patches/${deb_patch}
 	done
 
+	# apply any user patches
+	eapply_user
+
 	# append EXTRAVERSION to the kernel sources Makefile
 	sed -i -e "s:^\(EXTRAVERSION =\).*:\1 ${KERNEL_EXTRAVERSION}:" Makefile || die "failed to append EXTRAVERSION to kernel Makefile"
 
@@ -323,13 +326,9 @@ src_prepare() {
 
 		# print some info to warn user
 		ewarn "This kernel will ALLOW non-signed modules to be loaded with a WARNING."
-		ewarn "To enable strict enforcement, YOU MUST add module.sig_enforce=1 as a kernel boot"
-		ewarn "parameter (to params in /etc/boot.conf, and re-run boot-update.)"
+		ewarn "To enable strict enforcement, YOU MUST add module.sig_enforce=1 as a kernel boot parameter"
 		echo
 	fi
-
-	# finally, apply any user patches
-	eapply_user
 
 	# get config into good state:
 	yes "" | make oldconfig >/dev/null 2>&1 || die
