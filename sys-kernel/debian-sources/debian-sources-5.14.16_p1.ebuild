@@ -498,11 +498,6 @@ pkg_postinst() {
 		ln -sf "${ROOT}"/usr/src/linux-${KERNEL_FULL_VERSION} "${ROOT}"/usr/src/linux || die "failed to create /usr/src/linux symlink"
 	fi
 
-	# if there's a modules folder for these sources, generate modules.dep and map files
-	if [[ -d "${ROOT}"/lib/modules/${KERNEL_FULL_VERSION} ]]; then
-		depmod -a ${KERNEL_FULL_VERSION} || die "failed to run depmod -a"
-	fi
-
 	# rebuild the initramfs on post_install
 	if use build-kernel; then
 		ewarn ">>> Dracut: building initramfs"
