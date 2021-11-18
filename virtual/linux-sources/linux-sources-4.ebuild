@@ -8,7 +8,7 @@ KEYWORDS="~alpha ~amd64 ~arm ~arm64 ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sparc ~
 
 SLOT="0"
 
-IUSE="build-kernel firmware"
+IUSE="firmware"
 
 RDEPEND="
 	firmware? ( sys-kernel/linux-firmware )
