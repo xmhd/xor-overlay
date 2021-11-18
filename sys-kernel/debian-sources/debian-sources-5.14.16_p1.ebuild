@@ -386,9 +386,9 @@ install_kernel_and_friends() {
 	install -d "${D}"/boot
 	local kern_arch=$(tc-arch-kernel)
 
-	cp "${WORKDIR}"/build/arch/${kern_arch}/boot/bzImage "${ED}"/boot/vmlinuz-${KERNEL_FULL_VERSION} || die "failed to install kernel to /boot"
-	cp "${T}"/.config "${ED}"/boot/config-${KERNEL_FULL_VERSION} || die "failed to install kernel config to /boot"
-	cp "${WORKDIR}"/build/System.map "${ED}"/boot/System.map-${KERNEL_FULL_VERSION} || die "failed to install System.map to /boot"
+	cp "${WORKDIR}"/build/arch/${kern_arch}/boot/bzImage "${D}"/boot/vmlinuz-${KERNEL_FULL_VERSION} || die "failed to install kernel to /boot"
+	cp "${T}"/.config "${D}"/boot/config-${KERNEL_FULL_VERSION} || die "failed to install kernel config to /boot"
+	cp "${WORKDIR}"/build/System.map "${D}"/boot/System.map-${KERNEL_FULL_VERSION} || die "failed to install System.map to /boot"
 }
 
 src_install() {
@@ -406,10 +406,10 @@ src_install() {
 		# clean-up kernel source tree
 		make mrproper || die "failed to prepare kernel sources"
 
-		cp -a "${WORKDIR}"/debian "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION} || die "failed to copy Debian archive to kernel source tree"
+		cp -a "${WORKDIR}"/debian "${D}"/usr/src/linux-${KERNEL_FULL_VERSION} || die "failed to copy Debian archive to kernel source tree"
 
 		# copy kconfig into place
-		cp "${T}"/.config "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to install kernel config"
+		cp "${T}"/.config "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to install kernel config"
 
 	# let Portage handle the compilation, testing and installing of the kernel + initramfs,
 	# and optionally installing kernel headers + signing the kernel modules.
@@ -427,41 +427,41 @@ src_install() {
 			targets+=( dtbs_install )
 		fi
 
-		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${ED}" INSTALL_PATH="${ED}"/boot "${targets[@]}"
+		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" INSTALL_MOD_PATH="${D}" INSTALL_PATH="${D}"/boot "${targets[@]}"
 		install_kernel_and_friends
 
 		local kern_arch=$(tc-arch-kernel)
 		dodir /usr/src/linux-${KERNEL_FULL_VERSION}
-		mv include scripts "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die
+		mv include scripts "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die
 
 		dodir /usr/src/linux-${KERNEL_FULL_VERSION}/arch/${kern_arch}
-		mv arch/${kern_arch}/include "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/${kern_arch}/ || die
+		mv arch/${kern_arch}/include "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/${kern_arch}/ || die
 
 		# some arches need module.lds linker script to build external modules
 		if [[ -f arch/${kern_arch}/kernel/module.lds ]]; then
-			mv arch/${kern_arch}/kernel/module.lds "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/${kern_arch}/kernel/
+			mv arch/${kern_arch}/kernel/module.lds "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/arch/${kern_arch}/kernel/
 		fi
 
 		# remove everything but Makefile* and Kconfig*
 		find -type f '!' '(' -name 'Makefile*' -o -name 'Kconfig*' ')' -delete || die
 		find -type l -delete || die
-		cp -p -R * "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die
+		cp -p -R * "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die
 
 		# todo mod_prep
 		find "${WORKDIR}"/mod_prep -type f '(' -name Makefile -o -name '*.[ao]' -o '(' -name '.*' -a -not -name '.config' ')' ')' -delete || die
 		rm -rf "${WORKDIR}"/mod_prep/source
-		cp -p -R "${WORKDIR}"/mod_prep/* "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}
+		cp -p -R "${WORKDIR}"/mod_prep/* "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}
 
 		# copy kconfig into place
-		cp "${T}"/.config "${ED}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to install kconfig"
+		cp "${T}"/.config "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to install kconfig"
 
 		# module symlink fix-up:
 		rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to remove old kernel source symlink"
 		rm -rf "${D}"/lib/modules/${KERNEL_FULL_VERSION}/build || die "failed to remove old kernel build symlink"
 
 		# Set-up module symlinks:
-		ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${ED}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to create kernel source symlink"
-		ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${ED}"/lib/modules/${KERNEL_FULL_VERSION}/build || die "failed to create kernel build symlink"
+		ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${D}"/lib/modules/${KERNEL_FULL_VERSION}/source || die "failed to create kernel source symlink"
+		ln -s /usr/src/linux-${KERNEL_FULL_VERSION} "${D}"/lib/modules/${KERNEL_FULL_VERSION}/build || die "failed to create kernel build symlink"
 
 		# Install System.map, Module.symvers and bzImage - required for building out-of-tree kernel modules:
 		cp "${WORKDIR}"/build/System.map "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/ || die "failed to install System.map"
@@ -486,8 +486,8 @@ pkg_postinst() {
 	# if USE=symlink...
 	if use symlink; then
 		# delete the existing symlink if one exists
-		if [[ -h "${EROOT}"/usr/src/linux ]]; then
-			rm "${EROOT}"/usr/src/linux || die "failed to delete existing /usr/src/linux symlink"
+		if [[ -h "${ROOT}"/usr/src/linux ]]; then
+			rm "${ROOT}"/usr/src/linux || die "failed to delete existing /usr/src/linux symlink"
 		fi
 		# and now symlink the newly installed sources
 		ewarn ""
@@ -495,11 +495,11 @@ pkg_postinst() {
 		ewarn ""
 		ewarn "/usr/src/linux symlink automatically set to linux-${KERNEL_FULL_VERSION}"
 		ewarn ""
-		ln -sf "${EROOT}"/usr/src/linux-${KERNEL_FULL_VERSION} "${EROOT}"/usr/src/linux || die "failed to create /usr/src/linux symlink"
+		ln -sf "${ROOT}"/usr/src/linux-${KERNEL_FULL_VERSION} "${ROOT}"/usr/src/linux || die "failed to create /usr/src/linux symlink"
 	fi
 
 	# if there's a modules folder for these sources, generate modules.dep and map files
-	if [[ -d "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} ]]; then
+	if [[ -d "${ROOT}"/lib/modules/${KERNEL_FULL_VERSION} ]]; then
 		depmod -a ${KERNEL_FULL_VERSION} || die "failed to run depmod -a"
 	fi
 
@@ -514,7 +514,7 @@ pkg_postinst() {
 		dracut \
 			--no-hostonly \
 			--force \
-			--kmoddir="${EROOT}/lib/modules/${KERNEL_FULL_VERSION}" \
+			--kmoddir="${ROOT}/lib/modules/${KERNEL_FULL_VERSION}" \
 			--add="${dracut_modules_add[@]}" \
 			--omit="${dracut_modules_omit[@]}" \
 			$(usex btrfs "--add=btrfs" "--omit=btrfs" ) \
@@ -530,7 +530,7 @@ pkg_postinst() {
 			$(usex systemd "--add=systemd" "--omit=systemd" ) \
 			$(usex udev "--add=udev-rules" "--omit=udev-rules" ) \
 			$(usex zfs "--add=zfs" "--omit=zfs" ) \
-			"${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION}.img ${KERNEL_FULL_VERSION} || die ">>> Dracut: building initramfs failed"
+			"${ROOT}"/boot/initramfs-${KERNEL_FULL_VERSION}.img ${KERNEL_FULL_VERSION} || die ">>> Dracut: building initramfs failed"
 
 		ewarn ">>> Dracut: Finished building initramfs"
 	fi
@@ -566,13 +566,13 @@ pkg_postrm() {
 	if use build-kernel; then
 
 		# clean-up the generated initramfs for this kernel ...
-		if [[ -f "${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION}.img ]]; then
-			rm -f "${EROOT}"/boot/initramfs-${KERNEL_FULL_VERSION}.img || die "failed to remove initramfs-${KERNEL_FULL_VERSION}.img"
+		if [[ -f "${ROOT}"/boot/initramfs-${KERNEL_FULL_VERSION}.img ]]; then
+			rm -f "${ROOT}"/boot/initramfs-${KERNEL_FULL_VERSION}.img || die "failed to remove initramfs-${KERNEL_FULL_VERSION}.img"
 		fi
 
 		# clean-up leftover kernel modules for this kernel ...
-		if [[ -d "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} ]]; then
-			rm -rf "${EROOT}"/lib/modules/${KERNEL_FULL_VERSION} || die "failed to remove /lib/modules/${KERNEL_FULL_VERSION}"
+		if [[ -d "${ROOT}"/lib/modules/${KERNEL_FULL_VERSION} ]]; then
+			rm -rf "${ROOT}"/lib/modules/${KERNEL_FULL_VERSION} || die "failed to remove /lib/modules/${KERNEL_FULL_VERSION}"
 		fi
 	fi
 }
