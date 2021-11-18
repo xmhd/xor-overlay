@@ -172,7 +172,7 @@ src_prepare() {
 	sed -i -e 's:#export\tINSTALL_PATH:export\tINSTALL_PATH:' Makefile || die "failed to fix-up INSTALL_PATH in kernel Makefile"
 
 	# copy the debian patches into the kernel sources work directory (config-extract requires this).
-	cp -a "${WORKDIR}"/debian "${S}"/debian
+	cp -a "${WORKDIR}"/debian "${S}"/debian || die "failed to copy Debian archive to kernel source tree"
 
 	local arch featureset subarch
 	featureset="standard"
@@ -209,7 +209,8 @@ src_prepare() {
 	tweak_config "CONFIG_IKCONFIG=y"
 	tweak_config "CONFIG_IKCONFIG_PROC=y"
 
-	# enable kernel module compression
+	# enable kernel module compression ...
+	# ... defaulting to xz compression
 	if use compress; then
 		tweak_config "CONFIG_MODULE_COMPRESS_NONE=n"
 		tweak_config "CONFIG_MODULE_COMPRESS_GZIP=n"
@@ -262,13 +263,6 @@ src_prepare() {
 		tweak_config "CONFIG_NUMA_BALANCING=n"
 	fi
 
-	if use pax; then
-		tweak_config "CONFIG_PAX=y"
-		tweak_config "CONFIG_PAX_NOEXEC=y"
-		tweak_config "CONFIG_PAX_EMUTRAMP=y"
-		tweak_config "CONFIG_PAX_MPROTECT=y"
-	fi
-
 	if use page-table-isolation; then
 		tweak_config "CONFIG_PAGE_TABLE_ISOLATION=y"
 		if use arm64; then
@@ -301,14 +295,14 @@ src_prepare() {
 	# sign kernel modules via
 	if use sign-modules; then
 		certs_dir=$(get_certs_dir)
-		tweak_config
+		echo
 		if [[ -z "${certs_dir}" ]]; then
 			eerror "No certs dir found in /etc/kernel/certs; aborting."
 			die
 		else
 			einfo "Using certificate directory of ${certs_dir} for kernel module signing."
 		fi
-		tweak_config
+		echo
 		# turn on options for signing modules.
 		# first, remove existing configs and comments:
 		tweak_config 'CONFIG_MODULE_SIG=""'
