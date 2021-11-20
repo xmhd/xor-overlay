@@ -62,7 +62,7 @@ src_install() {
 	insinto "/opt/${PN}"
 	doins -r *
 
-	fperms 755 /opt/${PN}/bin/{pycharm.sh,fsnotifier{,64},inspect.sh}
+	fperms 755 /opt/${PN}/bin/pycharm.sh
 
 	dosym ../../opt/${PN}/bin/pycharm.sh /usr/bin/${PN}
 

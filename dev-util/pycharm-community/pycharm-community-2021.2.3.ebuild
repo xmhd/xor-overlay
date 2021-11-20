@@ -50,7 +50,7 @@ src_install() {
 	insinto "${dir}"
 	doins -r *
 
-	fperms 755 "${dir}"/bin/{${MY_PN}.sh,fsnotifier{,64},inspect.sh}
+	fperms 755 "${dir}"/bin/{${MY_PN}.sh
 
 	make_wrapper "${PN}" "${dir}"/bin/${MY_PN}.sh
 
