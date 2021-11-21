@@ -26,8 +26,7 @@ SLOT="0"
 IUSE="zsh-completion"
 
 DEPEND="
-	$PYTHON_DEPS
-	!sys-boot/boot-update
+	${PYTHON_DEPS}
 "
 
 RDEPEND="
@@ -51,12 +50,8 @@ src_unpack() {
 }
 
 src_prepare() {
-	if [[ ${PV} != 9999* ]]; then
-		eapply "${FILESDIR}"/0001-python-ego-profile.py-fix-per-arch-mix-ins.patch
-		eapply "${FILESDIR}"/0002-modules-sync.ego-fix-for-update_repos_conf.patch
-		eapply "${FILESDIR}"/0003-remove-special-python-kit-logic-it-is-just-another-k.patch
-	fi
 
+	# apply any user patches
 	eapply_user
 }
 
@@ -72,7 +67,6 @@ src_install() {
 	rm -rf "${D}"/usr/share/ego/python/test
 	dobin "${S}"/ego
 	dosym ego /usr/bin/epro
-	dosym ego /usr/bin/edoc
 	doman doc/*.[1-8]
 	dodoc doc/*.rst
 	insinto /etc
