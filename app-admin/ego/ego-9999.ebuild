@@ -58,17 +58,18 @@ src_prepare() {
 src_install() {
 	exeinto /usr/share/ego/modules
 	doexe "${S}"/modules/*.ego
-	rm "${D}"/usr/share/ego/modules/upgrade*
+
 	insinto /usr/share/ego/modules-info
 	doins "${S}"/modules-info/*
-	rm "${D}"/usr/share/ego/modules-info/upgrade*
+
 	insinto /usr/share/ego/python
 	doins -r "${S}"/python/*
-	rm -rf "${D}"/usr/share/ego/python/test
+
 	dobin "${S}"/ego
 	dosym ego /usr/bin/epro
 	doman doc/*.[1-8]
 	dodoc doc/*.rst
+
 	insinto /etc
 	doins "${S}"/etc/*.conf*
 
