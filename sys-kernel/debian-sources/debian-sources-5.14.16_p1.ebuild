@@ -152,6 +152,7 @@ src_unpack() {
 
 src_prepare() {
 
+	# punt Debian dev certs
 	rm -rf ${S}/debian/certs || die "failed to remove Debian certs"
 
 # PATCH:
