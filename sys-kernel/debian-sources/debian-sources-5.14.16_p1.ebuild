@@ -15,7 +15,7 @@ SLOT="${PV}"
 RESTRICT="binchecks mirror strip"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress debug doc minimal symlink"
+IUSE="build-kernel clang compress debug doc symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
