@@ -199,7 +199,6 @@ src_prepare() {
 	# ... and now extract the kernel config file!
 	./config-extract ${arch} ${featureset} ${subarch} || die "failed to generate kernel config"
 
-
 # CONFIG:
 
 	# Do not configure Debian trusted certificates
@@ -406,8 +405,6 @@ src_install() {
 
 		# clean-up kernel source tree
 		make mrproper || die "failed to prepare kernel sources"
-
-		cp -a "${WORKDIR}"/debian "${D}"/usr/src/linux-${KERNEL_FULL_VERSION} || die "failed to copy Debian archive to kernel source tree"
 
 		# copy kconfig into place
 		cp "${T}"/.config "${D}"/usr/src/linux-${KERNEL_FULL_VERSION}/.config || die "failed to install kernel config"
