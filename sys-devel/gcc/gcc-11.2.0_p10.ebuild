@@ -94,6 +94,13 @@ SRC_URI="
 	https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_ARCHIVE}
 "
 
+DEBIAN_UPSTREAM="https://ftp.debian.org/debian/pool/main/g/gcc-${GCC_MAJOR}/"
+DEBIAN_PATCH_ARCHIVE="gcc-${GCC_MAJOR}_${PV/_p/-}.debian.tar.xz"
+
+SRC_URI+="
+	${DEBIAN_UPSTREAM}/${DEBIAN_PATCH_ARCHIVE}
+"
+
 S="${WORKDIR}/gcc-${GCC_ARCHIVE_VER}"
 
 GCC_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/patches"
@@ -468,6 +475,9 @@ src_unpack() {
 	# unpack gcc sources
 	unpack ${GCC_ARCHIVE} || die "failed to unpack gcc sources"
 
+	# unpack Debian patches
+	unpack ${DEBIAN_PATCH_ARCHIVE} || die "failed to unpack Debian patches"
+
 	# logic for unpacking any required Ada bootstrap compilers when existing compiler isn't Ada compatible.
 	# TODO: this logic is currently hidden behind USE=ada, but it should be changed to a generic bootstrap tarball.
 	if use ada && use bootstrap && ! use system-bootstrap && ! is_crosscompile; then
@@ -522,12 +532,12 @@ src_prepare() {
 	einfo "Fixing misc issues in configure files"
 	for f in $(grep -l 'autoconf version 2.13' $(find "${S}" -name configure)) ; do
 		ebegin "  Updating ${f/${S}\/} [LANG]"
-		patch "${f}" "${FILESDIR}"/gcc-configure-LANG.patch >& "${T}"/configure-patch.log || eerror "Please file a bug about this"
+		eapply "${f}" "${FILESDIR}"/gcc-configure-LANG.patch >& "${T}"/configure-patch.log
 		eend "$?"
 	done
 
 	# Prevent new texinfo from breaking old versions (see #198182, #464008)
-	eapply "${FILESDIR}/gcc-configure-texinfo.patch" || die "patch fail"
+	eapply "${FILESDIR}/gcc-configure-texinfo.patch"
 
 	setup_multilib_osdirnames
 
