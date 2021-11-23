@@ -88,10 +88,10 @@ GCC_MAJOR="${PV%%.*}"
 # Version of archive before patches.
 GCC_ARCHIVE_VER="${PV%%_*}"
 # GCC release archive
-GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
+GCC_ARCHIVE="gcc-${GCC_ARCHIVE_VER}.tar.xz"
 
 SRC_URI="
-	https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}
+	https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_ARCHIVE}
 "
 
 S="${WORKDIR}/gcc-${GCC_ARCHIVE_VER}"
@@ -466,7 +466,7 @@ pkg_setup() {
 src_unpack() {
 
 	# unpack gcc sources
-	unpack ${GCC_A} || die "failed to unpack gcc sources"
+	unpack ${GCC_ARCHIVE} || die "failed to unpack gcc sources"
 
 	# logic for unpacking any required Ada bootstrap compilers when existing compiler isn't Ada compatible.
 	# TODO: this logic is currently hidden behind USE=ada, but it should be changed to a generic bootstrap tarball.
