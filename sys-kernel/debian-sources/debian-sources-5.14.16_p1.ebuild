@@ -96,7 +96,7 @@ get_certs_dir() {
 		certdir=/etc/kernel/certs/${subdir}
 		if [[ -d ${certdir} ]]; then
 			if [[ ! -e ${certdir}/signing_key.pem ]]; then
-				eerror "$certdir exists but missing signing key; exiting."
+				die  "${certdir} exists but missing signing key; exiting."
 				exit 1
 			fi
 			echo ${certdir}
@@ -295,14 +295,11 @@ src_prepare() {
 	# sign kernel modules via
 	if use sign-modules; then
 		certs_dir=$(get_certs_dir)
-		echo
 		if [[ -z "${certs_dir}" ]]; then
-			eerror "No certs dir found in /etc/kernel/certs; aborting."
-			die
+			die "No certs dir found in /etc/kernel/certs; aborting."
 		else
 			einfo "Using certificate directory of ${certs_dir} for kernel module signing."
 		fi
-		echo
 		# turn on options for signing modules.
 		# first, remove existing configs and comments:
 		tweak_config 'CONFIG_MODULE_SIG=""'
@@ -317,11 +314,6 @@ src_prepare() {
 		tweak_config 'CONFIG_SYSTEM_EXTRA_CERTIFICATE=y'
 		tweak_config 'CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE="4096"'
 		tweak_config "CONFIG_MODULE_SIG_SHA512=y"
-
-		# print some info to warn user
-		ewarn "This kernel will ALLOW non-signed modules to be loaded with a WARNING."
-		ewarn "To enable strict enforcement, YOU MUST add module.sig_enforce=1 as a kernel boot parameter"
-		echo
 	fi
 
 	# get config into good state:
@@ -550,6 +542,11 @@ pkg_postinst() {
 		ewarn "e.g. VirtualBox, Skype"
 		ewarn "Full information available in $DOCUMENTATION"
 		ewarn ""
+	fi
+
+	if use sign-modules; then
+		ewarn "This kernel will ALLOW non-signed modules to be loaded with a WARNING."
+		ewarn "To enable strict enforcement, YOU MUST add module.sig_enforce=1 as a kernel boot parameter"
 	fi
 }
 
