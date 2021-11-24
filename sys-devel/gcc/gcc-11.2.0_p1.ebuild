@@ -96,53 +96,47 @@ SRC_URI="
 
 S="${WORKDIR}/gcc-${GCC_ARCHIVE_VER}"
 
-GCC_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches"
+GCC_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/patches"
 
 # Disable a few of these as they will be toggled by USE flag
 GCC_PATCHES=(
 	cuda-float128.patch
 	gcc-distro-specs.patch
 	gcc-verbose-lto-link.patch
+	testsuite-glibc-warnings.patch
+	testsuite-hardening-format.patch
+	testsuite-hardening-printf-types.patch
+	testsuite-hardening-updates.patch
 )
 
 GENTOO_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/gentoo-patches"
 
 GENTOO_PATCHES=(
-#	01_all_default-fortify-source.patch
-#	02_all_default-warn-format-security.patch
-#	03_all_default-warn-trampolines.patch
-	04_all_nossp-on-nostdlib.patch
-	05_all_alpha-mieee-default.patch
-	06_all_ia64_note.GNU-stack.patch
-	07_all_i386_libgcc_note.GNU-stack.patch
-	08_all_libiberty-asprintf.patch
-	09_all_libiberty-pic.patch
-	10_all_nopie-all-flags.patch
-	11_all_sh-drop-sysroot-suffix.patch
-	12_all_ia64-TEXTREL.patch
-	13_all_disable-systemtap-switch.patch
-	14_all_m68k-textrel-on-libgcc.patch
-	15_all_respect-build-cxxflags.patch
-	16_all_libgfortran-Werror.patch
-	17_all_libgomp-Werror.patch
-	18_all_libitm-Werror.patch
-	19_all_libatomic-Werror.patch
-	20_all_libbacktrace-Werror.patch
-	21_all_libsanitizer-Werror.patch
-	22_all_libstdcxx-no-vtv.patch
-	23_all_disable-riscv32-ABIs.patch
-	24_all_default_ssp-buffer-size.patch
-	25_all_hppa-faster-synth_mult.patch
-	26_all_libcpp-ar.patch
-#	27_all_EXTRA_OPTIONS-z-now.patch
-#	28_all_EXTRA_OPTIONS-fstack-clash-protection.patch
-	29_all_lto-intl-workaround-PR95194.patch
-	30_all_plugin-objdump.patch
-	31_all_fno-delayed-branch.patch
-	32_all_vtv-slibtool.patch
-	33_all_ctor-union-PR100489.patch
-	34_all_ICE-tsubst-PR100102.patch
-	35_all_remove-cyclades.patch
+#	1001_all_default-fortify-source.patch
+#	1002_all_default-warn-format-security.patch
+#	1003_all_default-warn-trampolines.patch
+	1004_all_nossp-on-nostdlib.patch
+	1005_all_alpha-mieee-default.patch
+	1006_all_ia64_note.GNU-stack.patch
+	1007_all_libiberty-asprintf.patch
+	1008_all_libiberty-pic.patch
+	1009_all_nopie-all-flags.patch
+	1010_all_sh-drop-sysroot-suffix.patch
+	1011_all_ia64-TEXTREL.patch
+	1012_all_disable-systemtap-switch.patch
+	1013_all_m68k-textrel-on-libgcc.patch
+	1014_all_respect-build-cxxflags.patch
+	1015_all_libgomp-Werror.patch
+	1016_all_libitm-Werror.patch
+	1017_all_libatomic-Werror.patch
+	1018_all_libbacktrace-Werror.patch
+	1019_all_libsanitizer-Werror.patch
+	1020_all_libstdcxx-no-vtv.patch
+	1021_all_default_ssp-buffer-size.patch
+#	1022_all_EXTRA_OPTIONS-z-now.patch
+#	1023_all_EXTRA_OPTIONS-fstack-clash-protection.patch
+	1024_all_lto-intl-workaround-PR95194.patch
+	1025_all_plugin-objdump.patch
 )
 
 # TODO: This is a WIP. GNAT_AMD64_BOOTSTRAP currently works, and is a dynamically linked glibc built gcc.
