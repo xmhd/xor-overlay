@@ -53,7 +53,7 @@
 +/* Enable code instrumentation of control-flow transfers.
 +   Available on x86 and x86_64.  */
 +#ifndef CF_PROTECTION_SPEC
-+# ifdef DIST_DEFAULT_CF_PROTECTION && defined (__CET__)
++# if defined (DIST_DEFAULT_CF_PROTECTION) && defined (__CET__)
 +#  define CF_PROTECTION_SPEC " %{!fcf-protection*:%{!fno-cf-protection:-fcf-protection}}"
 +# else
 +#  define CF_PROTECTION_SPEC ""
