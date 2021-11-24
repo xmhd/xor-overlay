@@ -23,7 +23,7 @@ IUSE="$IUSE doc nls hardened +multilib multiarch" # docs/i18n/system flags
 IUSE="$IUSE custom-cflags openmp fixed-point graphite lto pch +quad-math" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo +system-bootstrap" # Bootstrap flags
 IUSE="$IUSE +pie libssp +ssp" # Base hardening flags
-IUSE="$IUSE cet +fortify_source +bind_now vtv" # Extra hardening flags
+IUSE="$IUSE cet +fortify_source +bind_now +relro vtv" # Extra hardening flags
 IUSE="$IUSE +scp" # Stack clash protector added in gcc-8
 IUSE="$IUSE asan sanitize ubsan dev_extra_warnings" # Dev flags
 IUSE="$IUSE nptl systemtap valgrind zstd" # TODO: sort these flags
@@ -88,17 +88,25 @@ GCC_MAJOR="${PV%%.*}"
 # Version of archive before patches.
 GCC_ARCHIVE_VER="${PV%%_*}"
 # GCC release archive
-GCC_A="gcc-${GCC_ARCHIVE_VER}.tar.xz"
+GCC_ARCHIVE="gcc-${GCC_ARCHIVE_VER}.tar.xz"
 
 SRC_URI="
-	https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_A}
+	https://gcc.gnu.org/pub/gcc/releases/gcc-${GCC_ARCHIVE_VER}/${GCC_ARCHIVE}
 "
 
 S="${WORKDIR}/gcc-${GCC_ARCHIVE_VER}"
 
+GCC_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches"
+
+# Disable a few of these as they will be toggled by USE flag
+GCC_PATCHES=(
+	cuda-float128.patch
+	gcc-distro-specs.patch
+	gcc-verbose-lto-link.patch
+)
+
 GENTOO_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/gentoo-patches"
 
-# Disable a few of these as they will be toggled by USE flag, i.e 01, 02, 03, 27 + 28.
 GENTOO_PATCHES=(
 #	01_all_default-fortify-source.patch
 #	02_all_default-warn-format-security.patch
@@ -135,64 +143,6 @@ GENTOO_PATCHES=(
 	33_all_ctor-union-PR100489.patch
 	34_all_ICE-tsubst-PR100102.patch
 	35_all_remove-cyclades.patch
-)
-
-CAIRN_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/cairn-patches"
-
-CAIRN_PATCHES=(
-#	01_all_ENABLE_DEFAULT_BIND_NOW-z-now.patch
-#	02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch
-#	03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch
-#	04_all_ENABLE_DEFAULT_CET.patch
-	05_all_disable_float128_cuda.patch
-)
-
-ALPINE_PATCHES_DIR="${FILESDIR}/${GCC_ARCHIVE_VER}/alpine-patches"
-
-# Disable a few of these as they will be toggled by USE flag, i.e 0003, 004, 0006 + 0007
-# TODO: investigate 0008
-ALPINE_PATCHES=(
-	0001-posix_memalign.patch
-	0002-gcc-poison-system-directories.patch
-#	0003-Turn-on-Wl-z-relro-z-now-by-default.patch
-#	0004-Turn-on-D_FORTIFY_SOURCE-2-by-default-for-C-C-ObjC-O.patch
-	0005-On-linux-targets-pass-as-needed-by-default-to-the-li.patch
-#	0006-Enable-Wformat-and-Wformat-security-by-default.patch
-#	0007-Enable-Wtrampolines-by-default.patch
-#	0008-Disable-ssp-on-nostdlib-nodefaultlibs-and-ffreestand.patch
-	0009-Ensure-that-msgfmt-doesn-t-encounter-problems-during.patch
-#	0010-Don-t-declare-asprintf-if-defined-as-a-macro.patch
-	0011-libiberty-copy-PIC-objects-during-build-process.patch
-	0012-libitm-disable-FORTIFY.patch
-	0013-libgcc_s.patch
-	0014-nopie.patch
-	0015-libffi-use-__linux__-instead-of-__gnu_linux__-for-mu.patch
-	0016-dlang-update-zlib-binding.patch
-	0017-dlang-fix-fcntl-on-mips-add-libucontext-dep.patch
-	0018-ada-fix-shared-linking.patch
-#	0019-build-fix-CXXFLAGS_FOR_BUILD-passing.patch
-	0020-add-fortify-headers-paths.patch
-	0021-Alpine-musl-package-provides-libssp_nonshared.a.-We-.patch
-	0022-DP-Use-push-state-pop-state-for-gold-as-well-when-li.patch
-	0023-Pure-64-bit-MIPS.patch
-	0024-use-pure-64-bit-configuration-where-appropriate.patch
-	0025-always-build-libgcc_eh.a.patch
-	0026-ada-libgnarl-compatibility-for-musl.patch
-	0027-ada-musl-support-fixes.patch
-	0028-gcc-go-Use-_off_t-type-instead-of-_loff_t.patch
-	0029-gcc-go-Don-t-include-sys-user.h.patch
-	0030-gcc-go-Fix-ucontext_t-on-PPC64.patch
-	0031-gcc-go-Fix-handling-of-signal-34-on-musl.patch
-	0032-gcc-go-Use-int64-type-as-offset-argument-for-mmap.patch
-	0033-gcc-go-Fix-st_-a-m-c-tim-fields-in-generated-sysinfo.patch
-	0034-gcc-go-signal-34-is-special-on-musl-libc.patch
-	0035-gcc-go-Prefer-_off_t-over-_off64_t.patch
-	0036-gcc-go-undef-SETCONTEXT_CLOBBERS_TLS-in-proc.c.patch
-	0037-gcc-go-link-to-libucontext.patch
-	0038-gcc-go-Disable-printing-of-unaccessible-ppc64-struct.patch
-	0039-CRuntime_Musl-Support-v1.2.0-for-32-bits.patch
-	0040-configure-Add-enable-autolink-libatomic-use-in-LINK_.patch
-	0041-Use-generic-errstr.go-implementation-on-musl.patch
 )
 
 # TODO: This is a WIP. GNAT_AMD64_BOOTSTRAP currently works, and is a dynamically linked glibc built gcc.
@@ -431,7 +381,7 @@ pkg_setup() {
 		# equivalent of adding -fsanitize=address to BOOT_CFLAGS
 		use asan && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-asan"
 		# equivalent of adding -fcf-protection to BOOT_CFLAGS
-		use cet && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-cet"
+		#use cet && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-cet"
 		# 'bootstrap-debug' verifies that gcc generates the same executable code,
 		# whether or not it is asked to emit debug info and is enabled by default.
 		# 'bootstrap-debug-big' saves internal compiler dumps during stage2 and stage3
@@ -522,7 +472,7 @@ pkg_setup() {
 src_unpack() {
 
 	# unpack gcc sources
-	unpack ${GCC_A} || die "failed to unpack gcc sources"
+	unpack ${GCC_ARCHIVE} || die "failed to unpack gcc sources"
 
 	# logic for unpacking any required Ada bootstrap compilers when existing compiler isn't Ada compatible.
 	# TODO: this logic is currently hidden behind USE=ada, but it should be changed to a generic bootstrap tarball.
@@ -578,35 +528,24 @@ src_prepare() {
 	einfo "Fixing misc issues in configure files"
 	for f in $(grep -l 'autoconf version 2.13' $(find "${S}" -name configure)) ; do
 		ebegin "  Updating ${f/${S}\/} [LANG]"
-		patch "${f}" "${FILESDIR}"/gcc-configure-LANG.patch >& "${T}"/configure-patch.log || eerror "Please file a bug about this"
+		eapply "${f}" "${FILESDIR}"/gcc-configure-LANG.patch >& "${T}"/configure-patch.log
 		eend "$?"
 	done
 
 	# Prevent new texinfo from breaking old versions (see #198182, #464008)
-	eapply "${FILESDIR}/gcc-configure-texinfo.patch" || die "patch fail"
+	eapply "${FILESDIR}/gcc-configure-texinfo.patch"
 
 	setup_multilib_osdirnames
 
-	# Gentoo Linux patches
+	einfo "Applying patches ..."
+	for my_patch in ${GCC_PATCHES[*]} ; do
+		eapply "${GCC_PATCHES_DIR}/${my_patch}"
+	done
+
 	einfo "Applying Gentoo Linux patches ..."
 	for my_patch in ${GENTOO_PATCHES[*]} ; do
 		eapply "${GENTOO_PATCHES_DIR}/${my_patch}"
 	done
-
-	# Cairn Linux patches
-	einfo "Applying Cairn Linux patches ..."
-	for my_patch in ${CAIRN_PATCHES[*]} ; do
-		eapply "${CAIRN_PATCHES_DIR}/${my_patch}"
-	done
-
-	# Alpine Linux patches
-	# most of these are musl compatibility fixes, so hide it behind elibc_musl || cross*-musl*
-	if use elibc_musl || [[ ${CATEGORY} = cross-*-musl* ]]; then
-		einfo "Applying Alpine Linux patches ..."
-		for my_patch in ${ALPINE_PATCHES[*]} ; do
-			eapply "${ALPINE_PATCHES_DIR}/${my_patch}"
-		done
-	fi
 
 	local gcc_hard_flags=""
 
@@ -615,39 +554,38 @@ src_prepare() {
 
 	# Enable FORTIFY_SOURCE by default
 	if use fortify_source; then
-		eapply "${GENTOO_PATCHES_DIR}/01_all_default-fortify-source.patch"
+		gcc_hard_flags+=" -DDIST_DEFAULT_FORTIFY_SOURCE "
 	fi
 
 	# TODO
 	if use dev_extra_warnings ; then
-		eapply "${GENTOO_PATCHES_DIR}/02_all_default-warn-format-security.patch"
-		eapply "${GENTOO_PATCHES_DIR}/03_all_default-warn-trampolines.patch"
-
+		gcc_hard_flags+=" -DDIST_DEFAULT_FORMAT_SECURITY "
 		einfo "Additional warnings enabled by default, this may break some tests and compilations with -Werror."
 	fi
 
 	# Enable BIND_NOW by default
 	if use bind_now; then
-		eapply "${CAIRN_PATCHES_DIR}/01_all_ENABLE_DEFAULT_BIND_NOW-z-now.patch"
-		gcc_hard_flags+=" -DENABLE_DEFAULT_BIND_NOW "
+		gcc_hard_flags+=" -DDIST_DEFAULT_BIND_NOW "
+	fi
+
+	# Enable relro by default
+	if use relro; then
+		gcc_hard_flags+=" -DDIST_DEFAULT_RELRO "
 	fi
 
 	# Enable Stack Clash Protection by default
 	if use scp; then
-		eapply "${CAIRN_PATCHES_DIR}/02_all_ENABLE_DEFAULT_SCP-fstack-clash-protection.patch"
-		gcc_hard_flags+=" -DENABLE_DEFAULT_SCP "
+		gcc_hard_flags+=" -DDIST_DEFAULT_STACK_CLASH "
 	fi
 
 	# TODO
-	if use ssp && use hardened; then
-		eapply "${CAIRN_PATCHES_DIR}/03_all_ENABLE_DEFAULT_SSP_ALL-fstack-protector-all.patch"
-		gcc_hard_flags+=" -DENABLE_DEFAULT_SSP_ALL "
+	if use ssp; then
+		gcc_hard_flags+=" -DDIST_DEFAULT_SSP "
 	fi
 
 	# Enable CET by default
 	if use cet; then
-		eapply "${CAIRN_PATCHES_DIR}/04_all_ENABLE_DEFAULT_CET.patch"
-		gcc_hard_flags+=" -DENABLE_DEFAULT_CET"
+		gcc_hard_flags+=" -DDIST_DEFAULT_CF_PROTECTION "
 	fi
 
 	# GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
