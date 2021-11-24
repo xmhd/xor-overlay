@@ -262,18 +262,6 @@
      %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
 --- a/gcc/c-family/c-cppbuiltin.c
 +++ b/gcc/c-family/c-cppbuiltin.c
-@@ -33,6 +33,11 @@ along with GCC; see the file COPYING3.
- #include "common/common-target.h"
- #include "cppbuiltin.h"
- 
-+/* Inject some default compilation flags which are used as the default.
-+   Done by the packaging build system.  Should that be done in the headers
-+   in gcc/config/<arch>/ instead?  */
-+#include "distro-defaults.h"
-+
- #ifndef TARGET_OS_CPP_BUILTINS
- # define TARGET_OS_CPP_BUILTINS()
- #endif
 @@ -1385,6 +1390,12 @@ c_cpp_builtins (cpp_reader *pfile)
    builtin_define_with_value ("__REGISTER_PREFIX__", REGISTER_PREFIX, 0);
    builtin_define_with_value ("__USER_LABEL_PREFIX__", user_label_prefix, 0);
