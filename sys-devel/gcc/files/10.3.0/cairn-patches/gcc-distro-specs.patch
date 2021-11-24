@@ -2,18 +2,6 @@
 
 --- a/gcc/gcc.c
 +++ b/gcc/gcc.c
-@@ -27,6 +27,11 @@ CC recognizes how to compile each input
- Once it knows which kind of compilation to perform, the procedure for
- compilation is specified by a string called a "spec".  */
- 
-+/* Inject some default compilation flags which are used as the default.
-+   Done by the packaging build system.  Should that be done in the headers
-+   gcc/config/<arch>/*.h instead?  */
-+#include "distro-defaults.h"
-+
- #include "config.h"
- #include "system.h"
- #include "coretypes.h"
 @@ -874,6 +879,90 @@ proper position among the other output f
  #define LINK_GCC_C_SEQUENCE_SPEC "%G %{!nolibc:%L %G}"
  #endif
