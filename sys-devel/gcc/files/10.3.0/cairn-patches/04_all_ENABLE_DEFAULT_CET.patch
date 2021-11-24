@@ -1,0 +1,16 @@
+diff -Naur a/gcc/gcc.c b/gcc/gcc.c
+--- a/gcc/gcc.c	2021-05-11 16:24:51.478873303 -0400
++++ b/gcc/gcc.c	2021-05-11 16:31:15.722859325 -0400
+@@ -880,6 +880,12 @@
+ #define NO_SSP_SPEC ""
+ #endif
+ 
++#ifdef ENABLE_DEFAULT_CET
++#define CF_PROTECTION_SPEC "%{!fcf-protection*:%{!fno-cf-protection:-fcf-protection}}"
++#else
++#define CF_PROTECTION_SPEC ""
++#endif
++
+ #ifndef LINK_SSP_SPEC
+ #ifdef TARGET_LIBC_PROVIDES_SSP
+ #define LINK_SSP_SPEC "%{fstack-protector|fstack-protector-all" \

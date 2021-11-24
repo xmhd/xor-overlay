@@ -1,0 +1,71 @@
+https://bugs.gentoo.org/788829
+https://gcc.gnu.org/PR100489
+
+From a335afe208cd27cf8ee4cb028fb7769700ab6245 Mon Sep 17 00:00:00 2001
+From: Jason Merrill <jason@redhat.com>
+Date: Wed, 19 May 2021 21:12:45 -0400
+Subject: [PATCH] c++: designated init with anonymous union [PR100489]
+
+My patch for PR98463 added an assert that tripped on this testcase, because
+we ended up with a U CONSTRUCTOR with an initializer for a, which is not a
+member of U.  We need to wrap the a initializer in another CONSTRUCTOR for
+the anonymous union.
+
+For the GCC 10 branch, just remove the assert.
+
+	PR c++/100489
+
+gcc/cp/ChangeLog:
+
+	* constexpr.c (get_or_insert_ctor_field): Remove assert.
+
+gcc/testsuite/ChangeLog:
+
+	* g++.dg/cpp2a/desig18.C: New test.
+---
+ gcc/cp/constexpr.c                   |  4 +---
+ gcc/testsuite/g++.dg/cpp2a/desig18.C | 17 +++++++++++++++++
+ 2 files changed, 18 insertions(+), 3 deletions(-)
+ create mode 100644 gcc/testsuite/g++.dg/cpp2a/desig18.C
+
+diff --git a/gcc/cp/constexpr.c b/gcc/cp/constexpr.c
+index d6fda8b96ee..566ba5b362a 100644
+--- a/gcc/cp/constexpr.c
++++ b/gcc/cp/constexpr.c
+@@ -3361,9 +3361,7 @@ get_or_insert_ctor_field (tree ctor, tree index, int pos_hint = -1)
+     }
+   else
+     {
+-      gcc_assert (TREE_CODE (index) == FIELD_DECL
+-		  && (same_type_ignoring_top_level_qualifiers_p
+-		      (DECL_CONTEXT (index), TREE_TYPE (ctor))));
++      gcc_assert (TREE_CODE (index) == FIELD_DECL);
+ 
+       /* We must keep the CONSTRUCTOR's ELTS in FIELD order.
+ 	 Usually we meet initializers in that order, but it is
+diff --git a/gcc/testsuite/g++.dg/cpp2a/desig18.C b/gcc/testsuite/g++.dg/cpp2a/desig18.C
+new file mode 100644
+index 00000000000..4851579b7c7
+--- /dev/null
++++ b/gcc/testsuite/g++.dg/cpp2a/desig18.C
+@@ -0,0 +1,17 @@
++// PR c++/100489
++// { dg-options "" }
++
++union U
++{
++  union
++  {
++    unsigned char a;
++  };
++
++  unsigned char b[1];
++};
++
++void f(unsigned char a)
++{
++  union U u = { .a = a };
++}
+-- 
+2.31.1
+
