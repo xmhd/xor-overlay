@@ -375,7 +375,7 @@ pkg_setup() {
 		# equivalent of adding -fsanitize=address to BOOT_CFLAGS
 		use asan && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-asan"
 		# equivalent of adding -fcf-protection to BOOT_CFLAGS
-		#use cet && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-cet"
+		use cet && BUILD_CONFIG="${BUILD_CONFIG:+${BUILD_CONFIG} }bootstrap-cet"
 		# 'bootstrap-debug' verifies that gcc generates the same executable code,
 		# whether or not it is asked to emit debug info and is enabled by default.
 		# 'bootstrap-debug-big' saves internal compiler dumps during stage2 and stage3
