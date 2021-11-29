@@ -11,6 +11,7 @@
 		<flag name="clang">Build the kernel with the Clang compiler</flag>
 		<flag name="compress">Compress kernel, modules and initramfs</flag>
 		<flag name="doc">Install Linux kernel documentation</flag>
+		<flag name="dracut">Use Dracut for initramfs generation</flag>
 		<flag name="dtrace">Enable support for DTrace in the kernel</flag>
 		<flag name="firmware">Include firmware in the initramfs</flag>
 		<flag name="hardened">Apply kernel hardening patch set and CONFIG_* tweaks</flag>
