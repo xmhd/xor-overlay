@@ -23,7 +23,7 @@ IUSE="${IUSE} cet hardened +page-table-isolation pax +retpoline selinux sign-mod
 # initramfs
 IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth systemd udev zfs"
 # misc kconfig tweaks
-IUSE="${IUSE} dtrace mcelog +memcg +numa"
+IUSE="${IUSE} dtrace +mcelog +memcg +numa"
 
 BDEPEND="
 	sys-devel/bc
