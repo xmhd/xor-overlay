@@ -549,7 +549,7 @@ pkg_postinst() {
 				$(usex mdadm "--mdadm" "--no-mdadm") \
 				$(usex mdadm "--mdadm-config=/etc/mdadm.conf" "") \
 				$(usex microcode "--microcode-initramfs" "--no-microcode-initramfs") \
-				$(usex udev-rules "--udev-rules" "--no-udev-rules") \
+				$(usex udev "--udev-rules" "--no-udev-rules") \
 				$(usex zfs "--zfs" "--no-zfs") \
 				initramfs || die "failed to build initramfs"
 		fi
