@@ -578,8 +578,9 @@ src_prepare() {
 	fi
 
 	# Enable CET by default
+	# temporarily disable ;(
 	if use cet; then
-		gcc_hard_flags+=" -DDIST_DEFAULT_CF_PROTECTION "
+		gcc_hard_flags+=" -DDIST_FOO_BAR_DEFAULT_CF_PROTECTION "
 	fi
 
 	# GCC stores it's CFLAGS in the Makefile - here we make those CFLAGS == ${gcc_hard_flags} so that they are applied in the build process.
