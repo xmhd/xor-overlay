@@ -1556,19 +1556,6 @@ src_install() {
 			-name 'lib*san.la' \
 		')' -type f -delete
 
-	# replace gcc_movelibs - currently handles only libcc1:
-	( set +f
-		einfo -- "Removing extraneous libtool '.la' files from '${PREFIX}/lib*}'."
-		rm ${D%/}${PREFIX}/lib{,32,64}/*.la 2>/dev/null
-		einfo -- "Relocating libs to '${LIBPATH}':"
-		for l in "${D%/}${PREFIX}"/lib{,32,64}/* ; do
-			[ -f "${l}" ] || continue
-			mydir="${l%/*}" ; myfile="${l##*/}"
-			einfo -- "Moving '${myfile}' from '${mydir#${D}}' to '${LIBPATH}'."
-			cd "${mydir}" && mv "${myfile}" "${D}${LIBPATH}/${myfile}" 2>/dev/null || die
-		done
-	)
-
 	# Use gid of 0 because some stupid ports don't have
 	# the group 'root' set to gid 0.  Send to /dev/null
 	# for people who are testing as non-root.
