@@ -619,6 +619,12 @@ src_prepare() {
 
 src_configure() {
 
+	# Create build directory...
+	mkdir -p "${WORKDIR}"/build || die "create build directory failed"
+
+	# ... and cd to the newly created build directory.
+	cd "${WORKDIR}"/build || die "cd to build directory failed"
+
 	local conf_gcc
 
 # BRANDING:
@@ -987,7 +993,6 @@ src_configure() {
 		$(use_enable cet)
 		$(use_enable fixed-point)
 		$(usex graphite "--with-isl --disable-isl-version-check" "--without-isl")
-		$(use_enable jit host-shared)
 		$(use_enable lto)
 		$(use_enable nls)
 		$(use_enable pie default-pie)
@@ -1009,12 +1014,6 @@ src_configure() {
 
 	# Pass BUILD_CONFIG to ./configure.
 	conf_gcc+=( --with-build-config="${BUILD_CONFIG}" )
-
-	# Create build directory...
-	mkdir -p "${WORKDIR}"/build || die "create build directory failed"
-
-	# ... and cd to the newly created build directory.
-	cd "${WORKDIR}"/build || die "cd to build directory failed"
 
 	# Nothing wrong with a bit of verbosity
 	echo
