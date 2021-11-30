@@ -1345,7 +1345,6 @@ src_install() {
 
 	dodir /etc/env.d/gcc
 	create_gcc_env_entry
-	create_revdep_rebuild_entry
 	cross_gcc_env_setup
 
 # CLEAN-UP SECTION:
