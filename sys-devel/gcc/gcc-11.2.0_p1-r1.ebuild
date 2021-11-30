@@ -279,6 +279,7 @@ tc_version_is_at_least() {
 pkg_setup() {
 
 # BOOTSTRAP:
+	# TODO: still uses GNAT specific bootstrap tarball and names... fix this
 	if ! use system-bootstrap; then
 		export GNATBOOT="${WORKDIR}"/gnatboot/usr
 		PATH="${GNATBOOT}"/bin:${PATH}
