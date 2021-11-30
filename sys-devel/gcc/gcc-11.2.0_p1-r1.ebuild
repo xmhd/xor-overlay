@@ -278,6 +278,14 @@ tc_version_is_at_least() {
 
 pkg_setup() {
 
+# BOOTSTRAP:
+	if ! use system-bootstrap; then
+		export GNATBOOT="${WORKDIR}"/gnatboot/usr
+		PATH="${GNATBOOT}"/bin:${PATH}
+		export PATH
+		einfo "PATH = ${PATH}"
+	fi
+
 # BRANDING:
 	if ! use hardened; then
 		export GCC_BRANDING="Cairn Linux ${PV}"
@@ -498,11 +506,6 @@ src_unpack() {
 				die "GNAT_PPC64_BOOTSTRAP support not yet implemented"
 			;;
 		esac
-
-		export GNATBOOT="${WORKDIR}"/gnatboot/usr
-		PATH="${GNATBOOT}"/bin:${PATH}
-		export PATH
-		einfo "PATH = ${PATH}"
 	fi
 }
 
