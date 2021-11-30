@@ -1237,7 +1237,7 @@ create_gcc_env_entry() {
 	fi
 }
 
-create_revdep_rebuild_entry() {
+cross_gcc_env_setup() {
 	local revdep_rebuild_base="/etc/revdep-rebuild/05cross-${CTARGET}-${GCC_CONFIG_VER}"
 	local revdep_rebuild_file="${ED}${revdep_rebuild_base}"
 
@@ -1288,6 +1288,7 @@ src_install() {
 	dodir /etc/env.d/gcc
 	create_gcc_env_entry
 	create_revdep_rebuild_entry
+	cross_gcc_env_setup
 
 # CLEAN-UP SECTION:
 
@@ -1342,11 +1343,10 @@ src_install() {
 	# When gcc builds a crosscompiler it does not install unprefixed tools.
 	# When cross-building gcc does install native tools.
 	if ! is_crosscompile; then
-		# Rename the main go binaries as we don't want to clobber dev-lang/go
-		# when gcc-config runs. #567806
-		if tc_version_is_at_least 5 && use go ; then
-			for x in go gofmt; do
-				mv ${x} ${x}-${GCCMAJOR} || die
+		# Rename the main go binaries as we don't want to clobber dev-lang/go when gcc-config runs - Gentoo #567806
+		if use go; then
+			for go_bins in go gofmt; do
+				mv ${go_bins} ${go_bins}-${GCCMAJOR} || die "failed to rename gcc go binaries"
 			done
 		fi
 	fi
