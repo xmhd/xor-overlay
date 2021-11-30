@@ -621,7 +621,6 @@ src_configure() {
 	local conf_gcc
 
 # BRANDING:
-
 	conf_gcc+=(
 		--with-bugurl="http://bugs.cairnlinux.org"
 		--with-pkgversion="${GCC_BRANDING}"
@@ -679,13 +678,9 @@ src_configure() {
 	fi
 
 # LANG:
-	# C/C++ used for stage1 compiler
-	local _lang=(
-		c
-		c++
-	)
-
+	local _lang=( c )
 	use ada && _lang+=( ada )
+	use cxx && _lang+=( c++ )
 	use d && _lang+=( d )
 	use objc && _lang+=( objc )
 	use objc-gc && conf_gcc+=( --enable-objc-gc )
