@@ -174,10 +174,6 @@ is_crosscompile() {
 	[[ ${CHOST} != ${CTARGET} ]]
 }
 
-is_native_compile() {
-	[[ ${CHOST} == ${CTARGET} ]]
-}
-
 gcc-abi-map() {
 	# Convert the ABI name we use in Gentoo to what gcc uses
 	local map=()
