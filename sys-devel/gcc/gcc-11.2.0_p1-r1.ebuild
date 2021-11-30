@@ -1156,10 +1156,6 @@ src_compile() {
 
 	touch "${S}"/gcc/c-gperf.h
 
-	# Unset ABI
-	# leftover from Funtoo - needed?
-	unset ABI
-
 	einfo "Compiling ${PN} (${GCC_TARGET})..."
 
 	# Run make against GCC_TARGET, setting some variables as required.
