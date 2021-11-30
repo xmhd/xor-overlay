@@ -1082,6 +1082,47 @@ src_configure() {
 		../gcc-${GCC_ARCHIVE_VER}/configure "${conf_bpf[@]}" || die "failed to configure gcc-bpf"
 	fi
 
+	# Straight from the manual: https://gcc.gnu.org/onlinedocs/jit/internals/index.html#packaging-notes
+	#
+	# --enable-host-shared is needed for jit in order to get position-independent code.
+	# This will slow down the regular compiler by a percentage.
+	# Hence when packaging gcc with libgccjit please configure and build twice:
+	# once without: --enable-host-shared for most languages
+	# once with: --enabled-host-shared for jit
+	if use jit; then
+		# setup build directory
+		mkdir "${WORKDIR}"/build-jit || die "failed to create jit build directory"
+
+		# cd to build directory
+		cd "${WORKDIR}"/build-jit || die "failed to cd to jit build directory"
+
+		conf_jit=(
+			--with-bugurl="http://bugs.cairnlinux.org"
+			--with-pkgversion="${GCC_BRANDING}"
+
+                        --enable-version-specific-runtime-libs
+                        --prefix=${PREFIX}
+                        --bindir=${BINPATH}
+                        --includedir=${INCLUDEPATH}
+                        --datadir=${DATAPATH}
+                        --mandir=${DATAPATH}/man
+                        --infodir=${DATAPATH}/info
+                        --with-gxx-include-dir=${STDCXX_INCDIR}
+
+			--enable-languages=c,c++,jit
+			--with-system-zlib
+			--without-included-gettext
+			--disable-werror
+
+			--enable-host-shared
+			--with-pic
+
+			$(use_enable lto)
+		)
+
+		../gcc-${GCC_ARCHIVE_VER}/configure "${conf_jit}" || die "failed to configure gcc-jit"
+	fi
+
 	if use nvptx; then
 
 		# setup build directory
@@ -1180,6 +1221,21 @@ src_compile() {
 			BOOT_CFLAGS="${BOOT_CFLAGS}" \
 			LIBPATH="${LIBPATH}" \
 			all || die "TODO"
+	fi
+
+	# WIP
+	if use jit; then
+		cd "${WORKDIR}"/build-jit || die "failed to cd to build-jit directory"
+
+		touch "${S}"/gcc/c-gperf.h
+
+		einfo "Compiling ${PN} (${GCC_BPF_TARGET})..."
+
+                emake -C "${WORKDIR}"/build-jit \
+                        STAGE1_CFLAGS="${STAGE1_CFLAGS}" \
+                        BOOT_CFLAGS="${BOOT_CFLAGS}" \
+                        LIBPATH="${LIBPATH}" \
+                        all || die "TODO"
 	fi
 }
 
