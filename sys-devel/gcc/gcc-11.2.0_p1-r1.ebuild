@@ -498,6 +498,11 @@ src_unpack() {
 				die "GNAT_PPC64_BOOTSTRAP support not yet implemented"
 			;;
 		esac
+
+		export GNATBOOT="${WORKDIR}"/gnatboot/usr
+		PATH="${GNATBOOT}"/bin:${PATH}
+		export PATH
+		einfo "PATH = ${PATH}"
 	fi
 }
 
@@ -602,6 +607,16 @@ src_prepare() {
 
 src_configure() {
 
+	if ! use system-bootstrap; then
+		CC="${GNATBOOT}"/usr/bin/gcc
+		CXX="${GNATBOOT}"/usr/bin/g++
+		CPP="${GNATBOOT}"/usr/bin/cpp
+		AS=as
+		LD=ld
+
+		tc-export CC CXX CPP AS LD
+	fi
+
 	local conf_gcc
 
 # BRANDING:
@@ -611,7 +626,7 @@ src_configure() {
 		--with-pkgversion="${GCC_BRANDING}"
 	)
 
-# PATHS
+# PATHS:
 	conf_gcc+=(
 		--enable-version-specific-runtime-libs
 		--prefix=${PREFIX}
@@ -662,63 +677,25 @@ src_configure() {
 		conf_gcc+=( --enable-checking=no )
 	fi
 
-# LANG
+# LANG:
 	# C/C++ used for stage1 compiler
-	local GCC_LANG="c,c++"
+	local _lang=(
+		c
+		c++
+	)
 
-	if use objc; then
-		GCC_LANG+=",objc"
-		use objc-gc && conf_gcc+=( --enable-objc-gc )
-		use objc++ && GCC_LANG+=",obj-c++"
-	fi
+	use ada && _lang+=( ada )
+	use d && _lang+=( d )
+	use objc && _lang+=( objc )
+	use objc-gc && conf_gcc+=( --enable-objc-gc )
+	use objc++ && _lang+=( objc++ )
+	use fortran && _lang+=( fortran )
+	use go && _lang+=( go )
+	use lto && _lang+=( lto )
 
-	use fortran && GCC_LANG+=",fortran"
-
-	use go && GCC_LANG+=",go"
-
-	# oh boy...
-	if use ada; then
-		GCC_LANG+=",ada"
-		# TODO: move this to pkg_setup
-		#
-		# Straight from the manual...
-		#
-		# In order to build GNAT, the Ada compiler, you need a working GNAT compiler (GCC version 4.7 or later).
-		# This includes GNAT tools such as gnatmake and gnatlink, since the Ada front end is written in Ada and uses some GNAT-specific extensions.
-		#
-		# In order to build a cross compiler, it is strongly recommended to install the new compiler as native first, and then use it to build the cross compiler.
-		# Other native compiler versions may work but this is not guaranteed and will typically fail with hard to understand compilation errors during the build.
-		#
-		# Similarly, it is strongly recommended to use an older version of GNAT to build GNAT.
-		# More recent versions of GNAT than the version built are not guaranteed to work and will often fail during the build with compilation errors.
-		# Note that configure does not test whether the GNAT installation works and has a sufficiently recent version; if too old a GNAT version is installed and --enable-languages=ada is used, the build will fail.
-		if use bootstrap && ! use system-bootstrap && ! is_crosscompile; then
-			export GNATBOOT="${WORKDIR}"/gnatboot/usr
-			PATH="${GNATBOOT}"/bin:${PATH}
-			conf_gcc+=(
-			    CC="${GNATBOOT}"/bin/gcc
-			    CXX="${GNATBOOT}"/bin/g++
-			    CPP="${GNATBOOT}"/bin/cpp
-			    AS=as
-			    LD=ld
-			)
-			einfo "Using Ada GNAT bootstrap compiler..."
-		fi
-		export PATH
-		einfo "PATH = ${PATH}"
-	fi
-
-	use d && GCC_LANG+=",d"
-
-	use jit && ! is_crosscompile && GCC_LANG+=",jit"
-
-	if use lto; then
-		GCC_LANG+=",lto"
-	fi
-
-	# and now add the GCC_LANG array to conf_gcc
+	# pass _lang to enable-languages
 	conf_gcc+=(
-		--enable-languages=${GCC_LANG}
+		--enable-languages=${_lang// /,}
 		--disable-libgcj
 	)
 
@@ -1274,100 +1251,6 @@ create_revdep_rebuild_entry() {
 	# Ignore libraries built for ${CTARGET}, https://bugs.gentoo.org/692844.
 	SEARCH_DIRS_MASK="${LIBPATH}"
 	EOF
-}
-
-# Move around the libs to the right location.  For some reason,
-# when installing gcc, it dumps internal libraries into /usr/lib
-# instead of the private gcc lib path
-gcc_movelibs() {
-
-	# For non-target libs which are for CHOST and not CTARGET, we want to
-	# move them to the compiler-specific CHOST internal dir.  This is stuff
-	# that you want to link against when building tools rather than building
-	# code to run on the target.
-	if tc_version_is_at_least 5 && is_crosscompile; then
-		dodir "${HOSTLIBPATH#${EPREFIX}}"
-		mv "${ED}"/usr/$(get_libdir)/libcc1* "${D}${HOSTLIBPATH}" || die
-	fi
-
-	# libgccjit gets installed to /usr/lib, not /usr/$(get_libdir), probably due to a bug in gcc build system.
-	if use jit ; then
-		dodir "${LIBPATH#${EPREFIX}}"
-		mv "${ED}"/usr/lib/libgccjit* "${D}${LIBPATH}" || die
-	fi
-
-	# For all the libs that are built for CTARGET, move them into the
-	# compiler-specific CTARGET internal dir.
-	local x multiarg removedirs=""
-	for multiarg in $($(get_make_var GCC_FOR_TARGET) -print-multi-lib) ; do
-		multiarg=${multiarg#*;}
-		multiarg=${multiarg//@/ -}
-
-		local OS_MULTIDIR=$($(get_make_var GCC_FOR_TARGET) ${multiarg} --print-multi-os-directory)
-		local MULTIDIR=$($(get_make_var GCC_FOR_TARGET) ${multiarg} --print-multi-directory)
-		local TODIR="${D}${LIBPATH}"/${MULTIDIR}
-		local FROMDIR=
-
-		[[ -d ${TODIR} ]] || mkdir -p ${TODIR}
-
-		for FROMDIR in \
-			"${LIBPATH}"/${OS_MULTIDIR} \
-			"${LIBPATH}"/../${MULTIDIR} \
-			"${PREFIX}"/lib/${OS_MULTIDIR} \
-			"${PREFIX}"/${CTARGET}/lib/${OS_MULTIDIR}
-		do
-			removedirs="${removedirs} ${FROMDIR}"
-			FROMDIR=${D}${FROMDIR}
-			if [[ ${FROMDIR} != "${TODIR}" && -d ${FROMDIR} ]] ; then
-				local files=$(find "${FROMDIR}" -maxdepth 1 ! -type d 2>/dev/null)
-				if [[ -n ${files} ]] ; then
-					mv ${files} "${TODIR}" || die
-				fi
-			fi
-		done
-		fix_libtool_libdir_paths "${LIBPATH}/${MULTIDIR}"
-
-		# SLOT up libgcj.pc if it's available (and let gcc-config worry about links)
-		FROMDIR="${PREFIX}/lib/${OS_MULTIDIR}"
-		for x in "${D}${FROMDIR}"/pkgconfig/libgcj*.pc ; do
-			[[ -f ${x} ]] || continue
-			sed -i "/^libdir=/s:=.*:=${LIBPATH}/${MULTIDIR}:" "${x}" || die
-			mv "${x}" "${D}${FROMDIR}"/pkgconfig/libgcj-${GCC_PV}.pc || die
-		done
-	done
-
-	# We remove directories separately to avoid this case:
-	#	mv SRC/lib/../lib/*.o DEST
-	#	rmdir SRC/lib/../lib/
-	#	mv SRC/lib/../lib32/*.o DEST  # Bork
-	for FROMDIR in ${removedirs} ; do
-		rmdir "${D}"${FROMDIR} >& /dev/null
-	done
-	find -depth "${ED}" -type d -exec rmdir {} + >& /dev/null
-}
-
-# make sure the libtool archives have libdir set to where they actually
-# -are-, and not where they -used- to be.  also, any dependencies we have
-# on our own .la files need to be updated.
-fix_libtool_libdir_paths() {
-	local libpath="$1"
-
-	pushd "${D}" >/dev/null
-
-	pushd "./${libpath}" >/dev/null
-	local dir="${PWD#${D%/}}"
-	local allarchives=$(echo *.la)
-	allarchives="\(${allarchives// /\\|}\)"
-	popd >/dev/null
-
-	# The libdir might not have any .la files. #548782
-	find "./${dir}" -maxdepth 1 -name '*.la' -exec sed -i -e "/^libdir=/s:=.*:='${dir}':" {} + || die
-	# Would be nice to combine these, but -maxdepth can not be specified
-	# on sub-expressions.
-	find "./${PREFIX}"/lib* -maxdepth 3 -name '*.la' -exec sed -i -e "/^dependency_libs=/s:/[^ ]*/${allarchives}:${libpath}/\1:g" {} + || die
-	find "./${dir}/" -maxdepth 1 -name '*.la' -exec sed -i -e "/^dependency_libs=/s:/[^ ]*/${allarchives}:${libpath}/\1:g" {} + || die
-
-	popd >/dev/null
 }
 
 src_install() {
