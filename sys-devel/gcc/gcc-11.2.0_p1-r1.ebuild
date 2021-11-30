@@ -721,9 +721,6 @@ src_configure() {
 			--enable-shared
 			--enable-threads=posix
 		)
-		conf_gcc+=( $(use_enable bootstrap) )
-		conf_gcc+=( $(use_enable openmp libgomp) )
-		tc-is-static-only && conf_gcc+=( --disable-shared ) || gcc_conf+=( --enable-shared )
 
 		# CHOST specific options
 		case ${CHOST} in
