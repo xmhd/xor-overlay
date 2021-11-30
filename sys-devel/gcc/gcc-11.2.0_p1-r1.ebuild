@@ -614,9 +614,9 @@ src_configure() {
 
 	if ! use system-bootstrap; then
 		conf_gcc+=(
-			CC="${GNATBOOT}"/usr/bin/gcc
-			CXX="${GNATBOOT}"/usr/bin/g++
-			CPP="${GNATBOOT}"/usr/bin/cpp
+			CC="${GNATBOOT}"/bin/gcc
+			CXX="${GNATBOOT}"/bin/g++
+			CPP="${GNATBOOT}"/bin/cpp
 			AS=as
 			LD=ld
 		)
