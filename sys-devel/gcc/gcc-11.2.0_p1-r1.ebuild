@@ -19,7 +19,7 @@ RESTRICT="strip"
 IUSE="ada +cxx d go +fortran jit objc objc++ objc-gc " # Languages
 IUSE="$IUSE bpf nvptx" # 'foreign' target support
 IUSE="$IUSE debug  test" # Run tests
-IUSE="$IUSE doc nls hardened +multilib multiarch" # docs/i18n/system flags
+IUSE="$IUSE doc nls hardened +multilib" # docs/i18n/system flags
 IUSE="$IUSE custom-cflags openmp fixed-point graphite lto pch +quad-math" # Optimizations/features flags
 IUSE="$IUSE +bootstrap pgo +system-bootstrap" # Bootstrap flags
 IUSE="$IUSE +pie libssp +ssp" # Base hardening flags
@@ -546,9 +546,6 @@ src_prepare() {
 	# Prevent new texinfo from breaking old versions (see #198182, #464008)
 	eapply "${FILESDIR}"/gcc-configure-texinfo.patch
 
-	# TODO
-	eapply "${FILESDIR}"/gcc-4.6.4-fix-libgcc-s-path-with-vsrl.patch
-
 	setup_multilib_osdirnames
 
 	einfo "Applying patches ..."
@@ -635,7 +632,6 @@ src_configure() {
 
 # PATHS:
 	conf_gcc+=(
-		--enable-version-specific-runtime-libs
 		--prefix=${PREFIX}
 		--bindir=${BINPATH}
 		--includedir=${INCLUDEPATH}
@@ -723,6 +719,12 @@ src_configure() {
 
 # BOOTSTRAP NATIVE:
 	if ! is_crosscompile; then
+		conf_gcc+=(
+			$(use_enable bootstrap)
+			$(use_enable openmp libgomp)
+			--enable-shared
+			--enable-threads=posix
+		)
 		conf_gcc+=( $(use_enable bootstrap) )
 		conf_gcc+=( $(use_enable openmp libgomp) )
 		tc-is-static-only && conf_gcc+=( --disable-shared ) || gcc_conf+=( --enable-shared )
@@ -749,7 +751,7 @@ src_configure() {
 		# Force disable for is_crosscompile as the configure script can be dumb - Gentoo Linux bug #359855
 		conf_gcc+=( --disable-libgomp )
 
-		case ${TARGET_LIBC} in
+		case ${CTARGET} in
 			dietlibc*)
 				conf_gcc+=( --disable-libstdcxx-time )
 				;;
@@ -845,8 +847,6 @@ src_configure() {
 		# below will break that on us.
 		conf_gcc+=( --disable-multilib )
 	fi
-
-	conf_gcc+=( $(use_enable multiarch) )
 
 	# translate our notion of multilibs into gcc's
 	local abi list
@@ -1057,7 +1057,6 @@ src_configure() {
 			--with-bugurl="http://bugs.cairnlinux.org"
 			--with-pkgversion="${GCC_BRANDING}"
 
-			--enable-version-specific-runtime-libs
 			--target=bpf
 			--prefix=${PREFIX_BPF}
 			--bindir=${BINPATH_BPF}
@@ -1100,7 +1099,6 @@ src_configure() {
 			--with-bugurl="http://bugs.cairnlinux.org"
 			--with-pkgversion="${GCC_BRANDING}"
 
-                        --enable-version-specific-runtime-libs
                         --prefix=${PREFIX}
                         --bindir=${BINPATH}
                         --includedir=${INCLUDEPATH}
@@ -1135,7 +1133,6 @@ src_configure() {
 			--with-bugurl="http://bugs.cairnlinux.org"
 			--with-pkgversion="${GCC_BRANDING}"
 
-			--enable-version-specific-runtime-libs
 			--target=${GCC_NVPTX_TARGET}
 			--prefix=${PREFIX_NVPTX}
 			--bindir=${BINPATH_NVPTX}
@@ -1309,6 +1306,100 @@ cross_gcc_env_setup() {
 	EOF
 }
 
+# Move around the libs to the right location.  For some reason,
+# when installing gcc, it dumps internal libraries into /usr/lib
+# instead of the private gcc lib path
+gcc_movelibs() {
+
+	# For non-target libs which are for CHOST and not CTARGET, we want to
+	# move them to the compiler-specific CHOST internal dir.  This is stuff
+	# that you want to link against when building tools rather than building
+	# code to run on the target.
+	if tc_version_is_at_least 5 && is_crosscompile; then
+		dodir "${HOSTLIBPATH#${EPREFIX}}"
+		mv "${ED}"/usr/$(get_libdir)/libcc1* "${D}${HOSTLIBPATH}" || die
+	fi
+
+	# libgccjit gets installed to /usr/lib, not /usr/$(get_libdir), probably due to a bug in gcc build system.
+	if use jit ; then
+		dodir "${LIBPATH#${EPREFIX}}"
+		mv "${ED}"/usr/lib/libgccjit* "${D}${LIBPATH}" || die
+	fi
+
+	# For all the libs that are built for CTARGET, move them into the
+	# compiler-specific CTARGET internal dir.
+	local x multiarg removedirs=""
+	for multiarg in $($(get_make_var GCC_FOR_TARGET) -print-multi-lib) ; do
+		multiarg=${multiarg#*;}
+		multiarg=${multiarg//@/ -}
+
+		local OS_MULTIDIR=$($(get_make_var GCC_FOR_TARGET) ${multiarg} --print-multi-os-directory)
+		local MULTIDIR=$($(get_make_var GCC_FOR_TARGET) ${multiarg} --print-multi-directory)
+		local TODIR="${D}${LIBPATH}"/${MULTIDIR}
+		local FROMDIR=
+
+		[[ -d ${TODIR} ]] || mkdir -p ${TODIR}
+
+		for FROMDIR in \
+			"${LIBPATH}"/${OS_MULTIDIR} \
+			"${LIBPATH}"/../${MULTIDIR} \
+			"${PREFIX}"/lib/${OS_MULTIDIR} \
+			"${PREFIX}"/${CTARGET}/lib/${OS_MULTIDIR}
+		do
+			removedirs="${removedirs} ${FROMDIR}"
+			FROMDIR=${D}${FROMDIR}
+			if [[ ${FROMDIR} != "${TODIR}" && -d ${FROMDIR} ]] ; then
+				local files=$(find "${FROMDIR}" -maxdepth 1 ! -type d 2>/dev/null)
+				if [[ -n ${files} ]] ; then
+					mv ${files} "${TODIR}" || die
+				fi
+			fi
+		done
+		fix_libtool_libdir_paths "${LIBPATH}/${MULTIDIR}"
+
+		# SLOT up libgcj.pc if it's available (and let gcc-config worry about links)
+		FROMDIR="${PREFIX}/lib/${OS_MULTIDIR}"
+		for x in "${D}${FROMDIR}"/pkgconfig/libgcj*.pc ; do
+			[[ -f ${x} ]] || continue
+			sed -i "/^libdir=/s:=.*:=${LIBPATH}/${MULTIDIR}:" "${x}" || die
+			mv "${x}" "${D}${FROMDIR}"/pkgconfig/libgcj-${GCC_PV}.pc || die
+		done
+	done
+
+	# We remove directories separately to avoid this case:
+	#	mv SRC/lib/../lib/*.o DEST
+	#	rmdir SRC/lib/../lib/
+	#	mv SRC/lib/../lib32/*.o DEST  # Bork
+	for FROMDIR in ${removedirs} ; do
+		rmdir "${D}"${FROMDIR} >& /dev/null
+	done
+	find -depth "${ED}" -type d -exec rmdir {} + >& /dev/null
+}
+
+# make sure the libtool archives have libdir set to where they actually
+# -are-, and not where they -used- to be.  also, any dependencies we have
+# on our own .la files need to be updated.
+fix_libtool_libdir_paths() {
+	local libpath="$1"
+
+	pushd "${D}" >/dev/null
+
+	pushd "./${libpath}" >/dev/null
+	local dir="${PWD#${D%/}}"
+	local allarchives=$(echo *.la)
+	allarchives="\(${allarchives// /\\|}\)"
+	popd >/dev/null
+
+	# The libdir might not have any .la files. #548782
+	find "./${dir}" -maxdepth 1 -name '*.la' -exec sed -i -e "/^libdir=/s:=.*:='${dir}':" {} + || die
+	# Would be nice to combine these, but -maxdepth can not be specified
+	# on sub-expressions.
+	find "./${PREFIX}"/lib* -maxdepth 3 -name '*.la' -exec sed -i -e "/^dependency_libs=/s:/[^ ]*/${allarchives}:${libpath}/\1:g" {} + || die
+	find "./${dir}/" -maxdepth 1 -name '*.la' -exec sed -i -e "/^dependency_libs=/s:/[^ ]*/${allarchives}:${libpath}/\1:g" {} + || die
+
+	popd >/dev/null
+}
+
 src_install() {
 
 # PRE-MAKE INSTALL SECTION:
@@ -1335,6 +1426,9 @@ src_install() {
 	S="${WORKDIR}"/build emake -j1 DESTDIR="${D}" install || die "make install failed"
 
 # POST-MAKE INSTALL SECTION:
+
+	# Move the libraries to the proper location
+	gcc_movelibs
 
 	# Basic sanity check
 	if ! is_crosscompile ; then
@@ -1384,17 +1478,6 @@ src_install() {
 			rm -f ${CTARGET}-${x}-${GCC_CONFIG_VER}
 			ln -sf ${CTARGET}-${x} ${CTARGET}-${x}-${GCC_CONFIG_VER}
 		fi
-	done
-
-	# the .la files that are installed have weird embedded single quotes around abs
-	# paths on the dependency_libs line. The following code finds and fixes them:
-	for x in $(find ${D}${LIBPATH} -iname '*.la'); do
-		dep="$(cat $x | grep ^dependency_libs)"
-		[ "$dep" == "" ] && continue
-		inner_dep="${dep#dependency_libs=}"
-		inner_dep="${inner_dep//\'/}"
-		inner_dep="${inner_dep# *}"
-		sed -i -e "s:^dependency_libs=.*$:dependency_libs=\'${inner_dep}\':g" $x || die
 	done
 
 	# When gcc builds a crosscompiler it does not install unprefixed tools.
@@ -1482,6 +1565,19 @@ src_install() {
 			-name 'libvtv.la' -o \
 			-name 'lib*san.la' \
 		')' -type f -delete
+
+	# replace gcc_movelibs - currently handles only libcc1:
+	( set +f
+		einfo -- "Removing extraneous libtool '.la' files from '${PREFIX}/lib*}'."
+		rm ${D%/}${PREFIX}/lib{,32,64}/*.la 2>/dev/null
+		einfo -- "Relocating libs to '${LIBPATH}':"
+		for l in "${D%/}${PREFIX}"/lib{,32,64}/* ; do
+			[ -f "${l}" ] || continue
+			mydir="${l%/*}" ; myfile="${l##*/}"
+			einfo -- "Moving '${myfile}' from '${mydir#${D}}' to '${LIBPATH}'."
+			cd "${mydir}" && mv "${myfile}" "${D}${LIBPATH}/${myfile}" 2>/dev/null || die
+		done
+	)
 
 	# Use gid of 0 because some stupid ports don't have
 	# the group 'root' set to gid 0.  Send to /dev/null
