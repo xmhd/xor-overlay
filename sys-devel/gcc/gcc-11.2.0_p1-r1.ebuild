@@ -284,6 +284,14 @@ pkg_setup() {
 		PATH="${GNATBOOT}"/bin:${PATH}
 		export PATH
 		einfo "PATH = ${PATH}"
+
+		CC="${GNATBOOT}"/bin/gcc
+		CXX="${GNATBOOT}"/bin/g++
+		CPP="${GNATBOOT}"/bin/cpp
+		AS=as
+		LD=ld
+
+		tc-export CC CXX CPP AS LD
 	fi
 
 # BRANDING:
@@ -611,16 +619,6 @@ src_prepare() {
 src_configure() {
 
 	local conf_gcc
-
-	if ! use system-bootstrap; then
-		conf_gcc+=(
-			CC="${GNATBOOT}"/bin/gcc
-			CXX="${GNATBOOT}"/bin/g++
-			CPP="${GNATBOOT}"/bin/cpp
-			AS=as
-			LD=ld
-		)
-	fi
 
 # BRANDING:
 
