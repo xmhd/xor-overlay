@@ -1057,6 +1057,7 @@ src_configure() {
 			--with-bugurl="http://bugs.cairnlinux.org"
 			--with-pkgversion="${GCC_BRANDING}"
 
+			--enable-version-specific-runtime-libs
 			--target=bpf
 			--prefix=${PREFIX_BPF}
 			--bindir=${BINPATH_BPF}
@@ -1093,6 +1094,7 @@ src_configure() {
 			--with-bugurl="http://bugs.cairnlinux.org"
 			--with-pkgversion="${GCC_BRANDING}"
 
+			--enable-version-specific-runtime-libs
 			--target=${GCC_NVPTX_TARGET}
 			--prefix=${PREFIX_NVPTX}
 			--bindir=${BINPATH_NVPTX}
