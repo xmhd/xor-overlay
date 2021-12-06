@@ -23,7 +23,7 @@ IUSE="${IUSE} cet hardened +kpti +retpoline selinux sign-modules"
 # initramfs
 IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth systemd udev zfs"
 # misc kconfig tweaks
-IUSE="${IUSE} dtrace +mcelog +memcg +numa"
+IUSE="${IUSE} +mcelog +memcg +numa"
 
 BDEPEND="
 	sys-devel/bc
@@ -354,11 +354,6 @@ src_configure() {
 		cp "${T}"/.config "${WORKDIR}"/build/.config || die "failed to copy .config into build dir"
 
 		local targets=( olddefconfig prepare modules_prepare scripts )
-
-		# DTrace has an additional target for the ctf archive
-		if use dtrace; then
-			targets+=( ctf )
-		fi
 
 		emake O="${WORKDIR}"/build "${MAKEARGS[@]}" "${targets[@]}" || die "kernel configure failed"
 
