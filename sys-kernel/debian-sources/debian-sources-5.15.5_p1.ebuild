@@ -15,11 +15,11 @@ SLOT="${PV}"
 RESTRICT="binchecks mirror strip"
 
 # general kernel USE flags
-IUSE="build-kernel clang compress debug +dracut doc symlink"
+IUSE="build-kernel clang compress debug +dracut symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
-IUSE="${IUSE} cet hardened +kpti +retpoline selinux sign-modules"
+IUSE="${IUSE} hardened +kpti +retpoline selinux sign-modules"
 # initramfs
 IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth systemd udev zfs"
 # misc kconfig tweaks
