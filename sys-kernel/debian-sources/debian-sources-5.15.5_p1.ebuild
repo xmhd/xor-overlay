@@ -19,7 +19,7 @@ IUSE="build-kernel clang compress debug +dracut doc symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
-IUSE="${IUSE} cet hardened +kpti pax +retpoline selinux sign-modules"
+IUSE="${IUSE} cet hardened +kpti +retpoline selinux sign-modules"
 # initramfs
 IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth systemd udev zfs"
 # misc kconfig tweaks
@@ -47,7 +47,6 @@ RDEPEND="
 	lvm? ( sys-fs/lvm2 )
 	mdadm? ( sys-fs/mdadm )
 	mcelog? ( app-admin/mcelog )
-	pax? ( app-misc/pax-utils )
 	plymouth? (
 		x11-libs/libdrm[libkms]
 		sys-boot/plymouth[libkms,udev]
@@ -569,10 +568,6 @@ pkg_postinst() {
 		ewarn "    Memory allocation"
 		ewarn "    ... and more"
 		ewarn ""
-		if use pax; then
-			ewarn "    W^X (writable or executable) TODO"
-			ewarn ""
-		fi
 		ewarn "These changes will stop certain programs from functioning"
 		ewarn "e.g. VirtualBox, Skype"
 		ewarn "Full information available in $DOCUMENTATION"
