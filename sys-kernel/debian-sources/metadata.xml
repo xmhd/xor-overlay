@@ -15,6 +15,7 @@
 		<flag name="dtrace">Enable support for DTrace in the kernel</flag>
 		<flag name="firmware">Include firmware in the initramfs</flag>
 		<flag name="hardened">Apply kernel hardening patch set and CONFIG_* tweaks</flag>
+		<flag name="kpti">Remove kernel mapping in user mode</flag>
 		<flag name="luks">Enable support for luks in the kernel + initramfs</flag>
 		<flag name="lvm">Enable support for lvm in the kernel + initramfs</flag>
 		<flag name="mcelog">Enable support for mcelog in the kernel</flag>
@@ -22,7 +23,6 @@
 		<flag name="memcg">Enable the memory controller for cgroups in the kernel</flag>
 		<flag name="microcode">Include microcode in the initramfs</flag>
 		<flag name="numa">Enable NUMA balancing in the kernel</flag>
-		<flag name="page-table-isolation">Remove kernel mapping in user mode</flag>
 		<flag name="pax">Enforces writable pages to be non-executable, and executable pages to be non-writable</flag>
 		<flag name="plymouth">Enable support for Plymouth bootsplash in the kernel + initramfs</flag>
 		<flag name="retpoline">Avoid speculative indirect branches in kernel</flag>

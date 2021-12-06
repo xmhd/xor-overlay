@@ -19,7 +19,7 @@ IUSE="build-kernel clang compress debug +dracut doc symlink"
 # optimize
 IUSE="${IUSE} custom-cflags"
 # security
-IUSE="${IUSE} cet hardened +page-table-isolation pax +retpoline selinux sign-modules"
+IUSE="${IUSE} cet hardened +kpti pax +retpoline selinux sign-modules"
 # initramfs
 IUSE="${IUSE} btrfs firmware luks lvm mdadm microcode plymouth systemd udev zfs"
 # misc kconfig tweaks
@@ -266,7 +266,7 @@ src_prepare() {
 		tweak_config "CONFIG_NUMA_BALANCING=n"
 	fi
 
-	if use page-table-isolation; then
+	if use kpti; then
 		tweak_config "CONFIG_PAGE_TABLE_ISOLATION=y"
 		if use arm64; then
 			tweak_config "CONFIG_UNMAP_KERNEL_AT_EL0=y"
